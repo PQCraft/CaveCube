@@ -1,0 +1,5 @@
+name=Water
+id=water
+texturetype=animated
+anidelay=200
+opacity=0.667
