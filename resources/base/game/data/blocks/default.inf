@@ -1,0 +1,25 @@
+# Block name
+name=Unknown
+
+# Block ID
+id=
+
+# Block texture directory
+# If no texture is specified, it will use the folder in textures/blocks/ matching the block id
+# Texture extension load order: png, jpg, bmp
+# If no texture can be found, game/textures/common/missing.bmp will be used
+#texture=
+
+# Texture type
+# Texture types: default (uses one texture for all sides), multi (uses textures named after the side), random (uses a random texture for all sides), randomall (uses a random texture for each side), animated (animated set of images)
+# All texture types other than default require the use of the texture/ folder
+# The multi texture type searches for images named after sides and falls back to an image named default if there is no texture for that side.
+# Side names: front, back, left, right, top, bottom
+# The animated texture type searches for images 0, 1, 2, etc. Once an image is not found for a number, it is assumed to be the end of the animation.
+#texturetype=
+
+# Animation frame delay in milliseconds
+#anidelay=
+
+# Opacity (0.0 = transparent, 0.5 = half visible, 1.0 = visible)
+#opacity=
