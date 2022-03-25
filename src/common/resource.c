@@ -1,7 +1,7 @@
 #include "common.h"
 #include "resource.h"
 #include "stb_image.h"
-#include "../bmd/bmd.h"
+#include <bmd.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -40,6 +40,7 @@ char* getResourcePath(char* path) {
 }
 
 void* makeResource(int type, char* path) {
+    if (isFile(path) != 1) {fprintf(stderr, "makeResource: Cannot load %s", path); return NULL;}
     void* data = NULL;
     switch (type) {
         case RESOURCE_TEXTFILE:;
@@ -51,13 +52,13 @@ void* makeResource(int type, char* path) {
             *(filedata*)data = getBinFile(path);
             break;
         case RESOURCE_BMD:;
-            resdata_bmd* bmddata = data = malloc(sizeof(resdata_bmd));
+            resdata_bmd* bmddata = data = calloc(1, sizeof(resdata_bmd));
             temploadBMD(getBinFile(path), &bmddata->indices, &bmddata->isize, &bmddata->vertices, &bmddata->vsize);
             break;
         case RESOURCE_IMAGE:;
             stbi_set_flip_vertically_on_load(true);
-            resdata_image* imagedata = data = malloc(sizeof(resdata_image));
-            stbi_load(path, &imagedata->width, &imagedata->height, &imagedata->channels, 0);
+            resdata_image* imagedata = data = calloc(1, sizeof(resdata_image));
+            imagedata->data = stbi_load(path, &imagedata->width, &imagedata->height, &imagedata->channels, 0);
             break;
         case RESOURCE_SOUND:;
             break;

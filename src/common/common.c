@@ -1,7 +1,7 @@
 #include "common.h"
 
-#include "../lzmalib/LzmaLib.h"
-#include "../lzmalib/7zTypes.h"
+#include <LzmaLib.h>
+#include <7zTypes.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -42,7 +42,7 @@ filedata getFile(char* name, char* mode) {
     }
     fseek(file, 0, SEEK_END);
     long size = ftell(file);
-    unsigned char* data = malloc(size + 1);
+    unsigned char* data = calloc(size + 1, 1);
     fseek(file, 0, SEEK_SET);
     long i = 0;
     while (i < size && !feof(file)) {
@@ -192,6 +192,7 @@ bool getConfigValBool(char* val) {
 
 unsigned char* decompressData(unsigned char* data, size_t insize, size_t outsize) {
     unsigned char* outbuf = malloc(outsize);
+    outsize -= LZMA_PROPS_SIZE;
     int ret = LzmaUncompress(outbuf, &outsize, &data[LZMA_PROPS_SIZE], &insize, data, LZMA_PROPS_SIZE);
     if (ret != SZ_OK) {fprintf(stderr, "decompressData error: [%d] at [%lu]\n", ret, outsize); free(outbuf); return NULL;}
     return outbuf;
