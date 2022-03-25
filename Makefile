@@ -25,6 +25,8 @@ INCLUDEDIRS = $(addprefix -I$(SRCDIR)/,$(BASEDIRS))
 
 ifdef OS
 BINEXT := .exe
+else
+BINEXT := .bin
 endif
 
 BINNAME := cavecube
