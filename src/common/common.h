@@ -3,6 +3,7 @@
 
 #include <inttypes.h>
 #include <stddef.h>
+#include <stdbool.h>
 
 typedef struct {
     long size;
@@ -20,5 +21,13 @@ unsigned char* decompressData(unsigned char*, size_t, size_t);
 unsigned char* compressData(unsigned char*, size_t, size_t*);
 void setRandSeed(uint64_t);
 uint8_t getRandByte(void);
+int isFile(char*);
+void getConfigVar(char*, char*, char*, long, char*);
+char* getConfigVarAlloc(char*, char*, char*, long);
+char* getConfigVarStatic(char*, char*, char*, long);
+bool getConfigValBool(char*);
+uint64_t altutime(void);
+
+#define GCBUFSIZE 32768
 
 #endif

@@ -21,15 +21,21 @@ DIRS := $(patsubst %/,%,$(DIRS))
 DIRS := $(patsubst %\,%,$(DIRS))
 BASEDIRS := $(notdir $(DIRS))
 
+INCLUDEDIRS = $(addprefix -I$(SRCDIR)/,$(BASEDIRS))
+
 ifdef OS
 BINEXT := .exe
 endif
 
-BIN := testbin$(BINEXT)
+BINNAME := cavecube
 
-CFLAGS += -Wall -Wextra -O2 -g -lm
+BIN := $(BINNAME)$(BINEXT)
 
-MKENV = NAME=$@ HEADDIR=$(CURDIR) SRCDIR=$(SRCDIR) OBJDIR=$(OBJDIR) COMMONMK=$(CURDIR)/common.mk CC="$(CC)" CFLAGS="$(CFLAGS)"
+CFLAGS += -Wall -Wextra -I. -g 
+
+BINFLAGS += -lpthread -lm -lglfw
+
+MKENV = NAME=$@ HEADDIR=$(CURDIR) SRCDIR=$(SRCDIR) OBJDIR=$(OBJDIR) COMMONMK=$(CURDIR)/common.mk CC="$(CC)" CFLAGS="$(CFLAGS) $(INCLUDEDIRS)"
 MKENV2 = CC="$(CC)" CFLAGS="$(CFLAGS)"
 
 ifndef OS
@@ -67,7 +73,7 @@ bin: FORCE $(BIN)
 ifdef MKSUB
 $(BIN): $(wildcard $(OBJDIR)/*/*.o)
 	@echo Compiling $(BIN)...
-	@$(CC) -lpthread $(wildcard $(OBJDIR)/*/*.o) -o $(BIN)
+	@$(CC) $(BINFLAGS) $(wildcard $(OBJDIR)/*/*.o) -o $(BIN)
 	@echo Compiled $(BIN)
 else
 $(BIN): files
