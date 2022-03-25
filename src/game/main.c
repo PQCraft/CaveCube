@@ -1,13 +1,12 @@
 #include "main.h"
-#include "../common/common.h"
-#include "../common/resource.h"
-#include "../bmd/bmd.h"
-#include "../renderer/renderer.h"
+#include <common.h>
+#include <resource.h>
+#include <bmd.h>
+#include <renderer.h>
 
 #include <stdio.h>
 #include <stdlib.h>
 
-/*
 float vertices[] = {
     -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
      0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
@@ -74,7 +73,6 @@ uint32_t indices[] = {
     20, 21, 22,
     22, 23, 20,
 };
-*/
 
 char* config;
 filedata config_filedata;
@@ -120,7 +118,23 @@ int main(int argc, char** argv) {
     resdata_file* info2 = loadResource(RESOURCE_TEXTFILE, "info.inf");
     printf("pointers: [%lu] vs [%lu]\n", (uintptr_t)info, (uintptr_t)info2);
     */
+    /*
+    uint32_t* ia = NULL;
+    uint32_t is = 0;
+    float* va = NULL;
+    uint32_t vs = 0;
+    temploadBMD(getBinFile("resources/base/game/models/block/default.bmd"), &ia, &is, &va, &vs);
+    printf("indices:\n");
+    for (int i = 0; i < is / 3 / sizeof(uint32_t); ++i) {
+        printf("\t[%u] [%u] [%u]\n", ia[i * 3], ia[i * 3 + 1], ia[i * 3 + 2]);
+    }
+    printf("vertices:\n");
+    for (int i = 0; i < vs / 5 / sizeof(float); ++i) {
+        printf("\t[%lf] [%lf] [%lf] [%lf] [%lf]\n", va[i * 5], va[i * 5 + 1], va[i * 5 + 2], va[i * 5 + 3], va[i * 5 + 4]);
+    }
+    */
     initRenderer();
+    testRenderer();
     freeFile(config_filedata);
     return 0;
 }

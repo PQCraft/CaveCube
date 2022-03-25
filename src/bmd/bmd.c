@@ -5,11 +5,12 @@
 #include <sys/stat.h>
 #include <string.h>
 
-#include "../common/common.h"
+#include <common.h>
 
 // Vertex format: position x, position y, position z, texture x, texture y
 
 unsigned char* createBMD(uint32_t* indices, uint32_t isize, float* vertices, uint32_t vsize, uint32_t* size) {
+    
     *size = isize + vsize + sizeof(uint32_t) * 2;
     unsigned char* outbuf = malloc(*size + sizeof(uint32_t));
     memset(outbuf, 0, *size + sizeof(uint32_t));
@@ -46,14 +47,16 @@ bool readBMD(unsigned char* data, uint32_t size, uint32_t** indices, uint32_t* i
     unsigned char* out = decompressData(data, size, nsize);
     unsigned char* tmpout = out;
     memcpy(isize, tmpout, sizeof(uint32_t));
+    *isize *= sizeof(uint32_t);
     tmpout += sizeof(uint32_t);
-    *indices = malloc(*isize * sizeof(uint32_t));
-    memcpy(*indices, tmpout, *isize * sizeof(uint32_t));
-    tmpout += *isize * sizeof(uint32_t);
+    *indices = malloc(*isize);
+    memcpy(*indices, tmpout, *isize);
+    tmpout += *isize;
     memcpy(vsize, tmpout, sizeof(uint32_t));
+    *vsize *= sizeof(float);
     tmpout += sizeof(uint32_t);
-    *vertices = malloc(*vsize * sizeof(float));
-    memcpy(*vertices, tmpout, *vsize * sizeof(uint32_t));
+    *vertices = malloc(*vsize);
+    memcpy(*vertices, tmpout, *vsize);
     free(out);
     return true;
 }

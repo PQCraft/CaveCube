@@ -4,7 +4,7 @@
 #include <inttypes.h>
 #include <stdbool.h>
 
-#include "../common/common.h"
+#include <common.h>
 
 unsigned char* createBMD(uint32_t*, uint32_t, float*, uint32_t, uint32_t*);
 bool readBMD(unsigned char*, uint32_t, uint32_t**, uint32_t*, float**, uint32_t*);

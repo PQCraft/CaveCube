@@ -4,6 +4,7 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <stdbool.h>
+#include <resource.h>
 
 typedef struct {
     float x;
@@ -37,8 +38,22 @@ typedef struct {
     GLuint shaderprog;
 } renderer_info;
 
+typedef struct {
+    coord_3d pos;
+    coord_3d rot;
+    coord_3d scale;
+    resdata_bmd* mesh;
+    unsigned int VBO, VAO, EBO;
+    unsigned int texture;
+} model;
+
 extern renderer_info rendinf;
 
 bool initRenderer();
+
+#define GFX_DEFAULT_POS (coord_3d){0.0, 0.0, 0.0}
+#define GFX_DEFAULT_ROT (coord_3d){0.0, 0.0, 0.0}
+#define GFX_DEFAULT_SCALE (coord_3d){1.0, 1.0, 1.0}
+#define GFX_DEFAULT_MAT4 {{1.0, 0.0, 0.0, 0.0}, {0.0, 1.0, 0.0, 0.0}, {0.0, 0.0, 1.0, 0.0}, {0.0, 0.0, 0.0, 1.0}}
 
 #endif
