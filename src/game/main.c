@@ -1,9 +1,13 @@
+#include "main.h"
 #include "../common/common.h"
+#include "../common/resource.h"
 #include "../bmd/bmd.h"
+#include "../renderer/renderer.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 
+/*
 float vertices[] = {
     -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
      0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
@@ -70,8 +74,17 @@ uint32_t indices[] = {
     20, 21, 22,
     22, 23, 20,
 };
+*/
+
+char* config;
+filedata config_filedata;
 
 int main(int argc, char** argv) {
+    while (!(config_filedata = getTextFile("config.cfg")).data) {
+        FILE* fp = fopen("config.cfg", "w");
+        fclose(fp);
+    }
+    config = (char*)config_filedata.data;
     /*
     uint32_t size = 0;
     unsigned char* data = createBMD(indices, sizeof(indices), vertices, sizeof(vertices), &size);
@@ -101,5 +114,13 @@ int main(int argc, char** argv) {
         if ((i % 16) == 15) putchar('\n');
     }
     */
+    /*
+    resdata_file* info = loadResource(RESOURCE_TEXTFILE, "game/models/block/default.bmd");
+    printf("file data [%ld]:\n%s\n", info->size, info->data);
+    resdata_file* info2 = loadResource(RESOURCE_TEXTFILE, "info.inf");
+    printf("pointers: [%lu] vs [%lu]\n", (uintptr_t)info, (uintptr_t)info2);
+    */
+    initRenderer();
+    freeFile(config_filedata);
     return 0;
 }
