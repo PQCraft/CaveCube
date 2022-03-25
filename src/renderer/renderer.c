@@ -24,7 +24,7 @@ void setUniform3f(GLuint prog, char* name, float val[3]) {
     glUniform3f(uHandle, val[0], val[1], val[2]);
 }
 
-static inline void setFullscreen(bool fullscreen) {
+void setFullscreen(bool fullscreen) {
     static int winox, winoy = 0;
     if (fullscreen) {
         gfx_aspect = (float)rendinf.full_width / (float)rendinf.full_height;
@@ -201,21 +201,39 @@ void renderModel(model* m) {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
+extern float posmult;
+extern float rotmult;
+extern float fpsmult;
+
 void testRenderer() {
     model* m1 = loadModel("game/models/block/default.bmd", "game/textures/blocks/stone/0.png");
     model* m2 = loadModel("game/models/block/default.bmd", "game/textures/blocks/dirt/0.png");
-    m1->pos = (coord_3d){1.0, 0.5, -2.0};
-    m2->pos = (coord_3d){-1.0, 0.5, 2.0};
+    model* m3 = loadModel("game/models/block/default.bmd", "game/textures/blocks/gravel/0.png");
+    model* m4 = loadModel("game/models/block/default.bmd", "game/textures/blocks/bedrock/0.png");
+    m1->pos = (coord_3d){0.0, 0.5, -2.0};
+    m2->pos = (coord_3d){0.0, 0.5, 2.0};
+    m3->pos = (coord_3d){-2.0, 1.5, 0.0};
+    m4->pos = (coord_3d){2.0, 1.5, 0.0};
     rendinf.campos.y = 1.5;
+    initInput();
+    float opm = posmult;
+    float orm = rotmult;
     while (1) {
-        rendinf.camrot.y += 0.5;
+        uint64_t starttime = altutime();
+        glfwPollEvents();
+        testInput();
         updateCam();
         //printf("[%f]\n", rendinf.camrot.y);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         renderModel(m1);
         renderModel(m2);
+        renderModel(m3);
+        renderModel(m4);
         glfwSwapInterval(rendinf.vsync);
         glfwSwapBuffers(rendinf.window);
+        fpsmult = (float)(altutime() - starttime) / (1000000.0f / 60.0f);
+        posmult = opm * fpsmult;
+        rotmult = orm * fpsmult;
     }
 }
 
