@@ -8,15 +8,15 @@
 typedef struct {
     long size;
     unsigned char* data;
-} filedata;
+} file_data;
 
-#define FILEDATA_NULL (filedata){0, NULL}
-#define FILEDATA_ERROR (filedata){-1, NULL}
+#define FILEDATA_NULL (file_data){0, NULL}
+#define FILEDATA_ERROR (file_data){-1, NULL}
 
-filedata getFile(char*, char*);
-filedata getBinFile(char*);
-filedata getTextFile(char*);
-void freeFile(filedata);
+file_data getFile(char*, char*);
+file_data getBinFile(char*);
+file_data getTextFile(char*);
+void freeFile(file_data);
 unsigned char* decompressData(unsigned char*, size_t, size_t);
 unsigned char* compressData(unsigned char*, size_t, size_t*);
 void setRandSeed(uint64_t);

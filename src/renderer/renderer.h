@@ -1,4 +1,7 @@
 #ifndef RENDERER_H
+
+#ifndef RENDERER_H_STUB
+
 #define RENDERER_H
 
 #include <glad/glad.h>
@@ -39,21 +42,39 @@ typedef struct {
 } renderer_info;
 
 typedef struct {
+    unsigned VBO;
+    unsigned VAO;
+    unsigned EBO;
+    resdata_texture* texture;
+} model_renddata;
+
+typedef struct {
     coord_3d pos;
     coord_3d rot;
     coord_3d scale;
-    resdata_bmd* mesh;
-    unsigned int VBO, VAO, EBO;
-    unsigned int texture;
+    resdata_bmd* model;
+    model_renddata* renddata;
 } model;
+
+#endif
+
+typedef unsigned int texture_t;
+
+#ifndef RENDERER_H_STUB
 
 extern renderer_info rendinf;
 
 bool initRenderer();
+void quitRenderer();
+int rendererQuitRequest();
+void createTexture(unsigned char*, resdata_texture*);
+void destroyTexture(resdata_texture*);
 
 #define GFX_DEFAULT_POS (coord_3d){0.0, 0.0, 0.0}
 #define GFX_DEFAULT_ROT (coord_3d){0.0, 0.0, 0.0}
 #define GFX_DEFAULT_SCALE (coord_3d){1.0, 1.0, 1.0}
-#define GFX_DEFAULT_MAT4 {{1.0, 0.0, 0.0, 0.0}, {0.0, 1.0, 0.0, 0.0}, {0.0, 0.0, 1.0, 0.0}, {0.0, 0.0, 0.0, 1.0}}
+#define GFX_DEFAULT_MAT4 {{1.0, 0.0, 0.0, 0.0}, {0.0, 1.0, 0.0, 0.0}, {0.0, 0.0, -1.0, 0.0}, {0.0, 0.0, 0.0, 1.0}}
+
+#endif
 
 #endif
