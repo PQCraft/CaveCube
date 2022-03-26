@@ -17,6 +17,7 @@ void main() {
     TexCoord = aTexCoord;
     FragPos = vec3(model * vec4(aPos, 1.0));
     if (is2D == 0) {
+        //FragPos.z *= -1.0;
         gl_Position = projection * view * vec4(FragPos, 1.0);
     } else {
         gl_Position = vec4(FragPos, 1.0);

@@ -6,9 +6,22 @@
 
 #include <common.h>
 
-unsigned char* createBMD(uint32_t*, uint32_t, float*, uint32_t, uint32_t*);
-bool readBMD(unsigned char*, uint32_t, uint32_t**, uint32_t*, float**, uint32_t*);
-bool loadBMD(filedata, uint32_t**, uint32_t*, float**, uint32_t*);
-bool temploadBMD(filedata, uint32_t**, uint32_t*, float**, uint32_t*);
+typedef struct {
+    uint32_t isize;
+    uint32_t* indices;
+    uint32_t vsize;
+    float* vertices;
+} bmd_part;
+
+typedef struct {
+    uint32_t parts;
+    bmd_part* part;
+} bmd_data;
+
+unsigned char* createBMD(bmd_data*, uint32_t*);
+bool readBMD(unsigned char*, uint32_t, bmd_data*);
+bool loadBMD(file_data, bmd_data*);
+bool temploadBMD(file_data, bmd_data*);
+void freeBMD(bmd_data*);
 
 #endif

@@ -24,7 +24,7 @@ int isFile(char* path) {
     return !(S_ISDIR(pathstat.st_mode));
 }
 
-filedata getFile(char* name, char* mode) {
+file_data getFile(char* name, char* mode) {
     struct stat fnst;
     memset(&fnst, 0, sizeof(struct stat));
     if (stat(name, &fnst)) {
@@ -51,15 +51,15 @@ filedata getFile(char* name, char* mode) {
         data[i++] = (char)tmpc;
     }
     fclose(file);
-    return (filedata){size, data};
+    return (file_data){size, data};
 }
 
-filedata getBinFile(char* name) {
+file_data getBinFile(char* name) {
     return getFile(name, "rb");
 }
 
-filedata getTextFile(char* name) {
-    filedata file = getFile(name, "r");
+file_data getTextFile(char* name) {
+    file_data file = getFile(name, "r");
     if ((file.size > 0 && file.data[file.size - 1]) || file.size > -1) {
         file.data = realloc(file.data, file.size + 1);
         file.data[file.size++] = 0;
@@ -67,7 +67,7 @@ filedata getTextFile(char* name) {
     return file;
 }
 
-void freeFile(filedata file) {
+void freeFile(file_data file) {
     free(file.data);
 }
 
@@ -194,7 +194,8 @@ unsigned char* decompressData(unsigned char* data, size_t insize, size_t outsize
     unsigned char* outbuf = malloc(outsize);
     outsize -= LZMA_PROPS_SIZE;
     int ret = LzmaUncompress(outbuf, &outsize, &data[LZMA_PROPS_SIZE], &insize, data, LZMA_PROPS_SIZE);
-    if (ret != SZ_OK) {fprintf(stderr, "decompressData error: [%d] at [%lu]\n", ret, outsize); free(outbuf); return NULL;}
+    //printf("decompressData: [%lu]\n", outsize + LZMA_PROPS_SIZE);
+    if (ret != SZ_OK) {fprintf(stderr, "decompressData: error [%d] at [%lu]\n", ret, outsize); free(outbuf); return NULL;}
     return outbuf;
 }
 
@@ -205,7 +206,7 @@ unsigned char* compressData(unsigned char* data, size_t insize, size_t* outsize)
     insize -= LZMA_PROPS_SIZE;
     size_t propsSize = LZMA_PROPS_SIZE;
     int ret = LzmaCompress(&outbuf[LZMA_PROPS_SIZE], outsize, data, insize, outbuf, &propsSize, 9, 0, -1, -1, -1, -1, 1);
-    if (ret != SZ_OK) {fprintf(stderr, "compressData error: [%d] at [%lu]\n", ret, *outsize); free(outbuf); return NULL;}
+    if (ret != SZ_OK) {fprintf(stderr, "compressData: error [%d] at [%lu]\n", ret, *outsize); free(outbuf); return NULL;}
     *outsize += LZMA_PROPS_SIZE;
     return outbuf;
 }

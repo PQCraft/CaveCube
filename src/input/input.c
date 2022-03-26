@@ -1,13 +1,15 @@
 #include <common.h>
 #include <renderer.h>
+#include <main.h>
 #include "input.h" 
 
 #include <GLFW/glfw3.h>
 
 #include <math.h>
 
-void initInput() {
+bool initInput() {
     if (glfwRawMouseMotionSupported()) glfwSetInputMode(rendinf.window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+    return true;
 }
 
 float posmult = 0.125;
@@ -15,7 +17,11 @@ float rotmult = 3;
 float fpsmult = 0;
 float mousesns = 0.125;
 
+float input_xrot = 0.0;
+float input_yrot = 0.0;
+
 void testInput() {
+    quitRequest += rendererQuitRequest();
     float pmult = posmult;
     float rmult = rotmult;
     static int fullscreen = -1;
@@ -114,4 +120,10 @@ void testInput() {
         rendinf.campos.x += cosf(yrotrad) * pmult;
         rendinf.campos.z += sinf(yrotrad) * pmult;
     }
+}
+
+input_info getInput() {
+    quitRequest += rendererQuitRequest();
+    input_info inf = INPUT_EMPTY_INFO;
+    return inf;
 }
