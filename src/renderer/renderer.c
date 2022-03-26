@@ -230,6 +230,8 @@ extern float posmult;
 extern float rotmult;
 extern float fpsmult;
 
+#define NMAGIC(x) (fmod(fabs(x), 256.0) / 128.0)
+
 void testRenderer() {
     char* tpath = "game/textures/blocks/stone/0.png";
     model* m2 = loadModel("game/models/block/default.bmd", tpath, tpath, tpath, tpath, tpath, tpath);
@@ -248,6 +250,7 @@ void testRenderer() {
     initInput();
     float opm = posmult;
     float orm = rotmult;
+    initNoiseTable();
     while (!quitRequest) {
         uint64_t starttime = altutime();
         glfwPollEvents();
@@ -255,11 +258,25 @@ void testRenderer() {
         updateCam();
         //printf("[%f]\n", rendinf.camrot.y);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        //putchar('\n');
         for (uint32_t i = 0; i < 48; ++i) {
             for (uint32_t j = 0; j < 48; ++j) {
-                renderModelAt(m1, (coord_3d){0.0 - (float)j, -1.0, 0.0 - (float)i}, false);
+                double s = perlin2d((double)(j)/48.0, (double)(i)/48.0, (double)1.0, (int)2);
+                double s1 = perlin2d((double)(j + 1)/48.0, (double)(i)/48.0, (double)1.0, (int)2);
+                double s2 = perlin2d((double)(j - 1)/48.0, (double)(i)/48.0, (double)1.0, (int)2);
+                double s3 = perlin2d((double)(j)/48.0, (double)(i + 1)/48.0, (double)1.0, (int)2);
+                double s4 = perlin2d((double)(j)/48.0, (double)(i - 1)/48.0, (double)1.0, (int)2);
+                s = NMAGIC(s);
+                s1 = NMAGIC(s1);
+                s2 = NMAGIC(s2);
+                s3 = NMAGIC(s3);
+                s4 = NMAGIC(s4);
+                //printf("[%f] [%f] [%f] [%f] [%f]\n", s, s1, s2, s3, s4);
+                s = (s + s1 + s2 + s3 + s4) / 5.0;
+                renderModelAt(m1, (coord_3d){0.0 - (float)j, -1.0 - (int)s, 0.0 - (float)i}, false);
             }
         }
+        //putchar('\n');
         renderModel(m2, false);
         renderModel(m3, false);
         renderModel(m4, false);
