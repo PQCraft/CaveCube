@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define NMAGIC(x) (fmod(fabs(x), 256.0) / 128.0)
+
 static const int  SEED = 1985;
 
 unsigned char* hash = NULL;
@@ -50,17 +52,32 @@ static double noise2d(double x, double y) {
 }
 
 double perlin2d(double x, double y, double freq, int depth) {
-    double  xa = x*freq;
-    double  ya = y*freq;
-    double  amp = 1.0;
-    double  fin = 0;
-    double  div = 0.0;
+    double xa = x * freq;
+    double ya = y * freq;
+    double amp = 1.0;
+    double fin = 0;
+    double div = 0.0;
     for (int i = 0; i < depth; i++) {
         div += 256 * amp;
-        fin += noise2d( xa, ya ) * amp;
+        fin += noise2d(xa, ya) * amp;
         amp /= 2;
         xa *= 2;
         ya *= 2;
     }
     return fin/div;
+}
+
+double mperlin2d(double x, double y, double freq, int depth, int samples) {
+    double s = 0.0;
+    double div = (1 + samples * 2) + samples * samples * 2;
+    //printf("BEGIN: [%lf]\n", div);
+    for (int i = -samples; i <= samples; ++i) {
+        int s2 = samples - abs(i);
+        for (int j = -s2; j <= s2; ++j) {
+            //printf("[%d] [%d]\n", i, j);
+            s += perlin2d(x, y, freq, depth);
+        }
+    }
+    //puts("END");
+    return s / div;
 }
