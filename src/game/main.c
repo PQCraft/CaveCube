@@ -1,4 +1,5 @@
 #include "main.h"
+#include "game.h"
 #include <common.h>
 #include <resource.h>
 #include <bmd.h>
@@ -199,7 +200,8 @@ int main(int argc, char** argv) {
     */
     stbi_set_flip_vertically_on_load(true);
     initRenderer();
-    testRenderer();
+    //testRenderer();
+    doGame();
     freeAllResources();
     quitRenderer();
     freeFile(config_filedata);

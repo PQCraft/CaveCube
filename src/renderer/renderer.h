@@ -64,16 +64,22 @@ typedef unsigned int texture_t;
 
 extern renderer_info rendinf;
 
-bool initRenderer();
-void quitRenderer();
-int rendererQuitRequest();
+bool initRenderer(void);
+void quitRenderer(void);
+int rendererQuitRequest(void);
 void createTexture(unsigned char*, resdata_texture*);
 void destroyTexture(resdata_texture*);
+model* loadModel(char*, ...);
+void renderModelAt(model*, coord_3d, bool);
+void renderModel(model*, bool);
+void updateCam(void);
 
 #define GFX_DEFAULT_POS (coord_3d){0.0, 0.0, 0.0}
 #define GFX_DEFAULT_ROT (coord_3d){0.0, 0.0, 0.0}
 #define GFX_DEFAULT_SCALE (coord_3d){1.0, 1.0, 1.0}
 #define GFX_DEFAULT_MAT4 {{1.0, 0.0, 0.0, 0.0}, {0.0, 1.0, 0.0, 0.0}, {0.0, 0.0, -1.0, 0.0}, {0.0, 0.0, 0.0, 1.0}}
+
+extern renderer_info rendinf;
 
 #endif
 
