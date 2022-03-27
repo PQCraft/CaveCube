@@ -227,57 +227,6 @@ int rendererQuitRequest() {
     return (glfwWindowShouldClose(rendinf.window) != 0);
 }
 
-extern float posmult;
-extern float rotmult;
-extern float fpsmult;
-
-void testRenderer() {
-    char* tpath = "game/textures/blocks/stone/0.png";
-    model* m2 = loadModel("game/models/block/default.bmd", tpath, tpath, tpath, tpath, tpath, tpath);
-    //tpath = "game/textures/blocks/dirt/0.png";
-    #define PREFIX1 "game/textures/blocks/grass/"
-    model* m1 = loadModel("game/models/block/default.bmd", PREFIX1"0.png", PREFIX1"1.png", PREFIX1"2.png", PREFIX1"3.png", PREFIX1"4.png", PREFIX1"5.png");
-    tpath = "game/textures/blocks/gravel/0.png";
-    model* m3 = loadModel("game/models/block/default.bmd", tpath, tpath, tpath, tpath, tpath, tpath);
-    tpath = "game/textures/blocks/bedrock/0.png";
-    model* m4 = loadModel("game/models/block/default.bmd", tpath, tpath, tpath, tpath, tpath, tpath);
-    m1->pos = (coord_3d){0.0, 0.5, -2.0};
-    m2->pos = (coord_3d){0.0, 2.5, 2.0};
-    m3->pos = (coord_3d){-2.0, 1.5, 0.0};
-    m4->pos = (coord_3d){2.0, 3.5, 0.0};
-    rendinf.campos.y = 1.5;
-    initInput();
-    float opm = posmult;
-    float orm = rotmult;
-    initNoiseTable();
-    while (!quitRequest) {
-        uint64_t starttime = altutime();
-        glfwPollEvents();
-        testInput();
-        updateCam();
-        //printf("[%f]\n", rendinf.camrot.y);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        //putchar('\n');
-        for (uint32_t i = 0; i < 48; ++i) {
-            for (uint32_t j = 0; j < 48; ++j) {
-                double s = perlin2d((double)(j) / 5, (double)(i) / 5, 1.0, 1);
-                s *= 4;
-                //printf("[%f]\n", s);
-                renderModelAt(m1, (coord_3d){0.0 - (float)j, -1.0 - (int)s, 0.0 - (float)i}, false);
-            }
-        }
-        //putchar('\n');
-        renderModel(m2, false);
-        renderModel(m3, false);
-        renderModel(m4, false);
-        glfwSwapInterval(rendinf.vsync);
-        glfwSwapBuffers(rendinf.window);
-        fpsmult = (float)(altutime() - starttime) / (1000000.0f / 60.0f);
-        posmult = opm * fpsmult;
-        rotmult = orm * fpsmult;
-    }
-}
-
 bool initRenderer() {
     glfwInit();
     rendinf.camfov = 50;

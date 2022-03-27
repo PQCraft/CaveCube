@@ -7,19 +7,83 @@
 
 #include <math.h>
 
+#define INPUT_KEY(k1, k2) (input_keys){k1, k2}
+
+typedef struct {
+    int key1;
+    int key2;
+} input_keys;
+
+input_keys input_mov[4] = {
+    INPUT_KEY(GLFW_KEY_W, GLFW_KEY_UNKNOWN),
+    INPUT_KEY(GLFW_KEY_S, GLFW_KEY_UNKNOWN),
+    INPUT_KEY(GLFW_KEY_A, GLFW_KEY_UNKNOWN),
+    INPUT_KEY(GLFW_KEY_D, GLFW_KEY_UNKNOWN),
+};
+input_keys input_ma[INPUT_ACTION_MULTI__MAX] = {
+    INPUT_KEY(GLFW_MOUSE_BUTTON_LEFT, GLFW_KEY_UNKNOWN),
+    INPUT_KEY(GLFW_MOUSE_BUTTON_RIGHT, GLFW_KEY_UNKNOWN),
+    INPUT_KEY(GLFW_MOUSE_BUTTON_MIDDLE, GLFW_KEY_UNKNOWN),
+    INPUT_KEY(GLFW_KEY_SPACE, GLFW_KEY_UNKNOWN),
+    INPUT_KEY(GLFW_KEY_LEFT_SHIFT, GLFW_KEY_RIGHT_SHIFT),
+    INPUT_KEY(GLFW_KEY_LEFT_CONTROL, GLFW_KEY_RIGHT_CONTROL),
+    INPUT_KEY(GLFW_KEY_TAB, GLFW_KEY_UNKNOWN),
+};
+input_keys input_sa[INPUT_ACTION_SINGLE__MAX] = {
+    INPUT_KEY(GLFW_KEY_ESCAPE, GLFW_KEY_UNKNOWN),
+    INPUT_KEY(GLFW_MOUSE_BUTTON_LEFT, GLFW_KEY_UNKNOWN),
+    INPUT_KEY(GLFW_MOUSE_BUTTON_RIGHT, GLFW_KEY_UNKNOWN),
+    INPUT_KEY(GLFW_KEY_0, GLFW_KEY_UNKNOWN),
+    INPUT_KEY(GLFW_KEY_1, GLFW_KEY_UNKNOWN),
+    INPUT_KEY(GLFW_KEY_2, GLFW_KEY_UNKNOWN),
+    INPUT_KEY(GLFW_KEY_3, GLFW_KEY_UNKNOWN),
+    INPUT_KEY(GLFW_KEY_4, GLFW_KEY_UNKNOWN),
+    INPUT_KEY(GLFW_KEY_5, GLFW_KEY_UNKNOWN),
+    INPUT_KEY(GLFW_KEY_6, GLFW_KEY_UNKNOWN),
+    INPUT_KEY(GLFW_KEY_7, GLFW_KEY_UNKNOWN),
+    INPUT_KEY(GLFW_KEY_8, GLFW_KEY_UNKNOWN),
+    INPUT_KEY(GLFW_KEY_9, GLFW_KEY_UNKNOWN),
+    INPUT_KEY(GLFW_KEY_UNKNOWN, GLFW_KEY_UNKNOWN),
+    INPUT_KEY(GLFW_KEY_UNKNOWN, GLFW_KEY_UNKNOWN),
+};
+
+static uint16_t tmpmods = 0;
+static int tmpkey = -1;
+
 bool initInput() {
     if (glfwRawMouseMotionSupported()) glfwSetInputMode(rendinf.window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+    setInputMode(INPUT_MODE_GAME);
     return true;
 }
 
-float posmult = 0.125;
-float rotmult = 3;
-float fpsmult = 0;
-float mousesns = 0.125;
+int inputMode = INPUT_MODE_GAME;
 
-float input_xrot = 0.0;
-float input_yrot = 0.0;
+void setInputMode(int mode) {
+    inputMode = mode;
+    if (mode == INPUT_MODE_GAME) {
+        glfwSetInputMode(rendinf.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    } else {
+        glfwSetInputMode(rendinf.window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    }
+}
 
+input_info getInput() {
+    quitRequest += rendererQuitRequest();
+    input_info inf = INPUT_EMPTY_INFO;
+    if (quitRequest) return inf;
+    static bool mposset = false;
+    static double mxpos, mypos;
+    if (!mposset) {glfwGetCursorPos(rendinf.window, &mxpos, &mypos); mposset = true;}
+    static double nmxpos, nmypos;
+    glfwGetCursorPos(rendinf.window, &nmxpos, &nmypos);
+    inf.mxmov += mxpos - nmxpos;
+    inf.mymov += mypos - nmypos;
+    mxpos = nmxpos;
+    mypos = nmypos;
+    return inf;
+}
+
+/*
 void testInput() {
     quitRequest += rendererQuitRequest();
     float pmult = posmult;
@@ -121,9 +185,4 @@ void testInput() {
         rendinf.campos.z += sinf(yrotrad) * pmult;
     }
 }
-
-input_info getInput() {
-    quitRequest += rendererQuitRequest();
-    input_info inf = INPUT_EMPTY_INFO;
-    return inf;
-}
+*/
