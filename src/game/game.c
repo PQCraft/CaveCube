@@ -44,9 +44,13 @@ void doGame() {
         //testInput();
         input_info input = getInput();
         if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_CROUCH)) {
-            rendinf.campos.y = 1.125;
+            rendinf.campos.y -= pmult;
+            if (rendinf.campos.y < 1.125) rendinf.campos.y = 1.125;
         } else {
-            rendinf.campos.y = 1.5;
+            if (rendinf.campos.y < 1.5) rendinf.campos.y = 1.5;
+        }
+        if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_JUMP)) {
+            rendinf.campos.y += pmult;
         }
         if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_RUN)) {
             npmult *= 2.0;
@@ -83,11 +87,6 @@ void doGame() {
         renderModel(m4, false);
         glfwSwapInterval(rendinf.vsync);
         glfwSwapBuffers(rendinf.window);
-        /*
-        for (int i = 0; i < 22222; ++i) {
-            printf("[%d] test\n", i);
-        }
-        */
         fpsmult = (float)(altutime() - starttime) / (1000000.0f / 60.0f);
         pmult = posmult * fpsmult;
         rmult = rotmult * fpsmult;
