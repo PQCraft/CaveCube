@@ -76,6 +76,7 @@ static bool keyDown(int key) {
 input_info getInput() {
     quitRequest += rendererQuitRequest();
     input_info inf = INPUT_EMPTY_INFO;
+    inf.mmovti = true;
     if (quitRequest) return inf;
     static bool mposset = false;
     static double mxpos, mypos;
