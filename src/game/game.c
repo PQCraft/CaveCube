@@ -8,11 +8,12 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 static float posmult = 0.125;
 static float rotmult = 3;
 static float fpsmult = 0;
-static float mousesns = 0.125;
+static float mousesns = 0.05;
 
 void doGame() {
     char* tpath = "game/textures/blocks/stone/0.png";
@@ -30,21 +31,36 @@ void doGame() {
     m4->pos = (coord_3d){2.0, 3.5, 0.0};
     rendinf.campos.y = 1.5;
     initInput();
-    float opm = posmult;
-    float orm = rotmult;
-    float rmult = rotmult;
+    float pmult = posmult;
+    //float rmult = rotmult;
     initNoiseTable();
     while (!quitRequest) {
         uint64_t starttime = altutime();
         glfwPollEvents();
         //testInput();
         input_info input = getInput();
-        rendinf.camrot.x += input.mymov * mousesns * rmult / rotmult;
-        rendinf.camrot.y -= input.mxmov * mousesns * rmult / rotmult;
+        if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_CROUCH)) {
+            rendinf.campos.y = 1.125;
+        } else {
+            rendinf.campos.y = 1.5;
+        }
+        if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_RUN)) {
+            pmult *= 2.0;
+        }
+        rendinf.camrot.x += input.mymov * mousesns * rotmult;
+        rendinf.camrot.y -= input.mxmov * mousesns * rotmult;
         if (rendinf.camrot.y < -360) rendinf.camrot.y += 360;
         else if (rendinf.camrot.y > 360) rendinf.camrot.y -= 360;
         if (rendinf.camrot.x > 89.99) rendinf.camrot.x = 89.99;
         if (rendinf.camrot.x < -89.99) rendinf.camrot.x = -89.99;
+        float yrotrad = (rendinf.camrot.y / 180 * M_PI);
+        float div = fabs(input.zmov) + fabs(input.xmov);
+        if (div < 1.0) div = 1.0;
+        //printf("div: [%f]\n", div);
+        rendinf.campos.z -= (input.zmov * cosf(yrotrad) * pmult) / div;
+        rendinf.campos.x += (input.zmov * sinf(yrotrad) * pmult) / div;
+        rendinf.campos.x += (input.xmov * cosf(yrotrad) * pmult) / div;
+        rendinf.campos.z += (input.xmov * sinf(yrotrad) * pmult) / div;
         updateCam();
         //printf("[%f]\n", rendinf.camrot.y);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -63,8 +79,13 @@ void doGame() {
         renderModel(m4, false);
         glfwSwapInterval(rendinf.vsync);
         glfwSwapBuffers(rendinf.window);
+        /*
+        for (int i = 0; i < 22222; ++i) {
+            printf("[%d] test\n", i);
+        }
+        */
         fpsmult = (float)(altutime() - starttime) / (1000000.0f / 60.0f);
-        posmult = opm * fpsmult;
-        rotmult = orm * fpsmult;
+        pmult = posmult * fpsmult;
+        //rmult = rotmult * fpsmult;
     }
 }

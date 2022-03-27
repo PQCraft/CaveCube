@@ -67,19 +67,43 @@ void setInputMode(int mode) {
     }
 }
 
+static bool keyDown(int key) {
+    if (key < 0) return false;
+    if (key < 32) return (glfwGetMouseButton(rendinf.window, key) == GLFW_PRESS);
+    return (glfwGetKey(rendinf.window, key) == GLFW_PRESS);
+}
+
 input_info getInput() {
     quitRequest += rendererQuitRequest();
     input_info inf = INPUT_EMPTY_INFO;
     if (quitRequest) return inf;
     static bool mposset = false;
     static double mxpos, mypos;
-    if (!mposset) {glfwGetCursorPos(rendinf.window, &mxpos, &mypos); mposset = true;}
     static double nmxpos, nmypos;
-    glfwGetCursorPos(rendinf.window, &nmxpos, &nmypos);
-    inf.mxmov += mxpos - nmxpos;
-    inf.mymov += mypos - nmypos;
-    mxpos = nmxpos;
-    mypos = nmypos;
+    if (glfwGetWindowAttrib(rendinf.window, GLFW_HOVERED)) {
+        if (!mposset) {
+            glfwGetCursorPos(rendinf.window, &mxpos, &mypos); mposset = true;
+        } else {
+            glfwGetCursorPos(rendinf.window, &nmxpos, &nmypos);
+            inf.mxmov += mxpos - nmxpos;
+            inf.mymov += mypos - nmypos;
+            mxpos = nmxpos;
+            mypos = nmypos;
+        }
+    } else {
+        mposset = false;
+    }
+    if (inputMode == INPUT_MODE_GAME) {
+        if (keyDown(input_mov[0].key1) || keyDown(input_mov[0].key2)) inf.zmov += 1.0;
+        if (keyDown(input_mov[1].key1) || keyDown(input_mov[1].key2)) inf.zmov -= 1.0;
+        if (keyDown(input_mov[2].key1) || keyDown(input_mov[2].key2)) inf.xmov -= 1.0;
+        if (keyDown(input_mov[3].key1) || keyDown(input_mov[3].key2)) inf.xmov += 1.0;
+        for (int i = 0; i < INPUT_ACTION_MULTI__MAX; ++i) {
+            if (keyDown(input_ma[i].key1) || keyDown(input_ma[i].key2)) {
+                inf.multi_actions |= 1 << i;
+            }
+        }
+    }
     return inf;
 }
 

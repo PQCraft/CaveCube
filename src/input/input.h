@@ -18,6 +18,8 @@ enum {
     INPUT_ACTION_MULTI__MAX,
 };
 
+#define INPUT_GETMAFLAG(x) (1 << ((x) - 1))
+
 enum {
     INPUT_ACTION_SINGLE__NONE,
     INPUT_ACTION_SINGLE_ESC,
