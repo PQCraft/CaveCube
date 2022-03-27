@@ -1,6 +1,8 @@
 #ifndef INPUT_H
 #define INPUT_H
 
+#include <stdbool.h>
+
 enum {
     INPUT_MODE_GUI,
     INPUT_MODE_GAME,
@@ -44,8 +46,10 @@ typedef struct {
     uint32_t multi_actions;
     uint16_t single_action;
     uint16_t modifiers;
+    bool movti;
     float zmov;
     float xmov;
+    bool mmovti;
     float mxmov;
     float mymov;
 } input_info;
@@ -54,6 +58,6 @@ void setInputMode(int);
 bool initInput(void);
 input_info getInput(void);
 
-#define INPUT_EMPTY_INFO (input_info){INPUT_ACTION_MULTI__NONE, INPUT_ACTION_SINGLE__NONE, 0, 0.0, 0.0, 0.0, 0.0}
+#define INPUT_EMPTY_INFO (input_info){INPUT_ACTION_MULTI__NONE, INPUT_ACTION_SINGLE__NONE, 0, false, 0.0, 0.0, false, 0.0, 0.0}
 
 #endif
