@@ -31,9 +31,9 @@ BINNAME := cavecube
 
 BIN := $(BINNAME)$(BINEXT)
 
-CFLAGS += -Wall -Wextra -I. -g 
+CFLAGS += -Wall -Wextra -I. -g -O3
 
-BINFLAGS += -lpthread -lm -lglfw
+BINFLAGS += -lpthread -lglfw -lm -O3
 
 MKENV = NAME=$@ HEADDIR=$(CURDIR) SRCDIR=$(SRCDIR) OBJDIR=$(OBJDIR) COMMONMK=$(CURDIR)/common.mk CC="$(CC)" CFLAGS="$(CFLAGS) $(INCLUDEDIRS)"
 MKENV2 = CC="$(CC)" CFLAGS="$(CFLAGS)"

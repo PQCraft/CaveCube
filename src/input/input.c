@@ -74,6 +74,7 @@ static bool keyDown(int key) {
 }
 
 input_info getInput() {
+    glfwPollEvents();
     quitRequest += rendererQuitRequest();
     input_info inf = INPUT_EMPTY_INFO;
     inf.mmovti = true;
