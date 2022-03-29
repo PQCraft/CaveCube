@@ -8,6 +8,7 @@
 #include <GLFW/glfw3.h>
 #include <stdbool.h>
 #include <resource.h>
+//#include <game.h>
 
 typedef struct {
     float x;
@@ -69,10 +70,15 @@ void quitRenderer(void);
 int rendererQuitRequest(void);
 void createTexture(unsigned char*, resdata_texture*);
 void destroyTexture(resdata_texture*);
-model* loadModel(char*, ...);
+model* loadModel(char*, char**);
 void renderModelAt(model*, coord_3d, bool);
 void renderModel(model*, bool);
+void renderPartAt(model*, unsigned, coord_3d, bool);
+void renderPart(model*, unsigned, bool);
 void updateCam(void);
+
+void updateChunks(void*);
+void renderChunks(void*);
 
 #define GFX_DEFAULT_POS (coord_3d){0.0, 0.0, 0.0}
 #define GFX_DEFAULT_ROT (coord_3d){0.0, 0.0, 0.0}

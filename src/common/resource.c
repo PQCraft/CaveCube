@@ -41,7 +41,7 @@ char* getResourcePath(char* path) {
 }
 
 void* makeResource(int type, char* path) {
-    if (isFile(path) != 1) {fprintf(stderr, "makeResource: Cannot load %s", path); return NULL;}
+    if (isFile(path) != 1) {fprintf(stderr, "makeResource: Cannot load %s\n", path); return NULL;}
     void* data = NULL;
     switch (type) {
         case RESOURCE_TEXTFILE:;
@@ -58,13 +58,13 @@ void* makeResource(int type, char* path) {
             break;
         case RESOURCE_IMAGE:;
             resdata_image* imagedata = data = calloc(1, sizeof(resdata_image));
-            imagedata->data = stbi_load(path, &imagedata->width, &imagedata->height, &imagedata->channels, 0);
+            imagedata->data = stbi_load(path, &imagedata->width, &imagedata->height, &imagedata->channels, STBI_rgb_alpha);
             break;
         case RESOURCE_TEXTURE:;
             resdata_texture* texturedata = data = calloc(1, sizeof(resdata_texture));
-            unsigned char* idata = stbi_load(path, &texturedata->width, &texturedata->height, &texturedata->channels, 0);
+            unsigned char* idata = stbi_load(path, &texturedata->width, &texturedata->height, &texturedata->channels, STBI_rgb_alpha);
             createTexture(idata, texturedata);
-            free(idata);
+            stbi_image_free(idata);
             break;
     }
     return data;
@@ -72,7 +72,7 @@ void* makeResource(int type, char* path) {
 
 void* loadResource(int type, char* path) {
     for (int i = 0; i < reslist.entries; ++i) {
-        if (!strcmp(reslist.entry[i].path, path)) {
+        if (reslist.entry[i].data && !strcmp(reslist.entry[i].path, path)) {
             ++reslist.entry[i].uses;
             return reslist.entry[i].data;
         }
@@ -96,6 +96,12 @@ void* loadResource(int type, char* path) {
     return data;
 }
 
+int resourceExists(char* path) {
+    char* npath = getResourcePath(path);
+    if (!npath) return -1;
+    return isFile(npath);
+}
+
 void freeResStub(resentry* ent) {
     switch (ent->type) {
         case RESOURCE_TEXTFILE:;
@@ -106,7 +112,7 @@ void freeResStub(resentry* ent) {
             freeBMD((bmd_data*)ent->data);
             break;
         case RESOURCE_IMAGE:;
-            free(((resdata_image*)ent->data)->data);
+            stbi_image_free(((resdata_image*)ent->data)->data);
             break;
         case RESOURCE_TEXTURE:;
             destroyTexture((resdata_texture*)ent->data);
