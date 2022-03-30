@@ -6,6 +6,7 @@
 #include <renderer.h>
 #include <input.h>
 #include <noise.h>
+#include <chunk.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,45 +18,7 @@ static float rotmult = 3;
 static float fpsmult = 0;
 static float mousesns = 0.05;
 
-block blockinfo[256];
 chunkdata chunks;
-
-blockdata getBlock(chunkdata* data, register int x, register int y, register int z) {
-    x += data->coff;
-    z += data->coff;
-    int max = data->width * 15 - 1;
-    if (x < 0 || z < 0 || x > max || z > max) return (blockdata){0, 0, 0};
-    //return (blockdata){0, 0};
-    //printf("block [%d, %d, %d]: [%d]\n", x, y, z, y * 225 + (z % 15) * 15 + (x % 15));
-    //printf("[%d] [%d]: [%d]\n", x, z, ((x / 15) % data->width) + ((x / 15) / data->width));
-    return GETBLOCKPOS(data->data, x, z);
-}
-
-void setBlock(chunkdata* data, register int x, register int y, register int z, blockdata bdata) {
-    x += data->coff;
-    z += data->coff;
-    int max = data->width * 15 - 1;
-    if (x < 0 || z < 0 || y < 0 || y > 255 || x > max || z > max) return;
-    //printf("block [%d, %d, %d]: [%d]\n", x, y, z, y * 225 + (z % 15) * 15 + (x % 15));
-    //printf("[%d] [%d]: [%d]\n", x, z, ((x / 15) % data->width) + ((x / 15) / data->width));
-    GETBLOCKPOS(data->data, x, z) = bdata;
-}
-
-chunkdata allocChunks(uint32_t dist) {
-    chunkdata chunks;
-    chunks.dist = dist;
-    chunks.coff = 7 + (dist - 1) * 15;
-    dist = 1 + (dist - 1) * 2;
-    chunks.width = dist;
-    dist *= dist;
-    chunks.size = dist;
-    chunks.off = dist / 2;
-    chunks.data = malloc(dist * sizeof(blockdata*));
-    for (unsigned i = 0; i < dist; ++i) {
-        chunks.data[i] = malloc(57600 * sizeof(blockdata));
-    }
-    return chunks;
-}
 
 /*
 static inline void renderChunks(chunkdata* data, float xrot, float yrot) {
@@ -129,7 +92,7 @@ void doGame() {
         blockinfo[i].mdl->pos = (coord_3d){0.0, -0.5, 0.0};
     }
     */
-    chunks = allocChunks(3);
+    chunks = allocChunks(2);
     /*
     for (int i = 0; i < 57600; ++i) {
         chunks.data[0][i].id = getRandByte();
@@ -141,7 +104,9 @@ void doGame() {
     float rmult = rotmult;
     float npmult = 1.0;
     float nrmult = 1.0;
+    //setRandSeed(255);
     initNoiseTable();
+    /*
     register int w = chunks.coff;
     for (register int y = 0; y < 256; ++y) {
         for (register int z = -w; z <= w; ++z) {
@@ -170,6 +135,8 @@ void doGame() {
             if (!x && !z) rendinf.campos.y += (float)si;
         }
     }
+    */
+    genChunks(&chunks, 0, 0);
     updateChunks(&chunks);
     float noff = 0.0;
     while (!quitRequest) {
@@ -206,7 +173,7 @@ void doGame() {
         rendinf.campos.x += (input.zmov * sinf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult) / div;
         rendinf.campos.x += (input.xmov * cosf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult) / div;
         rendinf.campos.z += (input.xmov * sinf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult) / div;
-        //updateCam();
+        updateCam();
         //printf("[%f]\n", rendinf.camrot.y);
         //putchar('\n');
         /*
@@ -223,9 +190,8 @@ void doGame() {
         }
         */
         //putchar('\n');
-        glfwSwapInterval(rendinf.vsync);
-        glfwSwapBuffers(rendinf.window);
         renderChunks(&chunks);
+        updateScreen();
         fpsmult = (float)(altutime() - starttime) / (1000000.0f / 60.0f);
         pmult = posmult * fpsmult;
         rmult = rotmult * fpsmult;
