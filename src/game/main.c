@@ -199,7 +199,7 @@ int main(int argc, char** argv) {
     }
     */
     stbi_set_flip_vertically_on_load(true);
-    initRenderer();
+    if (!initRenderer()) return 1;
     //testRenderer();
     doGame();
     freeAllResources();

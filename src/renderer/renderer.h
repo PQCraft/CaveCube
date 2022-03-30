@@ -43,8 +43,8 @@ typedef struct {
 } renderer_info;
 
 typedef struct {
-    unsigned VBO;
     unsigned VAO;
+    unsigned VBO;
     unsigned EBO;
     resdata_texture* texture;
 } model_renddata;
@@ -56,6 +56,14 @@ typedef struct {
     resdata_bmd* model;
     model_renddata* renddata;
 } model;
+
+typedef struct {
+    //unsigned VAO;
+    unsigned VBO;
+    uint32_t vcount;
+    uint32_t* vertices;
+    coord_3d pos;
+} chunk_renddata;
 
 #endif
 
@@ -76,6 +84,7 @@ void renderModel(model*, bool);
 void renderPartAt(model*, unsigned, coord_3d, bool);
 void renderPart(model*, unsigned, bool);
 void updateCam(void);
+void updateScreen(void);
 
 void updateChunks(void*);
 void renderChunks(void*);
