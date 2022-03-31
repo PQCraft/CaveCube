@@ -95,6 +95,7 @@ void genChunkColumn(chunkdata* chunks, int cx, int cz, int xo, int zo) {
     cz += chunks->dist;
     uint32_t coff = cz * chunks->width + cx;
     for (int cy = 0; cy < 16; ++cy) {
+        if (chunks->renddata[coff].updated) goto skipfor;
         memset(chunks->data[coff], 0, 4096 * sizeof(blockdata));
         //chunks->renddata[coff].pos = (coord_3d){(float)(cx - (int)chunks->dist), (float)(cy), (float)(cz - (int)chunks->dist)};
         //printf("set chunk pos [%u]: [%d][%d][%d]\n", coff, cx - chunks->dist, cy, cz - chunks->dist);
@@ -122,6 +123,7 @@ void genChunkColumn(chunkdata* chunks, int cx, int cz, int xo, int zo) {
                 //if (!x && !z) rendinf.campos.y += (float)si;
             }
         }
+        skipfor:;
         coff += chunks->widthsq;
     }
 }
