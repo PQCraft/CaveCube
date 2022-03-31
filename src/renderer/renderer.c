@@ -16,7 +16,7 @@
 #include <cglm/cglm.h>
 
 renderer_info rendinf;
-static resdata_bmd* blockmodel;
+//static resdata_bmd* blockmodel;
 unsigned char* texmap;
 texture_t texmaph;
 
@@ -194,6 +194,7 @@ void destroyTexture(resdata_texture* tdata) {
     glDeleteTextures(1, &tdata->data);
 }
 
+/*
 void renderPartAt(model* m, unsigned i, coord_3d pos, bool advanced) {
     //glBindVertexArray(m->renddata[i].VAO);
     glBindBuffer(GL_ARRAY_BUFFER, m->renddata[i].VBO);
@@ -204,14 +205,12 @@ void renderPartAt(model* m, unsigned i, coord_3d pos, bool advanced) {
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
     //mat4 model __attribute__((aligned (32))) = GFX_DEFAULT_MAT4;
     //glm_translate(model, (vec3){m->pos.x + pos.x, m->pos.y + pos.y, m->pos.z + pos.z});
-    /*
     if (advanced) {
         glm_rotate(model, m->rot.x * M_PI / 180, (vec3){1, 0, 0});
         glm_rotate(model, m->rot.y * M_PI / 180, (vec3){0, 1, 0});
         glm_rotate(model, m->rot.z * M_PI / 180, (vec3){0, 0, 1});
         glm_scale(model, (vec3){m->scale.x, m->scale.y, m->scale.z});
     }
-    */
     setUniform3f(rendinf.shaderprog, "mPos", (float[]){m->pos.x + pos.x, m->pos.y + pos.y, m->pos.z + pos.z});
     //setMat4(rendinf.shaderprog, "model", model);
     //glBindTexture(GL_TEXTURE_2D, m->renddata[i].texture->data);
@@ -235,6 +234,7 @@ void renderModelAt(model* m, coord_3d pos, bool advanced) {
 void renderModel(model* m, bool advanced) {
     renderModelAt(m, (coord_3d){0.0, 0.0, 0.0}, advanced);
 }
+*/
 
 void updateScreen() {
     static int lv = 0;
@@ -249,8 +249,6 @@ bool chunkcacheinit = false;
 static uint32_t maxblockid = 0;
 
 static unsigned VAO;
-static unsigned VBO[6];
-static unsigned EBO[6];
 
 static blockdata getBlock(chunkdata* data, int32_t c, int x, int y, int z) {
     //x += data->dist;
@@ -280,6 +278,8 @@ void updateChunks(void* vdata) {
     blockdata bdata;
     blockdata bdata2[6];
     for (uint32_t c = 0; c < data->size; ++c) {
+        uint64_t starttime2 = altutime();
+        if (data->renddata[c].updated) continue;
         data->renddata[c].vertices = realloc(data->renddata[c].vertices, 147456 * sizeof(uint32_t));
         uint32_t* vptr = data->renddata[c].vertices;
         uint32_t tmpsize = 0;
@@ -296,6 +296,22 @@ void updateChunks(void* vdata) {
                     bdata2[5] = getBlock(data, c, x, y - 1, z);
                     for (int i = 0; i < 6; ++i) {
                         if (bdata2[i].id && bdata2[i].id <= maxblockid && (bdata2[i].id != 5 || bdata.id == 5)) continue;
+                        /*
+                        switch (i) {
+                            case 0:;
+                                if (z == 15) goto skipfor;
+                                break;
+                            case 1:;
+                                if (z == 0) goto skipfor;
+                                break;
+                            case 3:;
+                                if (x == 15) goto skipfor;
+                                break;
+                            case 2:;
+                                if (x == 0) goto skipfor;
+                                break;
+                        }
+                        */
                         uint32_t baseVert = (x << 27) | (y << 22) | (z << 17) | (i << 14) | bdata.id;
                         for (int j = 0; j < 6; ++j) {
                             *vptr = baseVert | constBlockVert[i][j];
@@ -305,10 +321,12 @@ void updateChunks(void* vdata) {
                         ++tmpsize;
                         glfwPollEvents();
                         if (rendererQuitRequest()) return;
+                        //skipfor:;
                     }
                 }
             }
         }
+        uint32_t tmpsize2 = tmpsize;
         chunkcachesize += tmpsize;
         tmpsize *= 6;
         /*
@@ -336,29 +354,35 @@ void updateChunks(void* vdata) {
         data->renddata[c].vertices = realloc(data->renddata[c].vertices, tmpsize);
         //glGenVertexArrays(1, &data->renddata[c].VAO);
         //glBindVertexArray(data->renddata[c].VAO);
-        glGenBuffers(1, &data->renddata[c].VBO);
+        if (!data->renddata[c].VBO) glGenBuffers(1, &data->renddata[c].VBO);
+        data->renddata[c].updated = true;
+        if (!tmpsize) continue;
         glBindBuffer(GL_ARRAY_BUFFER, data->renddata[c].VBO);
         glBufferData(GL_ARRAY_BUFFER, tmpsize, data->renddata[c].vertices, GL_STATIC_DRAW);
+        printf("meshed chunk [%d] ([%u] surfaces, [%u] triangles, [%u] points) ([%u] bytes) in [%f]s\n",
+            c, tmpsize2, tmpsize2 * 2, tmpsize2 * 6, tmpsize, (float)(altutime() - starttime2) / 1000000.0);
     }
-    printf("cached [%u] surfaces ([%u] triangles, [%u] points) ([%lu] bytes)\n", chunkcachesize, chunkcachesize * 2, chunkcachesize * 6, chunkcachesize * 6 * sizeof(uint32_t));
-    printf("cached in: [%f]s\n", (float)(altutime() - starttime) / 1000000.0);
+    printf("meshed [%u] surfaces total ([%u] triangles, [%u] points) ([%lu] bytes)\n", chunkcachesize, chunkcachesize * 2, chunkcachesize * 6, chunkcachesize * 6 * sizeof(uint32_t));
+    printf("meshed in: [%f]s\n", (float)(altutime() - starttime) / 1000000.0);
 }
 
 void renderChunks(void* vdata) {
     chunkdata* data = vdata;
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    uint64_t starttime = altutime();
+    //uint64_t starttime = altutime();
     for (uint32_t c = 0; c < data->size; ++c) {
+        if (!data->renddata[c].vcount) continue;
         //printf("rendering chunk [%u]\n", c);
         //glBindVertexArray(data->renddata[c].VAO);
         glBindBuffer(GL_ARRAY_BUFFER, data->renddata[c].VBO);
         glEnableVertexAttribArray(0);
         glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 0, (void*)0);
-        //int x = c % data->width;
-        //int z = c / data->width % 16;
-        //int y = c / data->width / 16;
-        //printf("[%d]: [%d][%d][%d]\n", c, x, y, z);
-        setUniform3f(rendinf.shaderprog, "ccoord", (float[]){data->renddata[c].pos.x, data->renddata[c].pos.y, data->renddata[c].pos.z});
+        int x = c % data->width;
+        int z = c / data->width % data->width;
+        int y = c / data->widthsq;
+        //printf("[%d]: [%d][%d][%d]\n", c, x - data->dist, y, z - data->dist);
+        setUniform3f(rendinf.shaderprog, "ccoord", (float[]){x - (int)data->dist, y, z - (int)data->dist});
+        //setUniform3f(rendinf.shaderprog, "ccoord", (float[]){data->renddata[c].pos.x, data->renddata[c].pos.y, data->renddata[c].pos.z});
         //printf("[%d]: [%f][%f][%f]\n", c, data->renddata[c].pos.x, data->renddata[c].pos.y, data->renddata[c].pos.z);
         glDrawArrays(GL_TRIANGLES, 0, data->renddata[c].vcount);
         //printf("[%u]\n", data->renddata[c].vcount);
@@ -382,7 +406,7 @@ bool initRenderer() {
         &rendinf.full_width, &rendinf.full_height, &rendinf.full_fps);
     if (!rendinf.win_width || rendinf.win_width > 32767) rendinf.win_width = 640;
     if (!rendinf.win_height || rendinf.win_height > 32767) rendinf.win_height = 480;
-    rendinf.vsync = getConfigValBool(getConfigVarStatic(config, "renderer.vsync", "true", 64));
+    rendinf.vsync = getConfigValBool(getConfigVarStatic(config, "renderer.vsync", "false", 64));
     rendinf.fullscr = getConfigValBool(getConfigVarStatic(config, "renderer.fullscreen", "false", 64));
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -419,6 +443,7 @@ bool initRenderer() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glClearColor(0, 0, 0.2, 1);
+    glfwSwapInterval(rendinf.vsync);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glfwSwapBuffers(rendinf.window);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

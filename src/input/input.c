@@ -67,7 +67,7 @@ void setInputMode(int mode) {
     }
 }
 
-static bool keyDown(int key) {
+bool keyDown(int key) {
     if (key < 0) return false;
     if (key < 32) return (glfwGetMouseButton(rendinf.window, key) == GLFW_PRESS);
     return (glfwGetKey(rendinf.window, key) == GLFW_PRESS);

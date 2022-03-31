@@ -62,7 +62,7 @@ typedef struct {
     unsigned VBO;
     uint32_t vcount;
     uint32_t* vertices;
-    coord_3d pos;
+    bool updated;
 } chunk_renddata;
 
 #endif
@@ -79,10 +79,10 @@ int rendererQuitRequest(void);
 void createTexture(unsigned char*, resdata_texture*);
 void destroyTexture(resdata_texture*);
 model* loadModel(char*, char**);
-void renderModelAt(model*, coord_3d, bool);
-void renderModel(model*, bool);
-void renderPartAt(model*, unsigned, coord_3d, bool);
-void renderPart(model*, unsigned, bool);
+//void renderModelAt(model*, coord_3d, bool);
+//void renderModel(model*, bool);
+//void renderPartAt(model*, unsigned, coord_3d, bool);
+//void renderPart(model*, unsigned, bool);
 void updateCam(void);
 void updateScreen(void);
 
