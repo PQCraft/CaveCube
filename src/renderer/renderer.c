@@ -299,16 +299,17 @@ void updateChunks(void* vdata) {
                         /*
                         switch (i) {
                             case 0:;
-                                if (z == 15) goto skipfor;
+                                if (c >= data->widthsq - data->width && z == 15) goto skipfor;
                                 break;
                             case 1:;
-                                if (z == 0) goto skipfor;
+                                //if (c >= data->width) break;
+                                if (c < data->width && z == 0) goto skipfor;
                                 break;
                             case 3:;
-                                if (x == 15) goto skipfor;
+                                //if (x == 15) goto skipfor;
                                 break;
                             case 2:;
-                                if (x == 0) goto skipfor;
+                                //if (x == 0) goto skipfor;
                                 break;
                         }
                         */
@@ -319,8 +320,6 @@ void updateChunks(void* vdata) {
                         }
                         //printf("added [%d][%d %d %d][%d]: [%u]: [%x]...\n", c, x, y, z, i, (uint8_t)bdata.id, baseVert);
                         ++tmpsize;
-                        glfwPollEvents();
-                        if (rendererQuitRequest()) return;
                         //skipfor:;
                     }
                 }
@@ -329,6 +328,11 @@ void updateChunks(void* vdata) {
         uint32_t tmpsize2 = tmpsize;
         chunkcachesize += tmpsize;
         tmpsize *= 6;
+        /*
+        for (uint32_t i = 0; i < tmpsize; ++i) {
+            data->renddata[c].vertices[i] = (getRandByte() << 24) | (getRandByte() << 16) | (getRandByte() << 8) | getRandByte();
+        }
+        */
         /*
         for (uint32_t i = 0; i < tmpsize; i += 6) {
             data->renddata[c].vertices[i] = 0x00001005;
@@ -359,8 +363,10 @@ void updateChunks(void* vdata) {
         if (!tmpsize) continue;
         glBindBuffer(GL_ARRAY_BUFFER, data->renddata[c].VBO);
         glBufferData(GL_ARRAY_BUFFER, tmpsize, data->renddata[c].vertices, GL_STATIC_DRAW);
-        printf("meshed chunk [%d] ([%u] surfaces, [%u] triangles, [%u] points) ([%u] bytes) in [%f]s\n",
-            c, tmpsize2, tmpsize2 * 2, tmpsize2 * 6, tmpsize, (float)(altutime() - starttime2) / 1000000.0);
+        //printf("meshed chunk [%d] ([%u] surfaces, [%u] triangles, [%u] points) ([%u] bytes) in [%f]s\n",
+        //    c, tmpsize2, tmpsize2 * 2, tmpsize2 * 6, tmpsize, (float)(altutime() - starttime2) / 1000000.0);
+        //glfwPollEvents();
+        //if (rendererQuitRequest()) return;
     }
     printf("meshed [%u] surfaces total ([%u] triangles, [%u] points) ([%lu] bytes)\n", chunkcachesize, chunkcachesize * 2, chunkcachesize * 6, chunkcachesize * 6 * sizeof(uint32_t));
     printf("meshed in: [%f]s\n", (float)(altutime() - starttime) / 1000000.0);
@@ -406,7 +412,7 @@ bool initRenderer() {
         &rendinf.full_width, &rendinf.full_height, &rendinf.full_fps);
     if (!rendinf.win_width || rendinf.win_width > 32767) rendinf.win_width = 640;
     if (!rendinf.win_height || rendinf.win_height > 32767) rendinf.win_height = 480;
-    rendinf.vsync = getConfigValBool(getConfigVarStatic(config, "renderer.vsync", "false", 64));
+    rendinf.vsync = getConfigValBool(getConfigVarStatic(config, "renderer.vsync", "true", 64));
     rendinf.fullscr = getConfigValBool(getConfigVarStatic(config, "renderer.fullscreen", "false", 64));
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);

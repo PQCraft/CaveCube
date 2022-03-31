@@ -136,10 +136,10 @@ void doGame() {
         }
     }
     */
-    genChunks(&chunks, -1, 10);
+    int cx = -1;
+    int cz = 10;
+    genChunks(&chunks, cx, cz);
     updateChunks(&chunks);
-    //int cx = -1;
-    //int cz = 10;
     uint64_t fpsstarttime = altutime();
     int fpsct = 0;
     while (!quitRequest) {
@@ -176,21 +176,33 @@ void doGame() {
         rendinf.campos.x += (input.zmov * sinf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult) / div;
         rendinf.campos.x += (input.xmov * cosf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult) / div;
         rendinf.campos.z += (input.xmov * sinf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult) / div;
-        if (rendinf.campos.z > 8.0) {
+        if (rendinf.campos.z > 8.0) {   
+            --cz;
             rendinf.campos.z -= 16.0;
             moveChunks(&chunks, 0, 1);
+            genChunks(&chunks, cx, cz);
+            updateChunks(&chunks);
         }
         if (rendinf.campos.z < -8.0) {
+            ++cz;
             rendinf.campos.z += 16.0;
             moveChunks(&chunks, 0, -1);
+            genChunks(&chunks, cx, cz);
+            updateChunks(&chunks);
         }
         if (rendinf.campos.x > 8.0) {
+            ++cx;
             rendinf.campos.x -= 16.0;
             moveChunks(&chunks, 1, 0);
+            genChunks(&chunks, cx, cz);
+            updateChunks(&chunks);
         }
         if (rendinf.campos.x < -8.0) {
+            --cx;
             rendinf.campos.x += 16.0;
             moveChunks(&chunks, -1, 0);
+            genChunks(&chunks, cx, cz);
+            updateChunks(&chunks);
         }
         updateCam();
         //printf("[%f]\n", rendinf.camrot.y);
