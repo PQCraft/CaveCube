@@ -92,13 +92,13 @@ void doGame() {
         blockinfo[i].mdl->pos = (coord_3d){0.0, -0.5, 0.0};
     }
     */
-    chunks = allocChunks(2);
+    chunks = allocChunks(5);
     /*
     for (int i = 0; i < 57600; ++i) {
         chunks.data[0][i].id = getRandByte();
     }
     */
-    rendinf.campos.y = 2.5;
+    rendinf.campos.y = 25.5;
     initInput();
     float pmult = posmult;
     float rmult = rotmult;
@@ -136,16 +136,19 @@ void doGame() {
         }
     }
     */
-    genChunks(&chunks, 0, 0);
+    genChunks(&chunks, -1, 10);
     updateChunks(&chunks);
-    float noff = 0.0;
+    //int cx = -1;
+    //int cz = 10;
+    uint64_t fpsstarttime = altutime();
+    int fpsct = 0;
     while (!quitRequest) {
+        uint64_t starttime = altutime();
         npmult = 1.0;
         nrmult = 1.0;
-        uint64_t starttime = altutime();
+        input_info input = getInput();
         //printf("rend ");
         //fflush(stdout);
-        input_info input = getInput();
         if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_CROUCH)) {
             rendinf.campos.y -= pmult;
             if (rendinf.campos.y < 2.125) rendinf.campos.y = 2.125;
@@ -173,6 +176,22 @@ void doGame() {
         rendinf.campos.x += (input.zmov * sinf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult) / div;
         rendinf.campos.x += (input.xmov * cosf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult) / div;
         rendinf.campos.z += (input.xmov * sinf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult) / div;
+        if (rendinf.campos.z > 8.0) {
+            rendinf.campos.z -= 16.0;
+            moveChunks(&chunks, 0, 1);
+        }
+        if (rendinf.campos.z < -8.0) {
+            rendinf.campos.z += 16.0;
+            moveChunks(&chunks, 0, -1);
+        }
+        if (rendinf.campos.x > 8.0) {
+            rendinf.campos.x -= 16.0;
+            moveChunks(&chunks, 1, 0);
+        }
+        if (rendinf.campos.x < -8.0) {
+            rendinf.campos.x += 16.0;
+            moveChunks(&chunks, -1, 0);
+        }
         updateCam();
         //printf("[%f]\n", rendinf.camrot.y);
         //putchar('\n');
@@ -192,10 +211,16 @@ void doGame() {
         //putchar('\n');
         renderChunks(&chunks);
         updateScreen();
+        ++fpsct;
+        uint64_t curtime = altutime();
+        if (curtime - fpsstarttime >= 1000000) {
+            printf("rendered [%d] frames in %f seconds\n", fpsct, (float)(curtime - fpsstarttime) / 1000000.0);
+            fpsstarttime = curtime;
+            fpsct = 0;
+        }
         fpsmult = (float)(altutime() - starttime) / (1000000.0f / 60.0f);
         pmult = posmult * fpsmult;
         rmult = rotmult * fpsmult;
-        noff += 0.025 * fpsmult;
     }
     for (int i = 0; i < 16; ++i) {
         free(tmpbuf[i]);

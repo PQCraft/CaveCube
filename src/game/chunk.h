@@ -21,5 +21,6 @@ typedef struct {
 chunkdata allocChunks(uint32_t);
 void genChunkColumn(chunkdata*, int, int, int, int);
 void genChunks(chunkdata*, int, int);
+void moveChunks(chunkdata*, int, int);
 
 #endif
