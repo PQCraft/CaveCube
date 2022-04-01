@@ -8,6 +8,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+#include <pthread.h>
+
+/*
+#ifdef THREADING
+    #undef THREADING // Not worth it atm (the overhead of threading outweighs the overhead of chunk generation)
+#endif
+*/
 
 chunkdata allocChunks(uint32_t dist) {
     chunkdata chunks;
@@ -33,6 +40,7 @@ void moveChunks(chunkdata* chunks, int cx, int cz) {
         for (uint32_t c = 0; c < chunks->size; c += chunks->width) {
             swap = chunks->data[c];
             rdswap = chunks->renddata[c];
+            chunks->renddata[c + chunks->width - 1].updated = false;
             for (uint32_t i = 0; i < chunks->width - 1; ++i) {
                 chunks->data[c + i] = chunks->data[c + i + 1];
                 chunks->renddata[c + i] = chunks->renddata[c + i + 1];
@@ -40,11 +48,13 @@ void moveChunks(chunkdata* chunks, int cx, int cz) {
             chunks->data[c + chunks->width - 1] = swap;
             chunks->renddata[c + chunks->width - 1] = rdswap;
             chunks->renddata[c + chunks->width - 1].updated = false;
+            chunks->renddata[c + chunks->width - 1].vcount = 0;
         }
     } else if (cx < 0) {
         for (uint32_t c = 0; c < chunks->size; c += chunks->width) {
             swap = chunks->data[c + chunks->width - 1];
             rdswap = chunks->renddata[c + chunks->width - 1];
+            chunks->renddata[c].updated = false;
             for (uint32_t i = chunks->width - 1; i > 0; --i) {
                 chunks->data[c + i] = chunks->data[c + i - 1];
                 chunks->renddata[c + i] = chunks->renddata[c + i - 1];
@@ -52,12 +62,14 @@ void moveChunks(chunkdata* chunks, int cx, int cz) {
             chunks->data[c] = swap;
             chunks->renddata[c] = rdswap;
             chunks->renddata[c].updated = false;
+            chunks->renddata[c].vcount = 0;
         }
     }
     if (cz > 0) {
         for (uint32_t c = 0; c < chunks->size; c += ((c + 1) % chunks->width) ? 1 : chunks->widthsq - chunks->width + 1) {
             swap = chunks->data[c];
             rdswap = chunks->renddata[c];
+            chunks->renddata[c + (chunks->width - 1) * chunks->width].updated = false;
             for (uint32_t i = 0; i < chunks->width - 1; ++i) {
                 chunks->data[c + i * chunks->width] = chunks->data[c + (i + 1) * chunks->width];
                 chunks->renddata[c + i * chunks->width] = chunks->renddata[c + (i + 1) * chunks->width];
@@ -65,12 +77,14 @@ void moveChunks(chunkdata* chunks, int cx, int cz) {
             chunks->data[c + (chunks->width - 1) * chunks->width] = swap;
             chunks->renddata[c + (chunks->width - 1) * chunks->width] = rdswap;
             chunks->renddata[c + (chunks->width - 1) * chunks->width].updated = false;
+            chunks->renddata[c + (chunks->width - 1) * chunks->width].vcount = 0;
         }
     } else if (cz < 0) {
         for (uint32_t c = 0; c < chunks->size; c += ((c + 1) % chunks->width) ? 1 : chunks->widthsq - chunks->width + 1) {
             //printf("saving buffer [%u]\n", c);
             swap = chunks->data[c + (chunks->width - 1) * chunks->width];
             rdswap = chunks->renddata[c + (chunks->width - 1) * chunks->width];
+            chunks->renddata[c].updated = false;
             for (uint32_t i = chunks->width - 1; i > 0; --i) {
                 //printf("replacing buffer [%u] with [%u]\n", c + i * chunks->width, c + (i + 1) * chunks->width);
                 chunks->data[c + i * chunks->width] = chunks->data[c + (i - 1) * chunks->width];
@@ -81,12 +95,15 @@ void moveChunks(chunkdata* chunks, int cx, int cz) {
             chunks->renddata[c] = rdswap;
             //printf("flagging update on buffer [%u]\n", c + (chunks->width - 1) * chunks->width);
             chunks->renddata[c].updated = false;
+            chunks->renddata[c].vcount = 0;
         }
     }
 }
 
+/*
 void moveChunksMult(chunkdata* chunks, int cx, int cz) {
 }
+*/
 
 void genChunkColumn(chunkdata* chunks, int cx, int cz, int xo, int zo) {
     int nx = (cx + xo) * 16;
@@ -104,17 +121,21 @@ void genChunkColumn(chunkdata* chunks, int cx, int cz, int xo, int zo) {
         for (int z = 0; z < 16; ++z) {
             for (int x = 0; x < 16; ++x) {
                 //if (!cy) printf("noise coords (% 2d, % 2d, % 2d) [% 3d][% 3d]\n", cx, cy, cz, nx + x, nz + z);
-                double s = perlin2d(0, (double)(nx + x) / 16, (double)(nz + z) / 16, 1.0, 1);
+                double s1 = perlin2d(0, (double)(nx + x) / 16, (double)(nz + z) / 16, 1.0, 1);
                 double s2 = perlin2d(1, (double)(nx + x) / 160, (double)(nz + z) / 160, 1.0, 1);
                 //printf("[%lf][%lf]", s, s2);
                 for (int y = btm; y < 14; ++y) {
                     chunks->data[coff][y * 256 + z * 16 + x] = (blockdata){7, 0};
                 }
-                s *= 6;
+                double s = s1;
+                s *= 4;
                 s += s2 * 32;
-                int si = (int)(float)(s * 2) - 8;
+                float sf = (float)(s * 2) - 8;
+                int si = (int)sf;
                 //printf("[%d]\n", si);
-                if (si >= btm && si <= top) chunks->data[coff][(si - btm) * 256 + z * 16 + x] = (blockdata){/*(si > 12) ? 5 : 3*/ 3, 0};
+                uint8_t blockid = (s1 + s2 < perlin2d(2, (double)(nx + x) / 67, (double)(nz + z) / 67, 1.0, 1) * 1.125) ? 8 : 3;
+                blockid = (sf < 14.5) ? 8 : blockid;
+                if (si >= btm && si <= top) chunks->data[coff][(si - btm) * 256 + z * 16 + x] = (blockdata){blockid, 0};
                 for (int y = ((si - 1) > top) ? top : si - 1; y >= btm; --y) {
                     chunks->data[coff][(y - btm) * 256 + z * 16 + x] = (blockdata){2, 0};
                 }
