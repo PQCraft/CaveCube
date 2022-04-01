@@ -92,7 +92,7 @@ void doGame() {
         blockinfo[i].mdl->pos = (coord_3d){0.0, -0.5, 0.0};
     }
     */
-    chunks = allocChunks(5);
+    chunks = allocChunks(7);
     /*
     for (int i = 0; i < 57600; ++i) {
         chunks.data[0][i].id = getRandByte();
@@ -102,9 +102,7 @@ void doGame() {
     initInput();
     float pmult = posmult;
     float rmult = rotmult;
-    float npmult = 1.0;
-    float nrmult = 1.0;
-    //setRandSeed(255);
+    //setRandSeed(0);
     initNoiseTable();
     /*
     register int w = chunks.coff;
@@ -136,16 +134,16 @@ void doGame() {
         }
     }
     */
-    int cx = -1;
-    int cz = 10;
+    int cx = 0;
+    int cz = 0;
     genChunks(&chunks, cx, cz);
-    updateChunks(&chunks);
+    bool uccallagain = updateChunks(&chunks);
     uint64_t fpsstarttime = altutime();
     int fpsct = 0;
     while (!quitRequest) {
         uint64_t starttime = altutime();
-        npmult = 1.0;
-        nrmult = 1.0;
+        float npmult = 1.0;
+        float nrmult = 1.0;
         input_info input = getInput();
         //printf("rend ");
         //fflush(stdout);
@@ -159,7 +157,7 @@ void doGame() {
             rendinf.campos.y += pmult;
         }
         if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_RUN)) {
-            npmult *= 2.0;
+            npmult *= 2.5;
         }
         rendinf.camrot.x += input.mymov * mousesns * ((input.mmovti) ? rotmult : rmult) * nrmult;
         rendinf.camrot.y -= input.mxmov * mousesns * ((input.mmovti) ? rotmult : rmult) * nrmult;
@@ -176,33 +174,38 @@ void doGame() {
         rendinf.campos.x += (input.zmov * sinf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult) / div;
         rendinf.campos.x += (input.xmov * cosf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult) / div;
         rendinf.campos.z += (input.xmov * sinf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult) / div;
+        bool setcallagain = false;
         if (rendinf.campos.z > 8.0) {   
             --cz;
             rendinf.campos.z -= 16.0;
             moveChunks(&chunks, 0, 1);
             genChunks(&chunks, cx, cz);
-            updateChunks(&chunks);
-        }
-        if (rendinf.campos.z < -8.0) {
+            uccallagain = updateChunks(&chunks);
+            setcallagain = true;
+        } else if (rendinf.campos.z < -8.0) {
             ++cz;
             rendinf.campos.z += 16.0;
             moveChunks(&chunks, 0, -1);
             genChunks(&chunks, cx, cz);
-            updateChunks(&chunks);
-        }
-        if (rendinf.campos.x > 8.0) {
+            uccallagain = updateChunks(&chunks);
+            setcallagain = true;
+        } else if (rendinf.campos.x > 8.0) {
             ++cx;
             rendinf.campos.x -= 16.0;
             moveChunks(&chunks, 1, 0);
             genChunks(&chunks, cx, cz);
-            updateChunks(&chunks);
-        }
-        if (rendinf.campos.x < -8.0) {
+            uccallagain = updateChunks(&chunks);
+            setcallagain = true;
+        } else if (rendinf.campos.x < -8.0) {
             --cx;
             rendinf.campos.x += 16.0;
             moveChunks(&chunks, -1, 0);
             genChunks(&chunks, cx, cz);
-            updateChunks(&chunks);
+            uccallagain = updateChunks(&chunks);
+            setcallagain = true;
+        }
+        if (!setcallagain && uccallagain) {
+            uccallagain = updateChunks(&chunks);
         }
         updateCam();
         //printf("[%f]\n", rendinf.camrot.y);

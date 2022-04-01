@@ -85,8 +85,7 @@ model* loadModel(char*, char**);
 //void renderPart(model*, unsigned, bool);
 void updateCam(void);
 void updateScreen(void);
-
-void updateChunks(void*);
+bool updateChunks(void*);
 void renderChunks(void*);
 
 #define GFX_DEFAULT_POS (coord_3d){0.0, 0.0, 0.0}

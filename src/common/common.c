@@ -7,15 +7,29 @@
 #include <stdlib.h>
 #include <inttypes.h>
 #include <sys/stat.h>
+#include <time.h>
 #include <sys/time.h>
 #include <string.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include <unistd.h>
 
 uint64_t altutime() {
     struct timeval time1;
     gettimeofday(&time1, NULL);
     return time1.tv_sec * 1000000 + time1.tv_usec;
+}
+
+void microwait(uint64_t d) {
+    #ifndef _WIN32
+    struct timespec dts;
+    dts.tv_sec = d / 1000000;
+    dts.tv_nsec = (d % 1000000) * 1000;
+    nanosleep(&dts, NULL);
+    #else
+    uint64_t t = d + altutime();
+    while (t > altutime()) {}
+    #endif
 }
 
 int isFile(char* path) {

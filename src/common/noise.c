@@ -1,5 +1,3 @@
-/* Derived from https://github.com/caseman/noise */
-
 #include "common.h"
 
 #include <math.h>
@@ -10,10 +8,10 @@
 
 static const int SEED = 1985;
 
-unsigned char* hash[4];
+unsigned char* hash[16];
 
 void initNoiseTable() {
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; i < 16; ++i) {
         if (!hash[i]) hash[i] = malloc(256);
         for (int j = 0; j < 256; ++j) {
             hash[i][j] = getRandByte();
@@ -37,7 +35,7 @@ static double smooth_inter(double x, double y, double s) {
     return lin_inter(x, y, s * s * (3 - 2 * s));
 }
 
-static double noise2d(int tbl, double x, double y) {
+double noise2d(int tbl, double x, double y) {
     const int x_int = floor(x);
     const int y_int = floor(y);
     const double x_frac = x - x_int;

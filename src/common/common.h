@@ -27,6 +27,7 @@ char* getConfigVarAlloc(char*, char*, char*, long);
 char* getConfigVarStatic(char*, char*, char*, long);
 bool getConfigValBool(char*);
 uint64_t altutime(void);
+void microwait(uint64_t);
 
 #define GCBUFSIZE 32768
 

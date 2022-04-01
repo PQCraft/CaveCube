@@ -254,6 +254,12 @@ static blockdata getBlock(chunkdata* data, int32_t c, int x, int y, int z) {
     //x += data->dist;
     //z += data->dist;
     int max = 16 - 1;
+    if (x < 0 && c % data->width) {c -= 1; x += 16;}
+    else if (x > 15 && (c + 1) % data->width) {c += 1; x -= 16;}
+    if (z > 15 && c % (int)data->widthsq >= (int)data->width) {c -= data->width; z -= 16;}
+    else if (z < 0 && c % (int)data->widthsq < (int)(data->widthsq - data->width)) {c += data->width; z += 16;}
+    if (y < 0 && c >= (int)data->widthsq) {c -= data->widthsq; y += 16;}
+    else if (y > 15 && c < (int)(data->size - data->widthsq)) {c += data->widthsq; y -= 16;}
     if (c < 0 || c > (int32_t)data->size || x < 0 || y < 0 || z < 0 || x > max || y > 15 || z > max) return (blockdata){0, 0};
     //return (blockdata){0, 0};
     //printf("block [%d, %d, %d]: [%d]\n", x, y, z, y * 225 + (z % 15) * 15 + (x % 15));
@@ -271,15 +277,24 @@ static uint32_t constBlockVert[6][6] = {
     {0x00001000, 0x80003000, 0x80202000, 0x80202000, 0x00200000, 0x00001000},
 };
 
-void updateChunks(void* vdata) {
+bool updateChunks(void* vdata) {
     chunkdata* data = vdata;
+    static uint64_t totaltime = 0;
+    static uint32_t ucleftoff = 0;
     uint64_t starttime = altutime();
-    chunkcachesize = 0;
     blockdata bdata;
     blockdata bdata2[6];
+    /*
     for (uint32_t c = 0; c < data->size; ++c) {
-        uint64_t starttime2 = altutime();
+        if (!data->renddata[c].updated) data->renddata[c].vcount = 0;
+    }
+    */
+    for (uint32_t c = 0, c2 = 0; ; ++c) {
+        if (c >= data->size) {ucleftoff = 0; break;}
+        if (c2 >= 25) {ucleftoff = c; break;}
+        //uint64_t starttime2 = altutime();
         if (data->renddata[c].updated) continue;
+        ++c2;
         data->renddata[c].vertices = realloc(data->renddata[c].vertices, 147456 * sizeof(uint32_t));
         uint32_t* vptr = data->renddata[c].vertices;
         uint32_t tmpsize = 0;
@@ -325,7 +340,7 @@ void updateChunks(void* vdata) {
                 }
             }
         }
-        uint32_t tmpsize2 = tmpsize;
+        //uint32_t tmpsize2 = tmpsize;
         chunkcachesize += tmpsize;
         tmpsize *= 6;
         /*
@@ -368,13 +383,23 @@ void updateChunks(void* vdata) {
         //glfwPollEvents();
         //if (rendererQuitRequest()) return;
     }
-    printf("meshed [%u] surfaces total ([%u] triangles, [%u] points) ([%lu] bytes)\n", chunkcachesize, chunkcachesize * 2, chunkcachesize * 6, chunkcachesize * 6 * sizeof(uint32_t));
-    printf("meshed in: [%f]s\n", (float)(altutime() - starttime) / 1000000.0);
+    bool leftoff = (ucleftoff > 0);
+    if (leftoff) {
+        totaltime += (altutime() - starttime);
+    } else {
+        printf("meshed [%u] surfaces total ([%u] triangles, [%u] points) ([%lu] bytes)\n", chunkcachesize, chunkcachesize * 2, chunkcachesize * 6, chunkcachesize * 6 * sizeof(uint32_t));
+        printf("meshed in: [%f]s\n", (float)(totaltime) / 1000000.0);
+        chunkcachesize = 0;
+        totaltime = 0;
+    }
+    return leftoff;
 }
 
 void renderChunks(void* vdata) {
     chunkdata* data = vdata;
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "dist"), data->dist);
+    setUniform3f(rendinf.shaderprog, "cam", (float[]){rendinf.campos.x, rendinf.campos.y, rendinf.campos.z});
     //uint64_t starttime = altutime();
     for (uint32_t c = 0; c < data->size; ++c) {
         if (!data->renddata[c].vcount) continue;
@@ -435,8 +460,8 @@ bool initRenderer() {
         return false;
     }
     glfwSetFramebufferSizeCallback(rendinf.window, gfx_winch);
-    file_data* vs = loadResource(RESOURCE_TEXTFILE, "engine/renderer/shaders/OpenGL/default/vertex.glsl");
-    file_data* fs = loadResource(RESOURCE_TEXTFILE, "engine/renderer/shaders/OpenGL/default/fragment.glsl");
+    file_data* vs = loadResource(RESOURCE_TEXTFILE, "engine/renderer/shaders/OpenGL/default/block/vertex.glsl");
+    file_data* fs = loadResource(RESOURCE_TEXTFILE, "engine/renderer/shaders/OpenGL/default/block/fragment.glsl");
     if (!makeShaderProg((char*)vs->data, (char*)fs->data, &rendinf.shaderprog)) {
         return false;
     }
@@ -448,7 +473,7 @@ bool initRenderer() {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glClearColor(0, 0, 0.2, 1);
+    glClearColor(0, 0.75, 1.0, 1);
     glfwSwapInterval(rendinf.vsync);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glfwSwapBuffers(rendinf.window);
