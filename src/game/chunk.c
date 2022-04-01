@@ -176,22 +176,18 @@ bool genChunkColumn(chunkdata* chunks, int cx, int cz, int xo, int zo) {
 void genChunks(chunkdata* chunks, int xo, int zo) {
     //uint64_t starttime = altutime();
     uint32_t ct = 0;
-    static bool init = false;
-    static int z = 0;
-    static int x = 0;
-    if (!init) {
-        z = -(int)chunks->dist;
-        x = -(int)chunks->dist;
-        init = true;
-    }
-    for (; z <= (int)chunks->dist; ++z) {
-        for (; x <= (int)chunks->dist; ++x) {
-            ct += genChunkColumn(chunks, x, z, xo, zo);
-            if (ct > 16) goto ret;
+    uint32_t maxct = 1;
+    for (int i = 0; i <= (int)chunks->dist; ++i) {
+        for (int z = -i; z <= i; ++z) {
+            for (int x = -i; x <= i; ++x) {
+                if (abs(z) == i || (abs(z) != i && abs(x) == i)) {
+                    ct += genChunkColumn(chunks, x, z, xo, zo);
+                    //printf("[%d][%d] [%u]\n", x, z, ct);
+                    if (ct > maxct - 1) goto ret;
+                }
+            }
         }
-        x = -(int)chunks->dist;
     }
-    if (ct <= 16) init = false;
     ret:;
     //printf("generated in: [%f]s\n", (float)(altutime() - starttime) / 1000000.0);
 }

@@ -137,7 +137,7 @@ void doGame() {
     int cx = 0;
     int cz = 0;
     genChunks(&chunks, cx, cz);
-    bool uccallagain = updateChunks(&chunks);
+    //bool uccallagain = updateChunks(&chunks);
     uint64_t fpsstarttime = altutime();
     int fpsct = 0;
     while (!quitRequest) {
@@ -174,7 +174,7 @@ void doGame() {
         rendinf.campos.x += (input.zmov * sinf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult) / div;
         rendinf.campos.x += (input.xmov * cosf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult) / div;
         rendinf.campos.z += (input.xmov * sinf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult) / div;
-        bool setcallagain = false;
+        //bool setcallagain = false;
         if (rendinf.campos.z > 8.0) {   
             --cz;
             rendinf.campos.z -= 16.0;
