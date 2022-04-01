@@ -63,6 +63,7 @@ typedef struct {
     uint32_t vcount;
     uint32_t* vertices;
     bool updated;
+    bool generated;
 } chunk_renddata;
 
 #endif

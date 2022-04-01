@@ -48,6 +48,7 @@ void moveChunks(chunkdata* chunks, int cx, int cz) {
             chunks->data[c + chunks->width - 1] = swap;
             chunks->renddata[c + chunks->width - 1] = rdswap;
             chunks->renddata[c + chunks->width - 1].updated = false;
+            chunks->renddata[c + chunks->width - 1].generated = false;
             chunks->renddata[c + chunks->width - 1].vcount = 0;
         }
     } else if (cx < 0) {
@@ -62,6 +63,7 @@ void moveChunks(chunkdata* chunks, int cx, int cz) {
             chunks->data[c] = swap;
             chunks->renddata[c] = rdswap;
             chunks->renddata[c].updated = false;
+            chunks->renddata[c].generated = false;
             chunks->renddata[c].vcount = 0;
         }
     }
@@ -77,6 +79,7 @@ void moveChunks(chunkdata* chunks, int cx, int cz) {
             chunks->data[c + (chunks->width - 1) * chunks->width] = swap;
             chunks->renddata[c + (chunks->width - 1) * chunks->width] = rdswap;
             chunks->renddata[c + (chunks->width - 1) * chunks->width].updated = false;
+            chunks->renddata[c + (chunks->width - 1) * chunks->width].generated = false;
             chunks->renddata[c + (chunks->width - 1) * chunks->width].vcount = 0;
         }
     } else if (cz < 0) {
@@ -95,6 +98,7 @@ void moveChunks(chunkdata* chunks, int cx, int cz) {
             chunks->renddata[c] = rdswap;
             //printf("flagging update on buffer [%u]\n", c + (chunks->width - 1) * chunks->width);
             chunks->renddata[c].updated = false;
+            chunks->renddata[c].generated = false;
             chunks->renddata[c].vcount = 0;
         }
     }
@@ -105,12 +109,13 @@ void moveChunksMult(chunkdata* chunks, int cx, int cz) {
 }
 */
 
-void genChunkColumn(chunkdata* chunks, int cx, int cz, int xo, int zo) {
+bool genChunkColumn(chunkdata* chunks, int cx, int cz, int xo, int zo) {
     int nx = (cx + xo) * 16;
     int nz = (cz * -1 + zo) * 16;
     cx += chunks->dist;
     cz += chunks->dist;
     uint32_t coff = cz * chunks->width + cx;
+    bool ct = 0;
     for (int cy = 0; cy < 16; ++cy) {
         if (chunks->renddata[coff].updated) goto skipfor;
         memset(chunks->data[coff], 0, 4096 * sizeof(blockdata));
@@ -144,17 +149,49 @@ void genChunkColumn(chunkdata* chunks, int cx, int cz, int xo, int zo) {
                 //if (!x && !z) rendinf.campos.y += (float)si;
             }
         }
+        ct = true;
+        chunks->renddata[coff].generated = true;
+        if ((int)coff % (int)chunks->widthsq >= (int)chunks->width) {
+            int32_t coff2 = coff - chunks->width;
+            if (coff2 >= 0 || coff2 < (int32_t)chunks->size) chunks->renddata[coff2].updated = false;
+        }
+        if ((int)coff % (int)chunks->widthsq < (int)(chunks->widthsq - chunks->width)) {
+            int32_t coff2 = coff + chunks->width;
+            if (coff2 >= 0 || coff2 < (int32_t)chunks->size) chunks->renddata[coff2].updated = false;
+        }
+        if (coff % chunks->width) {
+            int32_t coff2 = coff - 1;
+            if (coff2 >= 0 || coff2 < (int32_t)chunks->size) chunks->renddata[coff2].updated = false;
+        }
+        if ((coff + 1) % chunks->width) {
+            int32_t coff2 = coff + 1;
+            if (coff2 >= 0 || coff2 < (int32_t)chunks->size) chunks->renddata[coff2].updated = false;
+        }
         skipfor:;
         coff += chunks->widthsq;
     }
+    return ct;
 }
 
 void genChunks(chunkdata* chunks, int xo, int zo) {
-    uint64_t starttime = altutime();
-    for (int z = -(int)chunks->dist; z <= (int)chunks->dist; ++z) {
-        for (int x = -(int)chunks->dist; x <= (int)chunks->dist; ++x) {
-            genChunkColumn(chunks, x, z, xo, zo);
-        }
+    //uint64_t starttime = altutime();
+    uint32_t ct = 0;
+    static bool init = false;
+    static int z = 0;
+    static int x = 0;
+    if (!init) {
+        z = -(int)chunks->dist;
+        x = -(int)chunks->dist;
+        init = true;
     }
-    printf("generated in: [%f]s\n", (float)(altutime() - starttime) / 1000000.0);
+    for (; z <= (int)chunks->dist; ++z) {
+        for (; x <= (int)chunks->dist; ++x) {
+            ct += genChunkColumn(chunks, x, z, xo, zo);
+            if (ct > 16) goto ret;
+        }
+        x = -(int)chunks->dist;
+    }
+    if (ct <= 16) init = false;
+    ret:;
+    //printf("generated in: [%f]s\n", (float)(altutime() - starttime) / 1000000.0);
 }
