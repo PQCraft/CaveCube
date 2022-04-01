@@ -92,7 +92,7 @@ void doGame() {
         blockinfo[i].mdl->pos = (coord_3d){0.0, -0.5, 0.0};
     }
     */
-    chunks = allocChunks(7);
+    chunks = allocChunks(9);
     /*
     for (int i = 0; i < 57600; ++i) {
         chunks.data[0][i].id = getRandByte();
@@ -179,34 +179,38 @@ void doGame() {
             --cz;
             rendinf.campos.z -= 16.0;
             moveChunks(&chunks, 0, 1);
-            genChunks(&chunks, cx, cz);
-            uccallagain = updateChunks(&chunks);
-            setcallagain = true;
+            //genChunks(&chunks, cx, cz);
+            //uccallagain = updateChunks(&chunks);
+            //setcallagain = true;
         } else if (rendinf.campos.z < -8.0) {
             ++cz;
             rendinf.campos.z += 16.0;
             moveChunks(&chunks, 0, -1);
-            genChunks(&chunks, cx, cz);
-            uccallagain = updateChunks(&chunks);
-            setcallagain = true;
+            //genChunks(&chunks, cx, cz);
+            //uccallagain = updateChunks(&chunks);
+            //setcallagain = true;
         } else if (rendinf.campos.x > 8.0) {
             ++cx;
             rendinf.campos.x -= 16.0;
             moveChunks(&chunks, 1, 0);
-            genChunks(&chunks, cx, cz);
-            uccallagain = updateChunks(&chunks);
-            setcallagain = true;
+            //genChunks(&chunks, cx, cz);
+            //uccallagain = updateChunks(&chunks);
+            //setcallagain = true;
         } else if (rendinf.campos.x < -8.0) {
             --cx;
             rendinf.campos.x += 16.0;
             moveChunks(&chunks, -1, 0);
-            genChunks(&chunks, cx, cz);
-            uccallagain = updateChunks(&chunks);
-            setcallagain = true;
+            //genChunks(&chunks, cx, cz);
+            //uccallagain = updateChunks(&chunks);
+            //setcallagain = true;
         }
+        /*
         if (!setcallagain && uccallagain) {
             uccallagain = updateChunks(&chunks);
         }
+        */
+        genChunks(&chunks, cx, cz);
+        updateChunks(&chunks);
         updateCam();
         //printf("[%f]\n", rendinf.camrot.y);
         //putchar('\n');

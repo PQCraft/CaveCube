@@ -260,7 +260,7 @@ static blockdata getBlock(chunkdata* data, int32_t c, int x, int y, int z) {
     else if (z < 0 && c % (int)data->widthsq < (int)(data->widthsq - data->width)) {c += data->width; z += 16;}
     if (y < 0 && c >= (int)data->widthsq) {c -= data->widthsq; y += 16;}
     else if (y > 15 && c < (int)(data->size - data->widthsq)) {c += data->widthsq; y -= 16;}
-    if (c < 0 || c > (int32_t)data->size || x < 0 || y < 0 || z < 0 || x > max || y > 15 || z > max) return (blockdata){0, 0};
+    if (c < 0 || c >= (int32_t)data->size || x < 0 || y < 0 || z < 0 || x > max || y > 15 || z > max) return (blockdata){0, 0};
     //return (blockdata){0, 0};
     //printf("block [%d, %d, %d]: [%d]\n", x, y, z, y * 225 + (z % 15) * 15 + (x % 15));
     //printf("[%d] [%d]: [%d]\n", x, z, ((x / 15) % data->width) + ((x / 15) / data->width));
@@ -279,9 +279,11 @@ static uint32_t constBlockVert[6][6] = {
 
 bool updateChunks(void* vdata) {
     chunkdata* data = vdata;
-    static uint64_t totaltime = 0;
     static uint32_t ucleftoff = 0;
+    /*
+    static uint64_t totaltime = 0;
     uint64_t starttime = altutime();
+    */
     blockdata bdata;
     blockdata bdata2[6];
     /*
@@ -293,6 +295,7 @@ bool updateChunks(void* vdata) {
         if (c >= data->size) {ucleftoff = 0; break;}
         if (c2 >= 25) {ucleftoff = c; break;}
         //uint64_t starttime2 = altutime();
+        if (!data->renddata[c].generated) {data->renddata[c].updated = false; continue;}
         if (data->renddata[c].updated) continue;
         ++c2;
         data->renddata[c].vertices = realloc(data->renddata[c].vertices, 147456 * sizeof(uint32_t));
@@ -384,6 +387,7 @@ bool updateChunks(void* vdata) {
         //if (rendererQuitRequest()) return;
     }
     bool leftoff = (ucleftoff > 0);
+    /*
     if (leftoff) {
         totaltime += (altutime() - starttime);
     } else {
@@ -392,6 +396,7 @@ bool updateChunks(void* vdata) {
         chunkcachesize = 0;
         totaltime = 0;
     }
+    */
     return leftoff;
 }
 
