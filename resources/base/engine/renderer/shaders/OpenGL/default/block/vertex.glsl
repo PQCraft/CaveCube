@@ -11,11 +11,20 @@ out float TexOff;
 uniform mat4 view;
 uniform mat4 projection;
 uniform vec3 ccoord;
+uniform uint TexAni;
+uniform int isAni;
 
 void main() {
     TexCoord.x = float((data >> 13) & uint(1));
     TexCoord.y = float((data >> 12) & uint(1));
-    TexOff = float((data & uint(255)) + ((data >> 14) & uint(7)) * float(256)) / 1536;
+    uint TexOff2;
+    uint TexID = data & uint(255);
+    if (isAni != 0) {
+        TexOff2 = TexAni;
+    } else {
+        TexOff2 = (data >> 14) & uint(7);
+    }
+    TexOff = float(TexID + TexOff2 * float(256)) / 1536;
     FragPos.x = float(((data >> 27) & uint(15)) + ((data >> 31) & uint(1))) - 8;
     FragPos.y = float(((data >> 22) & uint(15)) + ((data >> 26) & uint(1)));
     FragPos.z = (float(((data >> 17) & uint(15)) + ((data >> 21) & uint(1))) - 8) * -1;

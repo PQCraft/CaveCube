@@ -16,6 +16,6 @@ void main() {
     } else {
         discard;
     }
-    float mixv = clamp((distance(vec3(FragPos.x, 0, FragPos.z), vec3(cam.x, cam.z / 16, cam.z)) - float(dist) * 4) / (16 * float(dist) - float(dist) * 4), 0, 1);
+    float mixv = clamp((distance(vec3(FragPos.x, 0, FragPos.z), vec3(cam.x, cam.z / 16, cam.z)) - float(dist) * 3) / (16 * float(dist) - float(dist) * 3), 0, 1);
     gl_FragColor = mix(gl_FragColor, vec4(0, 0.75, 1, gl_FragColor.a), mixv);
 }
