@@ -18,10 +18,10 @@ static float rotmult = 3;
 static float fpsmult = 0;
 static float mousesns = 0.05;
 
-chunkdata chunks;
+struct chunkdata chunks;
 
 /*
-static inline void renderChunks(chunkdata* data, float xrot, float yrot) {
+static inline void renderChunks(struct chunkdata* data, float xrot, float yrot) {
     int yroti;
     if (xrot < -45.0) {
         yroti = 5;
@@ -50,9 +50,9 @@ static inline void renderChunks(chunkdata* data, float xrot, float yrot) {
         for (register int z = -w; z <= w; ++z) {
             for (register int x = -w; x <= w; ++x) {
                 //printf("rendering [%d, %d, %d]...\n", x, y, z);
-                blockdata bdata = getBlock(&chunks, x, y, z);
+                struct blockdata bdata = getBlock(&chunks, x, y, z);
                 if (!bdata.id || !blockinfo[bdata.id].mdl) continue;
-                blockdata bdata2[6];
+                struct blockdata bdata2[6];
                 bdata2[0] = getBlock(&chunks, x, y, z + 1);
                 bdata2[1] = getBlock(&chunks, x, y, z - 1);
                 bdata2[2] = getBlock(&chunks, x - 1, y, z);
@@ -92,24 +92,24 @@ void doGame() {
         blockinfo[i].mdl->pos = (coord_3d){0.0, -0.5, 0.0};
     }
     */
-    chunks = allocChunks(9);
+    chunks = allocChunks(15);
     /*
     for (int i = 0; i < 57600; ++i) {
         chunks.data[0][i].id = getRandByte();
     }
     */
-    rendinf.campos.y = 25.5;
+    rendinf.campos.y = 77.75;
     initInput();
     float pmult = posmult;
     float rmult = rotmult;
-    //setRandSeed(0);
+    //setRandSeed(altutime());
     initNoiseTable();
     /*
     register int w = chunks.coff;
     for (register int y = 0; y < 256; ++y) {
         for (register int z = -w; z <= w; ++z) {
             for (register int x = -w; x <= w; ++x) {
-                setBlock(&chunks, x, y, z, (blockdata){0, 0, 0});
+                setBlock(&chunks, x, y, z, (struct blockdata){0, 0, 0});
             }
         }
     }
@@ -119,16 +119,16 @@ void doGame() {
             double s = perlin2d((double)(x) / 16, (double)(z) / 16, 1.0, 1);
             double s2 = perlin2d(((double)(-x - 1) / 160), ((double)(-z - 1) / 160), 1.0, 1);
             for (register int y = 0; y < 4; ++y) {
-                setBlock(&chunks, x, y, z, (blockdata){7, 0, 0});
+                setBlock(&chunks, x, y, z, (struct blockdata){7, 0, 0});
             }
             s *= 5;
             s += s2 * 32;
             int si = (int)(float)(s * 2) - 16;
-            setBlock(&chunks, x, si, z, (blockdata){(si > 12) ? 5 : 3, 0, 0});
+            setBlock(&chunks, x, si, z, (struct blockdata){(si > 12) ? 5 : 3, 0, 0});
             for (register int y = si - 1; y > -1; --y) {
-                setBlock(&chunks, x, y, z, (blockdata){2, 0, 0});
+                setBlock(&chunks, x, y, z, (struct blockdata){2, 0, 0});
             }
-            setBlock(&chunks, x, 0, z, (blockdata){6, 0, 0});
+            setBlock(&chunks, x, 0, z, (struct blockdata){6, 0, 0});
             if (si < 3) si = 3;
             if (!x && !z) rendinf.campos.y += (float)si;
         }
@@ -151,7 +151,7 @@ void doGame() {
             rendinf.campos.y -= pmult;
             if (rendinf.campos.y < 2.125) rendinf.campos.y = 2.125;
         } else {
-            if (rendinf.campos.y < 2.5) rendinf.campos.y = 2.5;
+            if (rendinf.campos.y < 2.75) rendinf.campos.y = 2.75;
         }
         if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_JUMP)) {
             rendinf.campos.y += pmult;

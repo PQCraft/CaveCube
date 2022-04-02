@@ -9,15 +9,29 @@
 #include <string.h>
 #include <stdbool.h>
 #include <pthread.h>
+#include <math.h>
 
 /*
-#ifdef THREADING
-    #undef THREADING // Not worth it atm (the overhead of threading outweighs the overhead of chunk generation)
-#endif
+struct blockdata getBlock(int cx, int cy, int cz, int x, int y, int z) {
+
+}
 */
 
-chunkdata allocChunks(uint32_t dist) {
-    chunkdata chunks;
+static int compare(const void* b, const void* a) {
+    float fa = ((struct rendorder*)a)->dist;
+    float fb = ((struct rendorder*)b)->dist;
+    //printf("[%f]\n", ((struct rendorder*)a)->dist);
+    return (fa > fb) - (fa < fb);
+}
+
+static float distance(float x1, float z1, float x2, float z2) {
+    //float f = sqrt(fabs(x2 - x1) * fabs(x2 - x1) + fabs(z2 - z1) * fabs(z2 - z1));
+    //printf("[%f][%f][%f][%f] [%f]\n", x1, z1, x2, z2, f);
+    return /*f*/ sqrt(fabs(x2 - x1) * fabs(x2 - x1) + fabs(z2 - z1) * fabs(z2 - z1));
+}
+
+struct chunkdata allocChunks(uint32_t dist) {
+    struct chunkdata chunks;
     chunks.dist = dist;
     dist = 1 + dist * 2;
     chunks.width = dist;
@@ -25,17 +39,32 @@ chunkdata allocChunks(uint32_t dist) {
     chunks.widthsq = dist;
     dist *= 16;
     chunks.size = dist;
-    chunks.data = malloc(dist * sizeof(blockdata*));
+    chunks.data = malloc(dist * sizeof(struct blockdata*));
     for (unsigned i = 0; i < dist; ++i) {
-        chunks.data[i] = calloc(4096 * sizeof(blockdata), 1);
+        chunks.data[i] = calloc(4096 * sizeof(struct blockdata), 1);
     }
-    chunks.renddata = calloc(dist * sizeof(chunk_renddata), 1);
+    chunks.renddata = calloc(dist * sizeof(struct chunk_renddata), 1);
+    chunks.rordr = calloc(chunks.widthsq * sizeof(struct rendorder), 1);
+    for (unsigned x = 0; x < chunks.width; ++x) {
+        for (unsigned z = 0; z < chunks.width; ++z) {
+            uint32_t c = x + z * chunks.width;
+            //printf("[%f]\n", distance(x + chunks.dist, z + chunks.dist, 0, 0));
+            chunks.rordr[c].dist = distance((int)(x - chunks.dist), (int)(z - chunks.dist), 0, 0);
+            chunks.rordr[c].c = c;
+        }
+    }
+    qsort(chunks.rordr, chunks.widthsq, sizeof(struct rendorder), compare);
+    /*
+    for (unsigned i = 0; i < chunks.widthsq; ++i) {
+        printf("[%9f][%3d]\n", chunks.rordr[i].dist, chunks.rordr[i].c);
+    }
+    */
     return chunks;
 }
 
-void moveChunks(chunkdata* chunks, int cx, int cz) {
-    blockdata* swap = NULL;
-    chunk_renddata rdswap;
+void moveChunks(struct chunkdata* chunks, int cx, int cz) {
+    struct blockdata* swap = NULL;
+    struct chunk_renddata rdswap;
     if (cx > 0) {
         for (uint32_t c = 0; c < chunks->size; c += chunks->width) {
             swap = chunks->data[c];
@@ -105,11 +134,11 @@ void moveChunks(chunkdata* chunks, int cx, int cz) {
 }
 
 /*
-void moveChunksMult(chunkdata* chunks, int cx, int cz) {
+void moveChunksMult(struct chunkdata* chunks, int cx, int cz) {
 }
 */
 
-bool genChunkColumn(chunkdata* chunks, int cx, int cz, int xo, int zo) {
+bool genChunkColumn(struct chunkdata* chunks, int cx, int cz, int xo, int zo) {
     int nx = (cx + xo) * 16;
     int nz = (cz * -1 + zo) * 16;
     cx += chunks->dist;
@@ -118,7 +147,7 @@ bool genChunkColumn(chunkdata* chunks, int cx, int cz, int xo, int zo) {
     bool ct = 0;
     for (int cy = 0; cy < 16; ++cy) {
         if (chunks->renddata[coff].updated) goto skipfor;
-        memset(chunks->data[coff], 0, 4096 * sizeof(blockdata));
+        memset(chunks->data[coff], 0, 4096 * sizeof(struct blockdata));
         //chunks->renddata[coff].pos = (coord_3d){(float)(cx - (int)chunks->dist), (float)(cy), (float)(cz - (int)chunks->dist)};
         //printf("set chunk pos [%u]: [%d][%d][%d]\n", coff, cx - chunks->dist, cy, cz - chunks->dist);
         int btm = cy * 16;
@@ -126,25 +155,30 @@ bool genChunkColumn(chunkdata* chunks, int cx, int cz, int xo, int zo) {
         for (int z = 0; z < 16; ++z) {
             for (int x = 0; x < 16; ++x) {
                 //if (!cy) printf("noise coords (% 2d, % 2d, % 2d) [% 3d][% 3d]\n", cx, cy, cz, nx + x, nz + z);
-                double s1 = perlin2d(0, (double)(nx + x) / 16, (double)(nz + z) / 16, 1.0, 1);
-                double s2 = perlin2d(1, (double)(nx + x) / 160, (double)(nz + z) / 160, 1.0, 1);
+                double s1 = perlin2d(0, (double)(nx + x) / 19, (double)(nz + z) / 19, 1.0, 1);
+                double s2 = perlin2d(1, (double)(nx + x) / 257, (double)(nz + z) / 257, 1.0, 1);
+                double s3 = perlin2d(2, (double)(nx + x) / 167, (double)(nz + z) / 167, 1.0, 1);
+                double s4 = perlin2d(3, (double)(nx + x) / 74, (double)(nz + z) / 74, 1.0, 1);
+                double s5 = perlin2d(4, (double)(nx + x) / 64, (double)(nz + z) / 64, 1.0, 1);
                 //printf("[%lf][%lf]", s, s2);
-                for (int y = btm; y < 14; ++y) {
-                    chunks->data[coff][y * 256 + z * 16 + x] = (blockdata){7, 0};
+                for (int y = btm; y <= top && y < 75; ++y) {
+                    //printf("placing water at chunk [%u] [%d, %d, %d]\n", coff, x, y, z);
+                    chunks->data[coff][(y - btm) * 256 + z * 16 + x] = (struct blockdata){7, 0};
                 }
                 double s = s1;
-                s *= 4;
-                s += s2 * 32;
+                s *= s5 * 4;
+                s += s2 * 48 + (1 - s5) * 4;
+                s -= 10;
                 float sf = (float)(s * 2) - 8;
-                int si = (int)sf;
+                int si = (int)sf + 70;
                 //printf("[%d]\n", si);
-                uint8_t blockid = (s1 + s2 < perlin2d(2, (double)(nx + x) / 67, (double)(nz + z) / 67, 1.0, 1) * 1.125) ? 8 : 3;
-                blockid = (sf < 14.5) ? 8 : blockid;
-                if (si >= btm && si <= top) chunks->data[coff][(si - btm) * 256 + z * 16 + x] = (blockdata){blockid, 0};
+                uint8_t blockid = (s1 + s2 < s3 * 1.125) ? 8 : 3;
+                blockid = (sf < 5.5) ? ((sf < -((s4 + 2.25) * 7)) ? 2 : 8) : blockid;
+                if (si >= btm && si <= top) chunks->data[coff][(si - btm) * 256 + z * 16 + x] = (struct blockdata){blockid, 0};
                 for (int y = ((si - 1) > top) ? top : si - 1; y >= btm; --y) {
-                    chunks->data[coff][(y - btm) * 256 + z * 16 + x] = (blockdata){2, 0};
+                    chunks->data[coff][(y - btm) * 256 + z * 16 + x] = (struct blockdata){(y < (float)(si) * 0.9) ? 1 : 2, 0};
                 }
-                if (!btm) chunks->data[coff][z * 16 + x] = (blockdata){6, 0};
+                if (!btm) chunks->data[coff][z * 16 + x] = (struct blockdata){6, 0};
                 //if (si < 3) si = 3;
                 //if (!x && !z) rendinf.campos.y += (float)si;
             }
@@ -173,17 +207,18 @@ bool genChunkColumn(chunkdata* chunks, int cx, int cz, int xo, int zo) {
     return ct;
 }
 
-void genChunks(chunkdata* chunks, int xo, int zo) {
-    //uint64_t starttime = altutime();
-    uint32_t ct = 0;
-    uint32_t maxct = 1;
+void genChunks(struct chunkdata* chunks, int xo, int zo) {
+    uint64_t starttime = altutime();
+    //uint32_t ct = 0;
+    //uint32_t maxct = 1;
     for (int i = 0; i <= (int)chunks->dist; ++i) {
         for (int z = -i; z <= i; ++z) {
             for (int x = -i; x <= i; ++x) {
                 if (abs(z) == i || (abs(z) != i && abs(x) == i)) {
-                    ct += genChunkColumn(chunks, x, z, xo, zo);
+                    /*ct += */genChunkColumn(chunks, x, z, xo, zo);
                     //printf("[%d][%d] [%u]\n", x, z, ct);
-                    if (ct > maxct - 1) goto ret;
+                    //if (ct > maxct - 1) goto ret;
+                    if (altutime() - starttime >= 1000000 / (((rendinf.fps) ? rendinf.fps : 60) * 3)) goto ret;
                 }
             }
         }
