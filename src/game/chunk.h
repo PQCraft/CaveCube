@@ -4,22 +4,28 @@
 #include <inttypes.h>
 #include <renderer.h>
 
-typedef struct {
+struct blockdata {
     uint8_t id;
     uint8_t flags;
-} blockdata;
+};
 
-typedef struct {
+struct rendorder {
+    uint32_t c;
+    float dist;
+};
+
+struct chunkdata {
     uint32_t dist;
     uint32_t width;
     uint32_t widthsq;
     uint32_t size;
-    blockdata** data;
-    chunk_renddata* renddata;
-} chunkdata;
+    struct rendorder* rordr;
+    struct blockdata** data;
+    struct chunk_renddata* renddata;
+};
 
-chunkdata allocChunks(uint32_t);
-void genChunks(chunkdata*, int, int);
-void moveChunks(chunkdata*, int, int);
+struct chunkdata allocChunks(uint32_t);
+void genChunks(struct chunkdata*, int, int);
+void moveChunks(struct chunkdata*, int, int);
 
 #endif
