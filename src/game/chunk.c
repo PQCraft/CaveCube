@@ -74,11 +74,13 @@ void moveChunks(struct chunkdata* chunks, int cx, int cz) {
                 chunks->data[c + i] = chunks->data[c + i + 1];
                 chunks->renddata[c + i] = chunks->renddata[c + i + 1];
             }
-            chunks->data[c + chunks->width - 1] = swap;
-            chunks->renddata[c + chunks->width - 1] = rdswap;
-            chunks->renddata[c + chunks->width - 1].updated = false;
-            chunks->renddata[c + chunks->width - 1].generated = false;
-            chunks->renddata[c + chunks->width - 1].vcount = 0;
+            uint32_t off = c + chunks->width - 1;
+            chunks->data[off] = swap;
+            chunks->renddata[off] = rdswap;
+            chunks->renddata[off].updated = false;
+            chunks->renddata[off].generated = false;
+            chunks->renddata[off].vcount = 0;
+            chunks->renddata[off].vcount2 = 0;
         }
     } else if (cx < 0) {
         for (uint32_t c = 0; c < chunks->size; c += chunks->width) {
@@ -94,6 +96,7 @@ void moveChunks(struct chunkdata* chunks, int cx, int cz) {
             chunks->renddata[c].updated = false;
             chunks->renddata[c].generated = false;
             chunks->renddata[c].vcount = 0;
+            chunks->renddata[c].vcount2 = 0;
         }
     }
     if (cz > 0) {
@@ -105,30 +108,29 @@ void moveChunks(struct chunkdata* chunks, int cx, int cz) {
                 chunks->data[c + i * chunks->width] = chunks->data[c + (i + 1) * chunks->width];
                 chunks->renddata[c + i * chunks->width] = chunks->renddata[c + (i + 1) * chunks->width];
             }
-            chunks->data[c + (chunks->width - 1) * chunks->width] = swap;
-            chunks->renddata[c + (chunks->width - 1) * chunks->width] = rdswap;
-            chunks->renddata[c + (chunks->width - 1) * chunks->width].updated = false;
-            chunks->renddata[c + (chunks->width - 1) * chunks->width].generated = false;
-            chunks->renddata[c + (chunks->width - 1) * chunks->width].vcount = 0;
+            uint32_t off = c + (chunks->width - 1) * chunks->width;
+            chunks->data[off] = swap;
+            chunks->renddata[off] = rdswap;
+            chunks->renddata[off].updated = false;
+            chunks->renddata[off].generated = false;
+            chunks->renddata[off].vcount = 0;
+            chunks->renddata[off].vcount2 = 0;
         }
     } else if (cz < 0) {
         for (uint32_t c = 0; c < chunks->size; c += ((c + 1) % chunks->width) ? 1 : chunks->widthsq - chunks->width + 1) {
-            //printf("saving buffer [%u]\n", c);
             swap = chunks->data[c + (chunks->width - 1) * chunks->width];
             rdswap = chunks->renddata[c + (chunks->width - 1) * chunks->width];
             chunks->renddata[c].updated = false;
             for (uint32_t i = chunks->width - 1; i > 0; --i) {
-                //printf("replacing buffer [%u] with [%u]\n", c + i * chunks->width, c + (i + 1) * chunks->width);
                 chunks->data[c + i * chunks->width] = chunks->data[c + (i - 1) * chunks->width];
                 chunks->renddata[c + i * chunks->width] = chunks->renddata[c + (i - 1) * chunks->width];
             }
-            //printf("writing buffer [%u] to [%u]\n", c, c + (chunks->width - 1) * chunks->width);
             chunks->data[c] = swap;
             chunks->renddata[c] = rdswap;
-            //printf("flagging update on buffer [%u]\n", c + (chunks->width - 1) * chunks->width);
             chunks->renddata[c].updated = false;
             chunks->renddata[c].generated = false;
             chunks->renddata[c].vcount = 0;
+            chunks->renddata[c].vcount2 = 0;
         }
     }
 }

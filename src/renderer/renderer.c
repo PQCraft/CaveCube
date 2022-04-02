@@ -260,7 +260,8 @@ static struct blockdata getBlock(struct chunkdata* data, int32_t c, int x, int y
     else if (z < 0 && c % (int)data->widthsq < (int)(data->widthsq - data->width)) {c += data->width; z += 16;}
     if (y < 0 && c >= (int)data->widthsq) {c -= data->widthsq; y += 16;}
     else if (y > 15 && c < (int)(data->size - data->widthsq)) {c += data->widthsq; y -= 16;}
-    if (c < 0 || c >= (int32_t)data->size || x < 0 || y < 0 || z < 0 || x > max || y > 15 || z > max) return (struct blockdata){0, 0};
+    if (c < 0 || c >= (int32_t)data->size || x < 0 || y < 0 || z < 0 || x > max || y > 15 || z > max) return (struct blockdata){255, 0};
+    if (!data->renddata[c].generated) return (struct blockdata){255, 0};
     //return (struct blockdata){0, 0};
     //printf("block [%d, %d, %d]: [%d]\n", x, y, z, y * 225 + (z % 15) * 15 + (x % 15));
     //printf("[%d] [%d]: [%d]\n", x, z, ((x / 15) % data->width) + ((x / 15) / data->width));
@@ -318,6 +319,7 @@ bool updateChunks(void* vdata) {
                     bdata2[5] = getBlock(data, c, x, y - 1, z);
                     for (int i = 0; i < 6; ++i) {
                         if (bdata2[i].id && bdata2[i].id <= maxblockid && (bdata2[i].id != 5 || bdata.id == 5) && (bdata2[i].id != 7 || bdata.id == 7)) continue;
+                        if (bdata2[i].id == 255) continue;
                         uint32_t baseVert = (x << 27) | (y << 22) | (z << 17) | (i << 14) | bdata.id;
                         if (bdata.id == 7) {
                             for (int j = 0; j < 6; ++j) {
@@ -334,7 +336,6 @@ bool updateChunks(void* vdata) {
                             //printf("added [%d][%d %d %d][%d]: [%u]: [%x]...\n", c, x, y, z, i, (uint8_t)bdata.id, baseVert);
                             ++tmpsize;
                         }
-                        //skipfor:;
                     }
                 }
             }
@@ -403,6 +404,9 @@ void renderChunks(void* vdata) {
         glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 0, (void*)0);
         glDrawArrays(GL_TRIANGLES, 0, data->renddata[c].vcount);
     }
+    glDisable(GL_CULL_FACE);
+    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "isAni"), 1);
+    glUniform1ui(glGetUniformLocation(rendinf.shaderprog, "TexAni"), (altutime() / 500000) % 6);
     for (uint32_t i = 0; i < data->widthsq; ++i) {
         uint32_t c = data->rordr[i].c;
         for (uint32_t y = 0; y < 16; ++y) {
@@ -418,6 +422,8 @@ void renderChunks(void* vdata) {
             c += data->widthsq;
         }
     }
+    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "isAni"), 0);
+    glEnable(GL_CULL_FACE);
     //printf("rendered in: [%f]s\n", (float)(altutime() - starttime) / 1000000.0);
 }
 
