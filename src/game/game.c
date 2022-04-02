@@ -92,7 +92,7 @@ void doGame() {
         blockinfo[i].mdl->pos = (coord_3d){0.0, -0.5, 0.0};
     }
     */
-    chunks = allocChunks(15);
+    chunks = allocChunks(9);
     /*
     for (int i = 0; i < 57600; ++i) {
         chunks.data[0][i].id = getRandByte();

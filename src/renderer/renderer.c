@@ -431,7 +431,12 @@ int rendererQuitRequest() {
     return (glfwWindowShouldClose(rendinf.window) != 0);
 }
 
+static void errorcb(int e, const char* m) {
+    printf("GLFW error [%d]: {%s}\n", e, m);
+}
+
 bool initRenderer() {
+    glfwSetErrorCallback(errorcb);
     glfwInit();
     rendinf.camfov = 50;
     rendinf.campos = GFX_DEFAULT_POS;
