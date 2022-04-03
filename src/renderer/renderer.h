@@ -65,8 +65,8 @@ struct chunk_renddata {
     unsigned VBO2;
     uint32_t vcount2;
     uint32_t* vertices2;
-    bool updated;
-    bool generated;
+    bool updated:1;
+    bool generated:1;
 };
 
 #endif
