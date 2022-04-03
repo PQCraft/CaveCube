@@ -7,6 +7,7 @@
 #include <input.h>
 #include <noise.h>
 #include <chunk.h>
+#include <server.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -102,7 +103,7 @@ void doGame() {
     initInput();
     float pmult = posmult;
     float rmult = rotmult;
-    //setRandSeed(altutime());
+    setRandSeed(91935);
     initNoiseTable();
     /*
     register int w = chunks.coff;
@@ -134,6 +135,7 @@ void doGame() {
         }
     }
     */
+    initServer(SERVER_MODE_SP);
     int cx = 0;
     int cz = 0;
     genChunks(&chunks, cx, cz);
@@ -179,28 +181,28 @@ void doGame() {
             --cz;
             rendinf.campos.z -= 16.0;
             moveChunks(&chunks, 0, 1);
-            //genChunks(&chunks, cx, cz);
+            genChunks(&chunks, cx, cz);
             //uccallagain = updateChunks(&chunks);
             //setcallagain = true;
         } else if (rendinf.campos.z < -8.0) {
             ++cz;
             rendinf.campos.z += 16.0;
             moveChunks(&chunks, 0, -1);
-            //genChunks(&chunks, cx, cz);
+            genChunks(&chunks, cx, cz);
             //uccallagain = updateChunks(&chunks);
             //setcallagain = true;
         } else if (rendinf.campos.x > 8.0) {
             ++cx;
             rendinf.campos.x -= 16.0;
             moveChunks(&chunks, 1, 0);
-            //genChunks(&chunks, cx, cz);
+            genChunks(&chunks, cx, cz);
             //uccallagain = updateChunks(&chunks);
             //setcallagain = true;
         } else if (rendinf.campos.x < -8.0) {
             --cx;
             rendinf.campos.x += 16.0;
             moveChunks(&chunks, -1, 0);
-            //genChunks(&chunks, cx, cz);
+            genChunks(&chunks, cx, cz);
             //uccallagain = updateChunks(&chunks);
             //setcallagain = true;
         }
@@ -209,7 +211,7 @@ void doGame() {
             uccallagain = updateChunks(&chunks);
         }
         */
-        genChunks(&chunks, cx, cz);
+        //genChunks(&chunks, cx, cz);
         updateChunks(&chunks);
         updateCam();
         //printf("[%f]\n", rendinf.camrot.y);

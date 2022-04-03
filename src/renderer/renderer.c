@@ -260,9 +260,9 @@ static struct blockdata getBlock(struct chunkdata* data, int32_t c, int x, int y
     else if (z < 0 && c % (int)data->widthsq < (int)(data->widthsq - data->width)) {c += data->width; z += 16;}
     if (y < 0 && c >= (int)data->widthsq) {c -= data->widthsq; y += 16;}
     else if (y > 15 && c < (int)(data->size - data->widthsq)) {c += data->widthsq; y -= 16;}
-    if (c < 0 || c >= (int32_t)data->size || x < 0 || y < 0 || z < 0 || x > max || y > 15 || z > max) return (struct blockdata){255, 0};
-    if (!data->renddata[c].generated) return (struct blockdata){255, 0};
-    //return (struct blockdata){0, 0};
+    if (c < 0 || c >= (int32_t)data->size || x < 0 || y < 0 || z < 0 || x > max || y > 15 || z > max) return (struct blockdata){255, 0, 0, 0};
+    if (!data->renddata[c].generated) return (struct blockdata){255, 0, 0, 0};
+    //return (struct blockdata){0, 0, 0 ,0};
     //printf("block [%d, %d, %d]: [%d]\n", x, y, z, y * 225 + (z % 15) * 15 + (x % 15));
     //printf("[%d] [%d]: [%d]\n", x, z, ((x / 15) % data->width) + ((x / 15) / data->width));
     return data->data[c][y * 256 + z * 16 + x];
@@ -295,7 +295,7 @@ bool updateChunks(void* vdata) {
     for (uint32_t c = 0/*, c2 = 0*/; ; ++c) {
         if (c >= data->size) {ucleftoff = 0; break;}
         //if (c2 > 25) {ucleftoff = c; break;}
-        if (altutime() - starttime >= 1000000 / (((rendinf.fps) ? rendinf.fps : 60) * 3)) {ucleftoff = c; break;}
+        if (altutime() - starttime >= 1000000 / (((rendinf.fps) ? rendinf.fps : 60) * 2)) {ucleftoff = c; break;}
         //uint64_t starttime2 = altutime();
         if (!data->renddata[c].generated) {data->renddata[c].updated = false; continue;}
         if (data->renddata[c].updated) continue;
@@ -406,7 +406,7 @@ void renderChunks(void* vdata) {
     }
     glDisable(GL_CULL_FACE);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "isAni"), 1);
-    glUniform1ui(glGetUniformLocation(rendinf.shaderprog, "TexAni"), (altutime() / 500000) % 6);
+    glUniform1ui(glGetUniformLocation(rendinf.shaderprog, "TexAni"), (altutime() / 200000) % 6);
     for (uint32_t i = 0; i < data->widthsq; ++i) {
         uint32_t c = data->rordr[i].c;
         for (uint32_t y = 0; y < 16; ++y) {
@@ -484,7 +484,7 @@ bool initRenderer() {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glClearColor(0, 0.75, 1.0, 1);
+    glClearColor(0, 0.7, 0.9, 1);
     glfwSwapInterval(rendinf.vsync);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glfwSwapBuffers(rendinf.window);

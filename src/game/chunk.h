@@ -6,7 +6,9 @@
 
 struct blockdata {
     uint8_t id;
-    uint8_t flags;
+    uint8_t light:4;
+    uint8_t rot:3;
+    uint8_t reserved:1;
 };
 
 struct rendorder {
@@ -26,6 +28,7 @@ struct chunkdata {
 
 struct chunkdata allocChunks(uint32_t);
 void genChunks(struct chunkdata*, int, int);
+bool genChunkColumn(struct chunkdata*, int, int, int, int);
 void moveChunks(struct chunkdata*, int, int);
 
 #endif

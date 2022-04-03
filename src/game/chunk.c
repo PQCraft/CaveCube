@@ -2,6 +2,7 @@
 #include <common.h>
 #include <noise.h>
 #include <renderer.h>
+#include <server.h>
 
 #include <inttypes.h>
 #include <stdlib.h>
@@ -157,17 +158,17 @@ bool genChunkColumn(struct chunkdata* chunks, int cx, int cz, int xo, int zo) {
         for (int z = 0; z < 16; ++z) {
             for (int x = 0; x < 16; ++x) {
                 //if (!cy) printf("noise coords (% 2d, % 2d, % 2d) [% 3d][% 3d]\n", cx, cy, cz, nx + x, nz + z);
-                double s1 = perlin2d(0, (double)(nx + x) / 19, (double)(nz + z) / 19, 1.0, 1);
-                double s2 = perlin2d(1, (double)(nx + x) / 257, (double)(nz + z) / 257, 1.0, 1);
-                double s3 = perlin2d(2, (double)(nx + x) / 167, (double)(nz + z) / 167, 1.0, 1);
-                double s4 = perlin2d(3, (double)(nx + x) / 74, (double)(nz + z) / 74, 1.0, 1);
-                double s5 = perlin2d(4, (double)(nx + x) / 64, (double)(nz + z) / 64, 1.0, 1);
+                float s1 = perlin2d(0, (float)(nx + x) / 19, (float)(nz + z) / 19, 1.0, 1);
+                float s2 = perlin2d(1, (float)(nx + x) / 257, (float)(nz + z) / 257, .5, 1);
+                float s3 = perlin2d(2, (float)(nx + x) / 167, (float)(nz + z) / 167, 1.0, 1);
+                float s4 = perlin2d(3, (float)(nx + x) / 74, (float)(nz + z) / 74, 1.0, 1);
+                float s5 = perlin2d(4, (float)(nx + x) / 64, (float)(nz + z) / 64, 1.0, 1);
                 //printf("[%lf][%lf]", s, s2);
                 for (int y = btm; y <= top && y < 75; ++y) {
                     //printf("placing water at chunk [%u] [%d, %d, %d]\n", coff, x, y, z);
-                    chunks->data[coff][(y - btm) * 256 + z * 16 + x] = (struct blockdata){7, 0};
+                    chunks->data[coff][(y - btm) * 256 + z * 16 + x] = (struct blockdata){7, 0, 0, 0};
                 }
-                double s = s1;
+                float s = s1;
                 s *= s5 * 4;
                 s += s2 * 48 + (1 - s5) * 4;
                 s -= 10;
@@ -176,11 +177,11 @@ bool genChunkColumn(struct chunkdata* chunks, int cx, int cz, int xo, int zo) {
                 //printf("[%d]\n", si);
                 uint8_t blockid = (s1 + s2 < s3 * 1.125) ? 8 : 3;
                 blockid = (sf < 5.5) ? ((sf < -((s4 + 2.25) * 7)) ? 2 : 8) : blockid;
-                if (si >= btm && si <= top) chunks->data[coff][(si - btm) * 256 + z * 16 + x] = (struct blockdata){blockid, 0};
+                if (si >= btm && si <= top) chunks->data[coff][(si - btm) * 256 + z * 16 + x] = (struct blockdata){blockid, 0, 0, 0};
                 for (int y = ((si - 1) > top) ? top : si - 1; y >= btm; --y) {
-                    chunks->data[coff][(y - btm) * 256 + z * 16 + x] = (struct blockdata){(y < (float)(si) * 0.9) ? 1 : 2, 0};
+                    chunks->data[coff][(y - btm) * 256 + z * 16 + x] = (struct blockdata){(y < (float)(si) * 0.9) ? 1 : 2, 0, 0, 0};
                 }
-                if (!btm) chunks->data[coff][z * 16 + x] = (struct blockdata){6, 0};
+                if (!btm) chunks->data[coff][z * 16 + x] = (struct blockdata){6, 0, 0, 0};
                 //if (si < 3) si = 3;
                 //if (!x && !z) rendinf.campos.y += (float)si;
             }
@@ -210,21 +211,25 @@ bool genChunkColumn(struct chunkdata* chunks, int cx, int cz, int xo, int zo) {
 }
 
 void genChunks(struct chunkdata* chunks, int xo, int zo) {
-    uint64_t starttime = altutime();
+    //uint64_t starttime = altutime();
     //uint32_t ct = 0;
     //uint32_t maxct = 1;
     for (int i = 0; i <= (int)chunks->dist; ++i) {
         for (int z = -i; z <= i; ++z) {
             for (int x = -i; x <= i; ++x) {
                 if (abs(z) == i || (abs(z) != i && abs(x) == i)) {
-                    /*ct += */genChunkColumn(chunks, x, z, xo, zo);
+                    /*ct += *///genChunkColumn(chunks, x, z, xo, zo);
                     //printf("[%d][%d] [%u]\n", x, z, ct);
                     //if (ct > maxct - 1) goto ret;
-                    if (altutime() - starttime >= 1000000 / (((rendinf.fps) ? rendinf.fps : 60) * 3)) goto ret;
+                    //while (
+                    struct server_chunk* srvchunk = malloc(sizeof(struct server_chunk));
+                    *srvchunk = (struct server_chunk){chunks, x, z, xo, zo};
+                    servSend(SERVER_MSG_GETCHUNK, srvchunk, true, true);
+                    //if (altutime() - starttime >= 1000000 / (((rendinf.fps) ? rendinf.fps : 60) * 3)) goto ret;
                 }
             }
         }
     }
-    ret:;
+    //ret:;
     //printf("generated in: [%f]s\n", (float)(altutime() - starttime) / 1000000.0);
 }
