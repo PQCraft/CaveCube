@@ -31,4 +31,13 @@ void microwait(uint64_t);
 
 #define GCBUFSIZE 32768
 
+#ifndef NO_THREADING
+    #define THREADING
+#endif
+#ifdef THREADING
+    #ifndef MAX_THREADS
+        #define MAX_THREADS 8
+    #endif
+#endif
+
 #endif
