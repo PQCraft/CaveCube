@@ -4,6 +4,10 @@
 #include <stdbool.h>
 #include <chunk.h>
 
+#ifndef SERVER_THREADS
+    #define SERVER_THREADS 8
+#endif
+
 enum {
     SERVER_MODE_SP,
     SERVER_MODE_MP,

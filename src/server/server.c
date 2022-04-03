@@ -7,10 +7,6 @@
 #include <pthread.h>
 #include <stdbool.h>
 
-#ifndef SERVER_THREADS
-    #define SERVER_THREADS 4
-#endif
-
 struct servmsg {
     bool valid;
     bool ready;
@@ -47,7 +43,7 @@ static void* servthread(void* args) {
             pthread_mutex_unlock(&msglock);
             switch (msgdata[index].id) {
                 default:;
-                    printf("Server thread [%d]: Recieved invalid task\n", id);
+                    printf("Server thread [%d]: Recieved invalid task: [%d][%d][%lu]\n", id, index, msgdata[index].id, (uintptr_t)args);
                     break;
                 case SERVER_MSG_PING:;
                     printf("Server thread [%d]: Pong\n", id);
@@ -64,7 +60,7 @@ static void* servthread(void* args) {
             pthread_mutex_lock(&msglock);
             msgdata[index].ready = true;
             if (msgdata[index].discard) msgdata[index].valid = false;
-            //if (msgdata[index].freedata) free(msgdata[index].data);
+            if (msgdata[index].freedata) free(msgdata[index].data);
         }
         pthread_mutex_unlock(&msglock);
         if (index == -1) if (delaytime > 0 && delaytime <= 33333) microwait(delaytime);

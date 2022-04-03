@@ -93,7 +93,7 @@ void doGame() {
         blockinfo[i].mdl->pos = (coord_3d){0.0, -0.5, 0.0};
     }
     */
-    chunks = allocChunks(9);
+    chunks = allocChunks(15);
     /*
     for (int i = 0; i < 57600; ++i) {
         chunks.data[0][i].id = getRandByte();
@@ -141,6 +141,7 @@ void doGame() {
     genChunks(&chunks, cx, cz);
     //bool uccallagain = updateChunks(&chunks);
     uint64_t fpsstarttime = altutime();
+    uint64_t fpsstarttime2 = altutime();
     int fpsct = 0;
     while (!quitRequest) {
         uint64_t starttime = altutime();
@@ -230,8 +231,11 @@ void doGame() {
         }
         */
         //putchar('\n');
-        renderChunks(&chunks);
-        updateScreen();
+        if (!rendinf.vsync || !rendinf.fps || fpsstarttime2 >= 1000000 / rendinf.fps) {
+            renderChunks(&chunks);
+            updateScreen();
+            fpsstarttime2 = altutime();
+        }
         ++fpsct;
         uint64_t curtime = altutime();
         if (curtime - fpsstarttime >= 1000000) {
