@@ -14,6 +14,10 @@
 #include <math.h>
 #include <inttypes.h>
 
+#ifndef SHOWFPS
+    //#define SHOWFPS
+#endif
+
 static float posmult = 0.125;
 static float rotmult = 3;
 static float fpsmult = 0;
@@ -93,13 +97,13 @@ void doGame() {
         blockinfo[i].mdl->pos = (coord_3d){0.0, -0.5, 0.0};
     }
     */
-    chunks = allocChunks(15);
+    chunks = allocChunks(9);
     /*
     for (int i = 0; i < 57600; ++i) {
         chunks.data[0][i].id = getRandByte();
     }
     */
-    rendinf.campos.y = 77.75;
+    rendinf.campos.y = 67.5;
     initInput();
     float pmult = posmult;
     float rmult = rotmult;
@@ -140,9 +144,15 @@ void doGame() {
     int cz = 0;
     genChunks(&chunks, cx, cz);
     //bool uccallagain = updateChunks(&chunks);
-    uint64_t fpsstarttime = altutime();
     uint64_t fpsstarttime2 = altutime();
+    uint64_t ptime = fpsstarttime2;
+    uint64_t dtime = fpsstarttime2;
+    uint64_t ptime2 = fpsstarttime2;
+    uint64_t dtime2 = fpsstarttime2;
+    #ifdef SHOW_FPS
+    uint64_t fpsstarttime = fpsstarttime2;
     int fpsct = 0;
+    #endif
     while (!quitRequest) {
         uint64_t starttime = altutime();
         float npmult = 1.0;
@@ -152,9 +162,9 @@ void doGame() {
         //fflush(stdout);
         if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_CROUCH)) {
             rendinf.campos.y -= pmult;
-            if (rendinf.campos.y < 2.125) rendinf.campos.y = 2.125;
+            if (rendinf.campos.y < 1.125) rendinf.campos.y = 1.125;
         } else {
-            if (rendinf.campos.y < 2.75) rendinf.campos.y = 2.75;
+            if (rendinf.campos.y < 1.5) rendinf.campos.y = 1.5;
         }
         if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_JUMP)) {
             rendinf.campos.y += pmult;
@@ -215,6 +225,58 @@ void doGame() {
         //genChunks(&chunks, cx, cz);
         updateChunks(&chunks);
         updateCam();
+        float accuracy = 0.1;
+        float lookatx = cos(rendinf.camrot.x * M_PI / 180.0) * sin(rendinf.camrot.y * M_PI / 180.0);
+        float lookaty = sin(rendinf.camrot.x * M_PI / 180.0);
+        float lookatz = (cos(rendinf.camrot.x * M_PI / 180.0) * cos(rendinf.camrot.y * M_PI / 180.0)) * -1;
+        float blockx = 0, blocky = 0, blockz = 0;
+        float lastblockx = 0, lastblocky = 0, lastblockz = 0;
+        uint8_t blockid = 0, blockid2 = 0;
+        int dist = (float)(5.0 / accuracy);
+        for (int i = 1; i < dist; ++i) {
+            blockid2 = blockid;
+            lastblockx = blockx;
+            lastblocky = blocky;
+            lastblockz = blockz;
+            float depth = (float)i * accuracy;
+            blockx = lookatx * depth + rendinf.campos.x;
+            blockx -= (blockx < 0) ? 1.0 : 0.0;
+            blocky = lookaty * depth + rendinf.campos.y;
+            blocky -= (blocky < 0) ? 1.0 : 0.0;
+            blockz = lookatz * depth + rendinf.campos.z;
+            blockz += (blockz > 0) ? 1.0 : 0.0;
+            struct blockdata bdata = getBlock(&chunks, 0, 0, 0, blockx, blocky, blockz);
+            blockid = bdata.id;
+            if (bdata.id && bdata.id != 7) break;
+        }
+        /*
+        printf("info:\n[camx:%f][camy:%f][camz:%f]\n[x:%f][y:%f][z:%f]\n[%f][%f][%f]\n[%f][%f][%f]\n[%d]\n",
+            rendinf.campos.x, rendinf.campos.y, rendinf.campos.z, lookatx, lookaty, lookatz, blockx, blocky, blockz, round(blockx), blocky, round(blockz), blockid);
+        */
+        static bool placehold = false;
+        static bool destroyhold = false;
+        if (!destroyhold && input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_PLACE)) {
+            if (!placehold || (altutime() - ptime) >= 500000)
+                if ((altutime() - ptime2) >= 125000 && blockid && blockid != 7 && (!blockid2 || blockid2 == 7)) {
+                    ptime2 = altutime();
+                    setBlock(&chunks, 0, 0, 0, lastblockx, lastblocky, lastblockz, (struct blockdata){1, 0, 0, 0});
+                }
+            placehold = true;
+        } else {
+            placehold = false;
+            ptime = altutime();
+        }
+        if (!placehold && input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_DESTROY)) {
+            if (!destroyhold || (altutime() - dtime) >= 500000)
+                if ((altutime() - dtime2) >= 125000 && blockid && blockid != 7 && (!blockid2 || blockid2 == 7)) {
+                    dtime2 = altutime();
+                    setBlock(&chunks, 0, 0, 0, blockx, blocky, blockz, (struct blockdata){0, 0, 0, 0});
+                }
+            destroyhold = true;
+        } else {
+            destroyhold = false;
+            dtime = altutime();
+        }
         //printf("[%f]\n", rendinf.camrot.y);
         //putchar('\n');
         /*
@@ -236,6 +298,7 @@ void doGame() {
             updateScreen();
             fpsstarttime2 = altutime();
         }
+        #ifdef SHOWFPS
         ++fpsct;
         uint64_t curtime = altutime();
         if (curtime - fpsstarttime >= 1000000) {
@@ -243,6 +306,7 @@ void doGame() {
             fpsstarttime = curtime;
             fpsct = 0;
         }
+        #endif
         fpsmult = (float)(altutime() - starttime) / (1000000.0f / 60.0f);
         pmult = posmult * fpsmult;
         rmult = rotmult * fpsmult;

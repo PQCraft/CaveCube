@@ -7,5 +7,4 @@ uniform sampler2D TexData;
 
 void main() {
     gl_FragColor = texture(TexData, TexCoord);
-    gl_FragColor.a = gl_FragColor.a / 10;
 }
