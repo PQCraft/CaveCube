@@ -12,11 +12,53 @@
 #include <pthread.h>
 #include <math.h>
 
-/*
-struct blockdata getBlock(int cx, int cy, int cz, int x, int y, int z) {
-
+struct blockdata getBlock(struct chunkdata* data, int cx, int cy, int cz, int x, int y, int z) {
+    cz *= -1;
+    z *= -1;
+    //printf("in: [%d, %d, %d] [%d, %d, %d]\n", cx, cy, cz, x, y, z);
+    cx += data->dist;
+    cz += data->dist;
+    x += 8;
+    z += 8;
+    if (cx < 0 || cz < 0 || cx >= (int)data->width || cz >= (int)data->width || cy < 0 || cy > 15) return (struct blockdata){0, 0, 0, 0};
+    int32_t c = cx + cz * data->width + cy * data->widthsq;
+    while (x < 0 && c % data->width) {c -= 1; x += 16;}
+    while (x > 15 && (c + 1) % data->width) {c += 1; x -= 16;}
+    while (z > 15 && c % (int)data->widthsq >= (int)data->width) {c -= data->width; z -= 16;}
+    while (z < 0 && c % (int)data->widthsq < (int)(data->widthsq - data->width)) {c += data->width; z += 16;}
+    while (y < 0 && c >= (int)data->widthsq) {c -= data->widthsq; y += 16;}
+    while (y > 15 && c < (int)(data->size - data->widthsq)) {c += data->widthsq; y -= 16;}
+    cx = c % data->width;
+    cz = c / data->width % data->width;
+    cy = c / data->widthsq;
+    //printf("resolved: [%d, %d, %d] [%d, %d, %d]\n", cx, cy, cz, x, y, z);
+    if (c < 0 || c >= (int32_t)data->size || x < 0 || y < 0 || z < 0 || x > 15 || y > 15 || z > 15) return (struct blockdata){0, 0, 0, 0};
+    if (!data->renddata[c].generated) return (struct blockdata){0, 0, 0, 0};
+    return data->data[c][y * 256 + z * 16 + x];
 }
-*/
+
+void setBlock(struct chunkdata* data, int cx, int cy, int cz, int x, int y, int z, struct blockdata bdata) {
+    cz *= -1;
+    z *= -1;
+    //printf("in: [%d, %d, %d] [%d, %d, %d]\n", cx, cy, cz, x, y, z);
+    cx += data->dist;
+    cz += data->dist;
+    x += 8;
+    z += 8;
+    if (cx < 0 || cz < 0 || cx >= (int)data->width || cz >= (int)data->width || cy < 0 || cy > 15) return;
+    int32_t c = cx + cz * data->width + cy * data->widthsq;
+    while (x < 0 && c % data->width) {c -= 1; x += 16;}
+    while (x > 15 && (c + 1) % data->width) {c += 1; x -= 16;}
+    while (z > 15 && c % (int)data->widthsq >= (int)data->width) {c -= data->width; z -= 16;}
+    while (z < 0 && c % (int)data->widthsq < (int)(data->widthsq - data->width)) {c += data->width; z += 16;}
+    while (y < 0 && c >= (int)data->widthsq) {c -= data->widthsq; y += 16;}
+    while (y > 15 && c < (int)(data->size - data->widthsq)) {c += data->widthsq; y -= 16;}
+    //printf("resolved: [%d, %d, %d] [%d, %d, %d]\n", cx, cy, cz, x, y, z);
+    if (c < 0 || c >= (int32_t)data->size || x < 0 || y < 0 || z < 0 || x > 15 || y > 15 || z > 15) return;
+    if (!data->renddata[c].generated) return;
+    data->data[c][y * 256 + z * 16 + x] = bdata;
+    data->renddata[c].updated = false;
+}
 
 static int compare(const void* b, const void* a) {
     float fa = ((struct rendorder*)a)->dist;
@@ -164,7 +206,7 @@ bool genChunkColumn(struct chunkdata* chunks, int cx, int cz, int xo, int zo) {
                 float s4 = perlin2d(3, (float)(nx + x) / 74, (float)(nz + z) / 74, 1.0, 1);
                 float s5 = perlin2d(4, (float)(nx + x) / 64, (float)(nz + z) / 64, 1.0, 1);
                 //printf("[%lf][%lf]", s, s2);
-                for (int y = btm; y <= top && y < 75; ++y) {
+                for (int y = btm; y <= top && y < 65; ++y) {
                     //printf("placing water at chunk [%u] [%d, %d, %d]\n", coff, x, y, z);
                     chunks->data[coff][(y - btm) * 256 + z * 16 + x] = (struct blockdata){7, 0, 0, 0};
                 }
@@ -173,7 +215,7 @@ bool genChunkColumn(struct chunkdata* chunks, int cx, int cz, int xo, int zo) {
                 s += s2 * 48 + (1 - s5) * 4;
                 s -= 10;
                 float sf = (float)(s * 2) - 8;
-                int si = (int)sf + 70;
+                int si = (int)sf + 60;
                 //printf("[%d]\n", si);
                 uint8_t blockid = (s1 + s2 < s3 * 1.125) ? 8 : 3;
                 blockid = (sf < 5.5) ? ((sf < -((s4 + 2.25) * 7)) ? 2 : 8) : blockid;

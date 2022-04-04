@@ -33,6 +33,11 @@ void setUniform4f(GLuint prog, char* name, float val[4]) {
     glUniform4f(glGetUniformLocation(prog, name), val[0], val[1], val[2], val[3]);
 }
 
+static void setShaderProg(GLuint s) {
+    rendinf.shaderprog = s;
+    glUseProgram(rendinf.shaderprog);
+}
+
 void updateCam() {
     mat4 view __attribute__((aligned (32)));
     mat4 projection __attribute__((aligned (32)));
@@ -248,18 +253,21 @@ bool chunkcacheinit = false;
 static uint32_t maxblockid = 0;
 
 static unsigned VAO;
+static unsigned VBO2D;
 
-static struct blockdata getBlock(struct chunkdata* data, int32_t c, int x, int y, int z) {
+static GLuint shader_block;
+static GLuint shader_2d;
+
+static struct blockdata rendGetBlock(struct chunkdata* data, int32_t c, int x, int y, int z) {
     //x += data->dist;
     //z += data->dist;
-    int max = 16 - 1;
     if (x < 0 && c % data->width) {c -= 1; x += 16;}
     else if (x > 15 && (c + 1) % data->width) {c += 1; x -= 16;}
     if (z > 15 && c % (int)data->widthsq >= (int)data->width) {c -= data->width; z -= 16;}
     else if (z < 0 && c % (int)data->widthsq < (int)(data->widthsq - data->width)) {c += data->width; z += 16;}
     if (y < 0 && c >= (int)data->widthsq) {c -= data->widthsq; y += 16;}
     else if (y > 15 && c < (int)(data->size - data->widthsq)) {c += data->widthsq; y -= 16;}
-    if (c < 0 || c >= (int32_t)data->size || x < 0 || y < 0 || z < 0 || x > max || y > 15 || z > max) return (struct blockdata){255, 0, 0, 0};
+    if (c < 0 || c >= (int32_t)data->size || x < 0 || y < 0 || z < 0 || x > 15 || y > 15 || z > 15) return (struct blockdata){255, 0, 0, 0};
     if (!data->renddata[c].generated) return (struct blockdata){255, 0, 0, 0};
     //return (struct blockdata){0, 0, 0 ,0};
     //printf("block [%d, %d, %d]: [%d]\n", x, y, z, y * 225 + (z % 15) * 15 + (x % 15));
@@ -277,6 +285,15 @@ static uint32_t constBlockVert[6][6] = {
     {0x00001000, 0x80003000, 0x80202000, 0x80202000, 0x00200000, 0x00001000},
 };
 
+static float vert2D[] = {
+    -1.0,  1.0,  0.0,  1.0,
+     1.0,  1.0,  1.0,  1.0,
+     1.0, -1.0,  1.0,  0.0,
+     1.0, -1.0,  1.0,  0.0,
+    -1.0, -1.0,  0.0,  0.0,
+    -1.0,  1.0,  0.0,  1.0,
+};
+
 bool updateChunks(void* vdata) {
     struct chunkdata* data = vdata;
     static uint32_t ucleftoff = 0;
@@ -291,14 +308,13 @@ bool updateChunks(void* vdata) {
         if (!data->renddata[c].updated) data->renddata[c].vcount = 0;
     }
     */
-    for (uint32_t c = 0/*, c2 = 0*/; ; ++c) {
-        if (c >= data->size) {ucleftoff = 0; break;}
-        //if (c2 > 25) {ucleftoff = c; break;}
-        if (altutime() - starttime >= 1000000 / (((rendinf.fps) ? rendinf.fps : 60) * 2)) {ucleftoff = c; break;}
+    for (uint32_t c = ucleftoff, c2 = 0, c3 = 0; ; c = (c + 1) % data->size) {
+        if (altutime() - starttime >= 1000000 / (((rendinf.fps) ? rendinf.fps : 60) * 3) && c3 >= 16) {ucleftoff = c; break;}
         //uint64_t starttime2 = altutime();
+        ++c3;
         if (!data->renddata[c].generated) {data->renddata[c].updated = false; continue;}
         if (data->renddata[c].updated) continue;
-        //++c2;
+        ++c2;
         data->renddata[c].vertices = realloc(data->renddata[c].vertices, 147456 * sizeof(uint32_t));
         data->renddata[c].vertices2 = realloc(data->renddata[c].vertices2, 147456 * sizeof(uint32_t));
         uint32_t* vptr = data->renddata[c].vertices;
@@ -308,14 +324,14 @@ bool updateChunks(void* vdata) {
         for (int y = 0; y < 16; ++y) {
             for (int z = 0; z < 16; ++z) {
                 for (int x = 0; x < 16; ++x) {
-                    bdata = getBlock(data, c, x, y, z);
+                    bdata = rendGetBlock(data, c, x, y, z);
                     if (!bdata.id || bdata.id > maxblockid) continue;
-                    bdata2[0] = getBlock(data, c, x, y, z + 1);
-                    bdata2[1] = getBlock(data, c, x, y, z - 1);
-                    bdata2[2] = getBlock(data, c, x - 1, y, z);
-                    bdata2[3] = getBlock(data, c, x + 1, y, z);
-                    bdata2[4] = getBlock(data, c, x, y + 1, z);
-                    bdata2[5] = getBlock(data, c, x, y - 1, z);
+                    bdata2[0] = rendGetBlock(data, c, x, y, z + 1);
+                    bdata2[1] = rendGetBlock(data, c, x, y, z - 1);
+                    bdata2[2] = rendGetBlock(data, c, x - 1, y, z);
+                    bdata2[3] = rendGetBlock(data, c, x + 1, y, z);
+                    bdata2[4] = rendGetBlock(data, c, x, y + 1, z);
+                    bdata2[5] = rendGetBlock(data, c, x, y - 1, z);
                     for (int i = 0; i < 6; ++i) {
                         if (bdata2[i].id && bdata2[i].id <= maxblockid && (bdata2[i].id != 5 || bdata.id == 5) && (bdata2[i].id != 7 || bdata.id == 7)) continue;
                         if (bdata2[i].id == 255) continue;
@@ -403,7 +419,7 @@ void renderChunks(void* vdata) {
         glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 0, (void*)0);
         glDrawArrays(GL_TRIANGLES, 0, data->renddata[c].vcount);
     }
-    glDisable(GL_CULL_FACE);
+    //glDisable(GL_CULL_FACE);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "isAni"), 1);
     glUniform1ui(glGetUniformLocation(rendinf.shaderprog, "TexAni"), (altutime() / 200000) % 6);
     for (uint32_t i = 0; i < data->widthsq; ++i) {
@@ -422,7 +438,15 @@ void renderChunks(void* vdata) {
         }
     }
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "isAni"), 0);
-    glEnable(GL_CULL_FACE);
+    glDisable(GL_DEPTH_TEST);
+    setShaderProg(shader_2d);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO2D);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    setShaderProg(shader_block);
+    glEnable(GL_DEPTH_TEST);
+    //glEnable(GL_CULL_FACE);
     //printf("rendered in: [%f]s\n", (float)(altutime() - starttime) / 1000000.0);
 }
 
@@ -437,7 +461,7 @@ static void errorcb(int e, const char* m) {
 bool initRenderer() {
     glfwSetErrorCallback(errorcb);
     glfwInit();
-    rendinf.camfov = 50;
+    rendinf.camfov = 75;
     rendinf.campos = GFX_DEFAULT_POS;
     rendinf.camrot = GFX_DEFAULT_ROT;
     //rendinf.camrot.y = 180;
@@ -472,10 +496,19 @@ bool initRenderer() {
     glfwSetFramebufferSizeCallback(rendinf.window, gfx_winch);
     file_data* vs = loadResource(RESOURCE_TEXTFILE, "engine/renderer/shaders/OpenGL/default/block/vertex.glsl");
     file_data* fs = loadResource(RESOURCE_TEXTFILE, "engine/renderer/shaders/OpenGL/default/block/fragment.glsl");
-    if (!makeShaderProg((char*)vs->data, (char*)fs->data, &rendinf.shaderprog)) {
+    if (!makeShaderProg((char*)vs->data, (char*)fs->data, &shader_block)) {
         return false;
     }
-    glUseProgram(rendinf.shaderprog);
+    freeResource(vs);
+    freeResource(fs);
+    vs = loadResource(RESOURCE_TEXTFILE, "engine/renderer/shaders/OpenGL/default/2D/vertex.glsl");
+    fs = loadResource(RESOURCE_TEXTFILE, "engine/renderer/shaders/OpenGL/default/2D/fragment.glsl");
+    if (!makeShaderProg((char*)vs->data, (char*)fs->data, &shader_2d)) {
+        return false;
+    }
+    freeResource(vs);
+    freeResource(fs);
+    setShaderProg(shader_block);
     setFullscreen(rendinf.fullscr);
     glViewport(0, 0, rendinf.width, rendinf.height);
     glEnable(GL_DEPTH_TEST);
@@ -511,9 +544,19 @@ bool initRenderer() {
         if (resourceExists(tmpbuf) == -1) break;
         printf("loading block [%d]...\n", i);
         maxblockid = i;
+        bool st = false;
+        int o = 0;
         for (int j = 0; j < 6; ++j) {
-            sprintf(tmpbuf, "game/textures/blocks/%d/%d.png", i, j);
+            if (st) o = j;
+            sprintf(tmpbuf, "game/textures/blocks/%d/%d.png", i, j - o);
             resdata_image* img = loadResource(RESOURCE_IMAGE, tmpbuf);
+            if (!img) {
+                if (!j) st = true;
+                else if (j == 3) o = 3;
+                else break;
+                --j;
+                continue;
+            }
             printf("adding texture {%s} at offset [%u] of map [%d]...\n", tmpbuf, 1024 * i, j);
             memcpy(&texmap[j * 262144 + i * 1024], img->data, 1024);
             freeResource(img);
@@ -531,12 +574,21 @@ bool initRenderer() {
     glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA, 16, 16, 1536, 0, GL_RGBA, GL_UNSIGNED_BYTE, texmap);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "TexData"), 0);
     //sprintf(tmpbuf, "TexData%d", i);
     //glUniform1i(glGetUniformLocation(rendinf.shaderprog, tmpbuf), i);
     //glBindTexture(GL_TEXTURE_2D, 0);
+    setShaderProg(shader_2d);
     glActiveTexture(GL_TEXTURE1);
+    glGenBuffers(1, &VBO2D);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO2D);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vert2D), vert2D, GL_STATIC_DRAW);
+    resdata_texture* crosshair = loadResource(RESOURCE_TEXTURE, "game/textures/ui/crosshair.png");
+    glBindTexture(GL_TEXTURE_2D, crosshair->data);
+    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "TexData"), 1);
     //glUniform1i(glGetUniformLocation(rendinf.shaderprog, "TexData2D"), 6);
     //glUniform1i(glGetUniformLocation(rendinf.shaderprog, "notBlock"), 0);
+    setShaderProg(shader_block);
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
     //glEnableVertexAttribArray(0);
