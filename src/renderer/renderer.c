@@ -38,6 +38,32 @@ static void setShaderProg(GLuint s) {
     glUseProgram(rendinf.shaderprog);
 }
 
+void setSkyColor(float r, float g, float b) {
+    glClearColor(r, g, b, 1);
+    setUniform3f(rendinf.shaderprog, "skycolor", (float[]){r, g, b});
+}
+
+void setScreenMult(float r, float g, float b) {
+    setUniform3f(rendinf.shaderprog, "mcolor", (float[]){r, g, b});
+}
+
+static int curspace = -1;
+
+void setSpace(int space) {
+    if (space == curspace) return;
+    curspace = space;
+    switch (space) {
+        default:;
+            setSkyColor(0, 0.7, 0.9);
+            setScreenMult(1, 1, 1);
+            break;
+        case SPACE_UNDERWATER:;
+            setSkyColor(0, 0.33, 0.75);
+            setScreenMult(0.25, 0.5, 0.75);
+            break;
+    }
+}
+
 void updateCam() {
     mat4 view __attribute__((aligned (32)));
     mat4 projection __attribute__((aligned (32)));
@@ -408,6 +434,8 @@ void renderChunks(void* vdata) {
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "dist"), data->dist);
     setUniform3f(rendinf.shaderprog, "cam", (float[]){rendinf.campos.x, rendinf.campos.y, rendinf.campos.z});
     //uint64_t starttime = altutime();
+    //glDisable(GL_CULL_FACE);
+    //glDepthFunc(GL_LESS);
     for (uint32_t c = 0; c < data->size; ++c) {
         if (!data->renddata[c].vcount) continue;
         int x = c % data->width;
@@ -419,26 +447,39 @@ void renderChunks(void* vdata) {
         glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 0, (void*)0);
         glDrawArrays(GL_TRIANGLES, 0, data->renddata[c].vcount);
     }
-    //glDisable(GL_CULL_FACE);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "isAni"), 1);
     glUniform1ui(glGetUniformLocation(rendinf.shaderprog, "TexAni"), (altutime() / 200000) % 6);
-    for (uint32_t i = 0; i < data->widthsq; ++i) {
-        uint32_t c = data->rordr[i].c;
-        for (uint32_t y = 0; y < 16; ++y) {
-            if (data->renddata[c].vcount2) {
-                int x = c % data->width;
-                int z = c / data->width % data->width;
-                setUniform3f(rendinf.shaderprog, "ccoord", (float[]){x - (int)data->dist, y, z - (int)data->dist});
-                glBindBuffer(GL_ARRAY_BUFFER, data->renddata[c].VBO2);
-                glEnableVertexAttribArray(0);
-                glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 0, (void*)0);
-                glDrawArrays(GL_TRIANGLES, 0, data->renddata[c].vcount2);
-            }
-            c += data->widthsq;
+    if (curspace == SPACE_UNDERWATER) {
+        for (uint32_t c = 0; c < data->size; ++c) {
+            if (!data->renddata[c].vcount2) continue;
+            int x = c % data->width;
+            int z = c / data->width % data->width;
+            int y = c / data->widthsq;
+            setUniform3f(rendinf.shaderprog, "ccoord", (float[]){x - (int)data->dist, y, z - (int)data->dist});
+            glBindBuffer(GL_ARRAY_BUFFER, data->renddata[c].VBO2);
+            glEnableVertexAttribArray(0);
+            glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 0, (void*)0);
+            glFrontFace(GL_CW);
+            glDrawArrays(GL_TRIANGLES, 0, data->renddata[c].vcount2);
+            glFrontFace(GL_CCW);
+            glDrawArrays(GL_TRIANGLES, 0, data->renddata[c].vcount2);
+        }
+    } else {
+        for (uint32_t c = 0; c < data->size; ++c) {
+            if (!data->renddata[c].vcount2) continue;
+            int x = c % data->width;
+            int z = c / data->width % data->width;
+            int y = c / data->widthsq;
+            setUniform3f(rendinf.shaderprog, "ccoord", (float[]){x - (int)data->dist, y, z - (int)data->dist});
+            glBindBuffer(GL_ARRAY_BUFFER, data->renddata[c].VBO2);
+            glEnableVertexAttribArray(0);
+            glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 0, (void*)0);
+            glDrawArrays(GL_TRIANGLES, 0, data->renddata[c].vcount2);
         }
     }
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "isAni"), 0);
     glDisable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
     setShaderProg(shader_2d);
     glBindBuffer(GL_ARRAY_BUFFER, VBO2D);
     glEnableVertexAttribArray(0);
@@ -446,7 +487,7 @@ void renderChunks(void* vdata) {
     glDrawArrays(GL_TRIANGLES, 0, 6);
     setShaderProg(shader_block);
     glEnable(GL_DEPTH_TEST);
-    //glEnable(GL_CULL_FACE);
+    glEnable(GL_CULL_FACE);
     //printf("rendered in: [%f]s\n", (float)(altutime() - starttime) / 1000000.0);
 }
 
@@ -467,7 +508,7 @@ bool initRenderer() {
     //rendinf.camrot.y = 180;
     sscanf(getConfigVarStatic(config, "renderer.resolution", "1024x768@0", 256), "%ux%u@%u",
         &rendinf.win_width, &rendinf.win_height, &rendinf.win_fps);
-    sscanf(getConfigVarStatic(config, "renderer.fullresolution", "1280x720@0", 256), "%ux%u@%u",
+    sscanf(getConfigVarStatic(config, "renderer.fullresolution", "0x0@0", 256), "%ux%u@%u",
         &rendinf.full_width, &rendinf.full_height, &rendinf.full_fps);
     if (!rendinf.win_width || rendinf.win_width > 32767) rendinf.win_width = 640;
     if (!rendinf.win_height || rendinf.win_height > 32767) rendinf.win_height = 480;
@@ -483,12 +524,22 @@ bool initRenderer() {
         fputs("glfwGetPrimaryMonitor: Failed to fetch primary monitor handle\n", stderr);
         return false;
     }
+    const GLFWvidmode* vmode = glfwGetVideoMode(rendinf.monitor);
+    if (!rendinf.full_width && !rendinf.full_height) {
+        int monx = 0, mony = 0;
+        glfwGetMonitorPos(rendinf.monitor, &monx, &mony);
+        rendinf.full_width = vmode->width - monx;
+        rendinf.full_height = vmode->height - mony;
+    }
+    if (!rendinf.full_fps) rendinf.full_fps = vmode->refreshRate;
+    if (!rendinf.win_fps) rendinf.win_fps = vmode->refreshRate;
     if (!(rendinf.window = glfwCreateWindow(rendinf.win_width, rendinf.win_height, "CaveCube", NULL, NULL))) {
         fputs("glfwCreateWindow: Failed to create window\n", stderr);
         return false;
     }
     glfwMakeContextCurrent(rendinf.window);
     glfwSetInputMode(rendinf.window, GLFW_STICKY_KEYS, GLFW_TRUE);
+    
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         fputs("gladLoadGLLoader: Failed to initialize GLAD\n", stderr);
         return false;
@@ -508,6 +559,7 @@ bool initRenderer() {
     }
     freeResource(vs);
     freeResource(fs);
+    printf("Fullscreen resolution: [%ux%u@%d]\n", rendinf.full_width, rendinf.full_height, rendinf.full_fps);
     setShaderProg(shader_block);
     setFullscreen(rendinf.fullscr);
     glViewport(0, 0, rendinf.width, rendinf.height);
@@ -516,7 +568,7 @@ bool initRenderer() {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glClearColor(0, 0.7, 0.9, 1);
+    glClearColor(0, 0, 0, 1);
     glfwSwapInterval(rendinf.vsync);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glfwSwapBuffers(rendinf.window);

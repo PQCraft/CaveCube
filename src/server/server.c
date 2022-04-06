@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <pthread.h>
 #include <stdbool.h>
+#include <noise.h>
 
 struct servmsg {
     bool valid;
@@ -70,6 +71,8 @@ static void* servthread(void* args) {
 
 bool initServer(int mode) {
     servmode = mode;
+    setRandSeed(91935);
+    initNoiseTable();
     msgdata = malloc(0);
     pthread_mutex_init(&msglock, NULL);
     for (int i = 0; i < SERVER_THREADS && i < MAX_THREADS; ++i) {
