@@ -69,6 +69,11 @@ struct chunk_renddata {
     bool generated:1;
 };
 
+enum {
+    SPACE_NORMAL,
+    SPACE_UNDERWATER,
+};
+
 #endif
 
 typedef unsigned int texture_t;
@@ -91,6 +96,9 @@ void updateCam(void);
 void updateScreen(void);
 bool updateChunks(void*);
 void renderChunks(void*);
+void setSkyColor(float, float, float);
+void setScreenMult(float, float, float);
+void setSpace(int);
 
 #define GFX_DEFAULT_POS (coord_3d){0.0, 0.0, 0.0}
 #define GFX_DEFAULT_ROT (coord_3d){0.0, 0.0, 0.0}

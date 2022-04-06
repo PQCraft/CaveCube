@@ -6,6 +6,7 @@ layout (location = 0) in uint data;
 
 out vec2 TexCoord;
 out vec3 FragPos;
+out vec4 FragPos2;
 out float TexOff;
 
 uniform mat4 view;
@@ -27,10 +28,13 @@ void main() {
     TexOff = (float(TexID) + float(TexOff2) * 256.0) / 1535.0;
     FragPos.x = float(((data >> 27) & uint(15)) + ((data >> 31) & uint(1))) - 8;
     FragPos.y = float(((data >> 22) & uint(15)) + ((data >> 26) & uint(1)));
+    /*
     if (TexID == uint(7) && ((data >> 26) & uint(1)) == uint(1)) {
         FragPos.y -= 0.1;
     }
+    */
     FragPos.z = (float(((data >> 17) & uint(15)) + ((data >> 21) & uint(1))) - 8) * -1;
     FragPos += ccoord * 16;
     gl_Position = projection * view * vec4(FragPos, 1);
+    FragPos2 = gl_Position;
 }
