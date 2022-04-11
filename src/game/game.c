@@ -13,7 +13,7 @@
 #include <inttypes.h>
 
 #ifndef SHOWFPS
-    #define SHOWFPS
+    //#define SHOWFPS
 #endif
 
 static float posmult = 0.125;
@@ -28,7 +28,7 @@ void doGame() {
     for (int i = 0; i < 16; ++i) {
         tmpbuf[i] = malloc(4096);
     }
-    chunks = allocChunks(9);
+    chunks = allocChunks(atoi(getConfigVarStatic(config, "game.chunks", "9", 64)));
     rendinf.campos.y = 67.5;
     initInput();
     float pmult = posmult;
@@ -42,10 +42,9 @@ void doGame() {
     uint64_t dtime = fpsstarttime2;
     uint64_t ptime2 = fpsstarttime2;
     uint64_t dtime2 = fpsstarttime2;
-    #ifdef SHOWFPS
+    uint64_t rendtime = 750000;
     uint64_t fpsstarttime = fpsstarttime2;
     int fpsct = 0;
-    #endif
     //setSkyColor(0.0, 0.7, 0.9);
     setSpace(SPACE_NORMAL);
     while (!quitRequest) {
@@ -161,7 +160,7 @@ void doGame() {
             destroyhold = false;
             dtime = altutime();
         }
-        if (!rendinf.vsync || !rendinf.fps || fpsstarttime2 >= 1000000 / rendinf.fps) {
+        if (!rendinf.vsync || !rendinf.fps || (altutime() - fpsstarttime2) >= rendtime / rendinf.fps) {
             if (curbdata.id == 7) {
                 setSpace(SPACE_UNDERWATER);
             } else {
@@ -174,14 +173,18 @@ void doGame() {
             ++fpsct;
             #endif
         }
-        #ifdef SHOWFPS
         uint64_t curtime = altutime();
-        if (curtime - fpsstarttime >= (uint32_t)(1000000 - ((rendinf.vsync && rendinf.fps) ? 1000000 / rendinf.fps : 0))) {
+        if (curtime - fpsstarttime >= 1000000) {
+            #ifdef SHOWFPS
             printf("rendered [%d] frames in %f seconds with a goal of [%d] frames\n", fpsct, (float)(curtime - fpsstarttime) / 1000000.0, rendinf.fps);
+            #endif
             fpsstarttime = curtime;
+            if (rendinf.vsync) {
+                if (rendtime > 500000 && fpsct < (int)rendinf.fps) rendtime -= 10000;
+                if (rendtime < 1000000 && fpsct > (int)rendinf.fps + 5) rendtime += 10000;
+            }
             fpsct = 0;
         }
-        #endif
         fpsmult = (float)(altutime() - starttime) / (1000000.0f / 60.0f);
         pmult = posmult * fpsmult;
         rmult = rotmult * fpsmult;

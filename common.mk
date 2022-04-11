@@ -32,36 +32,36 @@ SNAME := $(NAME):
 $(OBJDIR):
 	@echo Creating $@...
 ifndef OS
-	@[ ! -d $@ ] && mkdir -p $@; true
+	@[ ! -d "$@" ] && mkdir -p "$@"; true
 else
-	@if not exist $@ mkdir $@
+	@if not exist "$@" mkdir "$@"
 endif
 	@echo Created $@
 
 $(OUTDIR): $(OBJDIR)
 	@echo Creating $@...
 ifndef OS
-	@[ ! -d $@ ] && mkdir -p $@; true
+	@[ ! -d "$@" ] && mkdir -p "$@"; true
 else
-	@if not exist $@
+	@if not exist "$@" mkdir "$@"
 endif
 	@echo Created $@
 
 cleanobjdir: FORCE
 	@echo Removing $(OBJDIR)...
 ifndef OS
-	@rm -rf $(OBJDIR)
+	@rm -rf "$(OBJDIR)"
 else
-	@if exist $(OBJDIR) rmdir /S /Q $(OBJDIR)
+	@if exist "$(OBJDIR)" rmdir /S /Q "$(OBJDIR)"
 endif
 	@echo Removed $(OBJDIR)...
 
 cleanoutdir: FORCE
 	@echo Removing $(OUTDIR)...
 ifndef OS
-	@rm -rf $(OUTDIR)
+	@rm -rf "$(OUTDIR)"
 else
-	@if exist $(OUTDIR) rmdir /S /Q $(OUTDIR)
+	@if exist "$(OUTDIR)" rmdir /S /Q "$(OUTDIR)"
 endif
 	@echo Removed $(OUTDIR)...
 
