@@ -1,6 +1,8 @@
-# Jank
-
+ifndef OS
 CC ?= gcc
+else
+CC = gcc
+endif
 
 SRCDIR ?= src
 OBJDIR ?= obj
@@ -16,7 +18,7 @@ CURDIR := $(abspath .)
 CURDIR := $(patsubst %/,%,$(CURDIR))
 CURDIR := $(patsubst %\,%,$(CURDIR))
 
-DIRS := $(sort $(dir $(wildcard $(SRCDIR)/*/)))
+DIRS := $(sort $(dir $(wildcard $(SRCDIR)/*/.)))
 DIRS := $(patsubst %/,%,$(DIRS))
 DIRS := $(patsubst %\,%,$(DIRS))
 BASEDIRS := $(notdir $(DIRS))
@@ -33,9 +35,13 @@ BIN := $(BINNAME)$(BINEXT)
 
 CFLAGS += -Wall -Wextra -I. -g -O3
 
+ifndef OS
 BINFLAGS += -lpthread -lglfw -lm -O3
+else
+BINFLAGS += -lpthread -lglfw3 -lopengl32 -lgdi32 -lm -O3
+endif
 
-MKENV = NAME=$@ HEADDIR=$(CURDIR) SRCDIR=$(SRCDIR) OBJDIR=$(OBJDIR) COMMONMK=$(CURDIR)/common.mk CC="$(CC)" CFLAGS="$(CFLAGS) $(INCLUDEDIRS)"
+MKENV = NAME=$@ HEADDIR="$(CURDIR)" SRCDIR="$(SRCDIR)" OBJDIR="$(OBJDIR)" COMMONMK="$(CURDIR)/common.mk" CC="$(CC)" CFLAGS="$(CFLAGS) $(INCLUDEDIRS)"
 MKENV2 = CC="$(CC)" CFLAGS="$(CFLAGS)"
 
 ifndef OS
@@ -56,10 +62,10 @@ clean.flags:
 clean: clean.flags files
 	@echo Removing $(OBJDIR) $(BIN)...
 ifndef OS
-	@rm -rf $(OBJDIR) $(BIN)
+	@rm -rf "$(OBJDIR)" "$(BIN)"
 else
-	@if exist $(BIN) del /Q $(BIN)
-	@if exist $(OBJDIR) rmdir /S /Q $(OBJDIR)
+	@if exist "$(BIN)" del /Q "$(BIN)"
+	@if exist "$(OBJDIR)" rmdir /S /Q "$(OBJDIR)"
 endif
 	@echo Removed $(OBJDIR) $(BIN)
 
@@ -73,12 +79,19 @@ bin: FORCE $(BIN)
 ifdef MKSUB
 $(BIN): $(wildcard $(OBJDIR)/*/*.o)
 	@echo Compiling $(BIN)...
-	@$(CC) $(BINFLAGS) $(wildcard $(OBJDIR)/*/*.o) -o $(BIN)
+	@$(CC) $(wildcard $(OBJDIR)/*/*.o) $(BINFLAGS) -o $(BIN)
 	@echo Compiled $(BIN)
 else
 $(BIN): files
 	@$(MAKE) --silent --no-print-directory -f $(lastword $(MAKEFILE_LIST)) ${MKENV2} MKSUB=y $@
 endif
+
+run:
+ifndef OS
+	./$(BIN)
+else
+	.\\$(BIN)
+endif	
 
 test:
 	@echo $(SRCDIR)
@@ -88,5 +101,5 @@ test:
 
 FORCE:
 
-.PHONY: all clean clean.flags files bin bmsg test $(MKFILES)
+.PHONY: all clean clean.flags files bin bmsg run test $(MKFILES)
 

@@ -293,7 +293,8 @@ static struct blockdata rendGetBlock(struct chunkdata* data, int32_t c, int x, i
     else if (z < 0 && c % (int)data->widthsq < (int)(data->widthsq - data->width)) {c += data->width; z += 16;}
     if (y < 0 && c >= (int)data->widthsq) {c -= data->widthsq; y += 16;}
     else if (y > 15 && c < (int)(data->size - data->widthsq)) {c += data->widthsq; y -= 16;}
-    if (c < 0 || c >= (int32_t)data->size || x < 0 || y < 0 || z < 0 || x > 15 || y > 15 || z > 15) return (struct blockdata){255, 0, 0, 0};
+    if (c < 0 || x < 0 || y < 0 || z < 0 || x > 15 || z > 15) return (struct blockdata){255, 0, 0, 0};
+    if (c >= (int32_t)data->size || y > 15) return (struct blockdata){0, 0, 0, 0};
     if (!data->renddata[c].generated) return (struct blockdata){255, 0, 0, 0};
     //return (struct blockdata){0, 0, 0 ,0};
     //printf("block [%d, %d, %d]: [%d]\n", x, y, z, y * 225 + (z % 15) * 15 + (x % 15));
@@ -609,7 +610,7 @@ bool initRenderer() {
                 --j;
                 continue;
             }
-            printf("adding texture {%s} at offset [%u] of map [%d]...\n", tmpbuf, 1024 * i, j);
+            printf("adding texture {%s} at offset [%u] of map [%d]...\n", tmpbuf, j * 262144 + i * 1024, j);
             memcpy(&texmap[j * 262144 + i * 1024], img->data, 1024);
             freeResource(img);
         }
