@@ -18,6 +18,7 @@ struct renderer_info rendinf;
 //static resdata_bmd* blockmodel;
 unsigned char* texmap;
 texture_t texmaph;
+texture_t charseth;
 
 float gfx_aspect = 1.0;
 
@@ -283,6 +284,7 @@ static unsigned VBO2D;
 
 static GLuint shader_block;
 static GLuint shader_2d;
+static GLuint shader_text;
 
 static struct blockdata rendGetBlock(struct chunkdata* data, int32_t c, int x, int y, int z) {
     //x += data->dist;
@@ -429,7 +431,29 @@ bool updateChunks(void* vdata) {
     return leftoff;
 }
 
+void renderText(float x, float y, float scale, unsigned end, char* text, void* extinfo) {
+    glUniform1f(glGetUniformLocation(rendinf.shaderprog, "xratio"), 8.0 / (float)rendinf.width);
+    glUniform1f(glGetUniformLocation(rendinf.shaderprog, "yratio"), 16.0 / (float)rendinf.height);
+    glUniform1f(glGetUniformLocation(rendinf.shaderprog, "scale"), scale);
+    for (int i = 0; *text; ++i) {
+        if (*text == '\n') {
+            x = 0;
+            y += scale * 16;
+        } else {
+            glUniform1ui(glGetUniformLocation(rendinf.shaderprog, "char"), *text);
+            glUniform2f(glGetUniformLocation(rendinf.shaderprog, "mpos"), x / (float)rendinf.width, y / (float)rendinf.height);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
+            x += scale * 8;
+            if (x + 8.0 * scale > end) {x = 0; y += scale * 16;}
+        }
+        ++text;
+    }
+}
+
+static char tbuf[32768];
+
 void renderChunks(void* vdata) {
+    if (!tbuf[0]) strcpy(tbuf, "Frame: ");
     struct chunkdata* data = vdata;
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "dist"), data->dist);
@@ -486,6 +510,13 @@ void renderChunks(void* vdata) {
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
     glDrawArrays(GL_TRIANGLES, 0, 6);
+
+    setShaderProg(shader_text);
+    static uint64_t frames = 0;
+    ++frames;
+    sprintf(&tbuf[7], "%lu", frames);
+    renderText(0, 0, 1, rendinf.width, tbuf, NULL);
+
     setShaderProg(shader_block);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
@@ -540,7 +571,7 @@ bool initRenderer() {
     }
     glfwMakeContextCurrent(rendinf.window);
     glfwSetInputMode(rendinf.window, GLFW_STICKY_KEYS, GLFW_TRUE);
-    
+
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         fputs("gladLoadGLLoader: Failed to initialize GLAD\n", stderr);
         return false;
@@ -548,21 +579,30 @@ bool initRenderer() {
     glfwSetFramebufferSizeCallback(rendinf.window, gfx_winch);
     file_data* vs = loadResource(RESOURCE_TEXTFILE, "engine/renderer/shaders/OpenGL/default/block/vertex.glsl");
     file_data* fs = loadResource(RESOURCE_TEXTFILE, "engine/renderer/shaders/OpenGL/default/block/fragment.glsl");
-    if (!makeShaderProg((char*)vs->data, (char*)fs->data, &shader_block)) {
+    if (!vs || !fs || !makeShaderProg((char*)vs->data, (char*)fs->data, &shader_block)) {
         return false;
     }
     freeResource(vs);
     freeResource(fs);
     vs = loadResource(RESOURCE_TEXTFILE, "engine/renderer/shaders/OpenGL/default/2D/vertex.glsl");
     fs = loadResource(RESOURCE_TEXTFILE, "engine/renderer/shaders/OpenGL/default/2D/fragment.glsl");
-    if (!makeShaderProg((char*)vs->data, (char*)fs->data, &shader_2d)) {
+    if (!vs || !fs || !makeShaderProg((char*)vs->data, (char*)fs->data, &shader_2d)) {
         return false;
     }
     freeResource(vs);
     freeResource(fs);
+    vs = loadResource(RESOURCE_TEXTFILE, "engine/renderer/shaders/OpenGL/default/text/vertex.glsl");
+    fs = loadResource(RESOURCE_TEXTFILE, "engine/renderer/shaders/OpenGL/default/text/fragment.glsl");
+    if (!vs || !fs || !makeShaderProg((char*)vs->data, (char*)fs->data, &shader_text)) {
+        return false;
+    }
+    freeResource(vs);
+    freeResource(fs);
+
     printf("Fullscreen resolution: [%ux%u@%d]\n", rendinf.full_width, rendinf.full_height, rendinf.full_fps);
     setShaderProg(shader_block);
     setFullscreen(rendinf.fullscr);
+
     glViewport(0, 0, rendinf.width, rendinf.height);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
@@ -577,6 +617,7 @@ bool initRenderer() {
     glfwSwapBuffers(rendinf.window);
     updateCam();
     glfwPollEvents();
+
     //glUniform1i(glGetUniformLocation(rendinf.shaderprog, "is2D"), 1);
     //glUniform1i(glGetUniformLocation(rendinf.shaderprog, "fIs2D"), 1);
     //glDisable(GL_DEPTH_TEST);
@@ -586,16 +627,17 @@ bool initRenderer() {
     //return true;
     //puts("loading block struct model...");
     //blockmodel = loadResource(RESOURCE_BMD, "game/models/block/default.bmd");
+
     for (int i = 0; i < 6; ++i) {
         texmap = malloc(1572864);
         memset(texmap, 255, 1572864);
     }
-    puts("creating texture map...");
+    //puts("creating texture map...");
     char* tmpbuf = malloc(4096);
     for (int i = 1; i < 256; ++i) {
         sprintf(tmpbuf, "game/textures/blocks/%d/", i);
         if (resourceExists(tmpbuf) == -1) break;
-        printf("loading block [%d]...\n", i);
+        //printf("loading block [%d]...\n", i);
         maxblockid = i;
         bool st = false;
         int o = 0;
@@ -610,17 +652,12 @@ bool initRenderer() {
                 --j;
                 continue;
             }
-            printf("adding texture {%s} at offset [%u] of map [%d]...\n", tmpbuf, j * 262144 + i * 1024, j);
+            //printf("adding texture {%s} at offset [%u] of map [%d]...\n", tmpbuf, j * 262144 + i * 1024, j);
             memcpy(&texmap[j * 262144 + i * 1024], img->data, 1024);
             freeResource(img);
         }
     }
-    //glGenBuffers(1, &VBO[i]);
-    //glGenBuffers(1, &EBO[i]);
-    //glBindBuffer(GL_ARRAY_BUFFER, VBO[i]);
-    //glBufferData(GL_ARRAY_BUFFER, blockmodel->part[i].vsize, blockmodel->part[i].vertices, GL_STATIC_DRAW);
-    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO[i]);
-    //glBufferData(GL_ELEMENT_ARRAY_BUFFER, blockmodel->part[i].isize, blockmodel->part[i].indices, GL_STATIC_DRAW);
+
     glGenTextures(1, &texmaph);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_3D, texmaph);
@@ -628,24 +665,38 @@ bool initRenderer() {
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "TexData"), 0);
-    //sprintf(tmpbuf, "TexData%d", i);
-    //glUniform1i(glGetUniformLocation(rendinf.shaderprog, tmpbuf), i);
-    //glBindTexture(GL_TEXTURE_2D, 0);
-    setShaderProg(shader_2d);
-    glActiveTexture(GL_TEXTURE1);
+
     glGenBuffers(1, &VBO2D);
     glBindBuffer(GL_ARRAY_BUFFER, VBO2D);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vert2D), vert2D, GL_STATIC_DRAW);
+
+    setShaderProg(shader_2d);
+    glActiveTexture(GL_TEXTURE1);
     resdata_texture* crosshair = loadResource(RESOURCE_TEXTURE, "game/textures/ui/crosshair.png");
     glBindTexture(GL_TEXTURE_2D, crosshair->data);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "TexData"), 1);
-    //glUniform1i(glGetUniformLocation(rendinf.shaderprog, "TexData2D"), 6);
-    //glUniform1i(glGetUniformLocation(rendinf.shaderprog, "notBlock"), 0);
+    setUniform4f(rendinf.shaderprog, "mcolor", (float[]){1.0, 1.0, 1.0, 1.0});
+
+    setShaderProg(shader_text);
+    glGenTextures(1, &charseth);
+    glActiveTexture(GL_TEXTURE2);
+    resdata_image* charset = loadResource(RESOURCE_IMAGE, "game/textures/ui/charset.png");
+    glBindTexture(GL_TEXTURE_3D, charseth);
+    glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA, 8, 16, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, charset->data);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "TexData"), 2);
+    setUniform4f(rendinf.shaderprog, "mcolor", (float[]){1.0, 1.0, 1.0, 1.0});
+
     setShaderProg(shader_block);
+
+    glActiveTexture(GL_TEXTURE3);
+
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
     //glEnableVertexAttribArray(0);
     //glEnableVertexAttribArray(1);
+
     free(tmpbuf);
     return true;
 }

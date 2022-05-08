@@ -16,11 +16,14 @@ struct servmsg {
     bool freedata;
     int id;
     void* data;
+    void* callback;
 };
 
 static int msgsize = 0;
 struct servmsg* msgdata;
 pthread_mutex_t msglock;
+
+pthread_mutex_t cblock;
 
 static int servmode = 0;
 
@@ -44,22 +47,40 @@ static void* servthread(void* args) {
             pthread_mutex_unlock(&msglock);
             switch (msgdata[index].id) {
                 default:;
-                    printf("Server thread [%d]: Recieved invalid task: [%d][%d][%lu]\n", id, index, msgdata[index].id, (uintptr_t)args);
+                    printf("Server thread [%d]: Recieved invalid task: [%d][%d]\n", id, index, msgdata[index].id);
                     break;
                 case SERVER_MSG_PING:;
                     printf("Server thread [%d]: Pong\n", id);
                     break;
                 case SERVER_MSG_GETCHUNK:;
-                    //printf("Server thread [%d]: GETCHUNK\n", id);
-                    genChunkColumn(((struct server_chunk*)msgdata[index].data)->data,
-                                   ((struct server_chunk*)msgdata[index].data)->x,
-                                   ((struct server_chunk*)msgdata[index].data)->z,
-                                   ((struct server_chunk*)msgdata[index].data)->xo,
-                                   ((struct server_chunk*)msgdata[index].data)->zo);
+                    /*
+                    printf("Server thread [%d]: GETCHUNK [%d][%d][%d]\n", id,
+                           ((struct server_chunk*)msgdata[index].data)->x + ((struct server_chunk*)msgdata[index].data)->xo,
+                           ((struct server_chunk*)msgdata[index].data)->y,
+                           ((struct server_chunk*)msgdata[index].data)->z + ((struct server_chunk*)msgdata[index].data)->zo);
+                    */
+                    genChunk(((struct server_chunk*)msgdata[index].data)->chunks,
+                             ((struct server_chunk*)msgdata[index].data)->x,
+                             ((struct server_chunk*)msgdata[index].data)->y,
+                             ((struct server_chunk*)msgdata[index].data)->z,
+                             ((struct server_chunk*)msgdata[index].data)->xo,
+                             ((struct server_chunk*)msgdata[index].data)->zo,
+                             ((struct server_chunk*)msgdata[index].data)->data);
+                    /*
+                    printf("Server thread [%d]: GETCHUNK [%d] [%d]: Done\n", id,
+                           ((struct server_chunk*)msgdata[index].data)->x + ((struct server_chunk*)msgdata[index].data)->xo,
+                           ((struct server_chunk*)msgdata[index].data)->z + ((struct server_chunk*)msgdata[index].data)->zo);
+                    */
                     break;
             }
             pthread_mutex_lock(&msglock);
             msgdata[index].ready = true;
+            if (msgdata[index].callback) {
+                void (*cbptr)(void*) = msgdata[index].callback;
+                pthread_mutex_lock(&cblock);
+                cbptr(msgdata[index].data);
+                pthread_mutex_unlock(&cblock);
+            }
             if (msgdata[index].discard) msgdata[index].valid = false;
             if (msgdata[index].freedata) free(msgdata[index].data);
         }
@@ -75,6 +96,7 @@ bool initServer(int mode) {
     initNoiseTable();
     msgdata = malloc(0);
     pthread_mutex_init(&msglock, NULL);
+    pthread_mutex_init(&cblock, NULL);
     for (int i = 0; i < SERVER_THREADS && i < MAX_THREADS; ++i) {
         pthread_create(&servpthreads[i], NULL, &servthread, (void*)(intptr_t)i);
     }
@@ -88,7 +110,7 @@ bool servMsgReady(int index) {
     return ready;
 }
 
-static int pushMsg(int m, void* d, bool dsc, bool f) {
+static int pushMsg(int m, void* d, bool dsc, bool f, void* cb) {
     int index = -1;
     pthread_mutex_lock(&msglock);
     for (int i = 0; i < msgsize; ++i) {
@@ -98,13 +120,13 @@ static int pushMsg(int m, void* d, bool dsc, bool f) {
         index = msgsize++;
         msgdata = realloc(msgdata, msgsize * sizeof(struct servmsg));
     }
-    msgdata[index] = (struct servmsg){true, false, false, dsc, f, m, d};
+    msgdata[index] = (struct servmsg){true, false, false, dsc, f, m, d, cb};
     //printf("pushMsg [%lu]\n", (uintptr_t)msgdata[index].data);
     pthread_mutex_unlock(&msglock);
     return index;
 }
 
-int servSend(int msg, void* data, bool dsc, bool f) {
+int servSend(int msg, void* data, bool dsc, bool f, void* cb) {
     //printf("Server: Adding task [%d]\n", msgsize);
-    return pushMsg(msg, data, dsc, f);
+    return pushMsg(msg, data, dsc, f, cb);
 }
