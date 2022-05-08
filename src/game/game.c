@@ -77,27 +77,28 @@ void doGame() {
         rendinf.campos.x += (input.zmov * sinf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult) / div;
         rendinf.campos.x += (input.xmov * cosf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult) / div;
         rendinf.campos.z += (input.xmov * sinf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult) / div;
-        if (rendinf.campos.z > 8.0) {   
+        if (rendinf.campos.z >= 8.0) {   
             --cz;
             rendinf.campos.z -= 16.0;
             moveChunks(&chunks, 0, 1);
             genChunks(&chunks, cx, cz);
-        } else if (rendinf.campos.z < -8.0) {
+        } else if (rendinf.campos.z <= -8.0) {
             ++cz;
             rendinf.campos.z += 16.0;
             moveChunks(&chunks, 0, -1);
             genChunks(&chunks, cx, cz);
-        } else if (rendinf.campos.x > 8.0) {
+        } else if (rendinf.campos.x >= 8.0) {
             ++cx;
             rendinf.campos.x -= 16.0;
             moveChunks(&chunks, 1, 0);
             genChunks(&chunks, cx, cz);
-        } else if (rendinf.campos.x < -8.0) {
+        } else if (rendinf.campos.x <= -8.0) {
             --cx;
             rendinf.campos.x += 16.0;
             moveChunks(&chunks, -1, 0);
             genChunks(&chunks, cx, cz);
         }
+        //genChunks(&chunks, cx, cz);
         updateChunks(&chunks);
         updateCam();
         float blockx2 = 0, blocky2 = 0, blockz2 = 0;

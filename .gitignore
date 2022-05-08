@@ -4,3 +4,4 @@ obj/
 cavecube
 *.bin
 *.exe
+vgcore.*

@@ -20,15 +20,17 @@ enum {
 };
 
 struct server_chunk {
-    struct chunkdata* data;
+    struct chunkdata* chunks;
     int x;
+    int y;
     int z;
     int xo;
     int zo;
+    struct blockdata data[4096];
 };
 
 bool initServer(int);
 bool servMsgReady(int);
-int servSend(int, void*, bool, bool);
+int servSend(int, void*, bool, bool, void*);
 
 #endif

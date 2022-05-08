@@ -39,13 +39,11 @@ unsigned char* createBMD(bmd_data* data, uint32_t* size) {
     }
     outbuf -= *size;
     size_t outsize = 0;
-    /*
     {
         FILE* fp = fopen("output.dat", "w");
         fwrite(outbuf - sizeof(uint32_t), 1, *size, fp);
         fclose(fp);
     }
-    */
     unsigned char* cdata = compressData(outbuf, *size, &outsize);
     memcpy(outbuf, cdata, *size);
     outbuf -= sizeof(uint32_t);

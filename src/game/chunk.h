@@ -28,7 +28,7 @@ struct chunkdata {
 
 struct chunkdata allocChunks(uint32_t);
 void genChunks(struct chunkdata*, int, int);
-bool genChunkColumn(struct chunkdata*, int, int, int, int);
+bool genChunk(struct chunkdata*, int, int, int, int, int, struct blockdata*);
 void moveChunks(struct chunkdata*, int, int);
 struct blockdata getBlock(struct chunkdata*, int, int, int, int, int, int);
 void setBlock(struct chunkdata*, int, int, int, int, int, int, struct blockdata);
