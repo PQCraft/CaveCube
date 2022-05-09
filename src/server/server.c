@@ -20,10 +20,10 @@ struct servmsg {
 };
 
 static int msgsize = 0;
-struct servmsg* msgdata;
-pthread_mutex_t msglock;
+static struct servmsg* msgdata;
+static pthread_mutex_t msglock;
 
-pthread_mutex_t cblock;
+static pthread_mutex_t cblock;
 
 static int servmode = 0;
 

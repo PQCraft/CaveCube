@@ -62,6 +62,9 @@ void setSpace(int space) {
             setSkyColor(0, 0.33, 0.75);
             setScreenMult(0.25, 0.5, 0.75);
             break;
+        case SPACE_PARALLEL:;
+            setSkyColor(0.25, 0, 0.05);
+            setScreenMult(0.9, 0.35, 0.4);
     }
 }
 
@@ -341,8 +344,7 @@ bool updateChunks(void* vdata) {
         if (altutime() - starttime >= 1000000 / (((rendinf.fps) ? rendinf.fps : 60) * 3) && c3 >= 16) {ucleftoff = c; break;}
         //uint64_t starttime2 = altutime();
         ++c3;
-        if (!data->renddata[c].generated) {data->renddata[c].updated = false; continue;}
-        if (data->renddata[c].updated) continue;
+        if (!data->renddata[c].generated || data->renddata[c].updated) continue;
         ++c2;
         data->renddata[c].vertices = realloc(data->renddata[c].vertices, 147456 * sizeof(uint32_t));
         data->renddata[c].vertices2 = realloc(data->renddata[c].vertices2, 147456 * sizeof(uint32_t));
@@ -453,7 +455,6 @@ void renderText(float x, float y, float scale, unsigned end, char* text, void* e
 static char tbuf[32768];
 
 void renderChunks(void* vdata) {
-    if (!tbuf[0]) strcpy(tbuf, "Frame: ");
     struct chunkdata* data = vdata;
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "dist"), data->dist);
@@ -514,6 +515,12 @@ void renderChunks(void* vdata) {
     setShaderProg(shader_text);
     static uint64_t frames = 0;
     ++frames;
+    if (!tbuf[0]) strcpy(tbuf, "Frame: ");
+    /*
+    for (int i = 0; i < 29418; ++i) {
+        tbuf[i] = rand();
+    }
+    */
     sprintf(&tbuf[7], "%lu", frames);
     renderText(0, 0, 1, rendinf.width, tbuf, NULL);
 

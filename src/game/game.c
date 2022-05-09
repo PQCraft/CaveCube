@@ -36,7 +36,7 @@ void doGame() {
     initServer(SERVER_MODE_SP);
     int cx = 0;
     int cz = 0;
-    genChunks(&chunks, cx, cz);
+    //genChunks(&chunks, cx, cz);
     uint64_t fpsstarttime2 = altutime();
     uint64_t ptime = fpsstarttime2;
     uint64_t dtime = fpsstarttime2;
@@ -45,8 +45,6 @@ void doGame() {
     uint64_t rendtime = 750000;
     uint64_t fpsstarttime = fpsstarttime2;
     int fpsct = 0;
-    //setSkyColor(0.0, 0.7, 0.9);
-    setSpace(SPACE_NORMAL);
     while (!quitRequest) {
         uint64_t starttime = altutime();
         float npmult = 1.0;
@@ -77,25 +75,31 @@ void doGame() {
         rendinf.campos.x += (input.zmov * sinf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult) / div;
         rendinf.campos.x += (input.xmov * cosf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult) / div;
         rendinf.campos.z += (input.xmov * sinf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult) / div;
-        if (rendinf.campos.z >= 8.0) {   
+        int cmx = 0, cmz = 0;
+        static bool first = true;
+        while (rendinf.campos.z > 8.0) {
             --cz;
             rendinf.campos.z -= 16.0;
-            moveChunks(&chunks, 0, 1);
-            genChunks(&chunks, cx, cz);
-        } else if (rendinf.campos.z <= -8.0) {
+            ++cmz;
+        }
+        while (rendinf.campos.z < -8.0) {
             ++cz;
             rendinf.campos.z += 16.0;
-            moveChunks(&chunks, 0, -1);
-            genChunks(&chunks, cx, cz);
-        } else if (rendinf.campos.x >= 8.0) {
+            --cmz;
+        }
+        while (rendinf.campos.x > 8.0) {
             ++cx;
             rendinf.campos.x -= 16.0;
-            moveChunks(&chunks, 1, 0);
-            genChunks(&chunks, cx, cz);
-        } else if (rendinf.campos.x <= -8.0) {
+            ++cmx;
+        }
+        while (rendinf.campos.x < -8.0) {
             --cx;
             rendinf.campos.x += 16.0;
-            moveChunks(&chunks, -1, 0);
+            --cmx;
+        }
+        if (cmx || cmz || first) {
+            first = false;
+            moveChunks(&chunks, cmx, cmz);
             genChunks(&chunks, cx, cz);
         }
         //genChunks(&chunks, cx, cz);

@@ -20,6 +20,7 @@ enum {
 };
 
 struct server_chunk {
+    uint16_t id;
     struct chunkdata* chunks;
     int x;
     int y;
