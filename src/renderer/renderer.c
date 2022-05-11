@@ -57,21 +57,27 @@ void setSpace(int space) {
         default:;
             setSkyColor(0, 0.7, 0.9);
             setScreenMult(1, 1, 1);
+            glUniform1i(glGetUniformLocation(rendinf.shaderprog, "vis"), 3);
+            glUniform1f(glGetUniformLocation(rendinf.shaderprog, "vismul"), 1.0);
             break;
         case SPACE_UNDERWATER:;
             setSkyColor(0, 0.33, 0.75);
             setScreenMult(0.25, 0.5, 0.75);
+            glUniform1i(glGetUniformLocation(rendinf.shaderprog, "vis"), -7);
+            glUniform1f(glGetUniformLocation(rendinf.shaderprog, "vismul"), 0.85);
             break;
         case SPACE_PARALLEL:;
             setSkyColor(0.25, 0, 0.05);
             setScreenMult(0.9, 0.35, 0.4);
+            glUniform1i(glGetUniformLocation(rendinf.shaderprog, "vis"), -15);
+            glUniform1f(glGetUniformLocation(rendinf.shaderprog, "vismul"), 0.75);
     }
 }
 
 void updateCam() {
     mat4 view __attribute__((aligned (32)));
     mat4 projection __attribute__((aligned (32)));
-    glm_perspective(rendinf.camfov * M_PI / 180.0, gfx_aspect, 0.1, 1024.0, projection);
+    glm_perspective(rendinf.camfov * M_PI / 180.0, gfx_aspect, 0.05, 1024.0, projection);
     setMat4(rendinf.shaderprog, "projection", projection);
     vec3 direction __attribute__((aligned (32))) = {cosf((rendinf.camrot.y - 90.0) * M_PI / 180.0) * cosf(rendinf.camrot.x * M_PI / 180.0),
         sin(rendinf.camrot.x * M_PI / 180.0),
@@ -442,7 +448,7 @@ void renderText(float x, float y, float scale, unsigned end, char* text, void* e
             x = 0;
             y += scale * 16;
         } else {
-            glUniform1ui(glGetUniformLocation(rendinf.shaderprog, "char"), *text);
+            glUniform1ui(glGetUniformLocation(rendinf.shaderprog, "char"), (unsigned char)(*text));
             glUniform2f(glGetUniformLocation(rendinf.shaderprog, "mpos"), x / (float)rendinf.width, y / (float)rendinf.height);
             glDrawArrays(GL_TRIANGLES, 0, 6);
             x += scale * 8;
@@ -517,7 +523,7 @@ void renderChunks(void* vdata) {
     ++frames;
     if (!tbuf[0]) strcpy(tbuf, "Frame: ");
     /*
-    for (int i = 0; i < 29418; ++i) {
+    for (int i = 0; i < 32767; ++i) {
         tbuf[i] = rand();
     }
     */
@@ -565,10 +571,9 @@ bool initRenderer() {
     }
     const GLFWvidmode* vmode = glfwGetVideoMode(rendinf.monitor);
     if (!rendinf.full_width && !rendinf.full_height) {
-        int monx = 0, mony = 0;
-        glfwGetMonitorPos(rendinf.monitor, &monx, &mony);
-        rendinf.full_width = vmode->width - monx;
-        rendinf.full_height = vmode->height - mony;
+        glfwGetMonitorPos(rendinf.monitor, &rendinf.mon_x, &rendinf.mon_y);
+        rendinf.full_width = vmode->width;
+        rendinf.full_height = vmode->height;
     }
     if (!rendinf.full_fps) rendinf.full_fps = vmode->refreshRate;
     if (!rendinf.win_fps) rendinf.win_fps = vmode->refreshRate;

@@ -19,6 +19,10 @@ enum {
     SERVER_MSG_GETCHUNK,
 };
 
+enum {
+    SERVER_CMD_SETCHUNK = 128,
+};
+
 struct server_chunk {
     uint16_t id;
     struct chunkdata* chunks;
@@ -30,8 +34,13 @@ struct server_chunk {
     struct blockdata data[4096];
 };
 
+struct server_chunkpos {
+    int x;
+    int z;
+};
+
 bool initServer(int);
 bool servMsgReady(int);
-int servSend(int, void*, bool, bool, void*);
+int servSend(int, void*, /*bool, */bool, void*);
 
 #endif
