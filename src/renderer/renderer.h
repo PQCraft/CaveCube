@@ -29,6 +29,8 @@ struct renderer_info {
     unsigned int full_width;
     unsigned int full_height;
     unsigned int full_fps;
+    int mon_x;
+    int mon_y;
     unsigned int width;
     unsigned int height;
     unsigned int fps;

@@ -23,19 +23,109 @@ static float mousesns = 0.05;
 
 struct chunkdata chunks;
 
+struct blockdata getBlockF(struct chunkdata* chunks, float x, float y, float z) {
+    x -= (x < 0) ? 1.0 : 0.0;
+    y -= (y < 0) ? 1.0 : 0.0;
+    z += (z > 0) ? 1.0 : 0.0;
+    return getBlock(chunks, 0, 0, 0, x, y, z);
+}
+
+coord_3d intCoord(coord_3d in) {
+    in.x -= (in.x < 0) ? 1.0 : 0.0;
+    in.y -= (in.y < 0) ? 1.0 : 0.0;
+    in.z += (in.z > 0) ? 1.0 : 0.0;
+    in.x = (int)in.x;
+    in.y = (int)in.y;
+    in.z = (int)in.z;
+    return in;
+}
+
+coord_3d pcollide(struct chunkdata* chunks, coord_3d pos) {
+    coord_3d new = pos;
+    new = intCoord(new);
+    struct blockdata tmpbd[4] = {
+        getBlock(chunks, 0, 0, 0, new.x, new.y, new.z + 1),
+        getBlock(chunks, 0, 0, 0, new.x, new.y, new.z - 1),
+        getBlock(chunks, 0, 0, 0, new.x + 1, new.y, new.z),
+        getBlock(chunks, 0, 0, 0, new.x - 1, new.y, new.z),
+    };
+    struct blockdata tmpebd[4] = {
+        getBlock(chunks, 0, 0, 0, new.x + 1, new.y, new.z + 1),
+        getBlock(chunks, 0, 0, 0, new.x + 1, new.y, new.z - 1),
+        getBlock(chunks, 0, 0, 0, new.x - 1, new.y, new.z + 1),
+        getBlock(chunks, 0, 0, 0, new.x - 1, new.y, new.z - 1),
+    };
+    bool frontblock = tmpbd[1].id;
+    bool backblock = tmpbd[0].id;
+    bool leftblock = tmpbd[3].id;
+    bool rightblock = tmpbd[2].id;
+    //rendinf.campos.z -= zcm / div;
+    //rendinf.campos.x -= xcm / div;
+    /*
+    printf("collision:\n");
+    printf("[%u][%u]\n", tmpbd[9].id || tmpbd[10].id || tmpbd[11].id, tmpbd[6].id || tmpbd[7].id || tmpbd[8].id);
+    printf("[%u][%u]\n", tmpbd[3].id || tmpbd[4].id || tmpbd[5].id, tmpbd[0].id || tmpbd[1].id || tmpbd[2].id);
+    */
+    if (frontblock) {
+        puts("front");
+        if (pos.z < 0 && pos.z < new.z - 0.75) {
+            puts("push < 0");
+            pos.z = new.z - 0.75;
+        }
+        if (pos.z >= 0 && pos.z < new.z + 0.25 - 1) {
+            puts("push >= 0");
+            pos.z = new.z + 0.25 - 1;
+        }
+    }
+    if (backblock) {
+        puts("back");
+        if (pos.z < 0 && pos.z > new.z + 0.75 - 1) {
+            puts("push < 0");
+            pos.z = new.z + 0.75 - 1;
+        }
+        if (pos.z >= 0 && pos.z > new.z - 0.25) {
+            puts("push >= 0");
+            pos.z = new.z - 0.25;
+        }
+    }
+    if (leftblock) {
+        puts("left");
+        if (pos.x < 0 && pos.x < new.x + 0.25) {
+            puts("push < 0");
+            pos.x = new.x + 0.25;
+        }
+        if (pos.x >= 0 && pos.x < new.x + 0.25) {
+            puts("push >= 0");
+            pos.x = new.x + 0.25;
+        }
+    }
+    if (rightblock) {
+        puts("right");
+        if (pos.x < 0 && pos.x > new.x - 0.25 + 1) {
+            puts("push < 0");
+            pos.x = new.x - 0.25 + 1;
+        }
+        if (pos.x >= 0 && pos.x > new.x - 0.25 + 1) {
+            puts("push >= 0");
+            pos.x = new.x - 0.25 + 1;
+        }
+    }
+    return pos;
+}
+
 void doGame() {
     char** tmpbuf = malloc(16 * sizeof(char*));
     for (int i = 0; i < 16; ++i) {
         tmpbuf[i] = malloc(4096);
     }
     chunks = allocChunks(atoi(getConfigVarStatic(config, "game.chunks", "9", 64)));
-    rendinf.campos.y = 67.5;
+    rendinf.campos.y = 10.5;
     initInput();
     float pmult = posmult;
     float rmult = rotmult;
     initServer(SERVER_MODE_SP);
-    int cx = 0;
-    int cz = 0;
+    int cx = 0; //1295930;
+    int cz = 0; //62399690;
     //genChunks(&chunks, cx, cz);
     uint64_t fpsstarttime2 = altutime();
     uint64_t ptime = fpsstarttime2;
@@ -45,22 +135,24 @@ void doGame() {
     uint64_t rendtime = 750000;
     uint64_t fpsstarttime = fpsstarttime2;
     int fpsct = 0;
+    float yvel = 0.0;
+    float xcm = 0.0;
+    float zcm = 0.0;
     while (!quitRequest) {
         uint64_t starttime = altutime();
-        float npmult = 1.0;
+        float npmult = 0.5;
         float nrmult = 1.0;
         input_info input = getInput();
+        /*
         if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_CROUCH)) {
             rendinf.campos.y -= pmult;
             if (rendinf.campos.y < 1.125) rendinf.campos.y = 1.125;
         } else {
             if (rendinf.campos.y < 1.5) rendinf.campos.y = 1.5;
         }
-        if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_JUMP)) {
-            rendinf.campos.y += pmult;
-        }
+        */
         if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_RUN)) {
-            npmult *= 2.5;
+            npmult *= 2.0;
         }
         rendinf.camrot.x += input.mymov * mousesns * ((input.mmovti) ? rotmult : rmult) * nrmult;
         rendinf.camrot.y -= input.mxmov * mousesns * ((input.mmovti) ? rotmult : rmult) * nrmult;
@@ -71,10 +163,6 @@ void doGame() {
         float yrotrad = (rendinf.camrot.y / 180 * M_PI);
         float div = fabs(input.zmov) + fabs(input.xmov);
         if (div < 1.0) div = 1.0;
-        rendinf.campos.z -= (input.zmov * cosf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult) / div;
-        rendinf.campos.x += (input.zmov * sinf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult) / div;
-        rendinf.campos.x += (input.xmov * cosf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult) / div;
-        rendinf.campos.z += (input.xmov * sinf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult) / div;
         int cmx = 0, cmz = 0;
         static bool first = true;
         while (rendinf.campos.z > 8.0) {
@@ -104,15 +192,60 @@ void doGame() {
         }
         //genChunks(&chunks, cx, cz);
         updateChunks(&chunks);
-        updateCam();
-        float blockx2 = 0, blocky2 = 0, blockz2 = 0;
-        blockx2 = rendinf.campos.x;
-        blockx2 -= (blockx2 < 0) ? 1.0 : 0.0;
-        blocky2 = rendinf.campos.y;
-        blocky2 -= (blocky2 < 0) ? 1.0 : 0.0;
-        blockz2 = rendinf.campos.z;
-        blockz2 += (blockz2 > 0) ? 1.0 : 0.0;
-        struct blockdata curbdata = getBlock(&chunks, 0, 0, 0, blockx2, blocky2, blockz2);
+        //printf("old x [%f] y [%f]\n", rendinf.campos.x, rendinf.campos.z);
+        struct blockdata curbdata = getBlockF(&chunks, rendinf.campos.x, rendinf.campos.y, rendinf.campos.z);
+        struct blockdata curbdata2 = getBlockF(&chunks, rendinf.campos.x, rendinf.campos.y - 1, rendinf.campos.z);
+        //struct blockdata underbdata = getBlockF(&chunks, rendinf.campos.x, rendinf.campos.y - 1.51, rendinf.campos.z);
+        struct blockdata tmpbd2[4] = {
+            getBlockF(&chunks, rendinf.campos.x + 0.2, rendinf.campos.y - 1.51, rendinf.campos.z + 0.2),
+            getBlockF(&chunks, rendinf.campos.x - 0.2, rendinf.campos.y - 1.51, rendinf.campos.z + 0.2),
+            getBlockF(&chunks, rendinf.campos.x + 0.2, rendinf.campos.y - 1.51, rendinf.campos.z - 0.2),
+            getBlockF(&chunks, rendinf.campos.x - 0.2, rendinf.campos.y - 1.51, rendinf.campos.z - 0.2),
+        };
+        bool onblock = (tmpbd2[0].id || tmpbd2[1].id || tmpbd2[2].id || tmpbd2[3].id);
+        struct blockdata overbdata = getBlockF(&chunks, rendinf.campos.x, rendinf.campos.y + 1.5, rendinf.campos.z);
+        if (onblock) {
+            float mul = pmult * 3;
+            xcm = ((input.zmov * sinf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult) + (input.xmov * cosf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult)) * mul + xcm * (1.0 - mul);
+            zcm = (-(input.zmov * cosf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult) + (input.xmov * sinf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult)) * mul + zcm * (1.0 - mul);
+            if (rendinf.campos.y < (float)((int)(rendinf.campos.y)) + 0.5 && yvel <= 0.0) {
+                rendinf.campos.y = (float)((int)(rendinf.campos.y)) + 0.5;
+            }
+            if (yvel <= 0 && (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_JUMP))) {
+                yvel = 1.0;
+            }
+            if (yvel < 0) yvel = 0.0;
+        } else {
+            float mul = pmult * 0.5;
+            xcm = ((input.zmov * sinf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult) + (input.xmov * cosf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult)) * mul + xcm * (1.0 - mul);
+            zcm = (-(input.zmov * cosf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult) + (input.xmov * sinf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult)) * mul + zcm * (1.0 - mul);
+        }
+        //printf("yvel: [%f] [%f] [%f] [%f] [%u]\n", rendinf.campos.y, (float)((int)(blocky2)) + 0.5, yvel, pmult, underbdata.id & 0xFF);
+        if (yvel < 0 && !onblock) {
+            rendinf.campos.y += yvel * pmult;
+        } else if (yvel > 0) {
+            rendinf.campos.y += yvel * pmult;
+        }
+        if (!onblock) {
+            if (yvel > -5.0) {
+                yvel -= 0.5 * pmult;
+            }
+        }
+        rendinf.campos.z += zcm / div;
+        rendinf.campos.x += xcm / div;
+        float ncz = rendinf.campos.z;
+        float ncx = rendinf.campos.x;
+        //coord_3d newcoord = {(int)rendinf.campos.x, (int)rendinf.campos.y, (int)rendinf.campos.z};
+        coord_3d newcoord = rendinf.campos;
+        newcoord = intCoord(newcoord);
+        //printf("cam: [%f][%f][%f]; block: [%f][%f]\n", rendinf.campos.x, rendinf.campos.y, rendinf.campos.z, newcoord.x, newcoord.z);
+        float oldy = rendinf.campos.y;
+        rendinf.campos = pcollide(&chunks, rendinf.campos);
+        rendinf.campos.y = oldy + 0.49;
+        rendinf.campos = pcollide(&chunks, rendinf.campos);
+        rendinf.campos.y = oldy - 1;
+        rendinf.campos = pcollide(&chunks, rendinf.campos);
+        rendinf.campos.y = oldy;
         float accuracy = 0.1;
         float lookatx = cos(rendinf.camrot.x * M_PI / 180.0) * sin(rendinf.camrot.y * M_PI / 180.0);
         float lookaty = sin(rendinf.camrot.x * M_PI / 180.0);
@@ -170,7 +303,9 @@ void doGame() {
                 setSpace(SPACE_UNDERWATER);
             } else {
                 setSpace(SPACE_NORMAL);
+                //setSpace(SPACE_PARALLEL);
             }
+            updateCam();
             renderChunks(&chunks);
             updateScreen();
             fpsstarttime2 = altutime();

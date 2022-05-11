@@ -10,6 +10,8 @@ in float TexOff;
 
 uniform sampler3D TexData;
 uniform int dist;
+uniform int vis;
+uniform float vismul;
 uniform vec3 cam;
 uniform vec3 skycolor;
 uniform vec3 mcolor;
@@ -22,7 +24,7 @@ void main() {
     } else {
         discard;
     }
-    float mixv = clamp((distance(vec3(FragPos.x, 0, FragPos.z), vec3(cam.x, cam.z / 16, cam.z)) - float(dist) * 3) / (16 * float(dist) - float(dist) * 3), 0, 1);
+    float mixv = clamp((distance(vec3(FragPos.x, 0, FragPos.z), vec3(cam.x, cam.z / 16, cam.z)) - float(dist) * vismul * vis) / (16 * float(dist) * vismul - float(dist) * vismul * vis), 0, 1);
     FragColor.rgb *= mcolor;
     FragColor = mix(FragColor, vec4(skycolor, FragColor.a), mixv);
 }
