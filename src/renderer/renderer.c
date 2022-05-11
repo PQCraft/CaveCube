@@ -304,9 +304,9 @@ static struct blockdata rendGetBlock(struct chunkdata* data, int32_t c, int x, i
     else if (z < 0 && c % (int)data->widthsq < (int)(data->widthsq - data->width)) {c += data->width; z += 16;}
     if (y < 0 && c >= (int)data->widthsq) {c -= data->widthsq; y += 16;}
     else if (y > 15 && c < (int)(data->size - data->widthsq)) {c += data->widthsq; y -= 16;}
-    if (c < 0 || x < 0 || y < 0 || z < 0 || x > 15 || z > 15) return (struct blockdata){255, 0, 0, 0};
-    if (c >= (int32_t)data->size || y > 15) return (struct blockdata){0, 0, 0, 0};
-    if (!data->renddata[c].generated) return (struct blockdata){255, 0, 0, 0};
+    if (c < 0 || x < 0 || y < 0 || z < 0 || x > 15 || z > 15) return (struct blockdata){255, 0, 0};
+    if (c >= (int32_t)data->size || y > 15) return (struct blockdata){0, 0, 0};
+    if (!data->renddata[c].generated) return (struct blockdata){255, 0, 0};
     //return (struct blockdata){0, 0, 0 ,0};
     //printf("block [%d, %d, %d]: [%d]\n", x, y, z, y * 225 + (z % 15) * 15 + (x % 15));
     //printf("[%d] [%d]: [%d]\n", x, z, ((x / 15) % data->width) + ((x / 15) / data->width));
@@ -458,7 +458,7 @@ void renderText(float x, float y, float scale, unsigned end, char* text, void* e
     }
 }
 
-static char tbuf[32768];
+static char tbuf[2][32768];
 
 void renderChunks(void* vdata) {
     struct chunkdata* data = vdata;
@@ -521,14 +521,17 @@ void renderChunks(void* vdata) {
     setShaderProg(shader_text);
     static uint64_t frames = 0;
     ++frames;
-    if (!tbuf[0]) strcpy(tbuf, "Frame: ");
+    if (!tbuf[0][0]) strcpy(tbuf[0], "FPS: ");
+    if (!tbuf[1][0]) strcpy(tbuf[1], "Position: ");
     /*
     for (int i = 0; i < 32767; ++i) {
         tbuf[i] = rand();
     }
     */
-    sprintf(&tbuf[7], "%lu", frames);
-    renderText(0, 0, 1, rendinf.width, tbuf, NULL);
+    sprintf(&tbuf[0][5], "%d", fps);
+    sprintf(&tbuf[1][10], "[x: %f] [y: %f] [z: %f]", chunkoffx * 16 + rendinf.campos.x, rendinf.campos.y - 0.5, chunkoffz * 16 + -rendinf.campos.z);
+    renderText(0, 0, 1, rendinf.width, tbuf[0], NULL);
+    renderText(0, 16, 1, rendinf.width, tbuf[1], NULL);
 
     setShaderProg(shader_block);
     glEnable(GL_DEPTH_TEST);

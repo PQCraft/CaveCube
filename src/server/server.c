@@ -28,7 +28,7 @@ static pthread_mutex_t cblock;
 static int servmode = 0;
 
 static int gxo = 0, gzo = 0;
-static int worldtype = 0;
+static int worldtype = 2;
 
 pthread_t servpthreads[MAX_THREADS];
 

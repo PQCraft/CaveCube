@@ -3,6 +3,8 @@
 
 #include <renderer.h>
 
+extern int fps;
+
 void doGame(void);
 
 #endif

@@ -16,6 +16,8 @@
     //#define SHOWFPS
 #endif
 
+int fps;
+
 static float posmult = 0.125;
 static float rotmult = 3;
 static float fpsmult = 0;
@@ -43,70 +45,100 @@ coord_3d intCoord(coord_3d in) {
 coord_3d pcollide(struct chunkdata* chunks, coord_3d pos) {
     coord_3d new = pos;
     new = intCoord(new);
+    //printf("collide check from: [%f][%f][%f] -> [%f][%f][%f]\n", pos.x, pos.y, pos.z, new.x, new.y, new.z);
     struct blockdata tmpbd[4] = {
         getBlock(chunks, 0, 0, 0, new.x, new.y, new.z + 1),
         getBlock(chunks, 0, 0, 0, new.x, new.y, new.z - 1),
         getBlock(chunks, 0, 0, 0, new.x + 1, new.y, new.z),
         getBlock(chunks, 0, 0, 0, new.x - 1, new.y, new.z),
     };
-    struct blockdata tmpebd[4] = {
+    /*
+    stuct blockdata tmpebd[4] = {
         getBlock(chunks, 0, 0, 0, new.x + 1, new.y, new.z + 1),
         getBlock(chunks, 0, 0, 0, new.x + 1, new.y, new.z - 1),
         getBlock(chunks, 0, 0, 0, new.x - 1, new.y, new.z + 1),
         getBlock(chunks, 0, 0, 0, new.x - 1, new.y, new.z - 1),
     };
-    bool frontblock = tmpbd[1].id;
-    bool backblock = tmpbd[0].id;
-    bool leftblock = tmpbd[3].id;
-    bool rightblock = tmpbd[2].id;
-    //rendinf.campos.z -= zcm / div;
-    //rendinf.campos.x -= xcm / div;
-    /*
-    printf("collision:\n");
-    printf("[%u][%u]\n", tmpbd[9].id || tmpbd[10].id || tmpbd[11].id, tmpbd[6].id || tmpbd[7].id || tmpbd[8].id);
-    printf("[%u][%u]\n", tmpbd[3].id || tmpbd[4].id || tmpbd[5].id, tmpbd[0].id || tmpbd[1].id || tmpbd[2].id);
     */
+    struct blockdata tmplbd[4];
+    coord_3d alt = pos;
+    alt.x += 0.15;
+    alt = intCoord(alt);
+    tmplbd[0] = getBlock(chunks, 0, 0, 0, alt.x, alt.y, alt.z + 1);
+    alt = pos;
+    alt.x -= 0.15;
+    alt = intCoord(alt);
+    tmplbd[1] = getBlock(chunks, 0, 0, 0, alt.x, alt.y, alt.z - 1);
+    alt = pos;
+    alt.z -= 0.15;
+    alt = intCoord(alt);
+    tmplbd[2] = getBlock(chunks, 0, 0, 0, alt.x + 1, alt.y, alt.z);
+    alt = pos;
+    alt.z += 0.15;
+    alt = intCoord(alt);
+    tmplbd[3] = getBlock(chunks, 0, 0, 0, alt.x - 1, alt.y, alt.z);
+    struct blockdata tmprbd[4];
+    alt = pos;
+    alt.x -= 0.15;
+    alt = intCoord(alt);
+    tmprbd[0] = getBlock(chunks, 0, 0, 0, alt.x, alt.y, alt.z + 1);
+    alt = pos;
+    alt.x += 0.15;
+    alt = intCoord(alt);
+    tmprbd[1] = getBlock(chunks, 0, 0, 0, alt.x, alt.y, alt.z - 1);
+    alt = pos;
+    alt.z += 0.15;
+    alt = intCoord(alt);
+    tmprbd[2] = getBlock(chunks, 0, 0, 0, alt.x + 1, alt.y, alt.z);
+    alt = pos;
+    alt.z -= 0.15;
+    alt = intCoord(alt);
+    tmprbd[3] = getBlock(chunks, 0, 0, 0, alt.x - 1, alt.y, alt.z);
+    bool frontblock = (tmpbd[1].id || ((tmplbd[1].id || tmprbd[1].id)/* && !tmplbd[3].id && !tmprbd[2].id*/));
+    bool backblock = (tmpbd[0].id || ((tmplbd[0].id || tmprbd[0].id)/* && !tmplbd[3].id && !tmprbd[2].id*/));
+    bool leftblock = (tmpbd[3].id || ((tmplbd[3].id || tmprbd[3].id) && !tmplbd[1].id && !tmprbd[0].id));
+    bool rightblock = (tmpbd[2].id || ((tmplbd[2].id || tmprbd[2].id) && !tmprbd[1].id && !tmplbd[0].id));
     if (frontblock) {
-        puts("front");
+        //puts("front");
         if (pos.z < 0 && pos.z < new.z - 0.75) {
-            puts("push < 0");
+            //puts("push < 0");
             pos.z = new.z - 0.75;
         }
         if (pos.z >= 0 && pos.z < new.z + 0.25 - 1) {
-            puts("push >= 0");
+            //puts("push >= 0");
             pos.z = new.z + 0.25 - 1;
         }
     }
     if (backblock) {
-        puts("back");
+        //puts("back");
         if (pos.z < 0 && pos.z > new.z + 0.75 - 1) {
-            puts("push < 0");
+            //puts("push < 0");
             pos.z = new.z + 0.75 - 1;
         }
         if (pos.z >= 0 && pos.z > new.z - 0.25) {
-            puts("push >= 0");
+            //puts("push >= 0");
             pos.z = new.z - 0.25;
         }
     }
     if (leftblock) {
-        puts("left");
+        //puts("left");
         if (pos.x < 0 && pos.x < new.x + 0.25) {
-            puts("push < 0");
+            //puts("push < 0");
             pos.x = new.x + 0.25;
         }
         if (pos.x >= 0 && pos.x < new.x + 0.25) {
-            puts("push >= 0");
+            //puts("push >= 0");
             pos.x = new.x + 0.25;
         }
     }
     if (rightblock) {
-        puts("right");
+        //puts("right");
         if (pos.x < 0 && pos.x > new.x - 0.25 + 1) {
-            puts("push < 0");
+            //puts("push < 0");
             pos.x = new.x - 0.25 + 1;
         }
         if (pos.x >= 0 && pos.x > new.x - 0.25 + 1) {
-            puts("push >= 0");
+            //puts("push >= 0");
             pos.x = new.x - 0.25 + 1;
         }
     }
@@ -119,13 +151,14 @@ void doGame() {
         tmpbuf[i] = malloc(4096);
     }
     chunks = allocChunks(atoi(getConfigVarStatic(config, "game.chunks", "9", 64)));
-    rendinf.campos.y = 10.5;
+    rendinf.campos.y = 101.5;
     initInput();
     float pmult = posmult;
     float rmult = rotmult;
     initServer(SERVER_MODE_SP);
-    int cx = 0; //1295930;
-    int cz = 0; //62399690;
+    //int farlands = 17616074;
+    int cx = 0;
+    int cz = 0;
     //genChunks(&chunks, cx, cz);
     uint64_t fpsstarttime2 = altutime();
     uint64_t ptime = fpsstarttime2;
@@ -143,15 +176,11 @@ void doGame() {
         float npmult = 0.5;
         float nrmult = 1.0;
         input_info input = getInput();
-        /*
+        bool crouch = false;
         if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_CROUCH)) {
-            rendinf.campos.y -= pmult;
-            if (rendinf.campos.y < 1.125) rendinf.campos.y = 1.125;
-        } else {
-            if (rendinf.campos.y < 1.5) rendinf.campos.y = 1.5;
-        }
-        */
-        if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_RUN)) {
+            crouch = true;
+            npmult /= 2.0;
+        } else if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_RUN)) {
             npmult *= 2.0;
         }
         rendinf.camrot.x += input.mymov * mousesns * ((input.mmovti) ? rotmult : rmult) * nrmult;
@@ -227,7 +256,7 @@ void doGame() {
             rendinf.campos.y += yvel * pmult;
         }
         if (!onblock) {
-            if (yvel > -5.0) {
+            if (yvel > -7.5) {
                 yvel -= 0.5 * pmult;
             }
         }
@@ -240,10 +269,11 @@ void doGame() {
         newcoord = intCoord(newcoord);
         //printf("cam: [%f][%f][%f]; block: [%f][%f]\n", rendinf.campos.x, rendinf.campos.y, rendinf.campos.z, newcoord.x, newcoord.z);
         float oldy = rendinf.campos.y;
+        rendinf.campos.y = oldy - 0.5;
         rendinf.campos = pcollide(&chunks, rendinf.campos);
-        rendinf.campos.y = oldy + 0.49;
+        rendinf.campos.y = oldy + 0.49 - ((crouch) ? 0.375 : 0);
         rendinf.campos = pcollide(&chunks, rendinf.campos);
-        rendinf.campos.y = oldy - 1;
+        rendinf.campos.y = oldy - 1.24;
         rendinf.campos = pcollide(&chunks, rendinf.campos);
         rendinf.campos.y = oldy;
         float accuracy = 0.1;
@@ -262,7 +292,7 @@ void doGame() {
             float depth = (float)i * accuracy;
             blockx = lookatx * depth + rendinf.campos.x;
             blockx -= (blockx < 0) ? 1.0 : 0.0;
-            blocky = lookaty * depth + rendinf.campos.y;
+            blocky = lookaty * depth + (rendinf.campos.y - ((crouch) ? 0.375 : 0));
             blocky -= (blocky < 0) ? 1.0 : 0.0;
             blockz = lookatz * depth + rendinf.campos.z;
             blockz += (blockz > 0) ? 1.0 : 0.0;
@@ -280,7 +310,7 @@ void doGame() {
             if (!placehold || (altutime() - ptime) >= 500000)
                 if ((altutime() - ptime2) >= 125000 && blockid && blockid != 7 && (!blockid2 || blockid2 == 7)) {
                     ptime2 = altutime();
-                    setBlock(&chunks, 0, 0, 0, lastblockx, lastblocky, lastblockz, (struct blockdata){1, 0, 0, 0});
+                    setBlock(&chunks, 0, 0, 0, lastblockx, lastblocky, lastblockz, (struct blockdata){1, 0, 0});
                 }
             placehold = true;
         } else {
@@ -291,7 +321,7 @@ void doGame() {
             if (!destroyhold || (altutime() - dtime) >= 500000)
                 if ((altutime() - dtime2) >= 125000 && blockid && blockid != 7 && (!blockid2 || blockid2 == 7)) {
                     dtime2 = altutime();
-                    setBlock(&chunks, 0, 0, 0, blockx, blocky, blockz, (struct blockdata){0, 0, 0, 0});
+                    setBlock(&chunks, 0, 0, 0, blockx, blocky, blockz, (struct blockdata){0, 0, 0});
                 }
             destroyhold = true;
         } else {
@@ -305,19 +335,20 @@ void doGame() {
                 setSpace(SPACE_NORMAL);
                 //setSpace(SPACE_PARALLEL);
             }
+            if (crouch) rendinf.campos.y -= 0.375;
             updateCam();
+            if (crouch) rendinf.campos.y += 0.375;
             renderChunks(&chunks);
             updateScreen();
             fpsstarttime2 = altutime();
-            #ifdef SHOWFPS
             ++fpsct;
-            #endif
         }
         uint64_t curtime = altutime();
         if (curtime - fpsstarttime >= 1000000) {
             #ifdef SHOWFPS
-            printf("rendered [%d] frames in %f seconds with a goal of [%d] frames\n", fpsct, (float)(curtime - fpsstarttime) / 1000000.0, rendinf.fps);
+            printf("Rendered [%d] frames in %f seconds with a goal of [%d] frames in 1.000000 seconds.\n", fpsct, (float)(curtime - fpsstarttime) / 1000000.0, rendinf.fps);
             #endif
+            fps = fpsct;
             fpsstarttime = curtime;
             if (rendinf.vsync) {
                 if (rendtime > 500000 && fpsct < (int)rendinf.fps) rendtime -= 10000;
