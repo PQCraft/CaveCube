@@ -20,7 +20,7 @@ struct blockdata getBlock(struct chunkdata* data, int cx, int cy, int cz, int x,
     cz += data->dist;
     x += 8;
     z += 8;
-    if (cx < 0 || cz < 0 || cx >= (int)data->width || cz >= (int)data->width || cy < 0 || cy > 15) return (struct blockdata){0, 0, 0, 0};
+    if (cx < 0 || cz < 0 || cx >= (int)data->width || cz >= (int)data->width || cy < 0 || cy > 15) return (struct blockdata){0, 0, 0};
     int32_t c = cx + cz * data->width + cy * data->widthsq;
     while (x < 0 && c % data->width) {c -= 1; x += 16;}
     while (x > 15 && (c + 1) % data->width) {c += 1; x -= 16;}
@@ -32,8 +32,8 @@ struct blockdata getBlock(struct chunkdata* data, int cx, int cy, int cz, int x,
     cz = c / data->width % data->width;
     cy = c / data->widthsq;
     //printf("resolved: [%d, %d, %d] [%d, %d, %d]\n", cx, cy, cz, x, y, z);
-    if (c < 0 || c >= (int32_t)data->size || x < 0 || y < 0 || z < 0 || x > 15 || y > 15 || z > 15) return (struct blockdata){0, 0, 0, 0};
-    if (!data->renddata[c].generated) return (struct blockdata){0, 0, 0, 0};
+    if (c < 0 || c >= (int32_t)data->size || x < 0 || y < 0 || z < 0 || x > 15 || y > 15 || z > 15) return (struct blockdata){0, 0, 0};
+    if (!data->renddata[c].generated) return (struct blockdata){0, 0, 0};
     return data->data[c][y * 256 + z * 16 + x];
 }
 
@@ -58,6 +58,22 @@ void setBlock(struct chunkdata* data, int cx, int cy, int cz, int x, int y, int 
     if (!data->renddata[c].generated) return;
     data->data[c][y * 256 + z * 16 + x] = bdata;
     data->renddata[c].updated = false;
+    if ((int)c % (int)data->widthsq >= (int)data->width) {
+        int32_t c2 = c - data->width;
+        if ((c2 >= 0 || c2 < (int32_t)data->size) && data->renddata[c2].generated) data->renddata[c2].updated = false;
+    }
+    if ((int)c % (int)data->widthsq < (int)(data->widthsq - data->width)) {
+        int32_t c2 = c + data->width;
+        if ((c2 >= 0 || c2 < (int32_t)data->size) && data->renddata[c2].generated) data->renddata[c2].updated = false;
+    }
+    if (c % data->width) {
+        int32_t c2 = c - 1;
+        if ((c2 >= 0 || c2 < (int32_t)data->size) && data->renddata[c2].generated) data->renddata[c2].updated = false;
+    }
+    if ((c + 1) % data->width) {
+        int32_t c2 = c + 1;
+        if ((c2 >= 0 || c2 < (int32_t)data->size) && data->renddata[c2].generated) data->renddata[c2].updated = false;
+    }
 }
 
 static int compare(const void* b, const void* a) {
@@ -222,13 +238,14 @@ bool genChunk(struct chunkdata* chunks, int cx, int cy, int cz, int xo, int zo, 
     int top = (cy + 1) * 16 - 1;
     for (int z = 0; z < 16; ++z) {
         for (int x = 0; x < 16; ++x) {
+            data[z * 16 + x] = (struct blockdata){0, 0, 0};
             switch (type) {
                 default:; {
                         if (!btm) {
-                            data[0 * 256 + z * 16 + x] = (struct blockdata){6, 0, 0, 0};
-                            data[1 * 256 + z * 16 + x] = (struct blockdata){1, 0, 0, 0};
-                            data[2 * 256 + z * 16 + x] = (struct blockdata){2, 0, 0, 0};
-                            data[3 * 256 + z * 16 + x] = (struct blockdata){3, 0, 0, 0};
+                            data[0 * 256 + z * 16 + x] = (struct blockdata){6, 0, 0};
+                            data[1 * 256 + z * 16 + x] = (struct blockdata){1, 0, 0};
+                            data[2 * 256 + z * 16 + x] = (struct blockdata){2, 0, 0};
+                            data[3 * 256 + z * 16 + x] = (struct blockdata){3, 0, 0};
                         }
                     }
                     break;
@@ -241,10 +258,9 @@ bool genChunk(struct chunkdata* chunks, int cx, int cy, int cz, int xo, int zo, 
                         float s4 = perlin2d(3, (float)(nx + x) / 63, (float)(nz + z) / 63, 1.0, 1);
                         float s5 = perlin2d(4, (float)(nx + x) / 105, (float)(nz + z) / 105, 1.0, 1);
                         //printf("[%lf][%lf]", s, s2);
-                        data[z * 16 + x] = (struct blockdata){0, 0, 0, 0};
                         for (int y = btm; y <= top && y < 65; ++y) {
                             //printf("placing water at chunk [%u] [%d, %d, %d]\n", coff, x, y, z);
-                            data[(y - btm) * 256 + z * 16 + x] = (struct blockdata){7, 0, 0, 0};
+                            data[(y - btm) * 256 + z * 16 + x] = (struct blockdata){7, 0, 0};
                         }
                         float s = s1;
                         s *= s5 * 5 * (1.0 - s2);
@@ -256,13 +272,29 @@ bool genChunk(struct chunkdata* chunks, int cx, int cy, int cz, int xo, int zo, 
                         uint8_t blockid;
                         blockid = (s1 + s2 < s3 * 1.125) ? 8 : 3;
                         blockid = (sf < 5 + s1 * 3) ? ((sf < -((s4 + 2.25) * 7)) ? 2 : 8) : blockid;
-                        if (si >= btm && si <= top) data[(si - btm) * 256 + z * 16 + x] = (struct blockdata){blockid, 0, 0, 0};
+                        if (si >= btm && si <= top) data[(si - btm) * 256 + z * 16 + x] = (struct blockdata){blockid, 0, 0};
                         for (int y = ((si - 1) > top) ? top : si - 1; y >= btm; --y) {
-                            data[(y - btm) * 256 + z * 16 + x] = (struct blockdata){(y < (float)(si) * 0.9) ? 1 : ((blockid == 8 && y > si - 4) ? 8 : 2), 0, 0, 0};
+                            data[(y - btm) * 256 + z * 16 + x] = (struct blockdata){(y < (float)(si) * 0.9) ? 1 : ((blockid == 8 && y > si - 4) ? 8 : 2), 0, 0};
                         }
-                        if (!btm) data[z * 16 + x] = (struct blockdata){6, 0, 0, 0};
+                        if (!btm) data[z * 16 + x] = (struct blockdata){6, 0, 0};
                         //if (si < 3) si = 3;
                         //if (!x && !z) rendinf.campos.y += (float)si;
+                    }
+                    break;
+                case 2:; {
+                        float s1 = perlin2d(1, (float)(nx + x) / 21, (float)(nz + z) / 21, 1.25, 8);
+                        float s2 = perlin2d(0, (float)(nx + x) / 147, (float)(nz + z) / 147, 2.0, 1);
+                        float s3 = perlin2d(2, (float)(nx + x) / 56, (float)(nz + z) / 56, 1.0, 1);
+                        for (int y = btm; y <= top && y < 65; ++y) {
+                            //printf("placing water at chunk [%u] [%d, %d, %d]\n", coff, x, y, z);
+                            data[(y - btm) * 256 + z * 16 + x] = (struct blockdata){7, 0, 0};
+                        }
+                        float s = (s1 * 4 - 2) + (s2 * 20 - 10) + 65;
+                        int si = round(s);
+                        if (si >= btm && si <= top) data[(si - btm) * 256 + z * 16 + x] = (struct blockdata){((float)si - round(s3 * 10) < 62) ? 8 : ((si < 64) ? 2 : 3), 0, 0};
+                        for (int y = ((si - 1) > top) ? top : si - 1; y >= btm; --y) {
+                            data[(y - btm) * 256 + z * 16 + x] = (struct blockdata){(y < ((s2 * 15 - 10) + 65)) ? 1 : ((float)y - round(s3 * 10) < 62 && y > ((s2 * 18 - 10) + 65)) ? 8 : 2, 0, 0};
+                        }
                     }
                     break;
             }
@@ -314,7 +346,11 @@ static void genChunks_cb(struct server_chunk* srvchunk) {
     */
 }
 
+int chunkoffx, chunkoffz;
+
 void genChunks(struct chunkdata* chunks, int xo, int zo) {
+    chunkoffx = xo;
+    chunkoffz = zo;
     ++cid;
     struct server_chunkpos* chunkpos = malloc(sizeof(struct server_chunkpos));
     *chunkpos = (struct server_chunkpos){xo, zo};
