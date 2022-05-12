@@ -285,6 +285,7 @@ bool genChunk(struct chunkdata* chunks, int cx, int cy, int cz, int xo, int zo, 
                         float s1 = perlin2d(1, (float)(nx + x) / 21, (float)(nz + z) / 21, 1.25, 8);
                         float s2 = perlin2d(0, (float)(nx + x) / 147, (float)(nz + z) / 147, 2.0, 1);
                         float s3 = perlin2d(2, (float)(nx + x) / 56, (float)(nz + z) / 56, 1.0, 1);
+                        int s4 = noise2d(3, (float)(nx + x), (float)(nz + z));
                         for (int y = btm; y <= top && y < 65; ++y) {
                             //printf("placing water at chunk [%u] [%d, %d, %d]\n", coff, x, y, z);
                             data[(y - btm) * 256 + z * 16 + x] = (struct blockdata){7, 0, 0};
@@ -295,6 +296,28 @@ bool genChunk(struct chunkdata* chunks, int cx, int cy, int cz, int xo, int zo, 
                         for (int y = ((si - 1) > top) ? top : si - 1; y >= btm; --y) {
                             data[(y - btm) * 256 + z * 16 + x] = (struct blockdata){(y < ((s2 * 15 - 10) + 65)) ? 1 : ((float)y - round(s3 * 10) < 62 && y > ((s2 * 18 - 10) + 65)) ? 8 : 2, 0, 0};
                         }
+                        if (!btm) data[z * 16 + x] = (struct blockdata){6, 0, 0};
+                        if (!btm && !(s4 % 2)) data[256 + z * 16 + x] = (struct blockdata){6, 0, 0};
+                        if (!btm && !(s4 % 4)) data[512 + z * 16 + x] = (struct blockdata){6, 0, 0};
+                    }
+                    break;
+                case 3:; {
+                        float s1 = perlin2d(9, (float)(nx + x) / 2, (float)(nz + z) / 2, 1.25, 8);
+                        float s2 = perlin2d(5, (float)(nx + x) / 102, (float)(nz + z) / 102, 2.0, 1);
+                        float s3 = perlin2d(4, (float)(nx + x) / 5, (float)(nz + z) / 5, 1.0, 1);
+                        int s4 = noise2d(3, (float)(nx + x), (float)(nz + z));
+                        for (int y = btm; y <= top && y < 65; ++y) {
+                            //printf("placing water at chunk [%u] [%d, %d, %d]\n", coff, x, y, z);
+                            data[(y - btm) * 256 + z * 16 + x] = (struct blockdata){7, 0, 0};
+                        }
+                        float s = (s1 * 40 - 20) + (s2 * 40 - 20) + 65;
+                        int si = round(s);
+                        for (int y = (si > top) ? top : si; y >= btm; --y) {
+                            data[(y - btm) * 256 + z * 16 + x] = (struct blockdata){(y < ((s2 * 32 - 20) + 65)) ? 1 : ((float)y - round(s3 * 10) < 62 && y > ((s2 * 36 - 20) + 65)) ? 2 : 1, 0, 0};
+                        }
+                        if (!btm) data[z * 16 + x] = (struct blockdata){6, 0, 0};
+                        if (!btm && !(s4 % 2)) data[256 + z * 16 + x] = (struct blockdata){6, 0, 0};
+                        if (!btm && !(s4 % 4)) data[512 + z * 16 + x] = (struct blockdata){6, 0, 0};
                     }
                     break;
             }

@@ -42,105 +42,93 @@ coord_3d intCoord(coord_3d in) {
     return in;
 }
 
+static inline bool bcollide(coord_3d bpos, coord_3d cpos) {
+    if (cpos.x + 0.25 > bpos.x - 0.5 &&
+        cpos.x - 0.25 < bpos.x + 0.5 &&
+        cpos.z + 0.25 > bpos.z - 0.5 &&
+        cpos.z - 0.25 < bpos.z + 0.5) {
+        //puts("collide");
+        return true;
+    }
+    return false;
+}
+
+static inline coord_3d phitblock(coord_3d block, coord_3d boffset, coord_3d pos) {
+    block.x += boffset.x;
+    block.y += boffset.y;
+    block.z += boffset.z;
+    block.x += 0.5;
+    block.z -= 0.5;
+    float distx = block.x - pos.x;
+    float distz = block.z - pos.z;
+    //printf("cam coords: [%f][%f][%f]\n", pos.x, pos.y, pos.z);
+    //printf("block world coords: [%f][%f][%f]\n", block.x, block.y, block.z);
+    //printf("x dist: [%f]\nz dist: [%f]\n", distx, distz);
+    if (bcollide(block, pos)) {
+        if (fabs(distx) > fabs(distz)) {
+            //puts("adjusting x");
+            if (distx < 0) {
+                pos.x = block.x + 0.75;
+            } else {
+                pos.x = block.x - 0.75;
+            }
+        } else {
+            //puts("adjusting z");
+            if (distz < 0) {
+                pos.z = block.z + 0.75;
+            } else {
+                pos.z = block.z - 0.75;
+            }
+        }
+    }
+    return pos;
+}
+
 coord_3d pcollide(struct chunkdata* chunks, coord_3d pos) {
     coord_3d new = pos;
     new = intCoord(new);
     //printf("collide check from: [%f][%f][%f] -> [%f][%f][%f]\n", pos.x, pos.y, pos.z, new.x, new.y, new.z);
-    struct blockdata tmpbd[4] = {
+    struct blockdata tmpbd[8] = {
         getBlock(chunks, 0, 0, 0, new.x, new.y, new.z + 1),
         getBlock(chunks, 0, 0, 0, new.x, new.y, new.z - 1),
         getBlock(chunks, 0, 0, 0, new.x + 1, new.y, new.z),
         getBlock(chunks, 0, 0, 0, new.x - 1, new.y, new.z),
-    };
-    /*
-    stuct blockdata tmpebd[4] = {
         getBlock(chunks, 0, 0, 0, new.x + 1, new.y, new.z + 1),
         getBlock(chunks, 0, 0, 0, new.x + 1, new.y, new.z - 1),
         getBlock(chunks, 0, 0, 0, new.x - 1, new.y, new.z + 1),
         getBlock(chunks, 0, 0, 0, new.x - 1, new.y, new.z - 1),
     };
-    */
-    struct blockdata tmplbd[4];
-    coord_3d alt = pos;
-    alt.x += 0.15;
-    alt = intCoord(alt);
-    tmplbd[0] = getBlock(chunks, 0, 0, 0, alt.x, alt.y, alt.z + 1);
-    alt = pos;
-    alt.x -= 0.15;
-    alt = intCoord(alt);
-    tmplbd[1] = getBlock(chunks, 0, 0, 0, alt.x, alt.y, alt.z - 1);
-    alt = pos;
-    alt.z -= 0.15;
-    alt = intCoord(alt);
-    tmplbd[2] = getBlock(chunks, 0, 0, 0, alt.x + 1, alt.y, alt.z);
-    alt = pos;
-    alt.z += 0.15;
-    alt = intCoord(alt);
-    tmplbd[3] = getBlock(chunks, 0, 0, 0, alt.x - 1, alt.y, alt.z);
-    struct blockdata tmprbd[4];
-    alt = pos;
-    alt.x -= 0.15;
-    alt = intCoord(alt);
-    tmprbd[0] = getBlock(chunks, 0, 0, 0, alt.x, alt.y, alt.z + 1);
-    alt = pos;
-    alt.x += 0.15;
-    alt = intCoord(alt);
-    tmprbd[1] = getBlock(chunks, 0, 0, 0, alt.x, alt.y, alt.z - 1);
-    alt = pos;
-    alt.z += 0.15;
-    alt = intCoord(alt);
-    tmprbd[2] = getBlock(chunks, 0, 0, 0, alt.x + 1, alt.y, alt.z);
-    alt = pos;
-    alt.z -= 0.15;
-    alt = intCoord(alt);
-    tmprbd[3] = getBlock(chunks, 0, 0, 0, alt.x - 1, alt.y, alt.z);
-    bool frontblock = (tmpbd[1].id || ((tmplbd[1].id || tmprbd[1].id)/* && !tmplbd[3].id && !tmprbd[2].id*/));
-    bool backblock = (tmpbd[0].id || ((tmplbd[0].id || tmprbd[0].id)/* && !tmplbd[3].id && !tmprbd[2].id*/));
-    bool leftblock = (tmpbd[3].id || ((tmplbd[3].id || tmprbd[3].id) && !tmplbd[1].id && !tmprbd[0].id));
-    bool rightblock = (tmpbd[2].id || ((tmplbd[2].id || tmprbd[2].id) && !tmprbd[1].id && !tmplbd[0].id));
-    if (frontblock) {
-        //puts("front");
-        if (pos.z < 0 && pos.z < new.z - 0.75) {
-            //puts("push < 0");
-            pos.z = new.z - 0.75;
-        }
-        if (pos.z >= 0 && pos.z < new.z + 0.25 - 1) {
-            //puts("push >= 0");
-            pos.z = new.z + 0.25 - 1;
-        }
-    }
-    if (backblock) {
+    if (tmpbd[0].id && tmpbd[0].id != 7) {
         //puts("back");
-        if (pos.z < 0 && pos.z > new.z + 0.75 - 1) {
-            //puts("push < 0");
-            pos.z = new.z + 0.75 - 1;
-        }
-        if (pos.z >= 0 && pos.z > new.z - 0.25) {
-            //puts("push >= 0");
-            pos.z = new.z - 0.25;
-        }
+        pos = phitblock(new, (coord_3d){0, 0, 1}, pos);
     }
-    if (leftblock) {
-        //puts("left");
-        if (pos.x < 0 && pos.x < new.x + 0.25) {
-            //puts("push < 0");
-            pos.x = new.x + 0.25;
-        }
-        if (pos.x >= 0 && pos.x < new.x + 0.25) {
-            //puts("push >= 0");
-            pos.x = new.x + 0.25;
-        }
+    if (tmpbd[1].id && tmpbd[1].id != 7) {
+        //puts("front");
+        pos = phitblock(new, (coord_3d){0, 0, -1}, pos);
     }
-    if (rightblock) {
+    if (tmpbd[2].id && tmpbd[2].id != 7) {
         //puts("right");
-        if (pos.x < 0 && pos.x > new.x - 0.25 + 1) {
-            //puts("push < 0");
-            pos.x = new.x - 0.25 + 1;
-        }
-        if (pos.x >= 0 && pos.x > new.x - 0.25 + 1) {
-            //puts("push >= 0");
-            pos.x = new.x - 0.25 + 1;
-        }
+        pos = phitblock(new, (coord_3d){1, 0, 0}, pos);
+    }
+    if (tmpbd[3].id && tmpbd[3].id != 7) {
+        //puts("left");
+        pos = phitblock(new, (coord_3d){-1, 0, 0}, pos);
+    }
+    if (tmpbd[4].id && tmpbd[4].id != 7) {
+        //puts("back right");
+        pos = phitblock(new, (coord_3d){1, 0, 1}, pos);
+    }
+    if (tmpbd[5].id && tmpbd[5].id != 7) {
+        //puts("front right");
+        pos = phitblock(new, (coord_3d){1, 0, -1}, pos);
+    }
+    if (tmpbd[6].id && tmpbd[6].id != 7) {
+        //puts("back left");
+        pos = phitblock(new, (coord_3d){-1, 0, 1}, pos);
+    }
+    if (tmpbd[7].id && tmpbd[7].id != 7) {
+        //puts("front left");
+        pos = phitblock(new, (coord_3d){-1, 0, -1}, pos);
     }
     return pos;
 }
@@ -156,7 +144,7 @@ void doGame() {
     float pmult = posmult;
     float rmult = rotmult;
     initServer(SERVER_MODE_SP);
-    //int farlands = 17616074;
+    //int farlands = -17616074;
     int cx = 0;
     int cz = 0;
     //genChunks(&chunks, cx, cz);
@@ -190,10 +178,24 @@ void doGame() {
         if (rendinf.camrot.x > 89.99) rendinf.camrot.x = 89.99;
         if (rendinf.camrot.x < -89.99) rendinf.camrot.x = -89.99;
         float yrotrad = (rendinf.camrot.y / 180 * M_PI);
-        float div = fabs(input.zmov) + fabs(input.xmov);
-        if (div < 1.0) div = 1.0;
+        float xcm2 = xcm / (((input.movti) ? posmult : pmult) * npmult);
+        float zcm2 = zcm / (((input.movti) ? posmult : pmult) * npmult);
+        float div/* = fabs(xcm2) + fabs(zcm2)*/;
+        div = atan2(fabs(input.xmov), fabs(input.zmov));
+        div = fabs(1 / (cos(div) + sin(div)));
+        //printf("[%f]\n", div);
         int cmx = 0, cmz = 0;
         static bool first = true;
+        rendinf.campos.z += zcm * div;
+        rendinf.campos.x += xcm * div;
+        float oldy = rendinf.campos.y;
+        rendinf.campos.y = oldy - 0.5;
+        rendinf.campos = pcollide(&chunks, rendinf.campos);
+        rendinf.campos.y = oldy + 0.49 - ((crouch) ? 0.375 : 0);
+        rendinf.campos = pcollide(&chunks, rendinf.campos);
+        rendinf.campos.y = oldy - 1.15;
+        rendinf.campos = pcollide(&chunks, rendinf.campos);
+        rendinf.campos.y = oldy;
         while (rendinf.campos.z > 8.0) {
             --cz;
             rendinf.campos.z -= 16.0;
@@ -231,7 +233,10 @@ void doGame() {
             getBlockF(&chunks, rendinf.campos.x + 0.2, rendinf.campos.y - 1.51, rendinf.campos.z - 0.2),
             getBlockF(&chunks, rendinf.campos.x - 0.2, rendinf.campos.y - 1.51, rendinf.campos.z - 0.2),
         };
-        bool onblock = (tmpbd2[0].id || tmpbd2[1].id || tmpbd2[2].id || tmpbd2[3].id);
+        bool onblock = ((tmpbd2[0].id && tmpbd2[0].id != 7) ||
+                        (tmpbd2[1].id && tmpbd2[1].id != 7) ||
+                        (tmpbd2[2].id && tmpbd2[2].id != 7) ||
+                        (tmpbd2[3].id && tmpbd2[3].id != 7));
         struct blockdata overbdata = getBlockF(&chunks, rendinf.campos.x, rendinf.campos.y + 1.5, rendinf.campos.z);
         if (onblock) {
             float mul = pmult * 3;
@@ -260,22 +265,12 @@ void doGame() {
                 yvel -= 0.5 * pmult;
             }
         }
-        rendinf.campos.z += zcm / div;
-        rendinf.campos.x += xcm / div;
-        float ncz = rendinf.campos.z;
-        float ncx = rendinf.campos.x;
+        //float ncz = rendinf.campos.z;
+        //float ncx = rendinf.campos.x;
         //coord_3d newcoord = {(int)rendinf.campos.x, (int)rendinf.campos.y, (int)rendinf.campos.z};
-        coord_3d newcoord = rendinf.campos;
-        newcoord = intCoord(newcoord);
+        //coord_3d newcoord = rendinf.campos;
+        //newcoord = intCoord(newcoord);
         //printf("cam: [%f][%f][%f]; block: [%f][%f]\n", rendinf.campos.x, rendinf.campos.y, rendinf.campos.z, newcoord.x, newcoord.z);
-        float oldy = rendinf.campos.y;
-        rendinf.campos.y = oldy - 0.5;
-        rendinf.campos = pcollide(&chunks, rendinf.campos);
-        rendinf.campos.y = oldy + 0.49 - ((crouch) ? 0.375 : 0);
-        rendinf.campos = pcollide(&chunks, rendinf.campos);
-        rendinf.campos.y = oldy - 1.24;
-        rendinf.campos = pcollide(&chunks, rendinf.campos);
-        rendinf.campos.y = oldy;
         float accuracy = 0.1;
         float lookatx = cos(rendinf.camrot.x * M_PI / 180.0) * sin(rendinf.camrot.y * M_PI / 180.0);
         float lookaty = sin(rendinf.camrot.x * M_PI / 180.0);
@@ -283,7 +278,7 @@ void doGame() {
         float blockx = 0, blocky = 0, blockz = 0;
         float lastblockx = 0, lastblocky = 0, lastblockz = 0;
         uint8_t blockid = 0, blockid2 = 0;
-        int dist = (float)(7.0 / accuracy);
+        int dist = (float)(5.0 / accuracy);
         for (int i = 1; i < dist; ++i) {
             blockid2 = blockid;
             lastblockx = blockx;

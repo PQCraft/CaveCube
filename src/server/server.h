@@ -41,6 +41,6 @@ struct server_chunkpos {
 
 bool initServer(int);
 bool servMsgReady(int);
-int servSend(int, void*, /*bool, */bool, void*);
+int servSend(int, void*, bool, void*);
 
 #endif
