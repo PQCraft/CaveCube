@@ -315,12 +315,20 @@ static struct blockdata rendGetBlock(struct chunkdata* data, int32_t c, int x, i
 
 //[1 bit: x + 1][4 bits: x][1 bit: y + 1][4 bits: y][1 bit: z + 1][4 bits: z][3 bits: tex map][2 bits: tex coords][4 bits: lighting][8 bits: block id]
 static uint32_t constBlockVert[6][6] = {
+    /*
     {0x84201000, 0x04203000, 0x00202000, 0x00202000, 0x80200000, 0x84201000},
     {0x04001000, 0x84003000, 0x80002000, 0x80002000, 0x00000000, 0x04001000},
     {0x04201000, 0x04003000, 0x00002000, 0x00002000, 0x00200000, 0x04201000},
     {0x84001000, 0x84203000, 0x80202000, 0x80202000, 0x80000000, 0x84001000},
     {0x04201000, 0x84203000, 0x84002000, 0x84002000, 0x04000000, 0x04201000},
     {0x00001000, 0x80003000, 0x80202000, 0x80202000, 0x00200000, 0x00001000},
+    */
+    {0x0F0F0FE1, 0x000F0F63, 0x00000F22, 0x00000F22, 0x0F000FA0, 0x0F0F0FE1},
+    {0x000F0041, 0x0F0F00C3, 0x0F000082, 0x0F000082, 0x00000000, 0x000F0041},
+    {0x000F0F61, 0x000F0043, 0x00000002, 0x00000002, 0x00000F20, 0x000F0F61},
+    {0x0F0F00C1, 0x0F0F0FE3, 0x0F000FA2, 0x0F000FA2, 0x0F000080, 0x0F0F00C1},
+    {0x000F0F61, 0x0F0F0FE3, 0x0F0F00C2, 0x0F0F00C2, 0x000F0040, 0x000F0F61},
+    {0x00000001, 0x0F000083, 0x0F000FA2, 0x0F000FA2, 0x00000F20, 0x00000001},
 };
 
 static float vert2D[] = {
@@ -333,6 +341,25 @@ static float vert2D[] = {
 };
 
 bool updateChunks(void* vdata) {
+    /*
+    static bool test = false;
+    if (!test) {
+        for (int i = 0; i < 6; ++i) {
+            printf("    {");
+            for (int j = 0; j < 6; ++j) {
+                uint32_t tmp = constBlockVert[i][j];
+                uint32_t new = (((tmp >> 31) & 1) << 7) | (((tmp >> 26) & 1) << 6) | (((tmp >> 21) & 1) << 5) | ((tmp >> 12) & 3);
+                if (((tmp >> 31) & 1) << 7) new |= 0x0F000000;
+                if (((tmp >> 26) & 1) << 6) new |= 0x000F0000;
+                if (((tmp >> 21) & 1) << 5) new |= 0x00000F00;
+                printf("0x%08X", new);
+                if (j < 5) printf(", ");
+            }
+            printf("},\n");
+        }
+        test = true;
+    }
+    */
     struct chunkdata* data = vdata;
     static uint32_t ucleftoff = 0;
     /*
@@ -352,8 +379,8 @@ bool updateChunks(void* vdata) {
         ++c3;
         if (!data->renddata[c].generated || data->renddata[c].updated) continue;
         ++c2;
-        data->renddata[c].vertices = realloc(data->renddata[c].vertices, 147456 * sizeof(uint32_t));
-        data->renddata[c].vertices2 = realloc(data->renddata[c].vertices2, 147456 * sizeof(uint32_t));
+        data->renddata[c].vertices = realloc(data->renddata[c].vertices, 147456 * sizeof(uint32_t) * 2);
+        data->renddata[c].vertices2 = realloc(data->renddata[c].vertices2, 147456 * sizeof(uint32_t) * 2);
         uint32_t* vptr = data->renddata[c].vertices;
         uint32_t* vptr2 = data->renddata[c].vertices2;
         uint32_t tmpsize = 0;
@@ -372,20 +399,27 @@ bool updateChunks(void* vdata) {
                     for (int i = 0; i < 6; ++i) {
                         if (bdata2[i].id && bdata2[i].id <= maxblockid && (bdata2[i].id != 5 || bdata.id == 5) && (bdata2[i].id != 7 || bdata.id == 7)) continue;
                         if (bdata2[i].id == 255) continue;
-                        uint32_t baseVert = (x << 27) | (y << 22) | (z << 17) | (i << 14) | bdata.id;
+                        uint32_t baseVert1 = (x << 28) | (y << 20) | (z << 12) | (i << 2);
+                        uint32_t baseVert2 = (bdata.id << 24) | (bdata.light << 8);
                         if (bdata.id == 7) {
                             for (int j = 0; j < 6; ++j) {
-                                *vptr2 = baseVert | constBlockVert[i][j];
+                                *vptr2 = baseVert1 | constBlockVert[i][j];
+                                ++vptr2;
+                                *vptr2 = baseVert2;
                                 ++vptr2;
                             }
-                            //printf("added [%d][%d %d %d][%d]: [%u]: [%x]...\n", c, x, y, z, i, (uint8_t)bdata.id, baseVert);
+                            //printf("added [%d][%d %d %d][%d]: [%u]: [%08X]...\n", c, x, y, z, i, (uint8_t)bdata.id, baseVert1);
+                            ++tmpsize2;
                             ++tmpsize2;
                         } else {
                             for (int j = 0; j < 6; ++j) {
-                                *vptr = baseVert | constBlockVert[i][j];
+                                *vptr = baseVert1 | constBlockVert[i][j];
+                                ++vptr;
+                                *vptr = baseVert2;
                                 ++vptr;
                             }
-                            //printf("added [%d][%d %d %d][%d]: [%u]: [%x]...\n", c, x, y, z, i, (uint8_t)bdata.id, baseVert);
+                            //printf("added [%d][%d %d %d][%d]: [%u]: [%08X]...\n", c, x, y, z, i, (uint8_t)bdata.id, baseVert1);
+                            ++tmpsize;
                             ++tmpsize;
                         }
                     }
@@ -476,7 +510,9 @@ void renderChunks(void* vdata) {
         setUniform3f(rendinf.shaderprog, "ccoord", (float[]){x - (int)data->dist, y, z - (int)data->dist});
         glBindBuffer(GL_ARRAY_BUFFER, data->renddata[c].VBO);
         glEnableVertexAttribArray(0);
-        glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 0, (void*)0);
+        glEnableVertexAttribArray(1);
+        glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 2 * sizeof(uint32_t), (void*)0);
+        glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 2 * sizeof(uint32_t), (void*)sizeof(uint32_t));
         glDrawArrays(GL_TRIANGLES, 0, data->renddata[c].vcount);
     }
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "isAni"), 1);
@@ -490,7 +526,9 @@ void renderChunks(void* vdata) {
             setUniform3f(rendinf.shaderprog, "ccoord", (float[]){x - (int)data->dist, y, z - (int)data->dist});
             glBindBuffer(GL_ARRAY_BUFFER, data->renddata[c].VBO2);
             glEnableVertexAttribArray(0);
-            glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 0, (void*)0);
+            glEnableVertexAttribArray(1);
+            glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 2 * sizeof(uint32_t), (void*)0);
+            glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 2 * sizeof(uint32_t), (void*)sizeof(uint32_t));
             glFrontFace(GL_CW);
             glDrawArrays(GL_TRIANGLES, 0, data->renddata[c].vcount2);
             glFrontFace(GL_CCW);
@@ -505,7 +543,9 @@ void renderChunks(void* vdata) {
             setUniform3f(rendinf.shaderprog, "ccoord", (float[]){x - (int)data->dist, y, z - (int)data->dist});
             glBindBuffer(GL_ARRAY_BUFFER, data->renddata[c].VBO2);
             glEnableVertexAttribArray(0);
-            glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 0, (void*)0);
+            glEnableVertexAttribArray(1);
+            glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 2 * sizeof(uint32_t), (void*)0);
+            glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 2 * sizeof(uint32_t), (void*)sizeof(uint32_t));
             glDrawArrays(GL_TRIANGLES, 0, data->renddata[c].vcount2);
         }
     }
