@@ -163,7 +163,7 @@ void doGame() {
         uint64_t starttime = altutime();
         float npmult = 0.5;
         float nrmult = 1.0;
-        input_info input = getInput();
+        struct input_info input = getInput();
         bool crouch = false;
         if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_CROUCH)) {
             crouch = true;
@@ -178,8 +178,6 @@ void doGame() {
         if (rendinf.camrot.x > 89.99) rendinf.camrot.x = 89.99;
         if (rendinf.camrot.x < -89.99) rendinf.camrot.x = -89.99;
         float yrotrad = (rendinf.camrot.y / 180 * M_PI);
-        float xcm2 = xcm / (((input.movti) ? posmult : pmult) * npmult);
-        float zcm2 = zcm / (((input.movti) ? posmult : pmult) * npmult);
         float div/* = fabs(xcm2) + fabs(zcm2)*/;
         div = atan2(fabs(input.xmov), fabs(input.zmov));
         div = fabs(1 / (cos(div) + sin(div)));
@@ -225,7 +223,7 @@ void doGame() {
         updateChunks(&chunks);
         //printf("old x [%f] y [%f]\n", rendinf.campos.x, rendinf.campos.z);
         struct blockdata curbdata = getBlockF(&chunks, rendinf.campos.x, rendinf.campos.y, rendinf.campos.z);
-        struct blockdata curbdata2 = getBlockF(&chunks, rendinf.campos.x, rendinf.campos.y - 1, rendinf.campos.z);
+        //struct blockdata curbdata2 = getBlockF(&chunks, rendinf.campos.x, rendinf.campos.y - 1, rendinf.campos.z);
         //struct blockdata underbdata = getBlockF(&chunks, rendinf.campos.x, rendinf.campos.y - 1.51, rendinf.campos.z);
         struct blockdata tmpbd2[4] = {
             getBlockF(&chunks, rendinf.campos.x + 0.2, rendinf.campos.y - 1.51, rendinf.campos.z + 0.2),
@@ -237,7 +235,7 @@ void doGame() {
                         (tmpbd2[1].id && tmpbd2[1].id != 7) ||
                         (tmpbd2[2].id && tmpbd2[2].id != 7) ||
                         (tmpbd2[3].id && tmpbd2[3].id != 7));
-        struct blockdata overbdata = getBlockF(&chunks, rendinf.campos.x, rendinf.campos.y + 1.5, rendinf.campos.z);
+        //struct blockdata overbdata = getBlockF(&chunks, rendinf.campos.x, rendinf.campos.y + 1.5, rendinf.campos.z);
         if (onblock) {
             float mul = pmult * 3;
             xcm = ((input.zmov * sinf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult) + (input.xmov * cosf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult)) * mul + xcm * (1.0 - mul);

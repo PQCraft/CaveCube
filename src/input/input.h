@@ -42,7 +42,7 @@ enum {
     INPUT_ACTION_SINGLE__MAX,
 };
 
-typedef struct {
+struct input_info {
     uint32_t multi_actions;
     uint16_t single_action;
     uint16_t modifiers;
@@ -52,12 +52,12 @@ typedef struct {
     bool mmovti;
     float mxmov;
     float mymov;
-} input_info;
+};
 
 void setInputMode(int);
 bool initInput(void);
-input_info getInput(void);
+struct input_info getInput(void);
 
-#define INPUT_EMPTY_INFO (input_info){INPUT_ACTION_MULTI__NONE, INPUT_ACTION_SINGLE__NONE, 0, false, 0.0, 0.0, false, 0.0, 0.0}
+#define INPUT_EMPTY_INFO (struct input_info){INPUT_ACTION_MULTI__NONE, INPUT_ACTION_SINGLE__NONE, 0, false, 0.0, 0.0, false, 0.0, 0.0}
 
 #endif

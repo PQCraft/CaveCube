@@ -10,7 +10,7 @@
 #include <stdbool.h>
 #include <string.h>
 
-#include <glad/glad.h>
+#include <glad.h>
 #include <GLFW/glfw3.h>
 #include <cglm/cglm.h>
 
@@ -313,7 +313,11 @@ static struct blockdata rendGetBlock(struct chunkdata* data, int32_t c, int x, i
     return data->data[c][y * 256 + z * 16 + x];
 }
 
-//[1 bit: x + 1][4 bits: x][1 bit: y + 1][4 bits: y][1 bit: z + 1][4 bits: z][3 bits: tex map][2 bits: tex coords][4 bits: lighting][8 bits: block id]
+// current:
+// [1 bit: x + 1][4 bits: x][1 bit: y + 1][4 bits: y][1 bit: z + 1][4 bits: z][3 bits: tex map][2 bits: tex coords][4 bits: lighting][8 bits: block id]
+// [8 bits: x ([0...255]/16)][8 bits: y ([0...255]/16)][8 bits: z ([0...255]/16)][1 bit: x + 1/16][1 bit: y + 1/16][1 bit: z + 1/16][3 bits: tex map][2 bits: tex coords]
+// old:
+// [8 bits: block id][16 bits: R5G6B5 lighting][8 bits: reserved]
 static uint32_t constBlockVert[6][6] = {
     /*
     {0x84201000, 0x04203000, 0x00202000, 0x00202000, 0x80200000, 0x84201000},
@@ -404,12 +408,14 @@ bool updateChunks(void* vdata) {
                         if (bdata.id == 7) {
                             for (int j = 0; j < 6; ++j) {
                                 *vptr2 = baseVert1 | constBlockVert[i][j];
+                                if (!bdata2[4].id && (*vptr2 & 0x000F0000)) {
+                                    *vptr2 = (*vptr2 & 0xFFF0FFFF) | 0x000E0000;
+                                }
                                 ++vptr2;
                                 *vptr2 = baseVert2;
                                 ++vptr2;
                             }
                             //printf("added [%d][%d %d %d][%d]: [%u]: [%08X]...\n", c, x, y, z, i, (uint8_t)bdata.id, baseVert1);
-                            ++tmpsize2;
                             ++tmpsize2;
                         } else {
                             for (int j = 0; j < 6; ++j) {
@@ -419,7 +425,6 @@ bool updateChunks(void* vdata) {
                                 ++vptr;
                             }
                             //printf("added [%d][%d %d %d][%d]: [%u]: [%08X]...\n", c, x, y, z, i, (uint8_t)bdata.id, baseVert1);
-                            ++tmpsize;
                             ++tmpsize;
                         }
                     }
@@ -437,8 +442,8 @@ bool updateChunks(void* vdata) {
         */
         data->renddata[c].vcount = tmpsize;
         data->renddata[c].vcount2 = tmpsize2;
-        tmpsize *= sizeof(uint32_t);
-        tmpsize2 *= sizeof(uint32_t);
+        tmpsize *= sizeof(uint32_t) * 2;
+        tmpsize2 *= sizeof(uint32_t) * 2;
         data->renddata[c].vertices = realloc(data->renddata[c].vertices, tmpsize);
         data->renddata[c].vertices2 = realloc(data->renddata[c].vertices2, tmpsize2);
         //glGenVertexArrays(1, &data->renddata[c].VAO);

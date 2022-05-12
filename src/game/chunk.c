@@ -74,6 +74,14 @@ void setBlock(struct chunkdata* data, int cx, int cy, int cz, int x, int y, int 
         int32_t c2 = c + 1;
         if ((c2 >= 0 || c2 < (int32_t)data->size) && data->renddata[c2].generated) data->renddata[c2].updated = false;
     }
+    if (c >= (int)data->widthsq) {
+        int32_t c2 = c - data->widthsq;
+        if ((c2 >= 0 || c2 < (int32_t)data->size) && data->renddata[c2].generated) data->renddata[c2].updated = false;
+    }
+    if (c < (int)(data->size - data->widthsq)) {
+        int32_t c2 = c + data->widthsq;
+        if ((c2 >= 0 || c2 < (int32_t)data->size) && data->renddata[c2].generated) data->renddata[c2].updated = false;
+    }
 }
 
 static int compare(const void* b, const void* a) {
@@ -358,6 +366,10 @@ static void genChunks_cb(struct server_chunk* srvchunk) {
     }
     if ((coff + 1) % srvchunk->chunks->width) {
         int32_t coff2 = coff + 1;
+        if ((coff2 >= 0 || coff2 < (int32_t)srvchunk->chunks->size) && srvchunk->chunks->renddata[coff2].generated) srvchunk->chunks->renddata[coff2].updated = false;
+    }
+    if (coff >= srvchunk->chunks->widthsq) {
+        int32_t coff2 = coff - srvchunk->chunks->widthsq;
         if ((coff2 >= 0 || coff2 < (int32_t)srvchunk->chunks->size) && srvchunk->chunks->renddata[coff2].generated) srvchunk->chunks->renddata[coff2].updated = false;
     }
     srvchunk->chunks->renddata[coff].generated = true;
