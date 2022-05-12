@@ -73,10 +73,10 @@ bool keyDown(int key) {
     return (glfwGetKey(rendinf.window, key) == GLFW_PRESS);
 }
 
-input_info getInput() {
+struct input_info getInput() {
     glfwPollEvents();
     quitRequest += rendererQuitRequest();
-    input_info inf = INPUT_EMPTY_INFO;
+    struct input_info inf = INPUT_EMPTY_INFO;
     inf.mmovti = true;
     if (quitRequest) return inf;
     static bool mposset = false;
