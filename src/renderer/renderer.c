@@ -68,9 +68,9 @@ void setSpace(int space) {
             break;
         case SPACE_PARALLEL:;
             setSkyColor(0.25, 0, 0.05);
-            setScreenMult(0.9, 0.35, 0.4);
-            glUniform1i(glGetUniformLocation(rendinf.shaderprog, "vis"), -15);
-            glUniform1f(glGetUniformLocation(rendinf.shaderprog, "vismul"), 0.75);
+            setScreenMult(0.9, 0.75, 0.7);
+            glUniform1i(glGetUniformLocation(rendinf.shaderprog, "vis"), -10);
+            glUniform1f(glGetUniformLocation(rendinf.shaderprog, "vismul"), 0.8);
     }
 }
 
