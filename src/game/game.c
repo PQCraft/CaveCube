@@ -17,6 +17,9 @@
 #endif
 
 int fps;
+coord_3d pcoord;
+int pchunkx, pchunky, pchunkz;
+int pblockx, pblocky, pblockz;
 
 static float posmult = 0.125;
 static float rotmult = 3;
@@ -133,13 +136,20 @@ coord_3d pcollide(struct chunkdata* chunks, coord_3d pos) {
     return pos;
 }
 
+coord_3d icoord2wcoord(coord_3d cam, int cx, int cz) {
+    cam.x += cx * 16;
+    cam.y -= 0.5;
+    cam.z = cz * 16 + -cam.z;
+    return cam;
+}
+
 void doGame() {
     char** tmpbuf = malloc(16 * sizeof(char*));
     for (int i = 0; i < 16; ++i) {
         tmpbuf[i] = malloc(4096);
     }
     chunks = allocChunks(atoi(getConfigVarStatic(config, "game.chunks", "9", 64)));
-    rendinf.campos.y = 101.5;
+    rendinf.campos.y = 141.5;
     initInput();
     float pmult = posmult;
     float rmult = rotmult;
@@ -237,7 +247,7 @@ void doGame() {
                         (tmpbd2[3].id && tmpbd2[3].id != 7));
         //struct blockdata overbdata = getBlockF(&chunks, rendinf.campos.x, rendinf.campos.y + 1.5, rendinf.campos.z);
         if (onblock) {
-            float mul = pmult * 3;
+            float mul = 0.2;
             xcm = ((input.zmov * sinf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult) + (input.xmov * cosf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult)) * mul + xcm * (1.0 - mul);
             zcm = (-(input.zmov * cosf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult) + (input.xmov * sinf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult)) * mul + zcm * (1.0 - mul);
             if (rendinf.campos.y < (float)((int)(rendinf.campos.y)) + 0.5 && yvel <= 0.0) {
@@ -248,7 +258,7 @@ void doGame() {
             }
             if (yvel < 0) yvel = 0.0;
         } else {
-            float mul = pmult * 0.5;
+            float mul = pmult * 0.155;
             xcm = ((input.zmov * sinf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult) + (input.xmov * cosf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult)) * mul + xcm * (1.0 - mul);
             zcm = (-(input.zmov * cosf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult) + (input.xmov * sinf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult)) * mul + zcm * (1.0 - mul);
         }

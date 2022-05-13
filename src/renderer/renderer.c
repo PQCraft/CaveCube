@@ -497,7 +497,7 @@ void renderText(float x, float y, float scale, unsigned end, char* text, void* e
     }
 }
 
-static char tbuf[2][32768];
+static char tbuf[1][32768];
 
 void renderChunks(void* vdata) {
     struct chunkdata* data = vdata;
@@ -566,17 +566,25 @@ void renderChunks(void* vdata) {
     setShaderProg(shader_text);
     static uint64_t frames = 0;
     ++frames;
-    if (!tbuf[0][0]) strcpy(tbuf[0], "FPS: ");
-    if (!tbuf[1][0]) strcpy(tbuf[1], "Position: ");
     /*
     for (int i = 0; i < 32767; ++i) {
         tbuf[i] = rand();
     }
     */
-    sprintf(&tbuf[0][5], "%d", fps);
-    sprintf(&tbuf[1][10], "[x: %f] [y: %f] [z: %f]", chunkoffx * 16 + rendinf.campos.x, rendinf.campos.y - 0.5, chunkoffz * 16 + -rendinf.campos.z);
+    sprintf(
+        tbuf[0],
+        "FPS: %d\n"
+        "Position: (%f, %f, %f)\n"
+        "Rotation: (%f, %f, %f)\n"
+        "Block: (%d, %d, %d)\n"
+        "Chunk: (%d, %d, %d)\n",
+        fps,
+        pcoord.x, pcoord.y, pcoord.z,
+        rendinf.camrot.x, rendinf.camrot.y, rendinf.camrot.z,
+        pblockx, pblocky, pblockz,
+        pchunkx, pchunky, pchunkz
+    );
     renderText(0, 0, 1, rendinf.width, tbuf[0], NULL);
-    renderText(0, 16, 1, rendinf.width, tbuf[1], NULL);
 
     setShaderProg(shader_block);
     glEnable(GL_DEPTH_TEST);

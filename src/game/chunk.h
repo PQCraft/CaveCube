@@ -25,8 +25,6 @@ struct chunkdata {
     struct chunk_renddata* renddata;
 };
 
-extern int chunkoffx, chunkoffz;
-
 struct chunkdata allocChunks(uint32_t);
 void genChunks(struct chunkdata*, int, int);
 bool genChunk(struct chunkdata*, int, int, int, int, int, struct blockdata*, int);
