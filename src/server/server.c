@@ -110,7 +110,7 @@ static void* servthread(void* args) {
 
 bool initServer(int mode) {
     servmode = mode;
-    setRandSeed(9135);
+    setRandSeed(0x0FC3);
     initNoiseTable();
     msgdata = malloc(0);
     pthread_mutex_init(&msglock, NULL);

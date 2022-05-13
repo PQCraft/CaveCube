@@ -290,19 +290,20 @@ bool genChunk(struct chunkdata* chunks, int cx, int cy, int cz, int xo, int zo, 
                     }
                     break;
                 case 2:; {
-                        float s1 = perlin2d(1, (float)(nx + x) / 21, (float)(nz + z) / 21, 1.25, 8);
-                        float s2 = perlin2d(0, (float)(nx + x) / 147, (float)(nz + z) / 147, 2.0, 1);
-                        float s3 = perlin2d(2, (float)(nx + x) / 56, (float)(nz + z) / 56, 1.0, 1);
+                        float s1 = perlin2d(1, (float)(nx + x) / 30, (float)(nz + z) / 30, 2, 2);
+                        float s2 = perlin2d(0, (float)(nx + x) / 187, (float)(nz + z) / 187, 2, 4);
+                        float s3 = perlin2d(2, (float)(nx + x) / 56, (float)(nz + z) / 56, 1, 8);
                         int s4 = noise2d(3, (float)(nx + x), (float)(nz + z));
+                        float s5 = perlin2d(4, (float)(nx + x) / 329, (float)(nz + z) / 329, 1, 2);
                         for (int y = btm; y <= top && y < 65; ++y) {
                             //printf("placing water at chunk [%u] [%d, %d, %d]\n", coff, x, y, z);
                             data[(y - btm) * 256 + z * 16 + x] = (struct blockdata){7, 0, 0};
                         }
-                        float s = (s1 * 4 - 2) + (s2 * 20 - 10) + 65;
+                        float s = ((s1 * 6 - 3) + (s2 * 32 - 16)) * (1.0 - s5 * 0.5) + 45 + s5 * 45;
                         int si = round(s);
                         if (si >= btm && si <= top) data[(si - btm) * 256 + z * 16 + x] = (struct blockdata){((float)si - round(s3 * 10) < 62) ? 8 : ((si < 64) ? 2 : 3), 0, 0};
                         for (int y = ((si - 1) > top) ? top : si - 1; y >= btm; --y) {
-                            data[(y - btm) * 256 + z * 16 + x] = (struct blockdata){(y < ((s2 * 15 - 10) + 65)) ? 1 : ((float)y - round(s3 * 10) < 62 && y > ((s2 * 18 - 10) + 65)) ? 8 : 2, 0, 0};
+                            data[(y - btm) * 256 + z * 16 + x] = (struct blockdata){(y < ((s2 * 28 - 16) + 65)) ? 1 : ((float)y - round(s3 * 10) < 62 && y > ((s2 * 30 - 16) + 65)) ? 8 : 2, 0, 0};
                         }
                         if (!btm) data[z * 16 + x] = (struct blockdata){6, 0, 0};
                         if (!btm && !(s4 % 2)) data[256 + z * 16 + x] = (struct blockdata){6, 0, 0};
@@ -318,7 +319,7 @@ bool genChunk(struct chunkdata* chunks, int cx, int cy, int cz, int xo, int zo, 
                             //printf("placing water at chunk [%u] [%d, %d, %d]\n", coff, x, y, z);
                             data[(y - btm) * 256 + z * 16 + x] = (struct blockdata){7, 0, 0};
                         }
-                        float s = (s1 * 40 - 20) + (s2 * 40 - 20) + 65;
+                        float s = (s1 * 20 - 10) + (s2 * 40 - 20) + 70;
                         int si = round(s);
                         for (int y = (si > top) ? top : si; y >= btm; --y) {
                             data[(y - btm) * 256 + z * 16 + x] = (struct blockdata){(y < ((s2 * 32 - 20) + 65)) ? 1 : ((float)y - round(s3 * 10) < 62 && y > ((s2 * 36 - 20) + 65)) ? 2 : 1, 0, 0};
@@ -372,6 +373,10 @@ static void genChunks_cb(struct server_chunk* srvchunk) {
         int32_t coff2 = coff - srvchunk->chunks->widthsq;
         if ((coff2 >= 0 || coff2 < (int32_t)srvchunk->chunks->size) && srvchunk->chunks->renddata[coff2].generated) srvchunk->chunks->renddata[coff2].updated = false;
     }
+    if (coff < (srvchunk->chunks->size - srvchunk->chunks->widthsq)) {
+        int32_t coff2 = coff + srvchunk->chunks->widthsq;
+        if ((coff2 >= 0 || coff2 < (int32_t)srvchunk->chunks->size) && srvchunk->chunks->renddata[coff2].generated) srvchunk->chunks->renddata[coff2].updated = false;
+    }
     srvchunk->chunks->renddata[coff].generated = true;
     /*
     if (srvchunk->data->renddata[coff].moved) {
@@ -381,11 +386,7 @@ static void genChunks_cb(struct server_chunk* srvchunk) {
     */
 }
 
-int chunkoffx, chunkoffz;
-
 void genChunks(struct chunkdata* chunks, int xo, int zo) {
-    chunkoffx = xo;
-    chunkoffz = zo;
     ++cid;
     struct server_chunkpos* chunkpos = malloc(sizeof(struct server_chunkpos));
     *chunkpos = (struct server_chunkpos){xo, zo};
