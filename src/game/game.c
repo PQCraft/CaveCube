@@ -228,6 +228,8 @@ void doGame() {
             first = false;
             moveChunks(&chunks, cmx, cmz);
             genChunks(&chunks, cx, cz);
+            pchunkx = cx;
+            pchunkz = cz;
         }
         //genChunks(&chunks, cx, cz);
         updateChunks(&chunks);
@@ -346,6 +348,14 @@ void doGame() {
             fpsstarttime2 = altutime();
             ++fpsct;
         }
+        pcoord = icoord2wcoord(rendinf.campos, pchunkx, pchunkz);
+        coord_3d bcoord = intCoord(pcoord);
+        pblockx = bcoord.x;
+        pblocky = bcoord.y;
+        pblockz = bcoord.z;
+        pchunky = pblocky / 16;
+        if (pchunky < 0) pchunky = 0;
+        if (pchunky > 15) pchunky = 15;
         uint64_t curtime = altutime();
         if (curtime - fpsstarttime >= 1000000) {
             #ifdef SHOWFPS
