@@ -27,7 +27,7 @@ static float rotmult = 3;
 static float fpsmult = 0;
 static float mousesns = 0.05;
 
-struct chunkdata chunks;
+static struct chunkdata chunks;
 
 static inline struct blockdata getBlockF(struct chunkdata* chunks, float x, float y, float z) {
     x -= (x < 0) ? 1.0 : 0.0;
@@ -167,10 +167,11 @@ static inline void pcollidepath(struct chunkdata* chunks, coord_3d oldpos, coord
     float changez = pos->z - oldpos.z;
     for (int i = 1; i <= steps; ++i) {
         float offset = (float)(i) / (float)(steps);
+        //printf("[%d] [%f]\n", i, offset);
         coord_3d tmpcoord = {oldpos.x + changex * offset, pos->y, oldpos.z + changez * offset};
         if (pcollide(chunks, &tmpcoord)) {
             *pos = tmpcoord;
-            return;
+            //return;
         }
     }
 }
@@ -181,6 +182,18 @@ static inline coord_3d_dbl icoord2wcoord(coord_3d cam, int64_t cx, int64_t cz) {
     ret.y = (double)cam.y - 0.5;
     ret.z = cz * 16 + (double)-cam.z;
     return ret;
+}
+
+void handleServer(int index, int msg, void* data) {
+    (void)index;
+    switch (msg) {
+        case SERVER_RET_PONG:;
+            printf("Server ponged\n");
+            break;
+        case SERVER_RET_UPDATECHUNK:;
+            genChunks_cb(&chunks, data);
+            break;
+    }
 }
 
 void doGame() {
@@ -194,6 +207,7 @@ void doGame() {
     float pmult = posmult;
     float rmult = rotmult;
     initServer(SERVER_MODE_SP);
+    servCallBack(handleServer);
     //int64_t farlands = -1006632960;
     int64_t cx = 0;
     int64_t cz = 0;
@@ -237,7 +251,7 @@ void doGame() {
         pvelocity.x = xcm / (((input.movti) ? posmult : pmult));
         pvelocity.z = -(zcm / (((input.movti) ? posmult : pmult)));
         float oldy = rendinf.campos.y;
-        int csteps = 5;
+        int csteps = npmult * 10;
         rendinf.campos.y = oldy - 0.5;
         pcollidepath(&chunks, oldpos, &rendinf.campos, csteps);
         rendinf.campos.y = oldy + 0.49 - ((crouch) ? 0.375 : 0);

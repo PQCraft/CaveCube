@@ -12,27 +12,29 @@
 #include <pthread.h>
 #include <math.h>
 
+
+
 struct blockdata getBlock(struct chunkdata* data, int cx, int cy, int cz, int x, int y, int z) {
     cz *= -1;
     z *= -1;
     //printf("in: [%d, %d, %d] [%d, %d, %d]\n", cx, cy, cz, x, y, z);
-    cx += data->dist;
-    cz += data->dist;
+    cx += data->info.dist;
+    cz += data->info.dist;
     x += 8;
     z += 8;
-    if (cx < 0 || cz < 0 || cx >= (int)data->width || cz >= (int)data->width || cy < 0 || cy > 15) return (struct blockdata){0, 0, 0};
-    int32_t c = cx + cz * data->width + cy * data->widthsq;
-    while (x < 0 && c % data->width) {c -= 1; x += 16;}
-    while (x > 15 && (c + 1) % data->width) {c += 1; x -= 16;}
-    while (z > 15 && c % (int)data->widthsq >= (int)data->width) {c -= data->width; z -= 16;}
-    while (z < 0 && c % (int)data->widthsq < (int)(data->widthsq - data->width)) {c += data->width; z += 16;}
-    while (y < 0 && c >= (int)data->widthsq) {c -= data->widthsq; y += 16;}
-    while (y > 15 && c < (int)(data->size - data->widthsq)) {c += data->widthsq; y -= 16;}
-    cx = c % data->width;
-    cz = c / data->width % data->width;
-    cy = c / data->widthsq;
+    if (cx < 0 || cz < 0 || cx >= (int)data->info.width || cz >= (int)data->info.width || cy < 0 || cy > 15) return (struct blockdata){0, 0, 0};
+    int32_t c = cx + cz * data->info.width + cy * data->info.widthsq;
+    while (x < 0 && c % data->info.width) {c -= 1; x += 16;}
+    while (x > 15 && (c + 1) % data->info.width) {c += 1; x -= 16;}
+    while (z > 15 && c % (int)data->info.widthsq >= (int)data->info.width) {c -= data->info.width; z -= 16;}
+    while (z < 0 && c % (int)data->info.widthsq < (int)(data->info.widthsq - data->info.width)) {c += data->info.width; z += 16;}
+    while (y < 0 && c >= (int)data->info.widthsq) {c -= data->info.widthsq; y += 16;}
+    while (y > 15 && c < (int)(data->info.size - data->info.widthsq)) {c += data->info.widthsq; y -= 16;}
+    cx = c % data->info.width;
+    cz = c / data->info.width % data->info.width;
+    cy = c / data->info.widthsq;
     //printf("resolved: [%d, %d, %d] [%d, %d, %d]\n", cx, cy, cz, x, y, z);
-    if (c < 0 || c >= (int32_t)data->size || x < 0 || y < 0 || z < 0 || x > 15 || y > 15 || z > 15) return (struct blockdata){0, 0, 0};
+    if (c < 0 || c >= (int32_t)data->info.size || x < 0 || y < 0 || z < 0 || x > 15 || y > 15 || z > 15) return (struct blockdata){0, 0, 0};
     if (!data->renddata[c].generated) return (struct blockdata){0, 0, 0};
     return data->data[c][y * 256 + z * 16 + x];
 }
@@ -41,57 +43,57 @@ void setBlock(struct chunkdata* data, int cx, int cy, int cz, int x, int y, int 
     cz *= -1;
     z *= -1;
     //printf("in: [%d, %d, %d] [%d, %d, %d]\n", cx, cy, cz, x, y, z);
-    cx += data->dist;
-    cz += data->dist;
+    cx += data->info.dist;
+    cz += data->info.dist;
     x += 8;
     z += 8;
-    if (cx < 0 || cz < 0 || cx >= (int)data->width || cz >= (int)data->width || cy < 0 || cy > 15) return;
-    int32_t c = cx + cz * data->width + cy * data->widthsq;
-    while (x < 0 && c % data->width) {c -= 1; x += 16;}
-    while (x > 15 && (c + 1) % data->width) {c += 1; x -= 16;}
-    while (z > 15 && c % (int)data->widthsq >= (int)data->width) {c -= data->width; z -= 16;}
-    while (z < 0 && c % (int)data->widthsq < (int)(data->widthsq - data->width)) {c += data->width; z += 16;}
-    while (y < 0 && c >= (int)data->widthsq) {c -= data->widthsq; y += 16;}
-    while (y > 15 && c < (int)(data->size - data->widthsq)) {c += data->widthsq; y -= 16;}
+    if (cx < 0 || cz < 0 || cx >= (int)data->info.width || cz >= (int)data->info.width || cy < 0 || cy > 15) return;
+    int32_t c = cx + cz * data->info.width + cy * data->info.widthsq;
+    while (x < 0 && c % data->info.width) {c -= 1; x += 16;}
+    while (x > 15 && (c + 1) % data->info.width) {c += 1; x -= 16;}
+    while (z > 15 && c % (int)data->info.widthsq >= (int)data->info.width) {c -= data->info.width; z -= 16;}
+    while (z < 0 && c % (int)data->info.widthsq < (int)(data->info.widthsq - data->info.width)) {c += data->info.width; z += 16;}
+    while (y < 0 && c >= (int)data->info.widthsq) {c -= data->info.widthsq; y += 16;}
+    while (y > 15 && c < (int)(data->info.size - data->info.widthsq)) {c += data->info.widthsq; y -= 16;}
     //printf("resolved: [%d, %d, %d] [%d, %d, %d]\n", cx, cy, cz, x, y, z);
-    if (c < 0 || c >= (int32_t)data->size || x < 0 || y < 0 || z < 0 || x > 15 || y > 15 || z > 15) return;
+    if (c < 0 || c >= (int32_t)data->info.size || x < 0 || y < 0 || z < 0 || x > 15 || y > 15 || z > 15) return;
     if (!data->renddata[c].generated) return;
     data->data[c][y * 256 + z * 16 + x] = bdata;
     data->renddata[c].updated = false;
-    if ((int)c % (int)data->widthsq >= (int)data->width) {
-        int32_t c2 = c - data->width;
-        if ((c2 >= 0 || c2 < (int32_t)data->size) && data->renddata[c2].generated) data->renddata[c2].updated = false;
+    if ((int)c % (int)data->info.widthsq >= (int)data->info.width) {
+        int32_t c2 = c - data->info.width;
+        if ((c2 >= 0 || c2 < (int32_t)data->info.size) && data->renddata[c2].generated) data->renddata[c2].updated = false;
     }
-    if ((int)c % (int)data->widthsq < (int)(data->widthsq - data->width)) {
-        int32_t c2 = c + data->width;
-        if ((c2 >= 0 || c2 < (int32_t)data->size) && data->renddata[c2].generated) data->renddata[c2].updated = false;
+    if ((int)c % (int)data->info.widthsq < (int)(data->info.widthsq - data->info.width)) {
+        int32_t c2 = c + data->info.width;
+        if ((c2 >= 0 || c2 < (int32_t)data->info.size) && data->renddata[c2].generated) data->renddata[c2].updated = false;
     }
-    if (c % data->width) {
+    if (c % data->info.width) {
         int32_t c2 = c - 1;
-        if ((c2 >= 0 || c2 < (int32_t)data->size) && data->renddata[c2].generated) data->renddata[c2].updated = false;
+        if ((c2 >= 0 || c2 < (int32_t)data->info.size) && data->renddata[c2].generated) data->renddata[c2].updated = false;
     }
-    if ((c + 1) % data->width) {
+    if ((c + 1) % data->info.width) {
         int32_t c2 = c + 1;
-        if ((c2 >= 0 || c2 < (int32_t)data->size) && data->renddata[c2].generated) data->renddata[c2].updated = false;
+        if ((c2 >= 0 || c2 < (int32_t)data->info.size) && data->renddata[c2].generated) data->renddata[c2].updated = false;
     }
-    if (c >= (int)data->widthsq) {
-        int32_t c2 = c - data->widthsq;
-        if ((c2 >= 0 || c2 < (int32_t)data->size) && data->renddata[c2].generated) data->renddata[c2].updated = false;
+    if (c >= (int)data->info.widthsq) {
+        int32_t c2 = c - data->info.widthsq;
+        if ((c2 >= 0 || c2 < (int32_t)data->info.size) && data->renddata[c2].generated) data->renddata[c2].updated = false;
     }
-    if (c < (int)(data->size - data->widthsq)) {
-        int32_t c2 = c + data->widthsq;
-        if ((c2 >= 0 || c2 < (int32_t)data->size) && data->renddata[c2].generated) data->renddata[c2].updated = false;
+    if (c < (int)(data->info.size - data->info.widthsq)) {
+        int32_t c2 = c + data->info.widthsq;
+        if ((c2 >= 0 || c2 < (int32_t)data->info.size) && data->renddata[c2].generated) data->renddata[c2].updated = false;
     }
 }
 
-static int compare(const void* b, const void* a) {
+static inline int compare(const void* b, const void* a) {
     float fa = ((struct rendorder*)a)->dist;
     float fb = ((struct rendorder*)b)->dist;
     //printf("[%f]\n", ((struct rendorder*)a)->dist);
     return (fa > fb) - (fa < fb);
 }
 
-static float distance(float x1, float z1, float x2, float z2) {
+static inline float distance(float x1, float z1, float x2, float z2) {
     //float f = sqrt(fabs(x2 - x1) * fabs(x2 - x1) + fabs(z2 - z1) * fabs(z2 - z1));
     //printf("[%f][%f][%f][%f] [%f]\n", x1, z1, x2, z2, f);
     return /*f*/ sqrt(fabs(x2 - x1) * fabs(x2 - x1) + fabs(z2 - z1) * fabs(z2 - z1));
@@ -99,33 +101,27 @@ static float distance(float x1, float z1, float x2, float z2) {
 
 struct chunkdata allocChunks(uint32_t dist) {
     struct chunkdata chunks;
-    chunks.dist = dist;
+    chunks.info.dist = dist;
     dist = 1 + dist * 2;
-    chunks.width = dist;
+    chunks.info.width = dist;
     dist *= dist;
-    chunks.widthsq = dist;
+    chunks.info.widthsq = dist;
     dist *= 16;
-    chunks.size = dist;
+    chunks.info.size = dist;
     chunks.data = malloc(dist * sizeof(struct blockdata*));
     for (unsigned i = 0; i < dist; ++i) {
         chunks.data[i] = calloc(4096 * sizeof(struct blockdata), 1);
     }
     chunks.renddata = calloc(dist * sizeof(struct chunk_renddata), 1);
-    chunks.rordr = calloc(chunks.widthsq * sizeof(struct rendorder), 1);
-    for (unsigned x = 0; x < chunks.width; ++x) {
-        for (unsigned z = 0; z < chunks.width; ++z) {
-            uint32_t c = x + z * chunks.width;
-            //printf("[%f]\n", distance(x + chunks.dist, z + chunks.dist, 0, 0));
-            chunks.rordr[c].dist = distance((int)(x - chunks.dist), (int)(z - chunks.dist), 0, 0);
+    chunks.rordr = calloc(chunks.info.widthsq * sizeof(struct rendorder), 1);
+    for (unsigned x = 0; x < chunks.info.width; ++x) {
+        for (unsigned z = 0; z < chunks.info.width; ++z) {
+            uint32_t c = x + z * chunks.info.width;
+            chunks.rordr[c].dist = distance((int)(x - chunks.info.dist), (int)(z - chunks.info.dist), 0, 0);
             chunks.rordr[c].c = c;
         }
     }
-    qsort(chunks.rordr, chunks.widthsq, sizeof(struct rendorder), compare);
-    /*
-    for (unsigned i = 0; i < chunks.widthsq; ++i) {
-        printf("[%9f][%3d]\n", chunks.rordr[i].dist, chunks.rordr[i].c);
-    }
-    */
+    qsort(chunks.rordr, chunks.info.widthsq, sizeof(struct rendorder), compare);
     return chunks;
 }
 
@@ -136,17 +132,17 @@ void moveChunks(struct chunkdata* chunks, int cx, int cz) {
     struct blockdata* swap = NULL;
     struct chunk_renddata rdswap;
     if (cx > 0) {
-        for (uint32_t c = 0; c < chunks->size; c += chunks->width) {
+        for (uint32_t c = 0; c < chunks->info.size; c += chunks->info.width) {
             swap = chunks->data[c];
             rdswap = chunks->renddata[c];
-            //chunks->renddata[c + chunks->width - 1].updated = false;
-            //chunks->renddata[c + chunks->width - 1].moved = true;
-            for (uint32_t i = 0; i < chunks->width - 1; ++i) {
+            //chunks->renddata[c + chunks->info.width - 1].updated = false;
+            //chunks->renddata[c + chunks->info.width - 1].moved = true;
+            for (uint32_t i = 0; i < chunks->info.width - 1; ++i) {
                 chunks->data[c + i] = chunks->data[c + i + 1];
                 chunks->renddata[c + i] = chunks->renddata[c + i + 1];
             }
             chunks->renddata[c].updated = false;
-            uint32_t off = c + chunks->width - 1;
+            uint32_t off = c + chunks->info.width - 1;
             chunks->data[off] = swap;
             chunks->renddata[off] = rdswap;
             //chunks->renddata[off].moved = true;
@@ -158,16 +154,16 @@ void moveChunks(struct chunkdata* chunks, int cx, int cz) {
             }
         }
     } else if (cx < 0) {
-        for (uint32_t c = 0; c < chunks->size; c += chunks->width) {
-            swap = chunks->data[c + chunks->width - 1];
-            rdswap = chunks->renddata[c + chunks->width - 1];
+        for (uint32_t c = 0; c < chunks->info.size; c += chunks->info.width) {
+            swap = chunks->data[c + chunks->info.width - 1];
+            rdswap = chunks->renddata[c + chunks->info.width - 1];
             //chunks->renddata[c].updated = false;
             //chunks->renddata[c].moved = true;
-            for (uint32_t i = chunks->width - 1; i > 0; --i) {
+            for (uint32_t i = chunks->info.width - 1; i > 0; --i) {
                 chunks->data[c + i] = chunks->data[c + i - 1];
                 chunks->renddata[c + i] = chunks->renddata[c + i - 1];
             }
-            chunks->renddata[c + chunks->width - 1].updated = false;
+            chunks->renddata[c + chunks->info.width - 1].updated = false;
             chunks->data[c] = swap;
             chunks->renddata[c] = rdswap;
             //chunks->renddata[c].moved = true;
@@ -180,17 +176,17 @@ void moveChunks(struct chunkdata* chunks, int cx, int cz) {
         }
     }
     if (cz > 0) {
-        for (uint32_t c = 0; c < chunks->size; c += ((c + 1) % chunks->width) ? 1 : chunks->widthsq - chunks->width + 1) {
+        for (uint32_t c = 0; c < chunks->info.size; c += ((c + 1) % chunks->info.width) ? 1 : chunks->info.widthsq - chunks->info.width + 1) {
             swap = chunks->data[c];
             rdswap = chunks->renddata[c];
-            //chunks->renddata[c + (chunks->width - 1) * chunks->width].updated = false;
-            //chunks->renddata[c + (chunks->width - 1) * chunks->width].moved = true;
-            for (uint32_t i = 0; i < chunks->width - 1; ++i) {
-                chunks->data[c + i * chunks->width] = chunks->data[c + (i + 1) * chunks->width];
-                chunks->renddata[c + i * chunks->width] = chunks->renddata[c + (i + 1) * chunks->width];
+            //chunks->renddata[c + (chunks->info.width - 1) * chunks->info.width].updated = false;
+            //chunks->renddata[c + (chunks->info.width - 1) * chunks->info.width].moved = true;
+            for (uint32_t i = 0; i < chunks->info.width - 1; ++i) {
+                chunks->data[c + i * chunks->info.width] = chunks->data[c + (i + 1) * chunks->info.width];
+                chunks->renddata[c + i * chunks->info.width] = chunks->renddata[c + (i + 1) * chunks->info.width];
             }
             chunks->renddata[c].updated = false;
-            uint32_t off = c + (chunks->width - 1) * chunks->width;
+            uint32_t off = c + (chunks->info.width - 1) * chunks->info.width;
             chunks->data[off] = swap;
             chunks->renddata[off] = rdswap;
             //chunks->renddata[off].moved = true;
@@ -202,16 +198,16 @@ void moveChunks(struct chunkdata* chunks, int cx, int cz) {
             }
         }
     } else if (cz < 0) {
-        for (uint32_t c = 0; c < chunks->size; c += ((c + 1) % chunks->width) ? 1 : chunks->widthsq - chunks->width + 1) {
-            swap = chunks->data[c + (chunks->width - 1) * chunks->width];
-            rdswap = chunks->renddata[c + (chunks->width - 1) * chunks->width];
+        for (uint32_t c = 0; c < chunks->info.size; c += ((c + 1) % chunks->info.width) ? 1 : chunks->info.widthsq - chunks->info.width + 1) {
+            swap = chunks->data[c + (chunks->info.width - 1) * chunks->info.width];
+            rdswap = chunks->renddata[c + (chunks->info.width - 1) * chunks->info.width];
             chunks->renddata[c].updated = false;
             //chunks->renddata[c].moved = true;
-            for (uint32_t i = chunks->width - 1; i > 0; --i) {
-                chunks->data[c + i * chunks->width] = chunks->data[c + (i - 1) * chunks->width];
-                chunks->renddata[c + i * chunks->width] = chunks->renddata[c + (i - 1) * chunks->width];
+            for (uint32_t i = chunks->info.width - 1; i > 0; --i) {
+                chunks->data[c + i * chunks->info.width] = chunks->data[c + (i - 1) * chunks->info.width];
+                chunks->renddata[c + i * chunks->info.width] = chunks->renddata[c + (i - 1) * chunks->info.width];
             }
-            chunks->renddata[c + (chunks->width - 1) * chunks->width].updated = false;
+            chunks->renddata[c + (chunks->info.width - 1) * chunks->info.width].updated = false;
             chunks->data[c] = swap;
             chunks->renddata[c] = rdswap;
             //chunks->renddata[c].moved = true;
@@ -225,20 +221,15 @@ void moveChunks(struct chunkdata* chunks, int cx, int cz) {
     }
 }
 
-/*
-void moveChunksMult(struct chunkdata* chunks, int cx, int cz) {
-}
-*/
-
-bool genChunk(struct chunkdata* chunks, int cx, int cy, int cz, int64_t xo, int64_t zo, struct blockdata* data, int type) {
+bool genChunk(struct chunkinfo* chunks, int cx, int cy, int cz, int64_t xo, int64_t zo, struct blockdata* data, int type) {
     //microwait(100000 + (rand() % 500000));
     int64_t nx = ((int64_t)cx + xo) * 16;
     int64_t nz = ((int64_t)cz * -1 + zo) * 16;
     cx += chunks->dist;
     cz += chunks->dist;
-    uint32_t coff = cz * chunks->width + cy * chunks->widthsq + cx;
+    //uint32_t coff = cz * chunks->info.width + cy * chunks->info.widthsq + cx;
     bool ct = 0;
-    if (chunks->renddata[coff].updated) goto skipfor;
+    //if (chunks->renddata[coff].updated) goto skipfor;
     //memset(data, 0, 4096 * sizeof(struct blockdata));
     //chunks->renddata[coff].pos = (coord_3d){(float)(cx - (int)chunks->dist), (float)(cy), (float)(cz - (int)chunks->dist)};
     //printf("set chunk pos [%u]: [%d][%d][%d]\n", coff, cx - chunks->dist, cy, cz - chunks->dist);
@@ -339,9 +330,10 @@ bool genChunk(struct chunkdata* chunks, int cx, int cy, int cz, int64_t xo, int6
 
 static uint16_t cid = 0;
 
-static void genChunks_cb(struct server_chunk* srvchunk) {
+void genChunks_cb(struct chunkdata* chunks, void* ptr) {
+    struct server_ret_chunk* srvchunk = ptr;
     //if (!moved) return;
-    uint32_t coff = (srvchunk->z + srvchunk->chunks->dist) * srvchunk->chunks->width + srvchunk->y * srvchunk->chunks->widthsq + (srvchunk->x + srvchunk->chunks->dist);
+    uint32_t coff = (srvchunk->z + chunks->info.dist) * chunks->info.width + srvchunk->y * chunks->info.widthsq + (srvchunk->x + chunks->info.dist);
     //static unsigned chunk = 0;
     if (srvchunk->id != cid) {
         //printf("Dropping chunk [%u]\n", chunk);
@@ -350,34 +342,34 @@ static void genChunks_cb(struct server_chunk* srvchunk) {
     }
     //printf("Writing chunk [%u]\n", chunk);
     //++chunk;
-    memcpy(srvchunk->chunks->data[coff], srvchunk->data, 4096 * sizeof(struct blockdata));
-    srvchunk->chunks->renddata[coff].updated = false;
+    memcpy(chunks->data[coff], srvchunk->data, 4096 * sizeof(struct blockdata));
+    chunks->renddata[coff].updated = false;
     //chunks->renddata[coff].sent = false;
-    if ((int)coff % (int)srvchunk->chunks->widthsq >= (int)srvchunk->chunks->width) {
-        int32_t coff2 = coff - srvchunk->chunks->width;
-        if ((coff2 >= 0 || coff2 < (int32_t)srvchunk->chunks->size) && srvchunk->chunks->renddata[coff2].generated) srvchunk->chunks->renddata[coff2].updated = false;
+    if ((int)coff % (int)chunks->info.widthsq >= (int)chunks->info.width) {
+        int32_t coff2 = coff - chunks->info.width;
+        if ((coff2 >= 0 || coff2 < (int32_t)chunks->info.size) && chunks->renddata[coff2].generated) chunks->renddata[coff2].updated = false;
     }
-    if ((int)coff % (int)srvchunk->chunks->widthsq < (int)(srvchunk->chunks->widthsq - srvchunk->chunks->width)) {
-        int32_t coff2 = coff + srvchunk->chunks->width;
-        if ((coff2 >= 0 || coff2 < (int32_t)srvchunk->chunks->size) && srvchunk->chunks->renddata[coff2].generated) srvchunk->chunks->renddata[coff2].updated = false;
+    if ((int)coff % (int)chunks->info.widthsq < (int)(chunks->info.widthsq - chunks->info.width)) {
+        int32_t coff2 = coff + chunks->info.width;
+        if ((coff2 >= 0 || coff2 < (int32_t)chunks->info.size) && chunks->renddata[coff2].generated) chunks->renddata[coff2].updated = false;
     }
-    if (coff % srvchunk->chunks->width) {
+    if (coff % chunks->info.width) {
         int32_t coff2 = coff - 1;
-        if ((coff2 >= 0 || coff2 < (int32_t)srvchunk->chunks->size) && srvchunk->chunks->renddata[coff2].generated) srvchunk->chunks->renddata[coff2].updated = false;
+        if ((coff2 >= 0 || coff2 < (int32_t)chunks->info.size) && chunks->renddata[coff2].generated) chunks->renddata[coff2].updated = false;
     }
-    if ((coff + 1) % srvchunk->chunks->width) {
+    if ((coff + 1) % chunks->info.width) {
         int32_t coff2 = coff + 1;
-        if ((coff2 >= 0 || coff2 < (int32_t)srvchunk->chunks->size) && srvchunk->chunks->renddata[coff2].generated) srvchunk->chunks->renddata[coff2].updated = false;
+        if ((coff2 >= 0 || coff2 < (int32_t)chunks->info.size) && chunks->renddata[coff2].generated) chunks->renddata[coff2].updated = false;
     }
-    if (coff >= srvchunk->chunks->widthsq) {
-        int32_t coff2 = coff - srvchunk->chunks->widthsq;
-        if ((coff2 >= 0 || coff2 < (int32_t)srvchunk->chunks->size) && srvchunk->chunks->renddata[coff2].generated) srvchunk->chunks->renddata[coff2].updated = false;
+    if (coff >= chunks->info.widthsq) {
+        int32_t coff2 = coff - chunks->info.widthsq;
+        if ((coff2 >= 0 || coff2 < (int32_t)chunks->info.size) && chunks->renddata[coff2].generated) chunks->renddata[coff2].updated = false;
     }
-    if (coff < (srvchunk->chunks->size - srvchunk->chunks->widthsq)) {
-        int32_t coff2 = coff + srvchunk->chunks->widthsq;
-        if ((coff2 >= 0 || coff2 < (int32_t)srvchunk->chunks->size) && srvchunk->chunks->renddata[coff2].generated) srvchunk->chunks->renddata[coff2].updated = false;
+    if (coff < (chunks->info.size - chunks->info.widthsq)) {
+        int32_t coff2 = coff + chunks->info.widthsq;
+        if ((coff2 >= 0 || coff2 < (int32_t)chunks->info.size) && chunks->renddata[coff2].generated) chunks->renddata[coff2].updated = false;
     }
-    srvchunk->chunks->renddata[coff].generated = true;
+    chunks->renddata[coff].generated = true;
     /*
     if (srvchunk->data->renddata[coff].moved) {
         srvchunk->data->renddata[coff].sent = false;
@@ -388,15 +380,15 @@ static void genChunks_cb(struct server_chunk* srvchunk) {
 
 void genChunks(struct chunkdata* chunks, int64_t xo, int64_t zo) {
     ++cid;
-    struct server_chunkpos* chunkpos = malloc(sizeof(struct server_chunkpos));
-    *chunkpos = (struct server_chunkpos){xo, zo};
-    servSend(SERVER_CMD_SETCHUNK, chunkpos, true, NULL);
+    struct server_msg_chunkpos* chunkpos = malloc(sizeof(struct server_msg_chunkpos));
+    *chunkpos = (struct server_msg_chunkpos){xo, zo};
+    servSend(SERVER_CMD_SETCHUNK, chunkpos, true);
     //uint64_t starttime = altutime();
     //uint32_t ct = 0;
     //uint32_t maxct = 1;
     //int sent = 0;
     int count = 0;
-    for (int i = 0; i <= (int)chunks->dist; ++i) {
+    for (int i = 0; i <= (int)chunks->info.dist; ++i) {
         for (int z = -i; z <= i; ++z) {
             for (int x = -i; x <= i; ++x) {
                 if (abs(z) == i || (abs(z) != i && abs(x) == i)) {
@@ -405,14 +397,14 @@ void genChunks(struct chunkdata* chunks, int64_t xo, int64_t zo) {
                     //if (ct > maxct - 1) goto ret;
                     //while (
                     for (int y = 0; y < 16; ++y) {
-                        uint32_t coff = (z + chunks->dist) * chunks->width + y * chunks->widthsq + (x + chunks->dist);
+                        uint32_t coff = (z + chunks->info.dist) * chunks->info.width + y * chunks->info.widthsq + (x + chunks->info.dist);
                         if (chunks->renddata[coff].generated) continue;
                         ++count;
                         //if (chunks->renddata[coff].moved || !chunks->renddata[coff].sent) ++sent;
                         //else continue;
-                        struct server_chunk* srvchunk = malloc(sizeof(struct server_chunk));
-                        *srvchunk = (struct server_chunk){.id = cid, .chunks = chunks, .x = x, .y = y, .z = z, .xo = xo, .zo = zo};
-                        servSend(SERVER_MSG_GETCHUNK, srvchunk, true, genChunks_cb);
+                        struct server_msg_chunk* srvchunk = malloc(sizeof(struct server_msg_chunk));
+                        *srvchunk = (struct server_msg_chunk){.id = cid, .info = chunks->info, .x = x, .y = y, .z = z, .xo = xo, .zo = zo};
+                        servSend(SERVER_MSG_GETCHUNK, srvchunk, true);
                         //chunks->renddata[coff].sent = true;
                         //chunks->renddata[coff].moved = false;
                     }
