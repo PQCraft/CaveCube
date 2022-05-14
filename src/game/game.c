@@ -18,6 +18,7 @@
 
 int fps;
 coord_3d pcoord;
+coord_3d pvelocity;
 int pchunkx, pchunky, pchunkz;
 int pblockx, pblocky, pblockz;
 
@@ -28,14 +29,14 @@ static float mousesns = 0.05;
 
 struct chunkdata chunks;
 
-struct blockdata getBlockF(struct chunkdata* chunks, float x, float y, float z) {
+static inline struct blockdata getBlockF(struct chunkdata* chunks, float x, float y, float z) {
     x -= (x < 0) ? 1.0 : 0.0;
     y -= (y < 0) ? 1.0 : 0.0;
     z += (z > 0) ? 1.0 : 0.0;
     return getBlock(chunks, 0, 0, 0, x, y, z);
 }
 
-coord_3d intCoord(coord_3d in) {
+static inline coord_3d intCoord(coord_3d in) {
     in.x -= (in.x < 0) ? 1.0 : 0.0;
     in.y -= (in.y < 0) ? 1.0 : 0.0;
     in.z += (in.z > 0) ? 1.0 : 0.0;
@@ -56,40 +57,48 @@ static inline bool bcollide(coord_3d bpos, coord_3d cpos) {
     return false;
 }
 
-static inline coord_3d phitblock(coord_3d block, coord_3d boffset, coord_3d pos) {
+static bool pcaxis[4];
+
+static inline bool phitblock(coord_3d block, coord_3d boffset, coord_3d* pos) {
     block.x += boffset.x;
     block.y += boffset.y;
     block.z += boffset.z;
     block.x += 0.5;
     block.z -= 0.5;
-    float distx = block.x - pos.x;
-    float distz = block.z - pos.z;
+    float distx = block.x - pos->x;
+    float distz = block.z - pos->z;
     //printf("cam coords: [%f][%f][%f]\n", pos.x, pos.y, pos.z);
     //printf("block world coords: [%f][%f][%f]\n", block.x, block.y, block.z);
     //printf("x dist: [%f]\nz dist: [%f]\n", distx, distz);
-    if (bcollide(block, pos)) {
+    if (bcollide(block, *pos)) {
         if (fabs(distx) > fabs(distz)) {
             //puts("adjusting x");
             if (distx < 0) {
-                pos.x = block.x + 0.75;
+                pcaxis[0] = true;
+                pos->x = block.x + 0.75;
             } else {
-                pos.x = block.x - 0.75;
+                pcaxis[1] = true;
+                pos->x = block.x - 0.75;
             }
         } else {
             //puts("adjusting z");
             if (distz < 0) {
-                pos.z = block.z + 0.75;
+                pcaxis[2] = true;
+                pos->z = block.z + 0.75;
             } else {
-                pos.z = block.z - 0.75;
+                pcaxis[3] = true;
+                pos->z = block.z - 0.75;
             }
         }
+        return true;
     }
-    return pos;
+    return false;
 }
 
-coord_3d pcollide(struct chunkdata* chunks, coord_3d pos) {
-    coord_3d new = pos;
+static inline uint8_t pcollide(struct chunkdata* chunks, coord_3d* pos) {
+    coord_3d new = *pos;
     new = intCoord(new);
+    uint8_t ret = 0;
     //printf("collide check from: [%f][%f][%f] -> [%f][%f][%f]\n", pos.x, pos.y, pos.z, new.x, new.y, new.z);
     struct blockdata tmpbd[8] = {
         getBlock(chunks, 0, 0, 0, new.x, new.y, new.z + 1),
@@ -103,40 +112,60 @@ coord_3d pcollide(struct chunkdata* chunks, coord_3d pos) {
     };
     if (tmpbd[0].id && tmpbd[0].id != 7) {
         //puts("back");
-        pos = phitblock(new, (coord_3d){0, 0, 1}, pos);
+        ret |= phitblock(new, (coord_3d){0, 0, 1}, pos);
     }
+    ret <<= 1;
     if (tmpbd[1].id && tmpbd[1].id != 7) {
         //puts("front");
-        pos = phitblock(new, (coord_3d){0, 0, -1}, pos);
+        ret |= phitblock(new, (coord_3d){0, 0, -1}, pos);
     }
+    ret <<= 1;
     if (tmpbd[2].id && tmpbd[2].id != 7) {
         //puts("right");
-        pos = phitblock(new, (coord_3d){1, 0, 0}, pos);
+        ret |= phitblock(new, (coord_3d){1, 0, 0}, pos);
     }
+    ret <<= 1;
     if (tmpbd[3].id && tmpbd[3].id != 7) {
         //puts("left");
-        pos = phitblock(new, (coord_3d){-1, 0, 0}, pos);
+        ret |= phitblock(new, (coord_3d){-1, 0, 0}, pos);
     }
+    ret <<= 1;
     if (tmpbd[4].id && tmpbd[4].id != 7) {
         //puts("back right");
-        pos = phitblock(new, (coord_3d){1, 0, 1}, pos);
+        ret |= phitblock(new, (coord_3d){1, 0, 1}, pos);
     }
+    ret <<= 1;
     if (tmpbd[5].id && tmpbd[5].id != 7) {
         //puts("front right");
-        pos = phitblock(new, (coord_3d){1, 0, -1}, pos);
+        ret |= phitblock(new, (coord_3d){1, 0, -1}, pos);
     }
+    ret <<= 1;
     if (tmpbd[6].id && tmpbd[6].id != 7) {
         //puts("back left");
-        pos = phitblock(new, (coord_3d){-1, 0, 1}, pos);
+        ret |= phitblock(new, (coord_3d){-1, 0, 1}, pos);
     }
+    ret <<= 1;
     if (tmpbd[7].id && tmpbd[7].id != 7) {
         //puts("front left");
-        pos = phitblock(new, (coord_3d){-1, 0, -1}, pos);
+        ret |= phitblock(new, (coord_3d){-1, 0, -1}, pos);
     }
-    return pos;
+    return ret;
 }
 
-coord_3d icoord2wcoord(coord_3d cam, int cx, int cz) {
+static inline void pcollidepath(struct chunkdata* chunks, coord_3d oldpos, coord_3d* pos, int steps) {
+    float changex = pos->x - oldpos.x;
+    float changez = pos->z - oldpos.z;
+    for (int i = 1; i <= steps; ++i) {
+        float offset = (float)(i) / (float)(steps);
+        coord_3d tmpcoord = {oldpos.x + changex * offset, pos->y, oldpos.z + changez * offset};
+        if (pcollide(chunks, &tmpcoord)) {
+            *pos = tmpcoord;
+            return;
+        }
+    }
+}
+
+static inline coord_3d icoord2wcoord(coord_3d cam, int cx, int cz) {
     cam.x += cx * 16;
     cam.y -= 0.5;
     cam.z = cz * 16 + -cam.z;
@@ -148,7 +177,7 @@ void doGame() {
     for (int i = 0; i < 16; ++i) {
         tmpbuf[i] = malloc(4096);
     }
-    chunks = allocChunks(atoi(getConfigVarStatic(config, "game.chunks", "9", 64)));
+    chunks = allocChunks(atoi(getConfigVarStatic(config, "game.chunks", "8", 64)));
     rendinf.campos.y = 141.5;
     initInput();
     float pmult = posmult;
@@ -169,6 +198,7 @@ void doGame() {
     float yvel = 0.0;
     float xcm = 0.0;
     float zcm = 0.0;
+    rendinf.camrot.z = 10;
     while (!quitRequest) {
         uint64_t starttime = altutime();
         float npmult = 0.5;
@@ -188,22 +218,30 @@ void doGame() {
         if (rendinf.camrot.x > 89.99) rendinf.camrot.x = 89.99;
         if (rendinf.camrot.x < -89.99) rendinf.camrot.x = -89.99;
         float yrotrad = (rendinf.camrot.y / 180 * M_PI);
-        float div/* = fabs(xcm2) + fabs(zcm2)*/;
-        div = atan2(fabs(input.xmov), fabs(input.zmov));
-        div = fabs(1 / (cos(div) + sin(div)));
-        //printf("[%f]\n", div);
         int cmx = 0, cmz = 0;
         static bool first = true;
-        rendinf.campos.z += zcm * div;
-        rendinf.campos.x += xcm * div;
+        coord_3d oldpos = rendinf.campos;
+        rendinf.campos.z += zcm;
+        rendinf.campos.x += xcm;
+        pvelocity.x = xcm / (((input.movti) ? posmult : pmult));
+        pvelocity.z = -(zcm / (((input.movti) ? posmult : pmult)));
         float oldy = rendinf.campos.y;
+        int csteps = 5;
         rendinf.campos.y = oldy - 0.5;
-        rendinf.campos = pcollide(&chunks, rendinf.campos);
+        pcollidepath(&chunks, oldpos, &rendinf.campos, csteps);
         rendinf.campos.y = oldy + 0.49 - ((crouch) ? 0.375 : 0);
-        rendinf.campos = pcollide(&chunks, rendinf.campos);
+        pcollidepath(&chunks, oldpos, &rendinf.campos, csteps);
         rendinf.campos.y = oldy - 1.15;
-        rendinf.campos = pcollide(&chunks, rendinf.campos);
+        pcollidepath(&chunks, oldpos, &rendinf.campos, csteps);
         rendinf.campos.y = oldy;
+        if (pcaxis[0] && xcm < 0) xcm = 0;
+        if (pcaxis[1] && xcm > 0) xcm = 0;
+        if (pcaxis[2] && zcm < 0) zcm = 0;
+        if (pcaxis[3] && zcm > 0) zcm = 0;
+        pcaxis[0] = false;
+        pcaxis[1] = false;
+        pcaxis[2] = false;
+        pcaxis[3] = false;
         while (rendinf.campos.z > 8.0) {
             --cz;
             rendinf.campos.z -= 16.0;
@@ -249,7 +287,7 @@ void doGame() {
                         (tmpbd2[3].id && tmpbd2[3].id != 7));
         //struct blockdata overbdata = getBlockF(&chunks, rendinf.campos.x, rendinf.campos.y + 1.5, rendinf.campos.z);
         if (onblock) {
-            float mul = 0.2;
+            float mul = pmult * 2.75;
             xcm = ((input.zmov * sinf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult) + (input.xmov * cosf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult)) * mul + xcm * (1.0 - mul);
             zcm = (-(input.zmov * cosf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult) + (input.xmov * sinf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult)) * mul + zcm * (1.0 - mul);
             if (rendinf.campos.y < (float)((int)(rendinf.campos.y)) + 0.5 && yvel <= 0.0) {
@@ -265,6 +303,7 @@ void doGame() {
             zcm = (-(input.zmov * cosf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult) + (input.xmov * sinf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult)) * mul + zcm * (1.0 - mul);
         }
         //printf("yvel: [%f] [%f] [%f] [%f] [%u]\n", rendinf.campos.y, (float)((int)(blocky2)) + 0.5, yvel, pmult, underbdata.id & 0xFF);
+        pvelocity.y = yvel;
         if (yvel < 0 && !onblock) {
             rendinf.campos.y += yvel * pmult;
         } else if (yvel > 0) {
@@ -281,20 +320,20 @@ void doGame() {
         //coord_3d newcoord = rendinf.campos;
         //newcoord = intCoord(newcoord);
         //printf("cam: [%f][%f][%f]; block: [%f][%f]\n", rendinf.campos.x, rendinf.campos.y, rendinf.campos.z, newcoord.x, newcoord.z);
-        float accuracy = 0.1;
+        float granularity = 0.1;
         float lookatx = cos(rendinf.camrot.x * M_PI / 180.0) * sin(rendinf.camrot.y * M_PI / 180.0);
         float lookaty = sin(rendinf.camrot.x * M_PI / 180.0);
         float lookatz = (cos(rendinf.camrot.x * M_PI / 180.0) * cos(rendinf.camrot.y * M_PI / 180.0)) * -1;
         float blockx = 0, blocky = 0, blockz = 0;
         float lastblockx = 0, lastblocky = 0, lastblockz = 0;
         uint8_t blockid = 0, blockid2 = 0;
-        int dist = (float)(5.0 / accuracy);
+        int dist = (float)(6.0 / granularity);
         for (int i = 1; i < dist; ++i) {
             blockid2 = blockid;
             lastblockx = blockx;
             lastblocky = blocky;
             lastblockz = blockz;
-            float depth = (float)i * accuracy;
+            float depth = (float)i * granularity;
             blockx = lookatx * depth + rendinf.campos.x;
             blockx -= (blockx < 0) ? 1.0 : 0.0;
             blocky = lookaty * depth + (rendinf.campos.y - ((crouch) ? 0.375 : 0));

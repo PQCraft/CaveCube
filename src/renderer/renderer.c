@@ -575,11 +575,13 @@ void renderChunks(void* vdata) {
         tbuf[0],
         "FPS: %d\n"
         "Position: (%f, %f, %f)\n"
+        "Velocity: (%f, %f, %f)\n"
         "Rotation: (%f, %f, %f)\n"
         "Block: (%d, %d, %d)\n"
         "Chunk: (%d, %d, %d)\n",
         fps,
         pcoord.x, pcoord.y, pcoord.z,
+        pvelocity.x, pvelocity.y, pvelocity.z,
         rendinf.camrot.x, rendinf.camrot.y, rendinf.camrot.z,
         pblockx, pblocky, pblockz,
         pchunkx, pchunky, pchunkz
@@ -603,7 +605,7 @@ static void errorcb(int e, const char* m) {
 bool initRenderer() {
     glfwSetErrorCallback(errorcb);
     glfwInit();
-    rendinf.camfov = 75;
+    rendinf.camfov = 85;
     rendinf.campos = GFX_DEFAULT_POS;
     rendinf.camrot = GFX_DEFAULT_ROT;
     //rendinf.camrot.y = 180;
