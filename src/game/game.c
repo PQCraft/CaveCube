@@ -17,7 +17,7 @@
 #endif
 
 int fps;
-coord_3d pcoord;
+coord_3d_dbl pcoord;
 coord_3d pvelocity;
 int pchunkx, pchunky, pchunkz;
 int pblockx, pblocky, pblockz;
@@ -37,6 +37,16 @@ static inline struct blockdata getBlockF(struct chunkdata* chunks, float x, floa
 }
 
 static inline coord_3d intCoord(coord_3d in) {
+    in.x -= (in.x < 0) ? 1.0 : 0.0;
+    in.y -= (in.y < 0) ? 1.0 : 0.0;
+    in.z += (in.z > 0) ? 1.0 : 0.0;
+    in.x = (int)in.x;
+    in.y = (int)in.y;
+    in.z = (int)in.z;
+    return in;
+}
+
+static inline coord_3d_dbl intCoord_dbl(coord_3d_dbl in) {
     in.x -= (in.x < 0) ? 1.0 : 0.0;
     in.y -= (in.y < 0) ? 1.0 : 0.0;
     in.z += (in.z > 0) ? 1.0 : 0.0;
@@ -165,11 +175,12 @@ static inline void pcollidepath(struct chunkdata* chunks, coord_3d oldpos, coord
     }
 }
 
-static inline coord_3d icoord2wcoord(coord_3d cam, int cx, int cz) {
-    cam.x += cx * 16;
-    cam.y -= 0.5;
-    cam.z = cz * 16 + -cam.z;
-    return cam;
+static inline coord_3d_dbl icoord2wcoord(coord_3d cam, int64_t cx, int64_t cz) {
+    coord_3d_dbl ret;
+    ret.x = cx * 16 + (double)cam.x;
+    ret.y = (double)cam.y - 0.5;
+    ret.z = cz * 16 + (double)-cam.z;
+    return ret;
 }
 
 void doGame() {
@@ -183,9 +194,9 @@ void doGame() {
     float pmult = posmult;
     float rmult = rotmult;
     initServer(SERVER_MODE_SP);
-    //int farlands = -17616074;
-    int cx = 0;
-    int cz = 0;
+    //int64_t farlands = -1006632960;
+    int64_t cx = 0;
+    int64_t cz = 0;
     //genChunks(&chunks, cx, cz);
     uint64_t fpsstarttime2 = altutime();
     uint64_t ptime = fpsstarttime2;
@@ -388,7 +399,7 @@ void doGame() {
             ++fpsct;
         }
         pcoord = icoord2wcoord(rendinf.campos, pchunkx, pchunkz);
-        coord_3d bcoord = intCoord(pcoord);
+        coord_3d_dbl bcoord = intCoord_dbl(pcoord);
         pblockx = bcoord.x;
         pblocky = bcoord.y;
         pblockz = bcoord.z;

@@ -2,8 +2,8 @@
 #define NOISE_H
 
 void initNoiseTable(void);
-float noise2d(int, float, float);
-float perlin2d(int, float, float, float, int);
-float mperlin2d(int, float, float, float, int, int);
+double noise2d(int, double, double);
+double perlin2d(int, double, double, double, int);
+double mperlin2d(int, double, double, double, int, int);
 
 #endif 
