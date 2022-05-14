@@ -487,7 +487,7 @@ void renderText(float x, float y, float scale, unsigned end, char* text, void* e
             x = 0;
             y += scale * 16;
         } else {
-            glUniform1ui(glGetUniformLocation(rendinf.shaderprog, "char"), (unsigned char)(*text));
+            glUniform1ui(glGetUniformLocation(rendinf.shaderprog, "dchar"), (unsigned char)(*text));
             glUniform2f(glGetUniformLocation(rendinf.shaderprog, "mpos"), x / (float)rendinf.width, y / (float)rendinf.height);
             glDrawArrays(GL_TRIANGLES, 0, 6);
             x += scale * 8;
