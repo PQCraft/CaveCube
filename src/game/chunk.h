@@ -26,8 +26,8 @@ struct chunkdata {
 };
 
 struct chunkdata allocChunks(uint32_t);
-void genChunks(struct chunkdata*, int, int);
-bool genChunk(struct chunkdata*, int, int, int, int, int, struct blockdata*, int);
+void genChunks(struct chunkdata*, int64_t, int64_t);
+bool genChunk(struct chunkdata*, int, int, int, int64_t, int64_t, struct blockdata*, int);
 void moveChunks(struct chunkdata*, int, int);
 struct blockdata getBlock(struct chunkdata*, int, int, int, int, int, int);
 void setBlock(struct chunkdata*, int, int, int, int, int, int, struct blockdata);

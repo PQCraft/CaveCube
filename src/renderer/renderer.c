@@ -574,7 +574,7 @@ void renderChunks(void* vdata) {
     sprintf(
         tbuf[0],
         "FPS: %d\n"
-        "Position: (%f, %f, %f)\n"
+        "Position: (%lf, %lf, %lf)\n"
         "Velocity: (%f, %f, %f)\n"
         "Rotation: (%f, %f, %f)\n"
         "Block: (%d, %d, %d)\n"

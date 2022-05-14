@@ -17,6 +17,12 @@ typedef struct {
 } coord_3d;
 
 typedef struct {
+    double x;
+    double y;
+    double z;
+} coord_3d_dbl;
+
+typedef struct {
     float r;
     float g;
     float b;

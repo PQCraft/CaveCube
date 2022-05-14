@@ -29,14 +29,14 @@ struct server_chunk {
     int x;
     int y;
     int z;
-    int xo;
-    int zo;
+    int64_t xo;
+    int64_t zo;
     struct blockdata data[4096];
 };
 
 struct server_chunkpos {
-    int x;
-    int z;
+    int64_t x;
+    int64_t z;
 };
 
 bool initServer(int);
