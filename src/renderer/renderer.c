@@ -296,20 +296,20 @@ static GLuint shader_2d;
 static GLuint shader_text;
 
 static struct blockdata rendGetBlock(struct chunkdata* data, int32_t c, int x, int y, int z) {
-    //x += data->dist;
-    //z += data->dist;
-    if (x < 0 && c % data->width) {c -= 1; x += 16;}
-    else if (x > 15 && (c + 1) % data->width) {c += 1; x -= 16;}
-    if (z > 15 && c % (int)data->widthsq >= (int)data->width) {c -= data->width; z -= 16;}
-    else if (z < 0 && c % (int)data->widthsq < (int)(data->widthsq - data->width)) {c += data->width; z += 16;}
-    if (y < 0 && c >= (int)data->widthsq) {c -= data->widthsq; y += 16;}
-    else if (y > 15 && c < (int)(data->size - data->widthsq)) {c += data->widthsq; y -= 16;}
+    //x += data->info.dist;
+    //z += data->info.dist;
+    if (x < 0 && c % data->info.width) {c -= 1; x += 16;}
+    else if (x > 15 && (c + 1) % data->info.width) {c += 1; x -= 16;}
+    if (z > 15 && c % (int)data->info.widthsq >= (int)data->info.width) {c -= data->info.width; z -= 16;}
+    else if (z < 0 && c % (int)data->info.widthsq < (int)(data->info.widthsq - data->info.width)) {c += data->info.width; z += 16;}
+    if (y < 0 && c >= (int)data->info.widthsq) {c -= data->info.widthsq; y += 16;}
+    else if (y > 15 && c < (int)(data->info.size - data->info.widthsq)) {c += data->info.widthsq; y -= 16;}
     if (c < 0 || x < 0 || y < 0 || z < 0 || x > 15 || z > 15) return (struct blockdata){255, 0, 0};
-    if (c >= (int32_t)data->size || y > 15) return (struct blockdata){0, 0, 0};
+    if (c >= (int32_t)data->info.size || y > 15) return (struct blockdata){0, 0, 0};
     if (!data->renddata[c].generated) return (struct blockdata){255, 0, 0};
     //return (struct blockdata){0, 0, 0 ,0};
     //printf("block [%d, %d, %d]: [%d]\n", x, y, z, y * 225 + (z % 15) * 15 + (x % 15));
-    //printf("[%d] [%d]: [%d]\n", x, z, ((x / 15) % data->width) + ((x / 15) / data->width));
+    //printf("[%d] [%d]: [%d]\n", x, z, ((x / 15) % data->info.width) + ((x / 15) / data->info.width));
     return data->data[c][y * 256 + z * 16 + x];
 }
 
@@ -373,11 +373,11 @@ bool updateChunks(void* vdata) {
     struct blockdata bdata;
     struct blockdata bdata2[6];
     /*
-    for (uint32_t c = 0; c < data->size; ++c) {
+    for (uint32_t c = 0; c < data->info.size; ++c) {
         if (!data->renddata[c].updated) data->renddata[c].vcount = 0;
     }
     */
-    for (uint32_t c = ucleftoff, c2 = 0, c3 = 0; ; c = (c + 1) % data->size) {
+    for (uint32_t c = ucleftoff, c2 = 0, c3 = 0; ; c = (c + 1) % data->info.size) {
         if (altutime() - starttime >= 1000000 / (((rendinf.fps) ? rendinf.fps : 60) * 3) && c3 >= 16) {ucleftoff = c; break;}
         //uint64_t starttime2 = altutime();
         ++c3;
@@ -502,17 +502,17 @@ static char tbuf[1][32768];
 void renderChunks(void* vdata) {
     struct chunkdata* data = vdata;
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "dist"), data->dist);
+    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "dist"), data->info.dist);
     setUniform3f(rendinf.shaderprog, "cam", (float[]){rendinf.campos.x, rendinf.campos.y, rendinf.campos.z});
     //uint64_t starttime = altutime();
     //glDisable(GL_CULL_FACE);
     //glDepthFunc(GL_LESS);
-    for (uint32_t c = 0; c < data->size; ++c) {
+    for (uint32_t c = 0; c < data->info.size; ++c) {
         if (!data->renddata[c].vcount) continue;
-        int x = c % data->width;
-        int z = c / data->width % data->width;
-        int y = c / data->widthsq;
-        setUniform3f(rendinf.shaderprog, "ccoord", (float[]){x - (int)data->dist, y, z - (int)data->dist});
+        int x = c % data->info.width;
+        int z = c / data->info.width % data->info.width;
+        int y = c / data->info.widthsq;
+        setUniform3f(rendinf.shaderprog, "ccoord", (float[]){x - (int)data->info.dist, y, z - (int)data->info.dist});
         glBindBuffer(GL_ARRAY_BUFFER, data->renddata[c].VBO);
         glEnableVertexAttribArray(0);
         glEnableVertexAttribArray(1);
@@ -523,12 +523,12 @@ void renderChunks(void* vdata) {
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "isAni"), 1);
     glUniform1ui(glGetUniformLocation(rendinf.shaderprog, "TexAni"), (altutime() / 200000) % 6);
     if (curspace == SPACE_UNDERWATER) {
-        for (uint32_t c = 0; c < data->size; ++c) {
+        for (uint32_t c = 0; c < data->info.size; ++c) {
             if (!data->renddata[c].vcount2) continue;
-            int x = c % data->width;
-            int z = c / data->width % data->width;
-            int y = c / data->widthsq;
-            setUniform3f(rendinf.shaderprog, "ccoord", (float[]){x - (int)data->dist, y, z - (int)data->dist});
+            int x = c % data->info.width;
+            int z = c / data->info.width % data->info.width;
+            int y = c / data->info.widthsq;
+            setUniform3f(rendinf.shaderprog, "ccoord", (float[]){x - (int)data->info.dist, y, z - (int)data->info.dist});
             glBindBuffer(GL_ARRAY_BUFFER, data->renddata[c].VBO2);
             glEnableVertexAttribArray(0);
             glEnableVertexAttribArray(1);
@@ -540,12 +540,12 @@ void renderChunks(void* vdata) {
             glDrawArrays(GL_TRIANGLES, 0, data->renddata[c].vcount2);
         }
     } else {
-        for (uint32_t c = 0; c < data->size; ++c) {
+        for (uint32_t c = 0; c < data->info.size; ++c) {
             if (!data->renddata[c].vcount2) continue;
-            int x = c % data->width;
-            int z = c / data->width % data->width;
-            int y = c / data->widthsq;
-            setUniform3f(rendinf.shaderprog, "ccoord", (float[]){x - (int)data->dist, y, z - (int)data->dist});
+            int x = c % data->info.width;
+            int z = c / data->info.width % data->info.width;
+            int y = c / data->info.widthsq;
+            setUniform3f(rendinf.shaderprog, "ccoord", (float[]){x - (int)data->info.dist, y, z - (int)data->info.dist});
             glBindBuffer(GL_ARRAY_BUFFER, data->renddata[c].VBO2);
             glEnableVertexAttribArray(0);
             glEnableVertexAttribArray(1);

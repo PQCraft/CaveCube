@@ -23,24 +23,39 @@ enum {
     SERVER_CMD_SETCHUNK = 128,
 };
 
-struct server_chunk {
+enum {
+    SERVER_RET_NONE,
+    SERVER_RET_PONG,
+    SERVER_RET_UPDATECHUNK,
+};
+
+struct server_msg_chunk {
     uint16_t id;
-    struct chunkdata* chunks;
+    struct chunkinfo info;
     int x;
     int y;
     int z;
     int64_t xo;
     int64_t zo;
+};
+
+struct server_ret_chunk {
+    uint16_t id;
+    //struct chunkinfo* info;
+    int x;
+    int y;
+    int z;
     struct blockdata data[4096];
 };
 
-struct server_chunkpos {
+struct server_msg_chunkpos {
     int64_t x;
     int64_t z;
 };
 
 bool initServer(int);
 bool servMsgReady(int);
-int servSend(int, void*, bool, void*);
+int servSend(int, void*, bool);
+void servCallBack(void*);
 
 #endif
