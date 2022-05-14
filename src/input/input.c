@@ -100,6 +100,10 @@ struct input_info getInput() {
         if (keyDown(input_mov[1].key1) || keyDown(input_mov[1].key2)) inf.zmov -= 1.0;
         if (keyDown(input_mov[2].key1) || keyDown(input_mov[2].key2)) inf.xmov -= 1.0;
         if (keyDown(input_mov[3].key1) || keyDown(input_mov[3].key2)) inf.xmov += 1.0;
+        float mul = atan2(fabs(inf.xmov), fabs(inf.zmov));
+        mul = fabs(1 / (cos(mul) + sin(mul)));
+        inf.xmov *= mul;
+        inf.zmov *= mul;
         for (int i = 0; i < INPUT_ACTION_MULTI__MAX; ++i) {
             if (keyDown(input_ma[i].key1) || keyDown(input_ma[i].key2)) {
                 inf.multi_actions |= 1 << i;

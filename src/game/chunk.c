@@ -290,7 +290,7 @@ bool genChunk(struct chunkdata* chunks, int cx, int cy, int cz, int xo, int zo, 
                     }
                     break;
                 case 2:; {
-                        float s1 = perlin2d(1, (float)(nx + x) / 30, (float)(nz + z) / 30, 2, 2);
+                        float s1 = perlin2d(1, (float)(nx + x) / 30, (float)(nz + z) / 30, 1, 3);
                         float s2 = perlin2d(0, (float)(nx + x) / 187, (float)(nz + z) / 187, 2, 4);
                         float s3 = perlin2d(2, (float)(nx + x) / 56, (float)(nz + z) / 56, 1, 8);
                         int s4 = noise2d(3, (float)(nx + x), (float)(nz + z));
