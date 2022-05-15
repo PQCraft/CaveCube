@@ -340,7 +340,7 @@ void doGame() {
             }
             if (yvel < 0) yvel = 0.0;
         } else {
-            float mul = 0.25 * pmult;
+            float mul = 0.35 * pmult;
             xcm = ((input.zmov * sinf(yrotrad) * npmult) + (input.xmov * cosf(yrotrad) * npmult)) * mul + xcm * (1.0 - mul);
             zcm = (-(input.zmov * cosf(yrotrad) * npmult) + (input.xmov * sinf(yrotrad) * npmult)) * mul + zcm * (1.0 - mul);
         }
