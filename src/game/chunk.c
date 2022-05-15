@@ -380,6 +380,7 @@ void genChunks(struct chunkdata* chunks, int64_t xo, int64_t zo) {
     ++cid;
     struct server_msg_chunkpos* chunkpos = malloc(sizeof(struct server_msg_chunkpos));
     *chunkpos = (struct server_msg_chunkpos){xo, zo};
+    //printf("alloced block of [%d]\n", malloc_usable_size(chunkpos));
     servSend(SERVER_CMD_SETCHUNK, chunkpos, true);
     //uint64_t starttime = altutime();
     //uint32_t ct = 0;
@@ -401,6 +402,7 @@ void genChunks(struct chunkdata* chunks, int64_t xo, int64_t zo) {
                         //if (chunks->renddata[coff].moved || !chunks->renddata[coff].sent) ++sent;
                         //else continue;
                         struct server_msg_chunk* srvchunk = malloc(sizeof(struct server_msg_chunk));
+                        //printf("alloced block of [%d]\n", malloc_usable_size(srvchunk));
                         *srvchunk = (struct server_msg_chunk){.id = cid, .info = chunks->info, .x = x, .y = y, .z = z, .xo = xo, .zo = zo};
                         servSend(SERVER_MSG_GETCHUNK, srvchunk, true);
                         //chunks->renddata[coff].sent = true;

@@ -380,15 +380,17 @@ bool updateChunks(void* vdata) {
     }
     */
     for (uint32_t c = ucleftoff, c2 = 0, c3 = 0; ; c = (c + 1) % data->info.size) {
-        if (altutime() - starttime >= 1000000 / ((uint64_t)((uctimediv > (int)rendinf.fps) ? uctimediv : (int)rendinf.fps) * 3) && c3 >= 16) {ucleftoff = c; break;}
+        if (altutime() - starttime >= 1000000 / ((uint64_t)((uctimediv > (int)rendinf.disphz) ? uctimediv : (int)rendinf.disphz) * 3) && c3 >= 16) {ucleftoff = c; break;}
         //uint64_t starttime2 = altutime();
         ++c3;
         if (!data->renddata[c].generated || data->renddata[c].updated) continue;
         ++c2;
-        data->renddata[c].vertices = realloc(data->renddata[c].vertices, 147456 * sizeof(uint32_t) * 2);
-        data->renddata[c].vertices2 = realloc(data->renddata[c].vertices2, 147456 * sizeof(uint32_t) * 2);
-        uint32_t* vptr = data->renddata[c].vertices;
-        uint32_t* vptr2 = data->renddata[c].vertices2;
+        //data->renddata[c].vertices = realloc(data->renddata[c].vertices, 147456 * sizeof(uint32_t) * 2);
+        //data->renddata[c].vertices2 = realloc(data->renddata[c].vertices2, 147456 * sizeof(uint32_t) * 2);
+        uint32_t* _vptr = malloc(147456 * sizeof(uint32_t) * 2);
+        uint32_t* _vptr2 = malloc(147456 * sizeof(uint32_t) * 2);
+        uint32_t* vptr = _vptr;
+        uint32_t* vptr2 = _vptr2;
         uint32_t tmpsize = 0;
         uint32_t tmpsize2 = 0;
         for (int y = 0; y < 16; ++y) {
@@ -446,8 +448,8 @@ bool updateChunks(void* vdata) {
         data->renddata[c].vcount2 = tmpsize2;
         tmpsize *= sizeof(uint32_t) * 2;
         tmpsize2 *= sizeof(uint32_t) * 2;
-        data->renddata[c].vertices = realloc(data->renddata[c].vertices, tmpsize);
-        data->renddata[c].vertices2 = realloc(data->renddata[c].vertices2, tmpsize2);
+        //data->renddata[c].vertices = realloc(data->renddata[c].vertices, tmpsize);
+        //data->renddata[c].vertices2 = realloc(data->renddata[c].vertices2, tmpsize2);
         //glGenVertexArrays(1, &data->renddata[c].VAO);
         //glBindVertexArray(data->renddata[c].VAO);
         if (!data->renddata[c].VBO) glGenBuffers(1, &data->renddata[c].VBO);
@@ -455,12 +457,14 @@ bool updateChunks(void* vdata) {
         data->renddata[c].updated = true;
         if (tmpsize) {
             glBindBuffer(GL_ARRAY_BUFFER, data->renddata[c].VBO);
-            glBufferData(GL_ARRAY_BUFFER, tmpsize, data->renddata[c].vertices, GL_STATIC_DRAW);
+            glBufferData(GL_ARRAY_BUFFER, tmpsize, _vptr, GL_STATIC_DRAW);
         }
         if (tmpsize2) {
             glBindBuffer(GL_ARRAY_BUFFER, data->renddata[c].VBO2);
-            glBufferData(GL_ARRAY_BUFFER, tmpsize2, data->renddata[c].vertices2, GL_STATIC_DRAW);
+            glBufferData(GL_ARRAY_BUFFER, tmpsize2, _vptr2, GL_STATIC_DRAW);
         }
+        free(_vptr);
+        free(_vptr2);
         //printf("meshed chunk [%d] ([%u] surfaces, [%u] triangles, [%u] points) ([%u] bytes) in [%f]s\n",
         //    c, tmpsize2, tmpsize2 * 2, tmpsize2 * 6, tmpsize, (float)(altutime() - starttime2) / 1000000.0);
         //glfwPollEvents();
@@ -636,8 +640,7 @@ bool initRenderer() {
         rendinf.full_width = vmode->width;
         rendinf.full_height = vmode->height;
     }
-    if (!rendinf.full_fps) rendinf.full_fps = vmode->refreshRate;
-    if (!rendinf.win_fps) rendinf.win_fps = vmode->refreshRate;
+    rendinf.disphz = vmode->refreshRate;
     if (!(rendinf.window = glfwCreateWindow(rendinf.win_width, rendinf.win_height, "CaveCube", NULL, NULL))) {
         fputs("glfwCreateWindow: Failed to create window\n", stderr);
         return false;
@@ -676,8 +679,8 @@ bool initRenderer() {
     setShaderProg(shader_block);
     setFullscreen(rendinf.fullscr);
 
-    if (!uctimediv) uctimediv = rendinf.fps * (1 + 29 * !rendinf.vsync);
-    printf("[%d] [%d]\n", uctimediv, rendinf.fps);
+    if (!uctimediv) uctimediv = ((!rendinf.fps) ? rendinf.disphz : rendinf.fps) * (1 + 31 * !rendinf.vsync);
+    //printf("[%d] [%d]\n", uctimediv, rendinf.fps);
 
     glViewport(0, 0, rendinf.width, rendinf.height);
     glEnable(GL_DEPTH_TEST);

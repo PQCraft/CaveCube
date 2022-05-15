@@ -51,13 +51,17 @@ static void pushRet(int m, void* d) {
         retdata = realloc(retdata, retsize * sizeof(struct servret));
     }
     retdata[index] = (struct servret){m, d};
-    //printf("pushRet [%lu]\n", (uintptr_t)msgdata[index].data);
+    //printf("pushRet [%d]/[%d] [0x%016lX]\n", index, retsize, (uintptr_t)retdata[index].data);
     pthread_mutex_unlock(&retlock);
 }
 
 static void doneMsg(int index) {
     //msgdata[index].ready = true;
-    if (msgdata[index].freedata) free(msgdata[index].data);
+    if (msgdata[index].freedata) {
+        //printf("freed block of [%d]\n", malloc_usable_size(msgdata[index].data));
+        free(msgdata[index].data);
+    }
+    //printf("doneMsg: [%d]\n", msgdata[index].freedata);
     msgdata[index].valid = false;
     if (index + 1 == msgsize) {
         --msgsize;
@@ -112,7 +116,9 @@ static void* servthread(void* args) {
                                ((struct server_msg_chunk*)msgdata[index].data)->y,
                                ((struct server_msg_chunk*)msgdata[index].data)->z + ((struct server_msg_chunk*)msgdata[index].data)->zo);
                         */
+                        //break;
                         struct server_ret_chunk* cdata = malloc(sizeof(struct server_ret_chunk));
+                        //printf("alloced block of [%d]\n", malloc_usable_size(cdata));
                         *cdata = (struct server_ret_chunk){
                             .id = ((struct server_msg_chunk*)msgdata[index].data)->id,
                             .x = ((struct server_msg_chunk*)msgdata[index].data)->x,
@@ -152,7 +158,6 @@ bool initServer(int mode) {
     servmode = mode;
     setRandSeed(0xDEADBEEF);
     initNoiseTable();
-    msgdata = malloc(0);
     pthread_mutex_init(&msglock, NULL);
     pthread_mutex_init(&cblock, NULL);
     for (int i = 0; i < SERVER_THREADS && i < MAX_THREADS; ++i) {
@@ -168,6 +173,10 @@ static void pushMsg(int m, void* d, /*bool dsc, */bool f) {
         case SERVER_CMD_SETCHUNK:;
             gxo = ((struct server_msg_chunkpos*)d)->x;
             gzo = ((struct server_msg_chunkpos*)d)->z;
+            if (f) {
+                //printf("freed block of [%d]\n", malloc_usable_size(d));
+                free(d);
+            }
             break;
         default:;
             for (int i = 0; i < msgsize; ++i) {
@@ -179,7 +188,7 @@ static void pushMsg(int m, void* d, /*bool dsc, */bool f) {
             }
             msgdata[index] = (struct servmsg){true, /*false, */false, /*dsc, */f, m, d};
     }
-    //printf("pushMsg [%lu]\n", (uintptr_t)msgdata[index].data);
+    //if (msgsize) printf("pushMsg [%d]/[%d] [0x%016lX]\n", index, msgsize, (uintptr_t)msgdata[index].data);
     pthread_mutex_unlock(&msglock);
 }
 
@@ -204,7 +213,10 @@ void servRecv(void (*callback)(int, void*), int msgs) {
             data = retdata[index].data;
             callback(msg, data);
             retdata[index].msg = SERVER_RET_NONE;
-            free(data);
+            if (data) {
+                //printf("freed block of [%d]\n", malloc_usable_size(data));
+                free(data);
+            }
         }
         //printf("index: [%d]\n", index);
         ++index;
