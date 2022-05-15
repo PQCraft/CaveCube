@@ -22,8 +22,8 @@ coord_3d pvelocity;
 int pchunkx, pchunky, pchunkz;
 int pblockx, pblocky, pblockz;
 
-static float posmult = 12.5;
-static float rotmult = 3;
+static float posmult = 6.5;
+static float rotmult = 2.5;
 static float fpsmult = 0;
 static float mousesns = 0.05;
 
@@ -250,6 +250,7 @@ void doGame() {
         } else if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_RUN)) {
             npmult *= 2.0;
         }
+        //printf("[%u]\n", input.mmovti);
         rendinf.camrot.x += input.mymov * mousesns * ((input.mmovti) ? rotmult : rmult) * nrmult;
         rendinf.camrot.y -= input.mxmov * mousesns * ((input.mmovti) ? rotmult : rmult) * nrmult;
         if (rendinf.camrot.y < 0) rendinf.camrot.y += 360;
@@ -450,9 +451,9 @@ void doGame() {
             }
             fpsct = 0;
         }
-        fpsmult = glfwGetTime() / 2.0;
+        fpsmult = glfwGetTime();
         pmult = posmult * fpsmult;
-        rmult = rotmult * fpsmult;
+        rmult = rotmult * fpsmult * 125;
     }
     for (int i = 0; i < 16; ++i) {
         free(tmpbuf[i]);
