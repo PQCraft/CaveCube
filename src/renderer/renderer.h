@@ -29,17 +29,18 @@ typedef struct {
 } color;
 
 struct renderer_info {
-    unsigned int win_width;
-    unsigned int win_height;
-    unsigned int win_fps;
-    unsigned int full_width;
-    unsigned int full_height;
-    unsigned int full_fps;
+    unsigned win_width;
+    unsigned win_height;
+    unsigned win_fps;
+    unsigned full_width;
+    unsigned full_height;
+    unsigned full_fps;
     int mon_x;
     int mon_y;
-    unsigned int width;
-    unsigned int height;
-    unsigned int fps;
+    unsigned disphz;
+    unsigned width;
+    unsigned height;
+    unsigned fps;
     bool vsync;
     bool fullscr;
     GLFWmonitor* monitor;
@@ -69,10 +70,10 @@ struct chunk_renddata {
     //unsigned VAO;
     unsigned VBO;
     uint32_t vcount;
-    uint32_t* vertices;
+    //uint32_t* vertices;
     unsigned VBO2;
     uint32_t vcount2;
-    uint32_t* vertices2;
+    //uint32_t* vertices2;
     //bool sent:1;
     //bool moved:1;
     //bool busy:1;

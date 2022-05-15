@@ -229,7 +229,7 @@ void doGame() {
     uint64_t dtime = fpsstarttime2;
     uint64_t ptime2 = fpsstarttime2;
     uint64_t dtime2 = fpsstarttime2;
-    uint64_t rendtime = 750000;
+    uint64_t rendtime = 1000000;
     uint64_t fpsstarttime = fpsstarttime2;
     int fpsct = 0;
     float yvel = 0.0;
@@ -274,10 +274,10 @@ void doGame() {
         rendinf.campos.y = oldy - 1.15;
         pcollidepath(&chunks, oldpos, &rendinf.campos, csteps);
         rendinf.campos.y = oldy;
-        if (pcaxis[0] && xcm < 0) xcm = 0;
-        if (pcaxis[1] && xcm > 0) xcm = 0;
-        if (pcaxis[2] && zcm < 0) zcm = 0;
-        if (pcaxis[3] && zcm > 0) zcm = 0;
+        if (pcaxis[0] && xcm < 0) xcm *= 0;
+        if (pcaxis[1] && xcm > 0) xcm *= 0;
+        if (pcaxis[2] && zcm < 0) zcm *= 0;
+        if (pcaxis[3] && zcm > 0) zcm *= 0;
         pcaxis[0] = false;
         pcaxis[1] = false;
         pcaxis[2] = false;
@@ -415,7 +415,9 @@ void doGame() {
             destroyhold = false;
             dtime = altutime();
         }
-        if (!rendinf.vsync || !rendinf.fps || (altutime() - fpsstarttime2) >= rendtime / rendinf.fps) {
+        //printf("[%d] [%d] [%d]\n", (!rendinf.vsync && !rendinf.fps), !rendinf.fps, (altutime() - fpsstarttime2) >= rendtime / rendinf.fps);
+        if ((!rendinf.vsync && !rendinf.fps) || !rendinf.fps || (altutime() - fpsstarttime2) >= rendtime / rendinf.fps) {
+            //puts("render");
             if (curbdata.id == 7) {
                 setSpace(SPACE_UNDERWATER);
             } else {
@@ -445,7 +447,7 @@ void doGame() {
             #endif
             fps = fpsct;
             fpsstarttime = curtime;
-            if (rendinf.vsync) {
+            if (rendinf.fps) {
                 if (rendtime > 500000 && fpsct < (int)rendinf.fps) rendtime -= 10000;
                 if (rendtime < 1000000 && fpsct > (int)rendinf.fps + 5) rendtime += 10000;
             }

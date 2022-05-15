@@ -1,7 +1,10 @@
 obj/
 *.o
 *.cfg
+*.conf
+*.out
 cavecube
 *.bin
 *.exe
 vgcore.*
+!.gitignore
