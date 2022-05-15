@@ -184,11 +184,14 @@ static inline coord_3d_dbl icoord2wcoord(coord_3d cam, int64_t cx, int64_t cz) {
     return ret;
 }
 
-void handleServer(int index, int msg, void* data) {
-    (void)index;
+static bool ping = false;
+
+static void handleServer(int msg, void* data) {
+    //printf("Recieved [%d] from server\n", msg);
     switch (msg) {
         case SERVER_RET_PONG:;
-            printf("Server ponged\n");
+            //printf("Server ponged\n");
+            ping = true;
             break;
         case SERVER_RET_UPDATECHUNK:;
             genChunks_cb(&chunks, data);
@@ -202,12 +205,21 @@ void doGame() {
         tmpbuf[i] = malloc(4096);
     }
     chunks = allocChunks(atoi(getConfigVarStatic(config, "game.chunks", "8", 64)));
+    printf("Allocated chunks: [%d] [%d] [%d]\n", chunks.info.width, chunks.info.widthsq, chunks.info.size);
     rendinf.campos.y = 141.5;
     initInput();
     float pmult = posmult;
     float rmult = rotmult;
     initServer(SERVER_MODE_SP);
-    servCallBack(handleServer);
+    servSend(SERVER_MSG_PING, NULL, false);
+    puts("Wating for server...");
+    servRecv(handleServer, 1);
+    while (!ping) {
+        microwait(100000);
+        puts("Wating for server...");
+        servRecv(handleServer, 1);
+    }
+    puts("Server responded");
     //int64_t farlands = -1006632960;
     int64_t cx = 0;
     int64_t cz = 0;
@@ -224,7 +236,9 @@ void doGame() {
     float xcm = 0.0;
     float zcm = 0.0;
     rendinf.camrot.z = 10;
+    //uint64_t loop = 0;
     while (!quitRequest) {
+        servRecv(handleServer, chunks.info.width * 4);
         uint64_t starttime = altutime();
         float npmult = 0.5;
         float nrmult = 1.0;
@@ -339,6 +353,7 @@ void doGame() {
                 yvel -= 0.5 * pmult;
             }
         }
+        if (rendinf.campos.y < 2.5) rendinf.campos.y = 2.5;
         //float ncz = rendinf.campos.z;
         //float ncx = rendinf.campos.x;
         //coord_3d newcoord = {(int)rendinf.campos.x, (int)rendinf.campos.y, (int)rendinf.campos.z};
@@ -397,7 +412,7 @@ void doGame() {
             destroyhold = false;
             dtime = altutime();
         }
-        if (!rendinf.vsync || !rendinf.fps || (altutime() - fpsstarttime2) >= rendtime / rendinf.fps) {
+        //if (!rendinf.vsync || !rendinf.fps || (altutime() - fpsstarttime2) >= rendtime / rendinf.fps) {
             if (curbdata.id == 7) {
                 setSpace(SPACE_UNDERWATER);
             } else {
@@ -411,7 +426,7 @@ void doGame() {
             updateScreen();
             fpsstarttime2 = altutime();
             ++fpsct;
-        }
+        //}
         pcoord = icoord2wcoord(rendinf.campos, pchunkx, pchunkz);
         coord_3d_dbl bcoord = intCoord_dbl(pcoord);
         pblockx = bcoord.x;

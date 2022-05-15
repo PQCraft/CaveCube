@@ -222,14 +222,13 @@ void moveChunks(struct chunkdata* chunks, int cx, int cz) {
 }
 
 bool genChunk(struct chunkinfo* chunks, int cx, int cy, int cz, int64_t xo, int64_t zo, struct blockdata* data, int type) {
-    //microwait(100000 + (rand() % 500000));
+    //microwait(50000 + (rand() % 50000));
     int64_t nx = ((int64_t)cx + xo) * 16;
     int64_t nz = ((int64_t)cz * -1 + zo) * 16;
     cx += chunks->dist;
     cz += chunks->dist;
     //uint32_t coff = cz * chunks->info.width + cy * chunks->info.widthsq + cx;
     bool ct = 0;
-    //if (chunks->renddata[coff].updated) goto skipfor;
     //memset(data, 0, 4096 * sizeof(struct blockdata));
     //chunks->renddata[coff].pos = (coord_3d){(float)(cx - (int)chunks->dist), (float)(cy), (float)(cz - (int)chunks->dist)};
     //printf("set chunk pos [%u]: [%d][%d][%d]\n", coff, cx - chunks->dist, cy, cz - chunks->dist);
@@ -324,7 +323,6 @@ bool genChunk(struct chunkinfo* chunks, int cx, int cy, int cz, int64_t xo, int6
         }
     }
     ct = true;
-    skipfor:;
     return ct;
 }
 
@@ -413,7 +411,7 @@ void genChunks(struct chunkdata* chunks, int64_t xo, int64_t zo) {
             }
         }
     }
-    printf("Requested [%d] chunks\n", count);
+    //printf("Requested [%d] chunks\n", count);
     //ret:;
     //printf("generated in: [%f]s\n", (float)(altutime() - starttime) / 1000000.0);
 }
