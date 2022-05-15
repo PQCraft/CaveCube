@@ -344,6 +344,8 @@ static float vert2D[] = {
     -1.0,  1.0,  0.0,  1.0,
 };
 
+static int uctimediv;
+
 bool updateChunks(void* vdata) {
     /*
     static bool test = false;
@@ -378,7 +380,7 @@ bool updateChunks(void* vdata) {
     }
     */
     for (uint32_t c = ucleftoff, c2 = 0, c3 = 0; ; c = (c + 1) % data->info.size) {
-        if (altutime() - starttime >= 1000000 / (((rendinf.fps) ? rendinf.fps : 60) * 3) && c3 >= 16) {ucleftoff = c; break;}
+        if (altutime() - starttime >= 1000000 / ((uint64_t)((uctimediv > (int)rendinf.fps) ? uctimediv : (int)rendinf.fps) * 3) && c3 >= 16) {ucleftoff = c; break;}
         //uint64_t starttime2 = altutime();
         ++c3;
         if (!data->renddata[c].generated || data->renddata[c].updated) continue;
@@ -487,7 +489,7 @@ void renderText(float x, float y, float scale, unsigned end, char* text, void* e
             x = 0;
             y += scale * 16;
         } else {
-            glUniform1ui(glGetUniformLocation(rendinf.shaderprog, "dchar"), (unsigned char)(*text));
+            glUniform1ui(glGetUniformLocation(rendinf.shaderprog, "chr"), (unsigned char)(*text));
             glUniform2f(glGetUniformLocation(rendinf.shaderprog, "mpos"), x / (float)rendinf.width, y / (float)rendinf.height);
             glDrawArrays(GL_TRIANGLES, 0, 6);
             x += scale * 8;
@@ -617,6 +619,7 @@ bool initRenderer() {
     if (!rendinf.win_height || rendinf.win_height > 32767) rendinf.win_height = 480;
     rendinf.vsync = getConfigValBool(getConfigVarStatic(config, "renderer.vsync", "true", 64));
     rendinf.fullscr = getConfigValBool(getConfigVarStatic(config, "renderer.fullscreen", "false", 64));
+    uctimediv = atoi(getConfigVarStatic(config, "renderer.meshtime", "4096", 64));
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);

@@ -10,7 +10,7 @@
 
 struct servmsg {
     bool valid;
-    bool ready;
+    //bool ready;
     bool busy;
     //bool discard;
     bool freedata;
@@ -18,9 +18,18 @@ struct servmsg {
     void* data;
 };
 
+struct servret {
+    int msg;
+    void* data;
+};
+
 static int msgsize = 0;
 static struct servmsg* msgdata;
 static pthread_mutex_t msglock;
+
+static int retsize = 0;
+static struct servret* retdata;
+static pthread_mutex_t retlock;
 
 static pthread_mutex_t cblock;
 
@@ -29,13 +38,32 @@ static int servmode = 0;
 static int gxo = 0, gzo = 0;
 static int worldtype = 2;
 
-static void (*callback)(int, int, void*) = NULL;
+pthread_t servpthreads[MAX_THREADS];
 
-void servCallBack(void* ptr) {
-    callback = ptr;
+static void pushRet(int m, void* d) {
+    pthread_mutex_lock(&retlock);
+    int index = -1;
+    for (int i = 0; i < retsize; ++i) {
+        if (retdata[i].msg == SERVER_RET_NONE) {index = i; break;}
+    }
+    if (index == -1) {
+        index = retsize++;
+        retdata = realloc(retdata, retsize * sizeof(struct servret));
+    }
+    retdata[index] = (struct servret){m, d};
+    //printf("pushRet [%lu]\n", (uintptr_t)msgdata[index].data);
+    pthread_mutex_unlock(&retlock);
 }
 
-pthread_t servpthreads[MAX_THREADS];
+static void doneMsg(int index) {
+    //msgdata[index].ready = true;
+    if (msgdata[index].freedata) free(msgdata[index].data);
+    msgdata[index].valid = false;
+    if (index + 1 == msgsize) {
+        --msgsize;
+        msgdata = realloc(msgdata, msgsize * sizeof(struct servmsg));
+    }
+}
 
 static void* servthread(void* args) {
     int id = (intptr_t)args;
@@ -46,7 +74,7 @@ static void* servthread(void* args) {
         pthread_mutex_lock(&msglock);
         int index = -1;
         for (int i = 0; i < msgsize; ++i) {
-            if (msgdata[i].valid && !msgdata[i].busy) {index = i; /*printf("Server: executing task [%d]\n", i);*/ break;}
+            if (msgdata[i].valid && !msgdata[i].busy) {index = i; /*printf("Server: executing task [%d]: [%d]\n", i, msgdata[index].id);*/ break;}
         }
         if (index == -1) {
             //puts("Server: No tasks");
@@ -62,6 +90,7 @@ static void* servthread(void* args) {
                     }
                 case SERVER_MSG_PING:; {
                         //printf("Server thread [%d]: Pong\n", id);
+                        retno = SERVER_RET_PONG;
                         break;
                     }
                 case SERVER_MSG_GETCHUNK:; {
@@ -110,15 +139,8 @@ static void* servthread(void* args) {
                     }
             }
             pthread_mutex_lock(&msglock);
-            msgdata[index].ready = true;
-            if (retno != SERVER_RET_NONE && callback) {
-                pthread_mutex_lock(&cblock);
-                callback(index, retno, retdata);
-                pthread_mutex_unlock(&cblock);
-            }
-            /*if (msgdata[index].discard) */msgdata[index].valid = false;
-            if (msgdata[index].freedata) free(msgdata[index].data);
-            if (retdata) free(retdata);
+            pushRet(retno, retdata);
+            doneMsg(index);
         }
         pthread_mutex_unlock(&msglock);
         if (index == -1) if (delaytime > 0 && delaytime <= 33333) microwait(delaytime);
@@ -139,14 +161,7 @@ bool initServer(int mode) {
     return true;
 }
 
-bool servMsgReady(int index) {
-    pthread_mutex_lock(&msglock);
-    bool ready = msgdata[index].ready;
-    pthread_mutex_unlock(&msglock);
-    return ready;
-}
-
-static int pushMsg(int m, void* d, /*bool dsc, */bool f) {
+static void pushMsg(int m, void* d, /*bool dsc, */bool f) {
     int index = -1;
     pthread_mutex_lock(&msglock);
     switch (m) {
@@ -162,14 +177,41 @@ static int pushMsg(int m, void* d, /*bool dsc, */bool f) {
                 index = msgsize++;
                 msgdata = realloc(msgdata, msgsize * sizeof(struct servmsg));
             }
-            msgdata[index] = (struct servmsg){true, false, false, /*dsc, */f, m, d};
+            msgdata[index] = (struct servmsg){true, /*false, */false, /*dsc, */f, m, d};
     }
     //printf("pushMsg [%lu]\n", (uintptr_t)msgdata[index].data);
     pthread_mutex_unlock(&msglock);
-    return index;
 }
 
-int servSend(int msg, void* data, /*bool dsc,*/ bool f) {
+void servSend(int msg, void* data, /*bool dsc,*/ bool f) {
     //printf("Server: Adding task [%d]\n", msgsize);
-    return pushMsg(msg, data, /*dsc, */f);
+    pushMsg(msg, data, /*dsc, */f);
+}
+
+void servRecv(void (*callback)(int, void*), int msgs) {
+    int ct = 0;
+    pthread_mutex_lock(&retlock);
+    static int index = 0;
+    int iend = index;
+    //printf("running max of [%d] messages\n", msgs);
+    if (!retsize) {/*printf("No messages\n");*/ goto _ret;}
+    while (ct < msgs) {
+        int msg = SERVER_RET_NONE;
+        void* data = NULL;
+        msg = retdata[index].msg;
+        if (msg != SERVER_RET_NONE) {
+            ++ct;
+            data = retdata[index].data;
+            callback(msg, data);
+            retdata[index].msg = SERVER_RET_NONE;
+            free(data);
+        }
+        //printf("index: [%d]\n", index);
+        ++index;
+        if (index >= retsize) index = 0;
+        if (index == iend) break;
+    }
+    //if (ct) printf("ran [%d] messages\n", ct);
+    _ret:;
+    pthread_mutex_unlock(&retlock);
 }

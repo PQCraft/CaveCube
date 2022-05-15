@@ -53,9 +53,13 @@ struct server_msg_chunkpos {
     int64_t z;
 };
 
+struct server_ret {
+    int msg;
+    void* data;
+};
+
 bool initServer(int);
-bool servMsgReady(int);
-int servSend(int, void*, bool);
-void servCallBack(void*);
+void servSend(int, void*, bool);
+void servRecv(void (*)(int, void*), int);
 
 #endif
