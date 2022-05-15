@@ -22,7 +22,7 @@ coord_3d pvelocity;
 int pchunkx, pchunky, pchunkz;
 int pblockx, pblocky, pblockz;
 
-static float posmult = 0.125;
+static float posmult = 12.5;
 static float rotmult = 3;
 static float fpsmult = 0;
 static float mousesns = 0.05;
@@ -206,7 +206,7 @@ void doGame() {
     }
     chunks = allocChunks(atoi(getConfigVarStatic(config, "game.chunks", "8", 64)));
     printf("Allocated chunks: [%d] [%d] [%d]\n", chunks.info.width, chunks.info.widthsq, chunks.info.size);
-    rendinf.campos.y = 141.5;
+    rendinf.campos.y = 151.5;
     initInput();
     float pmult = posmult;
     float rmult = rotmult;
@@ -238,8 +238,8 @@ void doGame() {
     rendinf.camrot.z = 10;
     //uint64_t loop = 0;
     while (!quitRequest) {
+        glfwSetTime(0);
         servRecv(handleServer, chunks.info.width * 4);
-        uint64_t starttime = altutime();
         float npmult = 0.5;
         float nrmult = 1.0;
         struct input_info input = getInput();
@@ -260,10 +260,10 @@ void doGame() {
         int cmx = 0, cmz = 0;
         static bool first = true;
         coord_3d oldpos = rendinf.campos;
-        rendinf.campos.z += zcm;
-        rendinf.campos.x += xcm;
-        pvelocity.x = xcm / (((input.movti) ? posmult : pmult));
-        pvelocity.z = -(zcm / (((input.movti) ? posmult : pmult)));
+        rendinf.campos.z += zcm * pmult;
+        rendinf.campos.x += xcm * pmult;
+        pvelocity.x = xcm;
+        pvelocity.z = -zcm;
         float oldy = rendinf.campos.y;
         int csteps = npmult * 10;
         rendinf.campos.y = oldy - 0.5;
@@ -307,6 +307,7 @@ void doGame() {
             genChunks(&chunks, cx, cz);
             pchunkx = cx;
             pchunkz = cz;
+            //microwait(100000);
         }
         //genChunks(&chunks, cx, cz);
         updateChunks(&chunks);
@@ -325,10 +326,11 @@ void doGame() {
                         (tmpbd2[2].id && tmpbd2[2].id != 7) ||
                         (tmpbd2[3].id && tmpbd2[3].id != 7));
         //struct blockdata overbdata = getBlockF(&chunks, rendinf.campos.x, rendinf.campos.y + 1.5, rendinf.campos.z);
+        //printf("pmult: [%f]\n", pmult);
         if (onblock) {
-            float mul = pmult * 2.75;
-            xcm = ((input.zmov * sinf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult) + (input.xmov * cosf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult)) * mul + xcm * (1.0 - mul);
-            zcm = (-(input.zmov * cosf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult) + (input.xmov * sinf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult)) * mul + zcm * (1.0 - mul);
+            float mul = 3.0 * pmult;
+            xcm = ((input.zmov * sinf(yrotrad) * npmult) + (input.xmov * cosf(yrotrad) * npmult)) * mul + xcm * (1.0 - mul);
+            zcm = (-(input.zmov * cosf(yrotrad) * npmult) + (input.xmov * sinf(yrotrad) * npmult)) * mul + zcm * (1.0 - mul);
             if (rendinf.campos.y < (float)((int)(rendinf.campos.y)) + 0.5 && yvel <= 0.0) {
                 rendinf.campos.y = (float)((int)(rendinf.campos.y)) + 0.5;
             }
@@ -337,9 +339,9 @@ void doGame() {
             }
             if (yvel < 0) yvel = 0.0;
         } else {
-            float mul = pmult * 0.155;
-            xcm = ((input.zmov * sinf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult) + (input.xmov * cosf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult)) * mul + xcm * (1.0 - mul);
-            zcm = (-(input.zmov * cosf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult) + (input.xmov * sinf(yrotrad) * ((input.movti) ? posmult : pmult) * npmult)) * mul + zcm * (1.0 - mul);
+            float mul = 0.25 * pmult;
+            xcm = ((input.zmov * sinf(yrotrad) * npmult) + (input.xmov * cosf(yrotrad) * npmult)) * mul + xcm * (1.0 - mul);
+            zcm = (-(input.zmov * cosf(yrotrad) * npmult) + (input.xmov * sinf(yrotrad) * npmult)) * mul + zcm * (1.0 - mul);
         }
         //printf("yvel: [%f] [%f] [%f] [%f] [%u]\n", rendinf.campos.y, (float)((int)(blocky2)) + 0.5, yvel, pmult, underbdata.id & 0xFF);
         pvelocity.y = yvel;
@@ -412,7 +414,7 @@ void doGame() {
             destroyhold = false;
             dtime = altutime();
         }
-        //if (!rendinf.vsync || !rendinf.fps || (altutime() - fpsstarttime2) >= rendtime / rendinf.fps) {
+        if (!rendinf.vsync || !rendinf.fps || (altutime() - fpsstarttime2) >= rendtime / rendinf.fps) {
             if (curbdata.id == 7) {
                 setSpace(SPACE_UNDERWATER);
             } else {
@@ -426,7 +428,7 @@ void doGame() {
             updateScreen();
             fpsstarttime2 = altutime();
             ++fpsct;
-        //}
+        }
         pcoord = icoord2wcoord(rendinf.campos, pchunkx, pchunkz);
         coord_3d_dbl bcoord = intCoord_dbl(pcoord);
         pblockx = bcoord.x;
@@ -448,7 +450,7 @@ void doGame() {
             }
             fpsct = 0;
         }
-        fpsmult = (float)(altutime() - starttime) / (1000000.0f / 60.0f);
+        fpsmult = glfwGetTime() / 2.0;
         pmult = posmult * fpsmult;
         rmult = rotmult * fpsmult;
     }

@@ -619,7 +619,7 @@ bool initRenderer() {
     if (!rendinf.win_height || rendinf.win_height > 32767) rendinf.win_height = 480;
     rendinf.vsync = getConfigValBool(getConfigVarStatic(config, "renderer.vsync", "true", 64));
     rendinf.fullscr = getConfigValBool(getConfigVarStatic(config, "renderer.fullscreen", "false", 64));
-    uctimediv = atoi(getConfigVarStatic(config, "renderer.meshtime", "4096", 64));
+    uctimediv = atoi(getConfigVarStatic(config, "renderer.meshtime", "0", 64));
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -675,6 +675,9 @@ bool initRenderer() {
     printf("Fullscreen resolution: [%ux%u@%d]\n", rendinf.full_width, rendinf.full_height, rendinf.full_fps);
     setShaderProg(shader_block);
     setFullscreen(rendinf.fullscr);
+
+    if (!uctimediv) uctimediv = rendinf.fps * (1 + 29 * !rendinf.vsync);
+    printf("[%d] [%d]\n", uctimediv, rendinf.fps);
 
     glViewport(0, 0, rendinf.width, rendinf.height);
     glEnable(GL_DEPTH_TEST);
