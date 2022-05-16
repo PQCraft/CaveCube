@@ -9,6 +9,7 @@
 
 #include <stdbool.h>
 #include <string.h>
+#include <pthread.h>
 
 #include <glad.h>
 #include <GLFW/glfw3.h>
@@ -55,7 +56,7 @@ void setSpace(int space) {
     curspace = space;
     switch (space) {
         default:;
-            setSkyColor(0, 0.625, 0.85);
+            setSkyColor(0, 0.7, 0.9);
             //setSkyColor(0, 0.01, 0.025);
             setScreenMult(1, 1, 1);
             glUniform1i(glGetUniformLocation(rendinf.shaderprog, "vis"), 3);
@@ -299,12 +300,12 @@ static GLuint shader_text;
 static struct blockdata rendGetBlock(struct chunkdata* data, int32_t c, int x, int y, int z) {
     //x += data->info.dist;
     //z += data->info.dist;
-    if (x < 0 && c % data->info.width) {c -= 1; x += 16;}
-    else if (x > 15 && (c + 1) % data->info.width) {c += 1; x -= 16;}
-    if (z > 15 && c % (int)data->info.widthsq >= (int)data->info.width) {c -= data->info.width; z -= 16;}
-    else if (z < 0 && c % (int)data->info.widthsq < (int)(data->info.widthsq - data->info.width)) {c += data->info.width; z += 16;}
-    if (y < 0 && c >= (int)data->info.widthsq) {c -= data->info.widthsq; y += 16;}
-    else if (y > 15 && c < (int)(data->info.size - data->info.widthsq)) {c += data->info.widthsq; y -= 16;}
+    while (x < 0 && c % data->info.width) {c -= 1; x += 16;}
+    while (x > 15 && (c + 1) % data->info.width) {c += 1; x -= 16;}
+    while (z > 15 && c % (int)data->info.widthsq >= (int)data->info.width) {c -= data->info.width; z -= 16;}
+    while (z < 0 && c % (int)data->info.widthsq < (int)(data->info.widthsq - data->info.width)) {c += data->info.width; z += 16;}
+    while (y < 0 && c >= (int)data->info.widthsq) {c -= data->info.widthsq; y += 16;}
+    while (y > 15 && c < (int)(data->info.size - data->info.widthsq)) {c += data->info.widthsq; y -= 16;}
     if (c < 0 || x < 0 || y < 0 || z < 0 || x > 15 || z > 15) return (struct blockdata){255, 0, 0};
     if (c >= (int32_t)data->info.size || y > 15) return (struct blockdata){0, 0, 0};
     if (!data->renddata[c].generated) return (struct blockdata){255, 0, 0};
@@ -343,7 +344,7 @@ static uint32_t constBlockVert[6][6] = {
 };
 
 static float constSideLight[6] = {
-    0.85, 0.7, 0.85, 0.7, 1.0, 0.55,
+    0.9, 0.6, 0.7, 0.7, 1.0, 0.5,
 };
 
 static float vert2D[] = {
@@ -358,56 +359,70 @@ static float vert2D[] = {
 static int ucmul1;
 static int ucmul2;
 
-bool updateChunks(void* vdata) {
-    /*
-    static bool test = false;
-    if (!test) {
-        for (int i = 0; i < 6; ++i) {
-            printf("    {");
-            for (int j = 0; j < 6; ++j) {
-                uint32_t tmp = constBlockVert[i][j];
-                uint32_t new = (((tmp >> 31) & 1) << 7) | (((tmp >> 26) & 1) << 6) | (((tmp >> 21) & 1) << 5) | ((tmp >> 12) & 3);
-                if (((tmp >> 31) & 1) << 7) new |= 0x0F000000;
-                if (((tmp >> 26) & 1) << 6) new |= 0x000F0000;
-                if (((tmp >> 21) & 1) << 5) new |= 0x00000F00;
-                printf("0x%08X", new);
-                if (j < 5) printf(", ");
-            }
-            printf("},\n");
+static float _getLight(struct chunkdata* data, int32_t c, int x, int y, int z) {
+    float daylight = 0.75;
+    int yoff = (c / data->info.widthsq * 16 + y) % 16;
+    for (int ny = yoff + 1; ny < 256; ++ny) {
+        if (rendGetBlock(data, c, x, ny, z).id) {
+            //printf("hit [%u] [%d] [%d][%d][%d]\n", c, y, x, ny, z);
+            daylight = 0.0;
+            break;
         }
-        test = true;
     }
-    */
-    struct chunkdata* data = vdata;
-    static uint32_t ucleftoff = 0;
-    /*
-    static uint64_t totaltime = 0;
-    */
-    uint64_t starttime = altutime();
+    return daylight;
+}
+
+static float getLight(struct chunkdata* data, int32_t c, int x, int y, int z) {
+    float clight = _getLight(data, c, x, y, z);
+    if (clight == 0.0) {
+        float tlight;
+        tlight = _getLight(data, c, x + 1, y, z);
+        if (tlight > clight) clight = tlight;
+        tlight = _getLight(data, c, x - 1, y, z);
+        if (tlight > clight) clight = tlight;
+        tlight = _getLight(data, c, x, y + 1, z);
+        if (tlight > clight) clight = tlight;
+        tlight = _getLight(data, c, x, y - 1, z);
+        if (tlight > clight) clight = tlight;
+        tlight = _getLight(data, c, x, y, z + 1);
+        if (tlight > clight) clight = tlight;
+        tlight = _getLight(data, c, x, y, z - 1);
+        if (tlight > clight) clight = tlight;
+        clight -= 0.2;
+        if (clight < 0.0) clight = 0.0;
+    }
+    clight += 0.25;
+    if (clight > 1.0) clight = 1.0;
+    return clight;
+}
+
+static pthread_t pthreads[MAX_THREADS];
+static pthread_mutex_t uclock;
+static pthread_mutex_t gllock;
+
+static void* meshthread(void* args) {
+    struct chunkdata* data = args;
     struct blockdata bdata;
     struct blockdata bdata2[6];
-    /*
-    for (uint32_t c = 0; c < data->info.size; ++c) {
-        if (!data->renddata[c].updated) data->renddata[c].vcount = 0;
-    }
-    */
-    for (uint32_t c = ucleftoff, c2 = 0, c3 = 0; ; c = (c + 1) % data->info.size) {
-        //if (altutime() - starttime >= 1000000 / ((uint64_t)((uctimediv > (int)rendinf.disphz) ? uctimediv : (int)rendinf.disphz) * 3) && c3 >= data->info.widthsq) {ucleftoff = c; break;}
-        if (c2 >= data->info.width * ((ucmul1 < 0) ? data->info.width * -ucmul1 : (uint32_t)ucmul1) ||
-            c3 >= data->info.width * ((ucmul2 < 0) ? data->info.width * -ucmul2 : (uint32_t)ucmul2)) {ucleftoff = c; break;}
-        //uint64_t starttime2 = altutime();
-        ++c3;
-        if (!data->renddata[c].generated || data->renddata[c].updated) continue;
-        ++c2;
-        //data->renddata[c].vertices = realloc(data->renddata[c].vertices, 147456 * sizeof(uint32_t) * 2);
-        //data->renddata[c].vertices2 = realloc(data->renddata[c].vertices2, 147456 * sizeof(uint32_t) * 2);
+    for (int32_t c = -1; ; --c) {
+        if (c < 0) c = data->info.size - 1;
+        pthread_mutex_lock(&uclock);
+        bool cond = !data->renddata[c].generated || data->renddata[c].updated || data->renddata[c].busy;
+        if (!cond) data->renddata[c].busy = true;
+        pthread_mutex_unlock(&uclock);
+        //printf("BUSY? [%d] [%d]\n", c, data->renddata[c].busy);
+        if (cond) {
+            if (!c) microwait(33333);
+            continue;
+        }
+        //printf("MESHING [%d]\n", c);
         uint32_t* _vptr = malloc(147456 * sizeof(uint32_t) * 2);
         uint32_t* _vptr2 = malloc(147456 * sizeof(uint32_t) * 2);
         uint32_t* vptr = _vptr;
         uint32_t* vptr2 = _vptr2;
         uint32_t tmpsize = 0;
         uint32_t tmpsize2 = 0;
-        for (int y = 0; y < 16; ++y) {
+        for (int y = 15; y >= 0; --y) {
             for (int z = 0; z < 16; ++z) {
                 for (int x = 0; x < 16; ++x) {
                     bdata = rendGetBlock(data, c, x, y, z);
@@ -418,11 +433,12 @@ bool updateChunks(void* vdata) {
                     bdata2[3] = rendGetBlock(data, c, x + 1, y, z);
                     bdata2[4] = rendGetBlock(data, c, x, y + 1, z);
                     bdata2[5] = rendGetBlock(data, c, x, y - 1, z);
+                    float lval = 1.0;
                     for (int i = 0; i < 6; ++i) {
                         if (bdata2[i].id && bdata2[i].id <= maxblockid && (bdata2[i].id != 5 || bdata.id == 5) && (bdata2[i].id != 7 || bdata.id == 7)) continue;
                         if (bdata2[i].id == 255) continue;
                         uint32_t baseVert1 = (x << 28) | (y << 20) | (z << 12) | (i << 2);
-                        float mul = constSideLight[i]/* * 0.1*/;
+                        float mul = constSideLight[i] * lval;
                         uint16_t color = getr5g6b5(mul, mul, mul);
                         uint32_t baseVert2 = (bdata.id << 24) | (color << 8);
                         if (bdata.id == 7) {
@@ -464,40 +480,66 @@ bool updateChunks(void* vdata) {
         data->renddata[c].vcount2 = tmpsize2;
         tmpsize *= sizeof(uint32_t) * 2;
         tmpsize2 *= sizeof(uint32_t) * 2;
-        //data->renddata[c].vertices = realloc(data->renddata[c].vertices, tmpsize);
-        //data->renddata[c].vertices2 = realloc(data->renddata[c].vertices2, tmpsize2);
+        _vptr = realloc(_vptr, tmpsize);
+        _vptr2 = realloc(_vptr2, tmpsize2);
+        data->renddata[c].vertices = _vptr;
+        data->renddata[c].vertices2 = _vptr2;
         //glGenVertexArrays(1, &data->renddata[c].VAO);
         //glBindVertexArray(data->renddata[c].VAO);
+        //data->renddata[c].updated = true;
+        pthread_mutex_lock(&uclock);
+        data->renddata[c].busy = false;
+        data->renddata[c].ready = true;
+        pthread_mutex_unlock(&uclock);
+    }
+    return NULL;
+}
+
+void updateChunks(void* vdata) {
+    static bool init = false;
+    if (!init) {
+        for (int i = 0; i < MESHER_THREADS && i < MAX_THREADS; ++i) {
+            pthread_create(&pthreads[i], NULL, &meshthread, vdata);
+        }
+        init = true;
+    }
+    struct chunkdata* data = vdata;
+    static int32_t ucleftoff = -1;
+    for (int32_t c = ucleftoff, c2 = 0; ; --c) {
+        if (c < 0) c = data->info.size - 1;
+        if (c2 >= (int32_t)data->info.widthsq) {ucleftoff = c; break;}
+        ++c2;
+        //puts("LOOP");
+        pthread_mutex_lock(&uclock);
+        bool cond = data->renddata[c].ready;
+        pthread_mutex_unlock(&uclock);
+        if (!cond) continue;
+        uint32_t* _vptr = data->renddata[c].vertices;
+        uint32_t* _vptr2 = data->renddata[c].vertices2;
+        uint32_t tmpsize = data->renddata[c].vcount * sizeof(uint32_t) * 2;
+        uint32_t tmpsize2 = data->renddata[c].vcount2 * sizeof(uint32_t) * 2;
         if (!data->renddata[c].VBO) glGenBuffers(1, &data->renddata[c].VBO);
         if (!data->renddata[c].VBO2) glGenBuffers(1, &data->renddata[c].VBO2);
-        data->renddata[c].updated = true;
         if (tmpsize) {
+            pthread_mutex_lock(&gllock);
             glBindBuffer(GL_ARRAY_BUFFER, data->renddata[c].VBO);
             glBufferData(GL_ARRAY_BUFFER, tmpsize, _vptr, GL_STATIC_DRAW);
+            pthread_mutex_unlock(&gllock);
         }
         if (tmpsize2) {
+            pthread_mutex_lock(&gllock);
             glBindBuffer(GL_ARRAY_BUFFER, data->renddata[c].VBO2);
             glBufferData(GL_ARRAY_BUFFER, tmpsize2, _vptr2, GL_STATIC_DRAW);
+            pthread_mutex_unlock(&gllock);
         }
         free(_vptr);
         free(_vptr2);
-        //printf("meshed chunk [%d] ([%u] surfaces, [%u] triangles, [%u] points) ([%u] bytes) in [%f]s\n",
-        //    c, tmpsize2, tmpsize2 * 2, tmpsize2 * 6, tmpsize, (float)(altutime() - starttime2) / 1000000.0);
-        //glfwPollEvents();
-        //if (rendererQuitRequest()) return;
+        pthread_mutex_lock(&uclock);
+        data->renddata[c].ready = false;
+        data->renddata[c].updated = true;
+        data->renddata[c].buffered = true;
+        pthread_mutex_unlock(&uclock);
     }
-    bool leftoff = (ucleftoff > 0);
-    /*
-    if (leftoff) {
-        totaltime += (altutime() - starttime);
-    } else {
-        printf("meshed [%u] surfaces total ([%u] triangles, [%u] points) ([%lu] bytes)\n", chunkcachesize, chunkcachesize * 2, chunkcachesize * 6, chunkcachesize * 6 * sizeof(uint32_t));
-        printf("meshed in: [%f]s\n", (float)(totaltime) / 1000000.0);
-        chunkcachesize = 0;
-        totaltime = 0;
-    }
-    */
-    return leftoff;
 }
 
 void renderText(float x, float y, float scale, unsigned end, char* text, void* extinfo) {
@@ -530,7 +572,7 @@ void renderChunks(void* vdata) {
     //glDisable(GL_CULL_FACE);
     //glDepthFunc(GL_LESS);
     for (uint32_t c = 0; c < data->info.size; ++c) {
-        if (!data->renddata[c].vcount) continue;
+        if (!data->renddata[c].buffered || !data->renddata[c].vcount) continue;
         int x = c % data->info.width;
         int z = c / data->info.width % data->info.width;
         int y = c / data->info.widthsq;
@@ -546,7 +588,7 @@ void renderChunks(void* vdata) {
     glUniform1ui(glGetUniformLocation(rendinf.shaderprog, "TexAni"), (altutime() / 200000) % 6);
     if (curspace == SPACE_UNDERWATER) {
         for (uint32_t c = 0; c < data->info.size; ++c) {
-            if (!data->renddata[c].vcount2) continue;
+            if (!data->renddata[c].buffered || !data->renddata[c].vcount2) continue;
             int x = c % data->info.width;
             int z = c / data->info.width % data->info.width;
             int y = c / data->info.widthsq;
@@ -563,7 +605,7 @@ void renderChunks(void* vdata) {
         }
     } else {
         for (uint32_t c = 0; c < data->info.size; ++c) {
-            if (!data->renddata[c].vcount2) continue;
+            if (!data->renddata[c].buffered || !data->renddata[c].vcount2) continue;
             int x = c % data->info.width;
             int z = c / data->info.width % data->info.width;
             int y = c / data->info.widthsq;
@@ -631,18 +673,21 @@ bool initRenderer() {
     rendinf.campos = GFX_DEFAULT_POS;
     rendinf.camrot = GFX_DEFAULT_ROT;
     //rendinf.camrot.y = 180;
+
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_TRUE);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+
     if (!(rendinf.monitor = glfwGetPrimaryMonitor())) {
         fputs("glfwGetPrimaryMonitor: Failed to fetch primary monitor handle\n", stderr);
         return false;
     }
     const GLFWvidmode* vmode = glfwGetVideoMode(rendinf.monitor);
     glfwGetMonitorPos(rendinf.monitor, &rendinf.mon_x, &rendinf.mon_y);
+
     rendinf.full_width = vmode->width;
     rendinf.full_height = vmode->height;
     rendinf.disphz = vmode->refreshRate;
@@ -657,7 +702,9 @@ bool initRenderer() {
     rendinf.vsync = getConfigValBool(getConfigVarStatic(config, "renderer.vsync", "false", 64));
     rendinf.fullscr = getConfigValBool(getConfigVarStatic(config, "renderer.fullscreen", "false", 64));
     ucmul1 = atoi(getConfigVarStatic(config, "renderer.meshmult1", "1", 64));
-    ucmul2 = atoi(getConfigVarStatic(config, "renderer.meshmult2", "-1", 64));
+    ucmul2 = atoi(getConfigVarStatic(config, "renderer.meshmult2", "4", 64));
+
+
     if (!(rendinf.window = glfwCreateWindow(rendinf.win_width, rendinf.win_height, "CaveCube", NULL, NULL))) {
         fputs("glfwCreateWindow: Failed to create window\n", stderr);
         return false;
@@ -790,6 +837,9 @@ bool initRenderer() {
     glBindVertexArray(VAO);
     //glEnableVertexAttribArray(0);
     //glEnableVertexAttribArray(1);
+
+    pthread_mutex_init(&uclock, NULL);
+    pthread_mutex_init(&gllock, NULL);
 
     free(tmpbuf);
     return true;
