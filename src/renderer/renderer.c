@@ -55,7 +55,8 @@ void setSpace(int space) {
     curspace = space;
     switch (space) {
         default:;
-            setSkyColor(0, 0.7, 0.9);
+            setSkyColor(0, 0.625, 0.85);
+            //setSkyColor(0, 0.01, 0.025);
             setScreenMult(1, 1, 1);
             glUniform1i(glGetUniformLocation(rendinf.shaderprog, "vis"), 3);
             glUniform1f(glGetUniformLocation(rendinf.shaderprog, "vismul"), 1.0);
@@ -313,6 +314,12 @@ static struct blockdata rendGetBlock(struct chunkdata* data, int32_t c, int x, i
     return data->data[c][y * 256 + z * 16 + x];
 }
 
+uint16_t getr5g6b5(float r, float g, float b) {
+    return (((uint8_t)((float)((r + 1.0 / 62.0) * 31.0)) & 31) << 11) |
+           (((uint8_t)((float)((g + 1.0 / 126.0) * 63.0)) & 63) << 5) |
+           ((uint8_t)((float)((b + 1.0 / 62.0) * 31.0)) & 31);
+}
+
 // current:
 // [1 bit: x + 1][4 bits: x][1 bit: y + 1][4 bits: y][1 bit: z + 1][4 bits: z][3 bits: tex map][2 bits: tex coords][4 bits: lighting][8 bits: block id]
 // [8 bits: x ([0...255]/16)][8 bits: y ([0...255]/16)][8 bits: z ([0...255]/16)][1 bit: x + 1/16][1 bit: y + 1/16][1 bit: z + 1/16][3 bits: tex map][2 bits: tex coords]
@@ -333,6 +340,10 @@ static uint32_t constBlockVert[6][6] = {
     {0x0F0F00C1, 0x0F0F0FE3, 0x0F000FA2, 0x0F000FA2, 0x0F000080, 0x0F0F00C1},
     {0x000F0F61, 0x0F0F0FE3, 0x0F0F00C2, 0x0F0F00C2, 0x000F0040, 0x000F0F61},
     {0x00000001, 0x0F000083, 0x0F000FA2, 0x0F000FA2, 0x00000F20, 0x00000001},
+};
+
+static float constSideLight[6] = {
+    0.85, 0.7, 0.85, 0.7, 1.0, 0.55,
 };
 
 static float vert2D[] = {
@@ -411,7 +422,9 @@ bool updateChunks(void* vdata) {
                         if (bdata2[i].id && bdata2[i].id <= maxblockid && (bdata2[i].id != 5 || bdata.id == 5) && (bdata2[i].id != 7 || bdata.id == 7)) continue;
                         if (bdata2[i].id == 255) continue;
                         uint32_t baseVert1 = (x << 28) | (y << 20) | (z << 12) | (i << 2);
-                        uint32_t baseVert2 = (bdata.id << 24) | (0b1111111111111111 << 8);
+                        float mul = constSideLight[i]/* * 0.1*/;
+                        uint16_t color = getr5g6b5(mul, mul, mul);
+                        uint32_t baseVert2 = (bdata.id << 24) | (color << 8);
                         if (bdata.id == 7) {
                             for (int j = 0; j < 6; ++j) {
                                 *vptr2 = baseVert1 | constBlockVert[i][j];
@@ -634,8 +647,10 @@ bool initRenderer() {
     rendinf.full_height = vmode->height;
     rendinf.disphz = vmode->refreshRate;
     rendinf.win_fps = rendinf.disphz;
-    sscanf(getConfigVarStatic(config, "renderer.resolution", "1024x768", 256), "%ux%u@%u",
+    sscanf(getConfigVarStatic(config, "renderer.resolution", "", 256), "%ux%u@%u",
         &rendinf.win_width, &rendinf.win_height, &rendinf.win_fps);
+    if (!rendinf.win_width || rendinf.win_width > 32767) rendinf.win_width = 1024;
+    if (!rendinf.win_height || rendinf.win_height > 32767) rendinf.win_height = 768;
     rendinf.full_fps = rendinf.win_fps;
     sscanf(getConfigVarStatic(config, "renderer.fullresolution", "", 256), "%ux%u@%u",
         &rendinf.full_width, &rendinf.full_height, &rendinf.full_fps);
