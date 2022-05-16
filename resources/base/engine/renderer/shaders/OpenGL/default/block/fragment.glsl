@@ -7,6 +7,7 @@ in vec2 TexCoord;
 in vec3 FragPos;
 in vec4 FragPos2;
 in float TexOff;
+in vec3 light;
 
 uniform sampler3D TexData;
 uniform int dist;
@@ -25,6 +26,7 @@ void main() {
         discard;
     }
     float mixv = clamp((distance(vec3(FragPos.x, FragPos.y, FragPos.z), vec3(cam.x, cam.y, cam.z)) - float(dist) * vismul * vis) / (16 * float(dist) * vismul - float(dist) * vismul * vis), 0, 1);
+    FragColor.rgb *= light;
     FragColor.rgb *= mcolor;
     FragColor = mix(FragColor, vec4(skycolor, FragColor.a), mixv);
 }
