@@ -267,6 +267,7 @@ void doGame() {
         pvelocity.z = -zcm;
         float oldy = rendinf.campos.y;
         int csteps = npmult * 10;
+        //printf("csteps: [%d]\n", csteps);
         rendinf.campos.y = oldy - 0.5;
         pcollidepath(&chunks, oldpos, &rendinf.campos, csteps);
         rendinf.campos.y = oldy + 0.49 - ((crouch) ? 0.375 : 0);

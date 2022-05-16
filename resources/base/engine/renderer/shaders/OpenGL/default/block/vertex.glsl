@@ -10,6 +10,7 @@ out vec2 TexCoord;
 out vec3 FragPos;
 out vec4 FragPos2;
 out float TexOff;
+out vec3 light;
 
 uniform mat4 view;
 uniform mat4 projection;
@@ -22,6 +23,9 @@ void main() {
     TexCoord.y = float((data1) & uint(1));
     uint TexOff2;
     uint TexID = (data2 >> 24) & uint(255);
+    light.r = float((data2 >> 19) & uint(31)) / 31;
+    light.g = float((data2 >> 13) & uint(63)) / 63;
+    light.b = float((data2 >> 8) & uint(31)) / 31;
     if (isAni != 0) {
         TexOff2 = TexAni;
     } else {

@@ -344,7 +344,8 @@ static float vert2D[] = {
     -1.0,  1.0,  0.0,  1.0,
 };
 
-static int uctimediv;
+static int ucmul1;
+static int ucmul2;
 
 bool updateChunks(void* vdata) {
     /*
@@ -380,7 +381,9 @@ bool updateChunks(void* vdata) {
     }
     */
     for (uint32_t c = ucleftoff, c2 = 0, c3 = 0; ; c = (c + 1) % data->info.size) {
-        if (altutime() - starttime >= 1000000 / ((uint64_t)((uctimediv > (int)rendinf.disphz) ? uctimediv : (int)rendinf.disphz) * 3) && c3 >= 16) {ucleftoff = c; break;}
+        //if (altutime() - starttime >= 1000000 / ((uint64_t)((uctimediv > (int)rendinf.disphz) ? uctimediv : (int)rendinf.disphz) * 3) && c3 >= data->info.widthsq) {ucleftoff = c; break;}
+        if (c2 >= data->info.width * ((ucmul1 < 0) ? data->info.width * -ucmul1 : (uint32_t)ucmul1) ||
+            c3 >= data->info.width * ((ucmul2 < 0) ? data->info.width * -ucmul2 : (uint32_t)ucmul2)) {ucleftoff = c; break;}
         //uint64_t starttime2 = altutime();
         ++c3;
         if (!data->renddata[c].generated || data->renddata[c].updated) continue;
@@ -408,7 +411,7 @@ bool updateChunks(void* vdata) {
                         if (bdata2[i].id && bdata2[i].id <= maxblockid && (bdata2[i].id != 5 || bdata.id == 5) && (bdata2[i].id != 7 || bdata.id == 7)) continue;
                         if (bdata2[i].id == 255) continue;
                         uint32_t baseVert1 = (x << 28) | (y << 20) | (z << 12) | (i << 2);
-                        uint32_t baseVert2 = (bdata.id << 24) | (bdata.light << 8);
+                        uint32_t baseVert2 = (bdata.id << 24) | (0b1111111111111111 << 8);
                         if (bdata.id == 7) {
                             for (int j = 0; j < 6; ++j) {
                                 *vptr2 = baseVert1 | constBlockVert[i][j];
@@ -615,15 +618,6 @@ bool initRenderer() {
     rendinf.campos = GFX_DEFAULT_POS;
     rendinf.camrot = GFX_DEFAULT_ROT;
     //rendinf.camrot.y = 180;
-    sscanf(getConfigVarStatic(config, "renderer.resolution", "1024x768@0", 256), "%ux%u@%u",
-        &rendinf.win_width, &rendinf.win_height, &rendinf.win_fps);
-    sscanf(getConfigVarStatic(config, "renderer.fullresolution", "0x0@0", 256), "%ux%u@%u",
-        &rendinf.full_width, &rendinf.full_height, &rendinf.full_fps);
-    if (!rendinf.win_width || rendinf.win_width > 32767) rendinf.win_width = 640;
-    if (!rendinf.win_height || rendinf.win_height > 32767) rendinf.win_height = 480;
-    rendinf.vsync = getConfigValBool(getConfigVarStatic(config, "renderer.vsync", "true", 64));
-    rendinf.fullscr = getConfigValBool(getConfigVarStatic(config, "renderer.fullscreen", "false", 64));
-    uctimediv = atoi(getConfigVarStatic(config, "renderer.meshtime", "0", 64));
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -635,12 +629,20 @@ bool initRenderer() {
         return false;
     }
     const GLFWvidmode* vmode = glfwGetVideoMode(rendinf.monitor);
-    if (!rendinf.full_width && !rendinf.full_height) {
-        glfwGetMonitorPos(rendinf.monitor, &rendinf.mon_x, &rendinf.mon_y);
-        rendinf.full_width = vmode->width;
-        rendinf.full_height = vmode->height;
-    }
+    glfwGetMonitorPos(rendinf.monitor, &rendinf.mon_x, &rendinf.mon_y);
+    rendinf.full_width = vmode->width;
+    rendinf.full_height = vmode->height;
     rendinf.disphz = vmode->refreshRate;
+    rendinf.win_fps = rendinf.disphz;
+    sscanf(getConfigVarStatic(config, "renderer.resolution", "1024x768", 256), "%ux%u@%u",
+        &rendinf.win_width, &rendinf.win_height, &rendinf.win_fps);
+    rendinf.full_fps = rendinf.win_fps;
+    sscanf(getConfigVarStatic(config, "renderer.fullresolution", "", 256), "%ux%u@%u",
+        &rendinf.full_width, &rendinf.full_height, &rendinf.full_fps);
+    rendinf.vsync = getConfigValBool(getConfigVarStatic(config, "renderer.vsync", "false", 64));
+    rendinf.fullscr = getConfigValBool(getConfigVarStatic(config, "renderer.fullscreen", "false", 64));
+    ucmul1 = atoi(getConfigVarStatic(config, "renderer.meshmult1", "1", 64));
+    ucmul2 = atoi(getConfigVarStatic(config, "renderer.meshmult2", "-1", 64));
     if (!(rendinf.window = glfwCreateWindow(rendinf.win_width, rendinf.win_height, "CaveCube", NULL, NULL))) {
         fputs("glfwCreateWindow: Failed to create window\n", stderr);
         return false;
@@ -675,12 +677,10 @@ bool initRenderer() {
     freeResource(vs);
     freeResource(fs);
 
+    printf("Windowed resolution: [%ux%u@%d]\n", rendinf.win_width, rendinf.win_height, rendinf.win_fps);
     printf("Fullscreen resolution: [%ux%u@%d]\n", rendinf.full_width, rendinf.full_height, rendinf.full_fps);
     setShaderProg(shader_block);
     setFullscreen(rendinf.fullscr);
-
-    if (!uctimediv) uctimediv = ((!rendinf.fps) ? rendinf.disphz : rendinf.fps) * (1 + 31 * !rendinf.vsync);
-    //printf("[%d] [%d]\n", uctimediv, rendinf.fps);
 
     glViewport(0, 0, rendinf.width, rendinf.height);
     glEnable(GL_DEPTH_TEST);
