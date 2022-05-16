@@ -38,7 +38,7 @@ static int servmode = 0;
 static int gxo = 0, gzo = 0;
 static int worldtype = 2;
 
-pthread_t servpthreads[MAX_THREADS];
+static pthread_t servpthreads[MAX_THREADS];
 
 static void pushRet(int m, void* d) {
     pthread_mutex_lock(&retlock);

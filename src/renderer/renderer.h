@@ -10,6 +10,10 @@
 #include <resource.h>
 //#include <game.h>
 
+#ifndef MESHER_THREADS
+    #define MESHER_THREADS 2
+#endif
+
 typedef struct {
     float x;
     float y;
@@ -70,13 +74,13 @@ struct chunk_renddata {
     //unsigned VAO;
     unsigned VBO;
     uint32_t vcount;
-    //uint32_t* vertices;
+    uint32_t* vertices;
     unsigned VBO2;
     uint32_t vcount2;
-    //uint32_t* vertices2;
-    //bool sent:1;
-    //bool moved:1;
-    //bool busy:1;
+    uint32_t* vertices2;
+    bool buffered:1;
+    bool ready:1;
+    bool busy:1;
     bool updated:1;
     bool generated:1;
 };
@@ -107,7 +111,7 @@ struct model* loadModel(char*, char**);
 //void renderPart(struct model*, unsigned, bool);
 void updateCam(void);
 void updateScreen(void);
-bool updateChunks(void*);
+void updateChunks(void*);
 void renderChunks(void*);
 void setSkyColor(float, float, float);
 void setScreenMult(float, float, float);
