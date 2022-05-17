@@ -6,8 +6,8 @@
 
 struct blockdata {
     uint8_t id;
-    uint16_t light;
-    uint8_t rot;
+    uint8_t light:4;
+    uint8_t rot:4;
 };
 
 struct rendorder {

@@ -7,7 +7,7 @@ in vec2 TexCoord;
 in vec3 FragPos;
 in vec4 FragPos2;
 in float TexOff;
-in vec3 light;
+in float light;
 
 uniform sampler3D TexData;
 uniform int dist;

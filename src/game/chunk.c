@@ -12,7 +12,32 @@
 #include <pthread.h>
 #include <math.h>
 
-
+void chunkUpdate(struct chunkdata* data, int32_t c) {
+    if ((int)c % (int)data->info.widthsq >= (int)data->info.width) {
+        int32_t c2 = c - data->info.width;
+        if ((c2 >= 0 || c2 < (int32_t)data->info.size) && data->renddata[c2].generated) data->renddata[c2].updated = false;
+    }
+    if ((int)c % (int)data->info.widthsq < (int)(data->info.widthsq - data->info.width)) {
+        int32_t c2 = c + data->info.width;
+        if ((c2 >= 0 || c2 < (int32_t)data->info.size) && data->renddata[c2].generated) data->renddata[c2].updated = false;
+    }
+    if (c % data->info.width) {
+        int32_t c2 = c - 1;
+        if ((c2 >= 0 || c2 < (int32_t)data->info.size) && data->renddata[c2].generated) data->renddata[c2].updated = false;
+    }
+    if ((c + 1) % data->info.width) {
+        int32_t c2 = c + 1;
+        if ((c2 >= 0 || c2 < (int32_t)data->info.size) && data->renddata[c2].generated) data->renddata[c2].updated = false;
+    }
+    if (c >= (int)data->info.widthsq) {
+        int32_t c2 = c - data->info.widthsq;
+        if ((c2 >= 0 || c2 < (int32_t)data->info.size) && data->renddata[c2].generated) data->renddata[c2].updated = false;
+    }
+    if (c < (int)(data->info.size - data->info.widthsq)) {
+        int32_t c2 = c + data->info.widthsq;
+        if ((c2 >= 0 || c2 < (int32_t)data->info.size) && data->renddata[c2].generated) data->renddata[c2].updated = false;
+    }
+}
 
 struct blockdata getBlock(struct chunkdata* data, int cx, int cy, int cz, int x, int y, int z) {
     cz *= -1;
@@ -58,32 +83,9 @@ void setBlock(struct chunkdata* data, int cx, int cy, int cz, int x, int y, int 
     //printf("resolved: [%d, %d, %d] [%d, %d, %d]\n", cx, cy, cz, x, y, z);
     if (c < 0 || c >= (int32_t)data->info.size || x < 0 || y < 0 || z < 0 || x > 15 || y > 15 || z > 15) return;
     if (!data->renddata[c].generated) return;
-    data->data[c][y * 256 + z * 16 + x] = bdata;
+    data->data[c][y * 256 + z * 16 + x].id = bdata.id;
     data->renddata[c].updated = false;
-    if ((int)c % (int)data->info.widthsq >= (int)data->info.width) {
-        int32_t c2 = c - data->info.width;
-        if ((c2 >= 0 || c2 < (int32_t)data->info.size) && data->renddata[c2].generated) data->renddata[c2].updated = false;
-    }
-    if ((int)c % (int)data->info.widthsq < (int)(data->info.widthsq - data->info.width)) {
-        int32_t c2 = c + data->info.width;
-        if ((c2 >= 0 || c2 < (int32_t)data->info.size) && data->renddata[c2].generated) data->renddata[c2].updated = false;
-    }
-    if (c % data->info.width) {
-        int32_t c2 = c - 1;
-        if ((c2 >= 0 || c2 < (int32_t)data->info.size) && data->renddata[c2].generated) data->renddata[c2].updated = false;
-    }
-    if ((c + 1) % data->info.width) {
-        int32_t c2 = c + 1;
-        if ((c2 >= 0 || c2 < (int32_t)data->info.size) && data->renddata[c2].generated) data->renddata[c2].updated = false;
-    }
-    if (c >= (int)data->info.widthsq) {
-        int32_t c2 = c - data->info.widthsq;
-        if ((c2 >= 0 || c2 < (int32_t)data->info.size) && data->renddata[c2].generated) data->renddata[c2].updated = false;
-    }
-    if (c < (int)(data->info.size - data->info.widthsq)) {
-        int32_t c2 = c + data->info.widthsq;
-        if ((c2 >= 0 || c2 < (int32_t)data->info.size) && data->renddata[c2].generated) data->renddata[c2].updated = false;
-    }
+    chunkUpdate(data, c);
 }
 
 static inline int compare(const void* b, const void* a) {
@@ -236,14 +238,16 @@ bool genChunk(struct chunkinfo* chunks, int cx, int cy, int cz, int64_t xo, int6
     int top = (cy + 1) * 16 - 1;
     for (int z = 0; z < 16; ++z) {
         for (int x = 0; x < 16; ++x) {
-            data[z * 16 + x] = (struct blockdata){0, 0, 0};
+            for (int y = top; y >= btm; --y) {
+                data[(y - btm) * 256 + z * 16 + x] = (struct blockdata){0, 14, 0};
+            }
             switch (type) {
                 default:; {
                         if (!btm) {
-                            data[0 * 256 + z * 16 + x] = (struct blockdata){6, 0, 0};
-                            data[1 * 256 + z * 16 + x] = (struct blockdata){1, 0, 0};
-                            data[2 * 256 + z * 16 + x] = (struct blockdata){2, 0, 0};
-                            data[3 * 256 + z * 16 + x] = (struct blockdata){3, 0, 0};
+                            data[0 * 256 + z * 16 + x].id = 6;
+                            data[1 * 256 + z * 16 + x].id = 1;
+                            data[2 * 256 + z * 16 + x].id = 2;
+                            data[3 * 256 + z * 16 + x].id = 3;
                         }
                     }
                     break;
@@ -258,7 +262,7 @@ bool genChunk(struct chunkinfo* chunks, int cx, int cy, int cz, int64_t xo, int6
                         //printf("[%lf][%lf]", s, s2);
                         for (int y = btm; y <= top && y < 65; ++y) {
                             //printf("placing water at chunk [%u] [%d, %d, %d]\n", coff, x, y, z);
-                            data[(y - btm) * 256 + z * 16 + x] = (struct blockdata){7, 0, 0};
+                            data[(y - btm) * 256 + z * 16 + x].id = 7;
                         }
                         double s = s1;
                         s *= s5 * 5 * (1.0 - s2);
@@ -270,11 +274,11 @@ bool genChunk(struct chunkinfo* chunks, int cx, int cy, int cz, int64_t xo, int6
                         uint8_t blockid;
                         blockid = (s1 + s2 < s3 * 1.125) ? 8 : 3;
                         blockid = (sf < 5 + s1 * 3) ? ((sf < -((s4 + 2.25) * 7)) ? 2 : 8) : blockid;
-                        if (si >= btm && si <= top) data[(si - btm) * 256 + z * 16 + x] = (struct blockdata){blockid, 0, 0};
+                        if (si >= btm && si <= top) data[(si - btm) * 256 + z * 16 + x].id = blockid;
                         for (int y = ((si - 1) > top) ? top : si - 1; y >= btm; --y) {
-                            data[(y - btm) * 256 + z * 16 + x] = (struct blockdata){(y < (double)(si) * 0.9) ? 1 : ((blockid == 8 && y > si - 4) ? 8 : 2), 0, 0};
+                            data[(y - btm) * 256 + z * 16 + x].id = (y < (double)(si) * 0.9) ? 1 : ((blockid == 8 && y > si - 4) ? 8 : 2);
                         }
-                        if (!btm) data[z * 16 + x] = (struct blockdata){6, 0, 0};
+                        if (!btm) data[z * 16 + x].id = 6;
                         //if (si < 3) si = 3;
                         //if (!x && !z) rendinf.campos.y += (double)si;
                     }
@@ -287,17 +291,17 @@ bool genChunk(struct chunkinfo* chunks, int cx, int cy, int cz, int64_t xo, int6
                         double s5 = perlin2d(4, (double)(nx + x) / 329, (double)(nz + z) / 329, 1, 2);
                         for (int y = btm; y <= top && y < 65; ++y) {
                             //printf("placing water at chunk [%u] [%d, %d, %d]\n", coff, x, y, z);
-                            data[(y - btm) * 256 + z * 16 + x] = (struct blockdata){7, 0, 0};
+                            data[(y - btm) * 256 + z * 16 + x].id = 7;
                         }
                         double s = ((s1 * 6 - 3) + (s2 * 32 - 16)) * (1.0 - s5 * 0.5) + 45 + s5 * 45;
                         int si = round(s);
-                        if (si >= btm && si <= top) data[(si - btm) * 256 + z * 16 + x] = (struct blockdata){((double)si - round(s3 * 10) < 62) ? 8 : ((si < 64) ? 2 : 3), 0, 0};
+                        if (si >= btm && si <= top) data[(si - btm) * 256 + z * 16 + x].id = ((double)si - round(s3 * 10) < 62) ? 8 : ((si < 64) ? 2 : 3);
                         for (int y = ((si - 1) > top) ? top : si - 1; y >= btm; --y) {
-                            data[(y - btm) * 256 + z * 16 + x] = (struct blockdata){(y < ((s2 * 28 - 16) + 65)) ? 1 : ((double)y - round(s3 * 10) < 62 && y > ((s2 * 30 - 16) + 65)) ? 8 : 2, 0, 0};
+                            data[(y - btm) * 256 + z * 16 + x].id = (y < ((s2 * 28 - 16) + 65)) ? 1 : ((double)y - round(s3 * 10) < 62 && y > ((s2 * 30 - 16) + 65)) ? 8 : 2;
                         }
-                        if (!btm) data[z * 16 + x] = (struct blockdata){6, 0, 0};
-                        if (!btm && !(s4 % 2)) data[256 + z * 16 + x] = (struct blockdata){6, 0, 0};
-                        if (!btm && !(s4 % 4)) data[512 + z * 16 + x] = (struct blockdata){6, 0, 0};
+                        if (!btm) data[z * 16 + x].id = 6;
+                        if (!btm && !(s4 % 2)) data[256 + z * 16 + x].id = 6;
+                        if (!btm && !(s4 % 4)) data[512 + z * 16 + x].id = 6;
                     }
                     break;
                 case 3:; {
@@ -307,16 +311,16 @@ bool genChunk(struct chunkinfo* chunks, int cx, int cy, int cz, int64_t xo, int6
                         int s4 = noise2d(3, (double)(nx + x), (double)(nz + z));
                         for (int y = btm; y <= top && y < 65; ++y) {
                             //printf("placing water at chunk [%u] [%d, %d, %d]\n", coff, x, y, z);
-                            data[(y - btm) * 256 + z * 16 + x] = (struct blockdata){7, 0, 0};
+                            data[(y - btm) * 256 + z * 16 + x].id = 7;
                         }
                         double s = (s1 * 20 - 10) + (s2 * 40 - 20) + 70;
                         int si = round(s);
                         for (int y = (si > top) ? top : si; y >= btm; --y) {
-                            data[(y - btm) * 256 + z * 16 + x] = (struct blockdata){(y < ((s2 * 32 - 20) + 65)) ? 1 : ((double)y - round(s3 * 10) < 62 && y > ((s2 * 36 - 20) + 65)) ? 2 : 1, 0, 0};
+                            data[(y - btm) * 256 + z * 16 + x].id = (y < ((s2 * 32 - 20) + 65)) ? 1 : ((double)y - round(s3 * 10) < 62 && y > ((s2 * 36 - 20) + 65)) ? 2 : 1;
                         }
-                        if (!btm) data[z * 16 + x] = (struct blockdata){6, 0, 0};
-                        if (!btm && !(s4 % 2)) data[256 + z * 16 + x] = (struct blockdata){6, 0, 0};
-                        if (!btm && !(s4 % 4)) data[512 + z * 16 + x] = (struct blockdata){6, 0, 0};
+                        if (!btm) data[z * 16 + x].id = 6;
+                        if (!btm && !(s4 % 2)) data[256 + z * 16 + x].id = 6;
+                        if (!btm && !(s4 % 4)) data[512 + z * 16 + x].id = 6;
                     }
                     break;
             }
@@ -343,30 +347,7 @@ void genChunks_cb(struct chunkdata* chunks, void* ptr) {
     memcpy(chunks->data[coff], srvchunk->data, 4096 * sizeof(struct blockdata));
     chunks->renddata[coff].updated = false;
     //chunks->renddata[coff].sent = false;
-    if ((int)coff % (int)chunks->info.widthsq >= (int)chunks->info.width) {
-        int32_t coff2 = coff - chunks->info.width;
-        if ((coff2 >= 0 || coff2 < (int32_t)chunks->info.size) && chunks->renddata[coff2].generated) chunks->renddata[coff2].updated = false;
-    }
-    if ((int)coff % (int)chunks->info.widthsq < (int)(chunks->info.widthsq - chunks->info.width)) {
-        int32_t coff2 = coff + chunks->info.width;
-        if ((coff2 >= 0 || coff2 < (int32_t)chunks->info.size) && chunks->renddata[coff2].generated) chunks->renddata[coff2].updated = false;
-    }
-    if (coff % chunks->info.width) {
-        int32_t coff2 = coff - 1;
-        if ((coff2 >= 0 || coff2 < (int32_t)chunks->info.size) && chunks->renddata[coff2].generated) chunks->renddata[coff2].updated = false;
-    }
-    if ((coff + 1) % chunks->info.width) {
-        int32_t coff2 = coff + 1;
-        if ((coff2 >= 0 || coff2 < (int32_t)chunks->info.size) && chunks->renddata[coff2].generated) chunks->renddata[coff2].updated = false;
-    }
-    if (coff >= chunks->info.widthsq) {
-        int32_t coff2 = coff - chunks->info.widthsq;
-        if ((coff2 >= 0 || coff2 < (int32_t)chunks->info.size) && chunks->renddata[coff2].generated) chunks->renddata[coff2].updated = false;
-    }
-    if (coff < (chunks->info.size - chunks->info.widthsq)) {
-        int32_t coff2 = coff + chunks->info.widthsq;
-        if ((coff2 >= 0 || coff2 < (int32_t)chunks->info.size) && chunks->renddata[coff2].generated) chunks->renddata[coff2].updated = false;
-    }
+    chunkUpdate(chunks, coff);
     chunks->renddata[coff].generated = true;
     /*
     if (srvchunk->data->renddata[coff].moved) {
