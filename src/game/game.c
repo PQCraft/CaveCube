@@ -251,8 +251,8 @@ void doGame() {
             npmult *= 2.0;
         }
         //printf("[%u]\n", input.mmovti);
-        rendinf.camrot.x += input.mymov * mousesns * ((input.mmovti) ? rotmult : rmult) * nrmult;
-        rendinf.camrot.y -= input.mxmov * mousesns * ((input.mmovti) ? rotmult : rmult) * nrmult;
+        rendinf.camrot.x += input.mymov * nrmult * mousesns * ((input.mmovti) ? rotmult : rmult);
+        rendinf.camrot.y -= input.mxmov * nrmult * mousesns * ((input.mmovti) ? rotmult : rmult);
         if (rendinf.camrot.y < 0) rendinf.camrot.y += 360;
         else if (rendinf.camrot.y >= 360) rendinf.camrot.y -= 360;
         if (rendinf.camrot.x > 89.99) rendinf.camrot.x = 89.99;

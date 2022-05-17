@@ -308,24 +308,28 @@ static struct blockdata rendGetBlock(struct chunkdata* data, int32_t c, int x, i
     while (y > 15 && c < (int)(data->info.size - data->info.widthsq)) {c += data->info.widthsq; y -= 16;}
     if (c < 0 || x < 0 || y < 0 || z < 0 || x > 15 || z > 15) return (struct blockdata){255, 0, 0};
     if (c >= (int32_t)data->info.size || y > 15) return (struct blockdata){0, 0, 0};
-    if (!data->renddata[c].generated) return (struct blockdata){255, 0, 0};
+    while (!data->renddata[c].generated) {}
+    //if (!data->renddata[c].generated) return (struct blockdata){255, 0, 0};
     //return (struct blockdata){0, 0, 0 ,0};
     //printf("block [%d, %d, %d]: [%d]\n", x, y, z, y * 225 + (z % 15) * 15 + (x % 15));
     //printf("[%d] [%d]: [%d]\n", x, z, ((x / 15) % data->info.width) + ((x / 15) / data->info.width));
-    return data->data[c][y * 256 + z * 16 + x];
+    struct blockdata ret = data->data[c][y * 256 + z * 16 + x];
+    return ret;
 }
 
+/*
 uint16_t getr5g6b5(float r, float g, float b) {
     return (((uint8_t)((float)((r + 1.0 / 62.0) * 31.0)) & 31) << 11) |
            (((uint8_t)((float)((g + 1.0 / 126.0) * 63.0)) & 63) << 5) |
            ((uint8_t)((float)((b + 1.0 / 62.0) * 31.0)) & 31);
 }
+*/
 
-// current:
-// [1 bit: x + 1][4 bits: x][1 bit: y + 1][4 bits: y][1 bit: z + 1][4 bits: z][3 bits: tex map][2 bits: tex coords][4 bits: lighting][8 bits: block id]
-// [8 bits: x ([0...255]/16)][8 bits: y ([0...255]/16)][8 bits: z ([0...255]/16)][1 bit: x + 1/16][1 bit: y + 1/16][1 bit: z + 1/16][3 bits: tex map][2 bits: tex coords]
 // old:
-// [8 bits: block id][16 bits: R5G6B5 lighting][8 bits: reserved]
+// [1 bit: x + 1][4 bits: x][1 bit: y + 1][4 bits: y][1 bit: z + 1][4 bits: z][3 bits: tex map][2 bits: tex coords][4 bits: lighting][8 bits: block id]
+// current:
+// [8 bits: x ([0...255]/16)][8 bits: y ([0...255]/16)][8 bits: z ([0...255]/16)][1 bit: x + 1/16][1 bit: y + 1/16][1 bit: z + 1/16][3 bits: tex map][2 bits: tex coords]
+// [8 bits: block id][4 bits: lighting][20 bits: reserved]
 static uint32_t constBlockVert[6][6] = {
     /*
     {0x84201000, 0x04203000, 0x00202000, 0x00202000, 0x80200000, 0x84201000},
@@ -343,10 +347,6 @@ static uint32_t constBlockVert[6][6] = {
     {0x00000001, 0x0F000083, 0x0F000FA2, 0x0F000FA2, 0x00000F20, 0x00000001},
 };
 
-static float constSideLight[6] = {
-    0.9, 0.6, 0.7, 0.7, 1.0, 0.5,
-};
-
 static float vert2D[] = {
     -1.0,  1.0,  0.0,  1.0,
      1.0,  1.0,  1.0,  1.0,
@@ -355,46 +355,6 @@ static float vert2D[] = {
     -1.0, -1.0,  0.0,  0.0,
     -1.0,  1.0,  0.0,  1.0,
 };
-
-static int ucmul1;
-static int ucmul2;
-
-static float _getLight(struct chunkdata* data, int32_t c, int x, int y, int z) {
-    float daylight = 0.75;
-    int yoff = (c / data->info.widthsq * 16 + y) % 16;
-    for (int ny = yoff + 1; ny < 256; ++ny) {
-        if (rendGetBlock(data, c, x, ny, z).id) {
-            //printf("hit [%u] [%d] [%d][%d][%d]\n", c, y, x, ny, z);
-            daylight = 0.0;
-            break;
-        }
-    }
-    return daylight;
-}
-
-static float getLight(struct chunkdata* data, int32_t c, int x, int y, int z) {
-    float clight = _getLight(data, c, x, y, z);
-    if (clight == 0.0) {
-        float tlight;
-        tlight = _getLight(data, c, x + 1, y, z);
-        if (tlight > clight) clight = tlight;
-        tlight = _getLight(data, c, x - 1, y, z);
-        if (tlight > clight) clight = tlight;
-        tlight = _getLight(data, c, x, y + 1, z);
-        if (tlight > clight) clight = tlight;
-        tlight = _getLight(data, c, x, y - 1, z);
-        if (tlight > clight) clight = tlight;
-        tlight = _getLight(data, c, x, y, z + 1);
-        if (tlight > clight) clight = tlight;
-        tlight = _getLight(data, c, x, y, z - 1);
-        if (tlight > clight) clight = tlight;
-        clight -= 0.2;
-        if (clight < 0.0) clight = 0.0;
-    }
-    clight += 0.25;
-    if (clight > 1.0) clight = 1.0;
-    return clight;
-}
 
 static pthread_t pthreads[MAX_THREADS];
 static pthread_mutex_t uclock;
@@ -412,7 +372,7 @@ static void* meshthread(void* args) {
         pthread_mutex_unlock(&uclock);
         //printf("BUSY? [%d] [%d]\n", c, data->renddata[c].busy);
         if (cond) {
-            if (!c) microwait(33333);
+            if (!c) microwait(10000);
             continue;
         }
         //printf("MESHING [%d]\n", c);
@@ -433,14 +393,12 @@ static void* meshthread(void* args) {
                     bdata2[3] = rendGetBlock(data, c, x + 1, y, z);
                     bdata2[4] = rendGetBlock(data, c, x, y + 1, z);
                     bdata2[5] = rendGetBlock(data, c, x, y - 1, z);
-                    float lval = 1.0;
                     for (int i = 0; i < 6; ++i) {
                         if (bdata2[i].id && bdata2[i].id <= maxblockid && (bdata2[i].id != 5 || bdata.id == 5) && (bdata2[i].id != 7 || bdata.id == 7)) continue;
                         if (bdata2[i].id == 255) continue;
                         uint32_t baseVert1 = (x << 28) | (y << 20) | (z << 12) | (i << 2);
-                        float mul = constSideLight[i] * lval;
-                        uint16_t color = getr5g6b5(mul, mul, mul);
-                        uint32_t baseVert2 = (bdata.id << 24) | (color << 8);
+                        uint8_t light = bdata2[i].light;
+                        uint32_t baseVert2 = (bdata.id << 24) | (light << 20);
                         if (bdata.id == 7) {
                             for (int j = 0; j < 6; ++j) {
                                 *vptr2 = baseVert1 | constBlockVert[i][j];
@@ -507,7 +465,7 @@ void updateChunks(void* vdata) {
     static int32_t ucleftoff = -1;
     for (int32_t c = ucleftoff, c2 = 0; ; --c) {
         if (c < 0) c = data->info.size - 1;
-        if (c2 >= (int32_t)data->info.widthsq) {ucleftoff = c; break;}
+        if (c2 >= (int32_t)data->info.size) {ucleftoff = c; break;}
         ++c2;
         //puts("LOOP");
         pthread_mutex_lock(&uclock);
@@ -701,9 +659,6 @@ bool initRenderer() {
         &rendinf.full_width, &rendinf.full_height, &rendinf.full_fps);
     rendinf.vsync = getConfigValBool(getConfigVarStatic(config, "renderer.vsync", "false", 64));
     rendinf.fullscr = getConfigValBool(getConfigVarStatic(config, "renderer.fullscreen", "false", 64));
-    ucmul1 = atoi(getConfigVarStatic(config, "renderer.meshmult1", "1", 64));
-    ucmul2 = atoi(getConfigVarStatic(config, "renderer.meshmult2", "4", 64));
-
 
     if (!(rendinf.window = glfwCreateWindow(rendinf.win_width, rendinf.win_height, "CaveCube", NULL, NULL))) {
         fputs("glfwCreateWindow: Failed to create window\n", stderr);
