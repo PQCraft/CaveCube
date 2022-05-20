@@ -12,7 +12,7 @@
 #include <pthread.h>
 
 #ifndef MESHER_THREADS
-    #define MESHER_THREADS 1
+    #define MESHER_THREADS 2
 #endif
 
 typedef struct {
