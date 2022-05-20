@@ -5,7 +5,19 @@
 #include <chunk.h>
 
 #ifndef SERVER_THREADS
-    #define SERVER_THREADS 4
+    #define SERVER_THREADS 2
+#endif
+
+#ifndef MAX_CLIENTS
+    #define MAX_CLIENTS 256
+#endif
+
+#ifndef SERVER_BUF_SIZE
+    #define SERVER_BUF_SIZE 4194304
+#endif
+
+#ifndef CLIENT_BUF_SIZE
+    #define CLIENT_BUF_SIZE 4096
 #endif
 
 enum {
@@ -58,7 +70,10 @@ struct server_ret {
     void* data;
 };
 
-bool initServer(int);
+//bool initServer(int);
+bool initServer(void);
+int servStart(char*, int, char*, int);
+bool servConnect(char*, int);
 void servSend(int, void*, bool);
 void servRecv(void (*)(int, void*), int);
 

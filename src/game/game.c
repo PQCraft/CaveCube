@@ -199,7 +199,7 @@ static void handleServer(int msg, void* data) {
     }
 }
 
-void doGame() {
+bool doGame() {
     char** tmpbuf = malloc(16 * sizeof(char*));
     for (int i = 0; i < 16; ++i) {
         tmpbuf[i] = malloc(4096);
@@ -210,15 +210,29 @@ void doGame() {
     initInput();
     float pmult = posmult;
     float rmult = rotmult;
-    initServer(SERVER_MODE_SP);
-    servSend(SERVER_MSG_PING, NULL, false);
+    puts("Starting server...");
+    int servport = 0;
+    if ((servport = servStart(NULL, -1, NULL, 1)) == -1) {
+        puts("Server failed to start");
+        return false;
+    }
+    printf("Started server on port [%d]\n", servport);
+    puts("Connecting to server...");
+    if (!servConnect("127.0.0.1", servport)) {
+        puts("Failed to connect to internal server");
+        return false;
+    }
+    //servSend(SERVER_MSG_PING, NULL, false);
     puts("Wating for server...");
     servRecv(handleServer, 1);
-    while (!ping) {
+    /*
+    while (!ping && !quitRequest) {
+        getInput();
         microwait(100000);
-        puts("Wating for server...");
         servRecv(handleServer, 1);
     }
+    */
+    if (quitRequest) return false;
     puts("Server responded");
     //int64_t farlands = -1006632960;
     int64_t cx = 0;
@@ -462,4 +476,5 @@ void doGame() {
         free(tmpbuf[i]);
     }
     free(tmpbuf);
+    return true;
 }

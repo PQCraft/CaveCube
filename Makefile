@@ -33,7 +33,7 @@ BINNAME := cavecube
 
 BIN := $(BINNAME)$(BINEXT)
 
-CFLAGS += -Wall -Wextra -I. -g -Og
+CFLAGS += -Wall -Wextra -I. -g -O2
 
 ifndef OS
 BINFLAGS += -lpthread -ldl -lglfw -lm

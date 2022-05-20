@@ -10,11 +10,11 @@ static const int SEED = 1985;
 
 unsigned char* hash[16];
 
-void initNoiseTable() {
+void initNoiseTable(int s) {
     for (int i = 0; i < 16; ++i) {
         if (!hash[i]) hash[i] = malloc(256);
         for (int j = 0; j < 256; ++j) {
-            hash[i][j] = getRandByte();
+            hash[i][j] = getRandByte(s);
         }
     }
 }

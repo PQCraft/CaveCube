@@ -4,12 +4,14 @@
 #include <resource.h>
 #include <bmd.h>
 #include <renderer.h>
+#include <server.h>
 #include <stb_image.h>
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
+#include <unistd.h>
 
 /*
 float vertices[] = {
@@ -116,13 +118,41 @@ char* config;
 file_data config_filedata;
 int quitRequest = 0;
 
+int argc;
+char** argv;
+
+char* maindir = NULL;
+char* startdir = NULL;
+
 void sigh(int sig) {
     (void)sig;
     ++quitRequest;
 }
 
-int main(int argc, char** argv) {
-    (void)argc; (void)argv;
+int main(int _argc, char** _argv) {
+    argc = _argc;
+    argv = _argv;
+    maindir = strdup(pathfilename(execpath()));
+    #ifndef _WIN32
+    startdir = realpath(".", NULL);
+    #else
+    startdir = _fullpath(".", argv[0], MAX_PATH);
+    #endif
+    {
+        uint32_t tmplen = strlen(startdir);
+        #ifndef _WIN32
+        char echar = '/';
+        #else
+        char echar = '\\';
+        #endif
+        if (startdir[tmplen] != echar) {
+            startdir = realloc(startdir, tmplen + 2);
+            startdir[tmplen] = echar;
+        }
+    }
+    printf("Main directory: {%s}\n", maindir);
+    printf("Start directory: {%s}\n", startdir);
+    chdir(maindir);
     signal(SIGINT, sigh);
     while (!(config_filedata = getTextFile("config.cfg")).data) {
         FILE* fp = fopen("config.cfg", "w");
@@ -199,11 +229,12 @@ int main(int argc, char** argv) {
     }
     */
     stbi_set_flip_vertically_on_load(true);
+    if (!initServer()) return 1;
     if (!initRenderer()) return 1;
     //testRenderer();
-    doGame();
+    bool game_ecode = doGame();
     freeAllResources();
     quitRenderer();
     freeFile(config_filedata);
-    return 0;
+    return (game_ecode) ? 0 : 1;
 }

@@ -1,4 +1,5 @@
 obj/
+saves/
 *.o
 *.cfg
 *.conf

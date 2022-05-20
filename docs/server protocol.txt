@@ -1,0 +1,7 @@
+Protocol: TCP
+Default port: random 46000-46999
+
+Client commands:
+    C: Connect
+        N: New user
+        E[64-bit UID][64-bit password][NULL-terminated username]: Existing user
