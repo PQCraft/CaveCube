@@ -85,7 +85,9 @@ void setBlock(struct chunkdata* data, int cx, int cy, int cz, int x, int y, int 
     if (!data->renddata[c].generated) return;
     data->data[c][y * 256 + z * 16 + x].id = bdata.id;
     data->renddata[c].updated = false;
+    pthread_mutex_lock(&uclock);
     chunkUpdate(data, c);
+    pthread_mutex_unlock(&uclock);
 }
 
 static inline int compare(const void* b, const void* a) {
@@ -131,6 +133,7 @@ struct chunkdata allocChunks(uint32_t dist) {
 
 void moveChunks(struct chunkdata* chunks, int cx, int cz) {
     //moved = true;
+    pthread_mutex_lock(&uclock);
     struct blockdata* swap = NULL;
     struct chunk_renddata rdswap;
     if (cx > 0) {
@@ -221,6 +224,7 @@ void moveChunks(struct chunkdata* chunks, int cx, int cz) {
             }
         }
     }
+    pthread_mutex_unlock(&uclock);
 }
 
 bool genChunk(struct chunkinfo* chunks, int cx, int cy, int cz, int64_t xo, int64_t zo, struct blockdata* data, int type) {

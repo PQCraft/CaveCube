@@ -368,7 +368,7 @@ static void* meshthread(void* args) {
         if (c < 0) c = data->info.size - 1;
         pthread_mutex_lock(&uclock);
         bool cond = !data->renddata[c].generated || data->renddata[c].updated || data->renddata[c].busy;
-        if (data->renddata[c].busy) printf("BUSY [%d]\n", c);
+        //if (data->renddata[c].busy) printf("BUSY [%d]\n", c);
         if (!cond) data->renddata[c].busy = true;
         //pthread_mutex_unlock(&uclock);
         if (cond) {
