@@ -1,4 +1,5 @@
 #include "common.h"
+#include "main.h"
 
 #include <LzmaLib.h>
 #include <7zTypes.h>
@@ -30,6 +31,95 @@ void microwait(uint64_t d) {
     uint64_t t = d + altutime();
     while (t > altutime()) {}
     #endif
+}
+
+static char* bfnbuf = NULL;
+
+char* basefilename(char* fn) {
+    int32_t fnlen = strlen(fn);
+    int32_t i;
+    for (i = fnlen; i > -1; --i) {
+        if (fn[i] == '/') break;
+        #ifdef _WIN32
+        if (fn[i] == '\\') break;
+        #endif
+    }
+    bfnbuf = realloc(bfnbuf, fnlen - i);
+    strcpy(bfnbuf, fn + i + 1);
+    return bfnbuf;
+}
+
+char* pathfilename(char* fn) {
+    int32_t fnlen = strlen(fn);
+    int32_t i;
+    for (i = fnlen; i > -1; --i) {
+        if (fn[i] == '/') break;
+        #ifdef _WIN32
+        if (fn[i] == '\\') break;
+        #endif
+    }
+    bfnbuf = realloc(bfnbuf, i + 2);
+    char tmp = fn[i + 1];
+    fn[i + 1] = 0;
+    strcpy(bfnbuf, fn);
+    fn[i + 1] = tmp;
+    return bfnbuf;
+}
+
+static char* epbuf = NULL;
+
+char* execpath() {
+    if (!epbuf) epbuf = malloc(MAX_PATH + 1);
+    #ifndef _WIN32
+        #ifndef __APPLE__
+            #ifndef __FreeBSD__
+                int32_t scsize;
+                if ((scsize = readlink("/proc/self/exe", epbuf, MAX_PATH)) == -1)
+                    #ifndef __linux__
+                    if ((scsize = readlink("/proc/curproc/file", epbuf, MAX_PATH)) == -1)
+                    #endif
+                        goto scargv;
+                epbuf[scsize] = 0;
+            #else
+                int mib[4];
+                mib[0] = CTL_KERN;
+                mib[1] = KERN_PROC;
+                mib[2] = KERN_PROC_PATHNAME;
+                mib[3] = -1;
+                size_t cb = MAX_PATH;
+                sysctl(mib, 4, epbuf, &cb, NULL, 0);
+                char* tmpstartcmd = realpath(epbuf, NULL);
+                strcpy(epbuf, tmpstartcmd);
+                nfree(tmpstartcmd);
+            #endif
+        #else
+            uint32_t tmpsize = MAX_PATH;
+            if (_NSGetExecutablePath(epbuf, &tmpsize)) {
+                goto scargv;
+            }
+            
+            char* tmpstartcmd = realpath(epbuf, NULL);
+            strcpy(epbuf, tmpstartcmd);
+            nfree(tmpstartcmd);
+        #endif
+    #else
+        if (!GetModuleFileName(NULL, epbuf, MAX_PATH)) {
+            goto scargv;
+        }
+    #endif
+    goto skipscargv;
+    scargv:;
+    if (strcmp(argv[0], basefilename(argv[0]))) {
+        #ifndef _WIN32
+        realpath(argv[0], epbuf);
+        #else
+        _fullpath(epbuf, argv[0], MAX_PATH);
+        #endif
+    } else {
+        strcpy(epbuf, argv[0]);
+    }
+    skipscargv:;
+    return epbuf;
 }
 
 int isFile(char* path) {
@@ -225,22 +315,62 @@ unsigned char* compressData(unsigned char* data, size_t insize, size_t* outsize)
     return outbuf;
 }
 
+uint64_t qhash(char* str, int max) {
+    uint64_t hash = 0x7FBA0FC3DEADBEEF;
+    uint16_t len = 0;
+    int tmp;
+    while ((max < 0 && *str) || len < max) {
+        ++len;
+        hash ^= ((*str) & 0xFF) * 0xF65C403B1034;
+        for (int i = -1; i < ((*str) & 0x0F); ++i) {
+            tmp = hash & 1;
+            hash = ((uint64_t)tmp << 63) | (hash >> 1);
+        }
+        hash ^= (uint64_t)len * 0xE578E432;
+        tmp = hash & 1;
+        hash = ((uint64_t)tmp << 63) | (hash >> 1);
+        ++str;
+    }
+    return hash;
+}
+
 #define SEED_DEFAULT (0xDE8BADADBEF0EF0D)
 #define SEED_OP1 (0xF0E1D2C3B4A59687)
 #define SEED_OP2 (0x1F7BC9250917AD9C)
 
-uint64_t randSeed = SEED_DEFAULT;
+uint64_t randSeed[16] = {
+    SEED_DEFAULT,
+    SEED_DEFAULT,
+    SEED_DEFAULT,
+    SEED_DEFAULT,
+    SEED_DEFAULT,
+    SEED_DEFAULT,
+    SEED_DEFAULT,
+    SEED_DEFAULT,
+    SEED_DEFAULT,
+    SEED_DEFAULT,
+    SEED_DEFAULT,
+    SEED_DEFAULT,
+    SEED_DEFAULT,
+    SEED_DEFAULT,
+    SEED_DEFAULT,
+    SEED_DEFAULT,
+};
 
-void setRandSeed(uint64_t val) {
-    randSeed = val;
+void setRandSeed(int s, uint64_t val) {
+    randSeed[s] = val;
 }
 
-uint8_t getRandByte() {
-    randSeed += SEED_OP1;
-    randSeed *= SEED_OP1;
-    randSeed += SEED_OP2;
-    uintptr_t tmp = (randSeed >> 63);
-    randSeed <<= 1;
-    randSeed |= tmp;
-    return randSeed;
+uint8_t getRandByte(int s) {
+    randSeed[s] += SEED_OP1;
+    randSeed[s] *= SEED_OP1;
+    randSeed[s] += SEED_OP2;
+    uintptr_t tmp = (randSeed[s] >> 63);
+    randSeed[s] <<= 1;
+    randSeed[s] |= tmp;
+    return randSeed[s];
+}
+
+uint16_t getRandWord(int s) {
+    return (getRandByte(s) << 8) | getRandByte(s);
 }

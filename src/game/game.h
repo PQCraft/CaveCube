@@ -9,6 +9,6 @@ extern coord_3d pvelocity;
 extern int pchunkx, pchunky, pchunkz;
 extern int pblockx, pblocky, pblockz;
 
-void doGame(void);
+bool doGame(void);
 
 #endif

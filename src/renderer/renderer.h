@@ -9,9 +9,10 @@
 #include <stdbool.h>
 #include <resource.h>
 //#include <game.h>
+#include <pthread.h>
 
 #ifndef MESHER_THREADS
-    #define MESHER_THREADS 2
+    #define MESHER_THREADS 1
 #endif
 
 typedef struct {
@@ -98,6 +99,7 @@ typedef unsigned int texture_t;
 #ifndef RENDERER_H_STUB
 
 extern struct renderer_info rendinf;
+extern pthread_mutex_t uclock;
 
 bool initRenderer(void);
 void quitRenderer(void);

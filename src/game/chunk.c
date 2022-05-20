@@ -234,6 +234,7 @@ bool genChunk(struct chunkinfo* chunks, int cx, int cy, int cz, int64_t xo, int6
     //memset(data, 0, 4096 * sizeof(struct blockdata));
     //chunks->renddata[coff].pos = (coord_3d){(float)(cx - (int)chunks->dist), (float)(cy), (float)(cz - (int)chunks->dist)};
     //printf("set chunk pos [%u]: [%d][%d][%d]\n", coff, cx - chunks->dist, cy, cz - chunks->dist);
+    //printf("Generating [%d][%d][%d] [%ld][%ld]\n", cx, cy, cz, xo, zo);
     int btm = cy * 16;
     int top = (cy + 1) * 16 - 1;
     for (int z = 0; z < 16; ++z) {
@@ -334,21 +335,21 @@ static uint16_t cid = 0;
 
 void genChunks_cb(struct chunkdata* chunks, void* ptr) {
     struct server_ret_chunk* srvchunk = ptr;
-    //if (!moved) return;
-    uint32_t coff = (srvchunk->z + chunks->info.dist) * chunks->info.width + srvchunk->y * chunks->info.widthsq + (srvchunk->x + chunks->info.dist);
-    //static unsigned chunk = 0;
     if (srvchunk->id != cid) {
-        //printf("Dropping chunk [%u]\n", chunk);
-        //++chunk;
+        //printf("Dropping chunk ([s:%d] != [c:%d])\n", srvchunk->id, cid);
         return;
     }
-    //printf("Writing chunk [%u]\n", chunk);
+    uint32_t coff = (srvchunk->z + chunks->info.dist) * chunks->info.width + srvchunk->y * chunks->info.widthsq + (srvchunk->x + chunks->info.dist);
+    //static unsigned chunk = 0;
+    //printf("Writing chunk [%d][%d][%d]\n", srvchunk->x, srvchunk->y, srvchunk->z);
     //++chunk;
+    pthread_mutex_lock(&uclock);
     memcpy(chunks->data[coff], srvchunk->data, 4096 * sizeof(struct blockdata));
-    chunks->renddata[coff].updated = false;
     //chunks->renddata[coff].sent = false;
+    chunks->renddata[coff].updated = false;
     chunkUpdate(chunks, coff);
     chunks->renddata[coff].generated = true;
+    pthread_mutex_unlock(&uclock);
     /*
     if (srvchunk->data->renddata[coff].moved) {
         srvchunk->data->renddata[coff].sent = false;

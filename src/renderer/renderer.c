@@ -308,8 +308,8 @@ static struct blockdata rendGetBlock(struct chunkdata* data, int32_t c, int x, i
     while (y > 15 && c < (int)(data->info.size - data->info.widthsq)) {c += data->info.widthsq; y -= 16;}
     if (c < 0 || x < 0 || y < 0 || z < 0 || x > 15 || z > 15) return (struct blockdata){255, 0, 0};
     if (c >= (int32_t)data->info.size || y > 15) return (struct blockdata){0, 0, 0};
-    while (!data->renddata[c].generated) {}
-    //if (!data->renddata[c].generated) return (struct blockdata){255, 0, 0};
+    //while (!data->renddata[c].generated) {}
+    if (!data->renddata[c].generated) return (struct blockdata){255, 0, 0};
     //return (struct blockdata){0, 0, 0 ,0};
     //printf("block [%d, %d, %d]: [%d]\n", x, y, z, y * 225 + (z % 15) * 15 + (x % 15));
     //printf("[%d] [%d]: [%d]\n", x, z, ((x / 15) % data->info.width) + ((x / 15) / data->info.width));
@@ -357,7 +357,7 @@ static float vert2D[] = {
 };
 
 static pthread_t pthreads[MAX_THREADS];
-static pthread_mutex_t uclock;
+pthread_mutex_t uclock;
 static pthread_mutex_t gllock;
 
 static void* meshthread(void* args) {
@@ -368,20 +368,21 @@ static void* meshthread(void* args) {
         if (c < 0) c = data->info.size - 1;
         pthread_mutex_lock(&uclock);
         bool cond = !data->renddata[c].generated || data->renddata[c].updated || data->renddata[c].busy;
+        if (data->renddata[c].busy) printf("BUSY [%d]\n", c);
         if (!cond) data->renddata[c].busy = true;
-        pthread_mutex_unlock(&uclock);
-        //printf("BUSY? [%d] [%d]\n", c, data->renddata[c].busy);
+        //pthread_mutex_unlock(&uclock);
         if (cond) {
+            pthread_mutex_unlock(&uclock);
             if (!c) microwait(10000);
             continue;
         }
-        //printf("MESHING [%d]\n", c);
         uint32_t* _vptr = malloc(147456 * sizeof(uint32_t) * 2);
         uint32_t* _vptr2 = malloc(147456 * sizeof(uint32_t) * 2);
         uint32_t* vptr = _vptr;
         uint32_t* vptr2 = _vptr2;
         uint32_t tmpsize = 0;
         uint32_t tmpsize2 = 0;
+        //printf("MESHING [%d]\n", c);
         for (int y = 15; y >= 0; --y) {
             for (int z = 0; z < 16; ++z) {
                 for (int x = 0; x < 16; ++x) {
@@ -445,9 +446,10 @@ static void* meshthread(void* args) {
         //glGenVertexArrays(1, &data->renddata[c].VAO);
         //glBindVertexArray(data->renddata[c].VAO);
         //data->renddata[c].updated = true;
-        pthread_mutex_lock(&uclock);
+        //pthread_mutex_lock(&uclock);
         data->renddata[c].busy = false;
         data->renddata[c].ready = true;
+        data->renddata[c].updated = true;
         pthread_mutex_unlock(&uclock);
     }
     return NULL;
@@ -462,16 +464,23 @@ void updateChunks(void* vdata) {
         init = true;
     }
     struct chunkdata* data = vdata;
+    /*
     static int32_t ucleftoff = -1;
     for (int32_t c = ucleftoff, c2 = 0; ; --c) {
         if (c < 0) c = data->info.size - 1;
         if (c2 >= (int32_t)data->info.size) {ucleftoff = c; break;}
         ++c2;
+    */
         //puts("LOOP");
+    for (int32_t c = data->info.size - 1; c >= 0; --c) {
         pthread_mutex_lock(&uclock);
         bool cond = data->renddata[c].ready;
-        pthread_mutex_unlock(&uclock);
-        if (!cond) continue;
+        if (cond) data->renddata[c].busy = true;
+        //pthread_mutex_unlock(&uclock);
+        if (!cond) {
+            pthread_mutex_unlock(&uclock);
+            continue;
+        }
         uint32_t* _vptr = data->renddata[c].vertices;
         uint32_t* _vptr2 = data->renddata[c].vertices2;
         uint32_t tmpsize = data->renddata[c].vcount * sizeof(uint32_t) * 2;
@@ -479,23 +488,23 @@ void updateChunks(void* vdata) {
         if (!data->renddata[c].VBO) glGenBuffers(1, &data->renddata[c].VBO);
         if (!data->renddata[c].VBO2) glGenBuffers(1, &data->renddata[c].VBO2);
         if (tmpsize) {
-            pthread_mutex_lock(&gllock);
+            //pthread_mutex_lock(&gllock);
             glBindBuffer(GL_ARRAY_BUFFER, data->renddata[c].VBO);
             glBufferData(GL_ARRAY_BUFFER, tmpsize, _vptr, GL_STATIC_DRAW);
-            pthread_mutex_unlock(&gllock);
+            //pthread_mutex_unlock(&gllock);
         }
         if (tmpsize2) {
-            pthread_mutex_lock(&gllock);
+            //pthread_mutex_lock(&gllock);
             glBindBuffer(GL_ARRAY_BUFFER, data->renddata[c].VBO2);
             glBufferData(GL_ARRAY_BUFFER, tmpsize2, _vptr2, GL_STATIC_DRAW);
-            pthread_mutex_unlock(&gllock);
+            //pthread_mutex_unlock(&gllock);
         }
         free(_vptr);
         free(_vptr2);
-        pthread_mutex_lock(&uclock);
+        //pthread_mutex_lock(&uclock);
         data->renddata[c].ready = false;
-        data->renddata[c].updated = true;
         data->renddata[c].buffered = true;
+        data->renddata[c].busy = false;
         pthread_mutex_unlock(&uclock);
     }
 }
@@ -640,7 +649,7 @@ bool initRenderer() {
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
     if (!(rendinf.monitor = glfwGetPrimaryMonitor())) {
-        fputs("glfwGetPrimaryMonitor: Failed to fetch primary monitor handle\n", stderr);
+        fputs("initRenderer: Failed to fetch primary monitor handle\n", stderr);
         return false;
     }
     const GLFWvidmode* vmode = glfwGetVideoMode(rendinf.monitor);
@@ -661,14 +670,14 @@ bool initRenderer() {
     rendinf.fullscr = getConfigValBool(getConfigVarStatic(config, "renderer.fullscreen", "false", 64));
 
     if (!(rendinf.window = glfwCreateWindow(rendinf.win_width, rendinf.win_height, "CaveCube", NULL, NULL))) {
-        fputs("glfwCreateWindow: Failed to create window\n", stderr);
+        fputs("initRenderer: Failed to create window\n", stderr);
         return false;
     }
     glfwMakeContextCurrent(rendinf.window);
     glfwSetInputMode(rendinf.window, GLFW_STICKY_KEYS, GLFW_TRUE);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-        fputs("gladLoadGLLoader: Failed to initialize GLAD\n", stderr);
+        fputs("initRenderer: Failed to initialize GLAD\n", stderr);
         return false;
     }
     glfwSetFramebufferSizeCallback(rendinf.window, gfx_winch);
