@@ -148,6 +148,7 @@ int main(int _argc, char** _argv) {
         if (startdir[tmplen] != echar) {
             startdir = realloc(startdir, tmplen + 2);
             startdir[tmplen] = echar;
+            startdir[tmplen + 1] = 0;
         }
     }
     printf("Main directory: {%s}\n", maindir);
@@ -233,8 +234,8 @@ int main(int _argc, char** _argv) {
     if (!initRenderer()) return 1;
     //testRenderer();
     bool game_ecode = doGame();
-    freeAllResources();
     quitRenderer();
+    //freeAllResources();
     freeFile(config_filedata);
     return (game_ecode) ? 0 : 1;
 }

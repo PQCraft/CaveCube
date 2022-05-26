@@ -196,7 +196,20 @@ static void handleServer(int msg, void* data) {
         case SERVER_RET_UPDATECHUNK:;
             genChunks_cb(&chunks, data);
             break;
+        case SERVER_RET_UPDATECHUNKCOL:;
+            genChunks_cb2(&chunks, data);
+            break;
     }
+}
+
+static pthread_t srthreadh;
+
+void* srthread(void* args) {
+    while (1) {
+        microwait(40000);
+        servRecv(handleServer, 64);
+    }
+    return NULL;
 }
 
 bool doGame() {
@@ -249,11 +262,12 @@ bool doGame() {
     float yvel = 0.0;
     float xcm = 0.0;
     float zcm = 0.0;
-    rendinf.camrot.z = 10;
+    //rendinf.camrot.z = 10;
     //uint64_t loop = 0;
+    pthread_create(&srthreadh, NULL, &srthread, NULL);
     while (!quitRequest) {
+        uint64_t st1 = altutime();
         glfwSetTime(0);
-        servRecv(handleServer, chunks.info.width * 4);
         float npmult = 0.5;
         float nrmult = 1.0;
         struct input_info input = getInput();
@@ -323,7 +337,7 @@ bool doGame() {
             genChunks(&chunks, cx, cz);
             pchunkx = cx;
             pchunkz = cz;
-            //microwait(100000);
+            //microwait(1000000);
         }
         //genChunks(&chunks, cx, cz);
         updateChunks(&chunks);
@@ -344,9 +358,8 @@ bool doGame() {
         //struct blockdata overbdata = getBlockF(&chunks, rendinf.campos.x, rendinf.campos.y + 1.5, rendinf.campos.z);
         //printf("pmult: [%f]\n", pmult);
         if (onblock) {
-            float mul = 3.0 * pmult;
-            xcm = ((input.zmov * sinf(yrotrad) * npmult) + (input.xmov * cosf(yrotrad) * npmult)) * mul + xcm * (1.0 - mul);
-            zcm = (-(input.zmov * cosf(yrotrad) * npmult) + (input.xmov * sinf(yrotrad) * npmult)) * mul + zcm * (1.0 - mul);
+            xcm = ((input.zmov * sinf(yrotrad) * npmult) + (input.xmov * cosf(yrotrad) * npmult))/* * mul + xcm * (1.0 - mul)*/;
+            zcm = (-(input.zmov * cosf(yrotrad) * npmult) + (input.xmov * sinf(yrotrad) * npmult))/* * mul + zcm * (1.0 - mul)*/;
             if (rendinf.campos.y < (float)((int)(rendinf.campos.y)) + 0.5 && yvel <= 0.0) {
                 rendinf.campos.y = (float)((int)(rendinf.campos.y)) + 0.5;
             }
@@ -355,9 +368,8 @@ bool doGame() {
             }
             if (yvel < 0) yvel = 0.0;
         } else {
-            float mul = 0.35 * pmult;
-            xcm = ((input.zmov * sinf(yrotrad) * npmult) + (input.xmov * cosf(yrotrad) * npmult)) * mul + xcm * (1.0 - mul);
-            zcm = (-(input.zmov * cosf(yrotrad) * npmult) + (input.xmov * sinf(yrotrad) * npmult)) * mul + zcm * (1.0 - mul);
+            xcm = ((input.zmov * sinf(yrotrad) * npmult) + (input.xmov * cosf(yrotrad) * npmult))/* * mul + xcm * (1.0 - mul)*/;
+            zcm = (-(input.zmov * cosf(yrotrad) * npmult) + (input.xmov * sinf(yrotrad) * npmult))/* * mul + zcm * (1.0 - mul)*/;
         }
         //printf("yvel: [%f] [%f] [%f] [%f] [%u]\n", rendinf.campos.y, (float)((int)(blocky2)) + 0.5, yvel, pmult, underbdata.id & 0xFF);
         pvelocity.y = yvel;
@@ -431,6 +443,7 @@ bool doGame() {
             dtime = altutime();
         }
         //printf("[%d] [%d] [%d]\n", (!rendinf.vsync && !rendinf.fps), !rendinf.fps, (altutime() - fpsstarttime2) >= rendtime / rendinf.fps);
+        uint64_t et1 = altutime() - st1;
         if ((!rendinf.vsync && !rendinf.fps) || !rendinf.fps || (altutime() - fpsstarttime2) >= rendtime / rendinf.fps) {
             //puts("render");
             if (curbdata.id == 7) {
@@ -447,6 +460,8 @@ bool doGame() {
             fpsstarttime2 = altutime();
             ++fpsct;
         }
+        uint64_t et2 = altutime() - st1;
+        //if (et2 > 16667) printf("OY!: logic:[%lu]; rend:[%lu]\n", et1, et2);
         pcoord = icoord2wcoord(rendinf.campos, pchunkx, pchunkz);
         coord_3d_dbl bcoord = intCoord_dbl(pcoord);
         pblockx = bcoord.x;

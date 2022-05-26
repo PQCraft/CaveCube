@@ -21,6 +21,8 @@ unsigned char* texmap;
 texture_t texmaph;
 texture_t charseth;
 
+static pthread_mutex_t gllock;
+
 float gfx_aspect = 1.0;
 
 void setMat4(GLuint prog, char* name, mat4 val) {
@@ -77,6 +79,7 @@ void setSpace(int space) {
 }
 
 void updateCam() {
+    pthread_mutex_lock(&gllock);
     mat4 view __attribute__((aligned (32)));
     mat4 projection __attribute__((aligned (32)));
     glm_perspective(rendinf.camfov * M_PI / 180.0, gfx_aspect, 0.05, 1024.0, projection);
@@ -97,6 +100,7 @@ void updateCam() {
     }
     */
     //setUniform3f(rendinf.shaderprog, "viewPos", (float[]){rendinf.campos.x, rendinf.campos.y, rendinf.campos.z});
+    pthread_mutex_unlock(&gllock);
 }
 
 void setFullscreen(bool fullscreen) {
@@ -280,8 +284,11 @@ void renderModel(struct model* m, bool advanced) {
 
 void updateScreen() {
     static int lv = 0;
+    pthread_mutex_lock(&gllock);
+    glfwMakeContextCurrent(rendinf.window);
     if (rendinf.vsync != lv) {glfwSwapInterval(rendinf.vsync); lv = rendinf.vsync;}
     glfwSwapBuffers(rendinf.window);
+    pthread_mutex_unlock(&gllock);
 }
 
 uint32_t chunkcachesize = 0;
@@ -358,13 +365,12 @@ static float vert2D[] = {
 
 static pthread_t pthreads[MAX_THREADS];
 pthread_mutex_t uclock;
-static pthread_mutex_t gllock;
 
 static void* meshthread(void* args) {
     struct chunkdata* data = args;
     struct blockdata bdata;
     struct blockdata bdata2[6];
-    for (int32_t c = -1; ; --c) {
+    for (int32_t c = -1; !quitRequest; --c) {
         if (c < 0) c = data->info.size - 1;
         pthread_mutex_lock(&uclock);
         bool cond = !data->renddata[c].generated || data->renddata[c].updated || data->renddata[c].busy;
@@ -376,8 +382,12 @@ static void* meshthread(void* args) {
             if (!c) microwait(10000);
             continue;
         }
+        lbl1:;
         uint32_t* _vptr = malloc(147456 * sizeof(uint32_t) * 2);
+        if (!_vptr) {puts("malloc returned NULL for _vptr"); goto lbl1;}
+        lbl2:;
         uint32_t* _vptr2 = malloc(147456 * sizeof(uint32_t) * 2);
+        if (!_vptr2) {puts("malloc returned NULL for _vptr2"); goto lbl2;}
         uint32_t* vptr = _vptr;
         uint32_t* vptr2 = _vptr2;
         uint32_t tmpsize = 0;
@@ -439,17 +449,35 @@ static void* meshthread(void* args) {
         data->renddata[c].vcount2 = tmpsize2;
         tmpsize *= sizeof(uint32_t) * 2;
         tmpsize2 *= sizeof(uint32_t) * 2;
-        _vptr = realloc(_vptr, tmpsize);
-        _vptr2 = realloc(_vptr2, tmpsize2);
-        data->renddata[c].vertices = _vptr;
-        data->renddata[c].vertices2 = _vptr2;
+        //_vptr = realloc(_vptr, tmpsize);
+        //_vptr2 = realloc(_vptr2, tmpsize2);
+        pthread_mutex_lock(&gllock);
+        glfwMakeContextCurrent(rendinf.window);
+        if (!data->renddata[c].VBO) glGenBuffers(1, &data->renddata[c].VBO);
+        if (!data->renddata[c].VBO2) glGenBuffers(1, &data->renddata[c].VBO2);
+        if (tmpsize) {
+            glBindBuffer(GL_ARRAY_BUFFER, data->renddata[c].VBO);
+            glBufferData(GL_ARRAY_BUFFER, tmpsize, _vptr, GL_STATIC_DRAW);
+        }
+        if (tmpsize2) {
+            glBindBuffer(GL_ARRAY_BUFFER, data->renddata[c].VBO2);
+            glBufferData(GL_ARRAY_BUFFER, tmpsize2, _vptr2, GL_STATIC_DRAW);
+        }
+        pthread_mutex_unlock(&gllock);
+        free(_vptr);
+        free(_vptr2);
+        //data->renddata[c].vertices = _vptr;
+        //data->renddata[c].vertices2 = _vptr2;
         //glGenVertexArrays(1, &data->renddata[c].VAO);
         //glBindVertexArray(data->renddata[c].VAO);
         //data->renddata[c].updated = true;
         //pthread_mutex_lock(&uclock);
-        data->renddata[c].busy = false;
-        data->renddata[c].ready = true;
+        //data->renddata[c].busy = false;
+        //data->renddata[c].ready = true;
         data->renddata[c].updated = true;
+        data->renddata[c].ready = false;
+        data->renddata[c].buffered = true;
+        data->renddata[c].busy = false;
         pthread_mutex_unlock(&uclock);
     }
     return NULL;
@@ -463,16 +491,13 @@ void updateChunks(void* vdata) {
         }
         init = true;
     }
-    struct chunkdata* data = vdata;
     /*
+    struct chunkdata* data = vdata;
     static int32_t ucleftoff = -1;
     for (int32_t c = ucleftoff, c2 = 0; ; --c) {
         if (c < 0) c = data->info.size - 1;
-        if (c2 >= (int32_t)data->info.size) {ucleftoff = c; break;}
+        if (c2 >= (int32_t)1) {ucleftoff = c; break;}
         ++c2;
-    */
-        //puts("LOOP");
-    for (int32_t c = data->info.size - 1; c >= 0; --c) {
         pthread_mutex_lock(&uclock);
         bool cond = data->renddata[c].ready;
         if (cond) data->renddata[c].busy = true;
@@ -507,6 +532,7 @@ void updateChunks(void* vdata) {
         data->renddata[c].busy = false;
         pthread_mutex_unlock(&uclock);
     }
+    */
 }
 
 void renderText(float x, float y, float scale, unsigned end, char* text, void* extinfo) {
@@ -532,6 +558,8 @@ static char tbuf[1][32768];
 
 void renderChunks(void* vdata) {
     struct chunkdata* data = vdata;
+    pthread_mutex_lock(&gllock);
+    glfwMakeContextCurrent(rendinf.window);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "dist"), data->info.dist);
     setUniform3f(rendinf.shaderprog, "cam", (float[]){rendinf.campos.x, rendinf.campos.y, rendinf.campos.z});
@@ -623,6 +651,7 @@ void renderChunks(void* vdata) {
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     //printf("rendered in: [%f]s\n", (float)(altutime() - starttime) / 1000000.0);
+    pthread_mutex_unlock(&gllock);
 }
 
 int rendererQuitRequest() {
@@ -634,8 +663,12 @@ static void errorcb(int e, const char* m) {
 }
 
 bool initRenderer() {
+    pthread_mutex_init(&uclock, NULL);
+    pthread_mutex_init(&gllock, NULL);
+
     glfwSetErrorCallback(errorcb);
     glfwInit();
+
     rendinf.camfov = 85;
     rendinf.campos = GFX_DEFAULT_POS;
     rendinf.camrot = GFX_DEFAULT_ROT;
@@ -643,7 +676,7 @@ bool initRenderer() {
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_TRUE);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
@@ -802,13 +835,16 @@ bool initRenderer() {
     //glEnableVertexAttribArray(0);
     //glEnableVertexAttribArray(1);
 
-    pthread_mutex_init(&uclock, NULL);
-    pthread_mutex_init(&gllock, NULL);
-
     free(tmpbuf);
     return true;
 }
 
 void quitRenderer() {
+    //pthread_mutex_lock(&uclock);
+    //pthread_mutex_lock(&gllock);
+    //puts("RENDEXIT");
+    for (int i = 0; i < MESHER_THREADS && i < MAX_THREADS; ++i) {
+        pthread_join(pthreads[i], NULL);
+    }
     glfwTerminate();
 }
