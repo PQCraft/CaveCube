@@ -13,11 +13,11 @@
 #endif
 
 #ifndef SERVER_BUF_SIZE
-    #define SERVER_BUF_SIZE 16777216
+    #define SERVER_BUF_SIZE 262144
 #endif
 
 #ifndef CLIENT_BUF_SIZE
-    #define CLIENT_BUF_SIZE 4096
+    #define CLIENT_BUF_SIZE 32768
 #endif
 
 enum {
@@ -29,6 +29,7 @@ enum {
 enum {
     SERVER_MSG_PING,
     SERVER_MSG_GETCHUNK,
+    SERVER_MSG_GETCHUNKCOL,
 };
 
 enum {
@@ -39,11 +40,12 @@ enum {
     SERVER_RET_NONE,
     SERVER_RET_PONG,
     SERVER_RET_UPDATECHUNK,
+    SERVER_RET_UPDATECHUNKCOL,
 };
 
 struct server_msg_chunk {
-    uint16_t id;
     struct chunkinfo info;
+    uint16_t id;
     int x;
     int y;
     int z;
@@ -51,13 +53,32 @@ struct server_msg_chunk {
     int64_t zo;
 };
 
+struct server_msg_chunkcol {
+    struct chunkinfo info;
+    uint16_t id;
+    int x;
+    int z;
+    int64_t xo;
+    int64_t zo;
+};
+
 struct server_ret_chunk {
     uint16_t id;
-    //struct chunkinfo* info;
     int x;
     int y;
     int z;
+    int64_t xo;
+    int64_t zo;
     struct blockdata data[4096];
+};
+
+struct server_ret_chunkcol {
+    uint16_t id;
+    int x;
+    int z;
+    int64_t xo;
+    int64_t zo;
+    struct blockdata data[16][4096];
 };
 
 struct server_msg_chunkpos {
@@ -70,7 +91,6 @@ struct server_ret {
     void* data;
 };
 
-//bool initServer(int);
 bool initServer(void);
 int servStart(char*, int, char*, int);
 bool servConnect(char*, int);

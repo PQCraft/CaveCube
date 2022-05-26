@@ -2,6 +2,19 @@ Protocol: TCP
 Default port: random 46000-46999
 
 Client commands:
-    C: Connect
-        N: New user
-        E[64-bit UID][64-bit password][NULL-terminated username]: Existing user
+
+    Login command:
+
+        L
+
+        This must be the fist command the client sends when connecting to a server.
+        Otherwise, the server will close the connection.
+
+        New user subcommand:
+
+            N
+
+        Existing user subcommand:
+
+            E[64-bit UID][64-bit password][NULL-terminated username string]
+
