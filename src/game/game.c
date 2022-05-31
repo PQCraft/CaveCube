@@ -266,7 +266,7 @@ bool doGame() {
     //uint64_t loop = 0;
     pthread_create(&srthreadh, NULL, &srthread, NULL);
     while (!quitRequest) {
-        uint64_t st1 = altutime();
+        //uint64_t st1 = altutime();
         glfwSetTime(0);
         float npmult = 0.5;
         float nrmult = 1.0;
@@ -443,7 +443,7 @@ bool doGame() {
             dtime = altutime();
         }
         //printf("[%d] [%d] [%d]\n", (!rendinf.vsync && !rendinf.fps), !rendinf.fps, (altutime() - fpsstarttime2) >= rendtime / rendinf.fps);
-        uint64_t et1 = altutime() - st1;
+        //uint64_t et1 = altutime() - st1;
         if ((!rendinf.vsync && !rendinf.fps) || !rendinf.fps || (altutime() - fpsstarttime2) >= rendtime / rendinf.fps) {
             //puts("render");
             if (curbdata.id == 7) {
@@ -460,7 +460,7 @@ bool doGame() {
             fpsstarttime2 = altutime();
             ++fpsct;
         }
-        uint64_t et2 = altutime() - st1;
+        //uint64_t et2 = altutime() - st1;
         //if (et2 > 16667) printf("OY!: logic:[%lu]; rend:[%lu]\n", et1, et2);
         pcoord = icoord2wcoord(rendinf.campos, pchunkx, pchunkz);
         coord_3d_dbl bcoord = intCoord_dbl(pcoord);

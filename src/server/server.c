@@ -127,7 +127,7 @@ static int getbuf(int sockfd, void* _dest, int len, struct bufinf* buf) {
 //static int servmode = 0;
 
 static int64_t gxo = 0, gzo = 0;
-static int worldtype = 2;
+static int worldtype = 4;
 
 static pthread_t servpthreads[MAX_THREADS];
 

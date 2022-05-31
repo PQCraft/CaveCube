@@ -784,7 +784,7 @@ bool initRenderer() {
             sprintf(tmpbuf, "game/textures/blocks/%d/%d.png", i, j - o);
             resdata_image* img = loadResource(RESOURCE_IMAGE, tmpbuf);
             if (!img) {
-                if (!j) st = true;
+                if (j == 1) st = true;
                 else if (j == 3) o = 3;
                 else break;
                 --j;
