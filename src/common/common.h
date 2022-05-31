@@ -17,7 +17,7 @@ typedef struct {
 #define GCBUFSIZE 32768
 
 #ifndef MAX_THREADS
-    #define MAX_THREADS 8
+    #define MAX_THREADS 256
 #endif
 
 #ifndef MAX_PATH

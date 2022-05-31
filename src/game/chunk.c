@@ -328,6 +328,29 @@ bool genChunk(struct chunkinfo* chunks, int cx, int cy, int cz, int64_t xo, int6
                         if (!btm && !(s4 % 4)) data[512 + z * 16 + x].id = 6;
                     }
                     break;
+                case 4:; {
+                        double s1 = perlin2d(0, (double)(nx + x) / 75, (double)(nz + z) / 75, 1, 4);
+                        double s6 = perlin2d(5, (double)(nx + x) / 63, (double)(nz + z) / 63, 1, 2);
+                        double s2 = perlin2d(1, (double)(nx + x) / 62, (double)(nz + z) / 62, 2, 4) * s6 + perlin2d(6, (double)(nx + x) / 92, (double)(nz + z) / 92, 0.1, 5) * (1.0 - s6);
+                        double s3 = perlin2d(2, (double)(nx + x) / 46, (double)(nz + z) / 46, 1, 9);
+                        int s4 = noise2d(3, (double)(nx + x), (double)(nz + z));
+                        double s5 = perlin2d(4, (double)(nx + x) / 267, (double)(nz + z) / 267, 1, 5);
+                        for (int y = btm; y <= top && y < 65; ++y) {
+                            data[(y - btm) * 256 + z * 16 + x].id = 7;
+                        }
+                        double s = ((s1 * 6 - 3) + (s2 * 36 - 18)) * (1.0 - s5 * 0.5) + 35 + s5 * 65;
+                        int si = round(s);
+                        if (si >= btm && si <= top) data[(si - btm) * 256 + z * 16 + x].id = ((double)si - round(s3 * 10) < 62) ? 8 : ((si < 64) ? 2 : 3);
+                        for (int y = ((si - 1) > top) ? top : si - 1; y >= btm; --y) {
+                            data[(y - btm) * 256 + z * 16 + x].id = (y < ((s2 * 26 - 16) + 62)) ? 1 : ((double)y - round(s3 * 10) < 62 && y > ((s2 * 30 - 16) + 62)) ? 8 : 2;
+                        }
+                        if (!btm) {
+                            data[z * 16 + x].id = 6;
+                            if (!(s4 % 2) || !(s4 % 3)) data[256 + z * 16 + x].id = 6;
+                            if (!(s4 % 4)) data[512 + z * 16 + x].id = 6;
+                        }
+                    }
+                    break;
             }
         }
     }
