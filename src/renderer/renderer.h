@@ -113,7 +113,7 @@ struct model* loadModel(char*, char**);
 //void renderPart(struct model*, unsigned, bool);
 void updateCam(void);
 void updateScreen(void);
-void updateChunks(void*);
+void startMesher(void*);
 void renderChunks(void*);
 void setSkyColor(float, float, float);
 void setScreenMult(float, float, float);

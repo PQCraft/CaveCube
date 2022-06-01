@@ -1,7 +1,7 @@
+#include <main.h>
 #include <renderer.h>
 #include <common.h>
 #include <resource.h>
-#include <main.h>
 #include <input.h>
 #include <noise.h>
 #include <game.h>
@@ -284,9 +284,9 @@ void renderModel(struct model* m, bool advanced) {
 
 void updateScreen() {
     static int lv = 0;
+    if (rendinf.vsync != lv) {glfwSwapInterval(rendinf.vsync); lv = rendinf.vsync;}
     pthread_mutex_lock(&gllock);
     glfwMakeContextCurrent(rendinf.window);
-    if (rendinf.vsync != lv) {glfwSwapInterval(rendinf.vsync); lv = rendinf.vsync;}
     glfwSwapBuffers(rendinf.window);
     pthread_mutex_unlock(&gllock);
 }
@@ -370,24 +370,27 @@ static void* meshthread(void* args) {
     struct chunkdata* data = args;
     struct blockdata bdata;
     struct blockdata bdata2[6];
+    bool activity = false;
     for (int32_t c = -1; !quitRequest; --c) {
-        if (c < 0) c = data->info.size - 1;
+        if (c < 0) {
+            c = data->info.size - 1;
+            activity = false;
+        }
         pthread_mutex_lock(&uclock);
         bool cond = !data->renddata[c].generated || data->renddata[c].updated || data->renddata[c].busy;
         //if (data->renddata[c].busy) printf("BUSY [%d]\n", c);
-        if (!cond) data->renddata[c].busy = true;
+        if (!cond) {
+            data->renddata[c].busy = true;
+            activity = true;
+        }
         //pthread_mutex_unlock(&uclock);
         if (cond) {
             pthread_mutex_unlock(&uclock);
-            if (!c) microwait(10000);
+            if (!c && !activity) microwait(50000);
             continue;
         }
-        lbl1:;
         uint32_t* _vptr = malloc(147456 * sizeof(uint32_t) * 2);
-        if (!_vptr) {puts("malloc returned NULL for _vptr"); goto lbl1;}
-        lbl2:;
         uint32_t* _vptr2 = malloc(147456 * sizeof(uint32_t) * 2);
-        if (!_vptr2) {puts("malloc returned NULL for _vptr2"); goto lbl2;}
         uint32_t* vptr = _vptr;
         uint32_t* vptr2 = _vptr2;
         uint32_t tmpsize = 0;
@@ -483,56 +486,28 @@ static void* meshthread(void* args) {
     return NULL;
 }
 
-void updateChunks(void* vdata) {
-    static bool init = false;
-    if (!init) {
+static bool setchunks = false;
+
+void startMesher(void* vdata) {
+    if (!setchunks) {
+        #ifdef NAME_THREADS
+        char name[256];
+        char name2[256];
+        #endif
         for (int i = 0; i < MESHER_THREADS && i < MAX_THREADS; ++i) {
+            #ifdef NAME_THREADS
+            name[0] = 0;
+            name2[0] = 0;
+            #endif
             pthread_create(&pthreads[i], NULL, &meshthread, vdata);
+            #ifdef NAME_THREADS
+            pthread_getname_np(pthreads[i], name2, 256);
+            sprintf(name, "%s:msh%d", name2, i);
+            pthread_setname_np(pthreads[i], name);
+            #endif
         }
-        init = true;
+        setchunks = true;
     }
-    /*
-    struct chunkdata* data = vdata;
-    static int32_t ucleftoff = -1;
-    for (int32_t c = ucleftoff, c2 = 0; ; --c) {
-        if (c < 0) c = data->info.size - 1;
-        if (c2 >= (int32_t)1) {ucleftoff = c; break;}
-        ++c2;
-        pthread_mutex_lock(&uclock);
-        bool cond = data->renddata[c].ready;
-        if (cond) data->renddata[c].busy = true;
-        //pthread_mutex_unlock(&uclock);
-        if (!cond) {
-            pthread_mutex_unlock(&uclock);
-            continue;
-        }
-        uint32_t* _vptr = data->renddata[c].vertices;
-        uint32_t* _vptr2 = data->renddata[c].vertices2;
-        uint32_t tmpsize = data->renddata[c].vcount * sizeof(uint32_t) * 2;
-        uint32_t tmpsize2 = data->renddata[c].vcount2 * sizeof(uint32_t) * 2;
-        if (!data->renddata[c].VBO) glGenBuffers(1, &data->renddata[c].VBO);
-        if (!data->renddata[c].VBO2) glGenBuffers(1, &data->renddata[c].VBO2);
-        if (tmpsize) {
-            //pthread_mutex_lock(&gllock);
-            glBindBuffer(GL_ARRAY_BUFFER, data->renddata[c].VBO);
-            glBufferData(GL_ARRAY_BUFFER, tmpsize, _vptr, GL_STATIC_DRAW);
-            //pthread_mutex_unlock(&gllock);
-        }
-        if (tmpsize2) {
-            //pthread_mutex_lock(&gllock);
-            glBindBuffer(GL_ARRAY_BUFFER, data->renddata[c].VBO2);
-            glBufferData(GL_ARRAY_BUFFER, tmpsize2, _vptr2, GL_STATIC_DRAW);
-            //pthread_mutex_unlock(&gllock);
-        }
-        free(_vptr);
-        free(_vptr2);
-        //pthread_mutex_lock(&uclock);
-        data->renddata[c].ready = false;
-        data->renddata[c].buffered = true;
-        data->renddata[c].busy = false;
-        pthread_mutex_unlock(&uclock);
-    }
-    */
 }
 
 void renderText(float x, float y, float scale, unsigned end, char* text, void* extinfo) {
@@ -566,6 +541,7 @@ void renderChunks(void* vdata) {
     //uint64_t starttime = altutime();
     //glDisable(GL_CULL_FACE);
     //glDepthFunc(GL_LESS);
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     for (uint32_t c = 0; c < data->info.size; ++c) {
         if (!data->renddata[c].buffered || !data->renddata[c].vcount) continue;
         int x = c % data->info.width;
@@ -616,6 +592,7 @@ void renderChunks(void* vdata) {
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "isAni"), 0);
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_CULL_FACE);
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     setShaderProg(shader_2d);
     glBindBuffer(GL_ARRAY_BUFFER, VBO2D);
     glEnableVertexAttribArray(0);
@@ -835,6 +812,8 @@ bool initRenderer() {
     //glEnableVertexAttribArray(0);
     //glEnableVertexAttribArray(1);
 
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
     free(tmpbuf);
     return true;
 }
@@ -843,8 +822,10 @@ void quitRenderer() {
     //pthread_mutex_lock(&uclock);
     //pthread_mutex_lock(&gllock);
     //puts("RENDEXIT");
-    for (int i = 0; i < MESHER_THREADS && i < MAX_THREADS; ++i) {
-        pthread_join(pthreads[i], NULL);
+    if (setchunks) {
+        for (int i = 0; i < MESHER_THREADS && i < MAX_THREADS; ++i) {
+            pthread_join(pthreads[i], NULL);
+        }
     }
     glfwTerminate();
 }

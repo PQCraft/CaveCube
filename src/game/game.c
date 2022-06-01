@@ -205,12 +205,15 @@ static void handleServer(int msg, void* data) {
 static pthread_t srthreadh;
 
 void* srthread(void* args) {
+    (void)args;
     while (1) {
-        microwait(40000);
-        servRecv(handleServer, 64);
+        microwait(25000);
+        servRecv(handleServer, 16);
     }
     return NULL;
 }
+
+static int loopdelay;
 
 bool doGame() {
     char** tmpbuf = malloc(16 * sizeof(char*));
@@ -218,6 +221,7 @@ bool doGame() {
         tmpbuf[i] = malloc(4096);
     }
     chunks = allocChunks(atoi(getConfigVarStatic(config, "game.chunks", "8", 64)));
+    loopdelay = atoi(getConfigVarStatic(config, "game.loop_delay", "2500", 64));
     printf("Allocated chunks: [%d] [%d] [%d]\n", chunks.info.width, chunks.info.widthsq, chunks.info.size);
     rendinf.campos.y = 151.5;
     initInput();
@@ -247,7 +251,7 @@ bool doGame() {
     */
     if (quitRequest) return false;
     puts("Server responded");
-    //int64_t farlands = -1006632960;
+    //int64_t farlands = -590558003200;
     int64_t cx = 0;
     int64_t cz = 0;
     //genChunks(&chunks, cx, cz);
@@ -256,7 +260,7 @@ bool doGame() {
     uint64_t dtime = fpsstarttime2;
     uint64_t ptime2 = fpsstarttime2;
     uint64_t dtime2 = fpsstarttime2;
-    uint64_t rendtime = 1000000;
+    uint64_t rendtime = 1000000 - loopdelay;
     uint64_t fpsstarttime = fpsstarttime2;
     int fpsct = 0;
     float yvel = 0.0;
@@ -264,10 +268,25 @@ bool doGame() {
     float zcm = 0.0;
     //rendinf.camrot.z = 10;
     //uint64_t loop = 0;
-    pthread_create(&srthreadh, NULL, &srthread, NULL);
+    #ifdef NAME_THREADS
+    {
+        char name[256];
+        char name2[256];
+        name[0] = 0;
+        name2[0] = 0;
+    #endif
+        pthread_create(&srthreadh, NULL, &srthread, NULL);
+    #ifdef NAME_THREADS
+        pthread_getname_np(srthreadh, name2, 256);
+        sprintf(name, "%s:cmsg", name2);
+        pthread_setname_np(srthreadh, name);
+    }
+    #endif
+    startMesher(&chunks);
     while (!quitRequest) {
         //uint64_t st1 = altutime();
         glfwSetTime(0);
+        microwait(loopdelay);
         float npmult = 0.5;
         float nrmult = 1.0;
         struct input_info input = getInput();
@@ -340,7 +359,6 @@ bool doGame() {
             //microwait(1000000);
         }
         //genChunks(&chunks, cx, cz);
-        updateChunks(&chunks);
         //printf("old x [%f] y [%f]\n", rendinf.campos.x, rendinf.campos.z);
         struct blockdata curbdata = getBlockF(&chunks, rendinf.campos.x, rendinf.campos.y, rendinf.campos.z);
         //struct blockdata curbdata2 = getBlockF(&chunks, rendinf.campos.x, rendinf.campos.y - 1, rendinf.campos.z);
@@ -390,7 +408,7 @@ bool doGame() {
         //coord_3d newcoord = rendinf.campos;
         //newcoord = intCoord(newcoord);
         //printf("cam: [%f][%f][%f]; block: [%f][%f]\n", rendinf.campos.x, rendinf.campos.y, rendinf.campos.z, newcoord.x, newcoord.z);
-        float granularity = 0.1;
+        float granularity = 0.05;
         float lookatx = cos(rendinf.camrot.x * M_PI / 180.0) * sin(rendinf.camrot.y * M_PI / 180.0);
         float lookaty = sin(rendinf.camrot.x * M_PI / 180.0);
         float lookatz = (cos(rendinf.camrot.x * M_PI / 180.0) * cos(rendinf.camrot.y * M_PI / 180.0)) * -1;
