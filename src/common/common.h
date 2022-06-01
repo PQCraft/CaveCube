@@ -4,7 +4,6 @@
 #include <inttypes.h>
 #include <stddef.h>
 #include <stdbool.h>
-#include <limits.h>
 
 typedef struct {
     long size;
@@ -16,18 +15,6 @@ typedef struct {
 
 #define GCBUFSIZE 32768
 
-#ifndef MAX_THREADS
-    #define MAX_THREADS 256
-#endif
-
-#ifndef MAX_PATH
-    #ifdef PATH_MAX
-        #define MAX_PATH PATH_MAX
-    #else
-        #define MAX_PATH 4095
-    #endif
-#endif
-
 file_data getFile(char*, char*);
 file_data getBinFile(char*);
 file_data getTextFile(char*);
@@ -37,6 +24,8 @@ unsigned char* compressData(unsigned char*, size_t, size_t*);
 void setRandSeed(int, uint64_t);
 uint8_t getRandByte(int);
 uint16_t getRandWord(int);
+uint32_t getRandDWord(int);
+uint64_t getRandQWord(int);
 int isFile(char*);
 void getConfigVar(char*, char*, char*, long, char*);
 char* getConfigVarAlloc(char*, char*, char*, long);

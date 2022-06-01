@@ -372,5 +372,24 @@ uint8_t getRandByte(int s) {
 }
 
 uint16_t getRandWord(int s) {
-    return (getRandByte(s) << 8) | getRandByte(s);
+    return (getRandByte(s) << 8) |
+           getRandByte(s);
+}
+
+uint32_t getRandDWord(int s) {
+    return (getRandByte(s) << 24) |
+           (getRandByte(s) << 16) |
+           (getRandByte(s) << 8) |
+           getRandByte(s);
+}
+
+uint64_t getRandQWord(int s) {
+    return ((uint64_t)getRandByte(s) << 56) |
+           ((uint64_t)getRandByte(s) << 48) |
+           ((uint64_t)getRandByte(s) << 40) |
+           ((uint64_t)getRandByte(s) << 32) |
+           (getRandByte(s) << 24) |
+           (getRandByte(s) << 16) |
+           (getRandByte(s) << 8) |
+           getRandByte(s);;
 }
