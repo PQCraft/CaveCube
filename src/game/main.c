@@ -13,75 +13,6 @@
 #include <signal.h>
 #include <unistd.h>
 
-/*
-float vertices[] = {
-    -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-     0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-    -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-    -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-    -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-     0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-    -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-};
-float verticesn[] = {
-    -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,  0.0f,  0.0f, -1.0f,
-     0.5f, -0.5f, -0.5f,  1.0f, 0.0f,  0.0f,  0.0f, -1.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,  0.0f,  0.0f, -1.0f,
-    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,  0.0f,  0.0f, -1.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,  0.0f,  0.0f,  1.0f,
-     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,  0.0f,  0.0f,  1.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 1.0f,  0.0f,  0.0f,  1.0f,
-    -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,  0.0f,  0.0f,  1.0f,
-    -0.5f,  0.5f,  0.5f,  1.0f, 0.0f, -1.0f,  0.0f,  0.0f,
-    -0.5f,  0.5f, -0.5f,  1.0f, 1.0f, -1.0f,  0.0f,  0.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f, -1.0f,  0.0f,  0.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f, -1.0f,  0.0f,  0.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,  1.0f,  0.0f,  0.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,  1.0f,  0.0f,  0.0f,
-     0.5f, -0.5f, -0.5f,  0.0f, 1.0f,  1.0f,  0.0f,  0.0f,
-     0.5f, -0.5f,  0.5f,  0.0f, 0.0f,  1.0f,  0.0f,  0.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,  0.0f, -1.0f,  0.0f,
-     0.5f, -0.5f, -0.5f,  1.0f, 1.0f,  0.0f, -1.0f,  0.0f,
-     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,  0.0f, -1.0f,  0.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,  0.0f, -1.0f,  0.0f,
-    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,  0.0f,  1.0f,  0.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,  0.0f,  1.0f,  0.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,  0.0f,  1.0f,  0.0f,
-    -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,  0.0f,  1.0f,  0.0f,
-};
-uint32_t indices[] = {
-     0,  1,  2,
-     2,  3,  0,
-     4,  5,  6,
-     6,  7,  4,
-     8,  9, 10,
-    10, 11,  8,
-    12, 13, 14,
-    14, 15, 12,
-    16, 17, 18,
-    18, 19, 16,
-    20, 21, 22,
-    22, 23, 20,
-};
-*/
-
 uint32_t indices[] = {
     0, 1, 2,
     2, 3, 0,
@@ -160,82 +91,50 @@ int main(int _argc, char** _argv) {
         fclose(fp);
     }
     config = (char*)config_filedata.data;
-    /*
-    uint32_t size = 0;
-    bmd_data bmd;
-    memset(&bmd, 0, sizeof(bmd));
-    bmd.parts = 6;
-    bmd.part = malloc(6 * sizeof(bmd_part));
-    for (int i = 0; i < 6; ++i) {
-        bmd.part[i].isize = 6 * sizeof(uint32_t);
-        bmd.part[i].indices = indices;
-        bmd.part[i].vsize = 20 * sizeof(float);
-        bmd.part[i].vertices = vertices[i];
-    }
-    unsigned char* data = createBMD(&bmd, &size);
-    //printf("[%u]\n", size);
-    FILE* file = fopen("resources/base/game/models/block/default.bmd", "wb");
-    fwrite(data, 1, size, file);
-    fclose(file);
-    free(data);
-    bmd_data bmd2;
-    temploadBMD(getBinFile("resources/base/game/models/block/default.bmd"), &bmd2);
-    for (unsigned i = 0; i < bmd2.parts; ++i) {
-        printf("indices[%u]:\n", i);
-        for (unsigned i = 0; i < bmd2.part[i].isize / sizeof(uint32_t) / 3; ++i) {
-            printf("\t[%u] [%u] [%u]\n",
-                bmd2.part[i].indices[i * 3],
-                bmd2.part[i].indices[i * 3 + 1],
-                bmd2.part[i].indices[i * 3 + 2]);
-        }
-        printf("vertices[%u]:\n", i);
-        for (unsigned i = 0; i < bmd2.part[i].vsize / sizeof(float) / 5; ++i) {
-            printf("\t[%lf] [%lf] [%lf] [%lf] [%lf]\n",
-                bmd2.part[i].vertices[i * 5],
-                bmd2.part[i].vertices[i * 5 + 1],
-                bmd2.part[i].vertices[i * 5 + 2],
-                bmd2.part[i].vertices[i * 5 + 3],
-                bmd2.part[i].vertices[i * 5 + 4]);
-        }
-    }
-    freeBMD(&bmd2);
-    free(bmd.part);
-    */
-    /*
-    if (argc > 1) setRandSeed(atoi(argv[1]));
-    for (int i = 0; i < 512; ++i) {
-        printf("[%03u] ", (uint8_t)getRandByte());
-        if ((i % 16) == 15) putchar('\n');
-    }
-    */
-    /*
-    resdata_file* info = loadResource(RESOURCE_TEXTFILE, "game/models/block/default.bmd");
-    printf("file data [%ld]:\n%s\n", info->size, info->data);
-    resdata_file* info2 = loadResource(RESOURCE_TEXTFILE, "info.inf");
-    printf("pointers: [%lu] vs [%lu]\n", (uintptr_t)info, (uintptr_t)info2);
-    */
-    /*
-    uint32_t* ia = NULL;
-    uint32_t is = 0;
-    float* va = NULL;
-    uint32_t vs = 0;
-    temploadBMD(getBinFile("resources/base/game/models/block/default.bmd"), &ia, &is, &va, &vs);
-    printf("indices:\n");
-    for (int i = 0; i < is / 3 / sizeof(uint32_t); ++i) {
-        printf("\t[%u] [%u] [%u]\n", ia[i * 3], ia[i * 3 + 1], ia[i * 3 + 2]);
-    }
-    printf("vertices:\n");
-    for (int i = 0; i < vs / 5 / sizeof(float); ++i) {
-        printf("\t[%lf] [%lf] [%lf] [%lf] [%lf]\n", va[i * 5], va[i * 5 + 1], va[i * 5 + 2], va[i * 5 + 3], va[i * 5 + 4]);
-    }
-    */
     stbi_set_flip_vertically_on_load(true);
-    if (!initServer()) return 1;
-    if (!initRenderer()) return 1;
-    //testRenderer();
-    bool game_ecode = doGame();
-    quitRenderer();
-    //freeAllResources();
-    freeFile(config_filedata);
-    return (game_ecode) ? 0 : 1;
+    if (argc > 1 && (!strcmp(argv[1], "-help") || !strcmp(argv[1], "--help"))) {
+        printf("%s [ARGUMENTS]\n", argv[0]);
+        puts("    With no arguments, the client is connected to a server started for 1 person on 0.0.0.0.");
+        puts("    Arguments:");
+        puts("        -help");
+        puts("            Shows the help text.");
+        puts("        -server [<ADDRESS> [<PORT> [<MAX PLAYERS>]]]");
+        puts("            Starts the server.");
+        puts("            ADDRESS: IP address to start server on (empty or not provided for 0.0.0.0).");
+        puts("            PORT: Port to start server on (-1 or not provided for auto (assigns a random port from 46000 to 46999)).");
+        puts("            MAX PLAYERS: Max amount of players allowed to connect (0 or less to use the internal maximum, not provided for 1).");
+        puts("        -connect <ADDRESS> <PORT>");
+        puts("            Connects to a server.");
+        puts("            ADDRESS: IP address to connect to.");
+        puts("            PORT: Port to connect to.");
+    } else if (argc > 1 && !strcmp(argv[1], "-server")) {
+        if (!initServer()) return 1;
+        char* addr = (argc > 2 && argv[2][0]) ? argv[2] : NULL;
+        int port = (argc > 3) ? atoi(argv[3]) : -1;
+        int players = (argc > 4) ? atoi(argv[4]) : 0;
+        puts("Starting server...");
+        if (servStart(addr, port, NULL, players) < 0) {
+            fputs("Server failed to start\n", stderr);
+            return 1;
+        }
+        pause();
+    } else if (argc > 1 && !strcmp(argv[1], "-connect")) {
+        //microwait(1000000);
+        if (argc < 3) {fputs("Please provide address and port\n", stderr); return 1;}
+        if (!initRenderer()) return 1;
+        bool game_ecode = doGame(argv[2], atoi(argv[3]));
+        quitRenderer();
+        //freeAllResources();
+        freeFile(config_filedata);
+        return !game_ecode;
+    } else {
+        if (!initServer()) return 1;
+        if (!initRenderer()) return 1;
+        bool game_ecode = doGame(NULL, -1);
+        quitRenderer();
+        //freeAllResources();
+        freeFile(config_filedata);
+        return !game_ecode;
+    }
+    return 0;
 }

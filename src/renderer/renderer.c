@@ -66,7 +66,7 @@ void setSpace(int space) {
             break;
         case SPACE_UNDERWATER:;
             setSkyColor(0, 0.33, 0.75);
-            setScreenMult(0.25, 0.5, 0.75);
+            setScreenMult(0.4, 0.55, 0.8);
             glUniform1i(glGetUniformLocation(rendinf.shaderprog, "vis"), -7);
             glUniform1f(glGetUniformLocation(rendinf.shaderprog, "vismul"), 0.85);
             break;
@@ -386,7 +386,7 @@ static void* meshthread(void* args) {
         //pthread_mutex_unlock(&uclock);
         if (cond) {
             pthread_mutex_unlock(&uclock);
-            if (!c && !activity) microwait(50000);
+            if (!c && !activity) microwait(25000);
             continue;
         }
         uint32_t* _vptr = malloc(147456 * sizeof(uint32_t) * 2);
@@ -614,7 +614,7 @@ void renderChunks(void* vdata) {
         "Velocity: (%f, %f, %f)\n"
         "Rotation: (%f, %f, %f)\n"
         "Block: (%d, %d, %d)\n"
-        "Chunk: (%d, %d, %d)\n",
+        "Chunk: (%ld, %ld, %ld)\n",
         fps,
         pcoord.x, pcoord.y, pcoord.z,
         pvelocity.x, pvelocity.y, pvelocity.z,
