@@ -333,10 +333,10 @@ bool genChunk(struct chunkinfo* chunks, int cx, int cy, int cz, int64_t xo, int6
                         double s6 = perlin2d(1, (double)(nx + x) / 174, (double)(nz + z) / 174, 1, 2) * 5.0 - 2.0;
                         if (s6 < 0.0) s6 = 0.0;
                         else if (s6 > 1.0) s6 = 1.0;
-                        double s2 = perlin2d(2, (double)(nx + x) / 52, (double)(nz + z) / 52, 1, 4) * 0.8 * s6 + perlin2d(3, (double)(nx + x) / 82, (double)(nz + z) / 82, 1, 2) * (1.0 - s6);
+                        double s2 = perlin2d(2, (double)(nx + x) / 52, (double)(nz + z) / 52, 1, 5) * 0.8 * s6 + perlin2d(3, (double)(nx + x) / 82, (double)(nz + z) / 82, 1, 3) * (1.0 - s6);
                         double s3 = perlin2d(4, (double)(nx + x) / 56, (double)(nz + z) / 56, 1, 5);
                         int s4 = noise2d(5, (double)(nx + x), (double)(nz + z));
-                        double s5 = perlin2d(6, (double)(nx + x) / 345, (double)(nz + z) / 345, 1, 8) * 2.5 - 0.75;
+                        double s5 = perlin2d(6, (double)(nx + x) / 345, (double)(nz + z) / 345, 1, 9) * 2.5 - 0.75;
                         if (s5 < 0.2) s5 = 0.2;
                         else if (s5 > 1.0) s5 = 1.0;
                         for (int y = btm; y <= top && y < 65; ++y) {

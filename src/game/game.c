@@ -19,7 +19,7 @@
 int fps;
 coord_3d_dbl pcoord;
 coord_3d pvelocity;
-int pchunkx, pchunky, pchunkz;
+int64_t pchunkx, pchunky, pchunkz;
 int pblockx, pblocky, pblockz;
 
 static float posmult = 6.5;
@@ -190,7 +190,7 @@ static void handleServer(int msg, void* data) {
     //printf("Recieved [%d] from server\n", msg);
     switch (msg) {
         case SERVER_RET_PONG:;
-            //printf("Server ponged\n");
+            printf("Server ponged\n");
             ping = true;
             break;
         case SERVER_RET_UPDATECHUNK:;
@@ -215,7 +215,7 @@ void* srthread(void* args) {
 
 static int loopdelay;
 
-bool doGame() {
+bool doGame(char* addr, int port) {
     char** tmpbuf = malloc(16 * sizeof(char*));
     for (int i = 0; i < 16; ++i) {
         tmpbuf[i] = malloc(4096);
@@ -227,31 +227,31 @@ bool doGame() {
     initInput();
     float pmult = posmult;
     float rmult = rotmult;
-    puts("Starting server...");
-    int servport = 0;
-    if ((servport = servStart(NULL, -1, NULL, 1)) == -1) {
-        puts("Server failed to start");
-        return false;
+    int servport = port;
+    if (!addr) {
+        puts("Starting server...");
+        if ((servport = servStart(NULL, servport, NULL, 1)) == -1) {
+            puts("Server failed to start");
+            return false;
+        }
+        printf("Started server on port [%d]\n", servport);
     }
-    printf("Started server on port [%d]\n", servport);
     puts("Connecting to server...");
-    if (!servConnect("127.0.0.1", servport)) {
-        puts("Failed to connect to internal server");
+    if (!servConnect((addr) ? addr : "127.0.0.1", servport)) {
+        fputs("Failed to connect to server\n", stderr);
         return false;
     }
-    //servSend(SERVER_MSG_PING, NULL, false);
-    puts("Wating for server...");
+    puts("Sending ping...");
+    servSend(SERVER_MSG_PING, NULL, false);
     servRecv(handleServer, 1);
-    /*
     while (!ping && !quitRequest) {
         getInput();
         microwait(100000);
         servRecv(handleServer, 1);
     }
-    */
     if (quitRequest) return false;
-    puts("Server responded");
-    //int64_t farlands = -590558003200;
+    puts("Server responded to ping");
+    //int64_t farlands = -((int64_t)1 << 55);
     int64_t cx = 0;
     int64_t cz = 0;
     //genChunks(&chunks, cx, cz);

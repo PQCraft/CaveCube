@@ -24,7 +24,7 @@ static int64_t noise2(int t, int64_t x, int64_t y) {
     int64_t yindex = (y + SEED) % 256;
     if (yindex < 0) yindex += 256;
     int64_t xindex = (hash[t][yindex] + x) % 256;
-    if (xindex < 0)  xindex += 256;
+    if (xindex < 0) xindex += 256;
     return hash[t][xindex];
 }
 

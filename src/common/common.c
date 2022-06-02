@@ -388,8 +388,8 @@ uint64_t getRandQWord(int s) {
            ((uint64_t)getRandByte(s) << 48) |
            ((uint64_t)getRandByte(s) << 40) |
            ((uint64_t)getRandByte(s) << 32) |
-           (getRandByte(s) << 24) |
-           (getRandByte(s) << 16) |
-           (getRandByte(s) << 8) |
-           getRandByte(s);;
+           ((uint64_t)getRandByte(s) << 24) |
+           ((uint64_t)getRandByte(s) << 16) |
+           ((uint64_t)getRandByte(s) << 8) |
+           (uint64_t)getRandByte(s);;
 }

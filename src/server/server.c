@@ -70,12 +70,23 @@ static int insize = 0;
 static struct cliret* indata;
 static pthread_mutex_t inlock;
 
-static pthread_mutex_t cblock;
+struct bufinf {
+    unsigned char* buffer;
+    int offset;
+    int cached;
+    int max;
+};
 
 struct player {
     bool valid;
+    bool login;
+    bool ack;
     uint64_t uid;
     uint64_t pwd;
+    struct bufinf* buf;
+    bool admin;
+    bool fly;
+    uint8_t mode;
     int socket;
     char* username;
     int64_t chunkx;
@@ -90,8 +101,8 @@ static pthread_mutex_t pinfolock;
 static int maxclients = MAX_CLIENTS;
 
 static struct player* getPlayerPtr(uint64_t uid) {
-    //printf("[uid:%lu]\n", uid);
-    for (int i = 0; i < 1; ++i) {
+    //printf("[uid:0x%lX]\n", uid);
+    for (int i = 0; i < maxclients; ++i) {
         //printf("trying [%d]/[%d]\n", i, maxclients);
         if (!pinfo[i].valid) continue;
         if (pinfo[i].uid == uid) return &pinfo[i];
@@ -124,13 +135,6 @@ static bool setPlayer(uint64_t uid, struct player* p) {
     return true;
 }
 
-struct bufinf {
-    unsigned char* buffer;
-    int offset;
-    int cached;
-    int max;
-};
-
 static struct bufinf* allocbuf(int max) {
     struct bufinf* inf = malloc(sizeof(struct bufinf));
     inf->buffer = calloc(max, 1);
@@ -138,6 +142,11 @@ static struct bufinf* allocbuf(int max) {
     inf->cached = 0;
     inf->max = max;
     return inf;
+}
+
+void freebuf(struct bufinf* buf) {
+    free(buf->buffer);
+    free(buf);
 }
 
 static int getbuf(int sockfd, void* _dest, int len, struct bufinf* buf) {
@@ -165,11 +174,8 @@ static int worldtype = 4;
 static pthread_t servpthreads[MAX_THREADS];
 
 static void pushRet(uint64_t pid, int m, void* d) {
-    //puts("START");
-    //puts("pushRet: LOCKING");
+    //printf("ret for [0x%lX]\n", pid);
     pthread_mutex_lock(&retlock);
-    //puts("pushRet: LOCKED");
-    //puts("STOP");
     int index = -1;
     for (int i = 0; i < retsize; ++i) {
         if (retdata[i].msg == SERVER_RET_NONE) {index = i; break;}
@@ -181,13 +187,11 @@ static void pushRet(uint64_t pid, int m, void* d) {
     }
     retdata[index] = (struct servret){pid, m, d};
     //printf("pushRet [%d]/[%d] [0x%016lX]\n", index, retsize, (uintptr_t)retdata[index].data);
-    //puts("pushRet: UNLOCKING");
     pthread_mutex_unlock(&retlock);
-    //puts("pushRet: UNLOCKED");
 }
 
 static void pushMsg(uint64_t uid, int m, void* d) {
-    //printf("pushMsg: [%lu]\n", uid);
+    //printf("pushMsg: [0x%lX]\n", uid);
     switch (m) {
         case SERVER_CMD_SETCHUNK:;
             pthread_mutex_lock(&pinfolock);
@@ -241,7 +245,7 @@ static void* servthread(void* args) {
         pthread_mutex_lock(&msglock);
         int index = -1;
         for (int i = 0; i < msgsize; ++i) {
-            if (msgdata[i].valid && !msgdata[i].busy) {index = i; /*printf("Server: executing task [%d]: [%d]\n", i, msgdata[index].id);*/ break;}
+            if (msgdata[i].valid && !msgdata[i].busy) {index = i; /*printf("Server: executing task [%d]: [%d] for [0x%lX]\n", i, msgdata[index].id, msgdata[index].pid);*/ break;}
         }
         if (index == -1) {
             //puts("Server: No tasks");
@@ -250,17 +254,17 @@ static void* servthread(void* args) {
             pthread_mutex_unlock(&msglock);
             struct player p;
             bool pvalid = getPlayer(msgdata[index].pid, &p);
-            //printf("[%d][%lu]\n", pvalid, msgdata[index].pid);
+            //printf("[%d][0x%lX]\n", pvalid, msgdata[index].pid);
             void* retdata = NULL;
             int retno = SERVER_RET_NONE;
             if (pvalid) {
                 switch (msgdata[index].id) {
                     default:; {
-                            printf("Server thread [%d]: Recieved invalid task: [%d][%d]\n", id, index, msgdata[index].id);
+                            printf("Server thread [%d]: Recieved invalid task: [%d][%d] from [0x%lX]\n", id, index, msgdata[index].id, p.uid);
                         }
                         break;
                     case SERVER_MSG_PING:; {
-                            //printf("Server thread [%d]: Pong\n", id);
+                            //printf("Server thread [%d]: Pong [0x%lX]\n", id, p.uid);
                             retno = SERVER_RET_PONG;
                         }
                         break;
@@ -312,8 +316,6 @@ static void* servthread(void* args) {
                         }
                         break;
                 }
-            } else {
-                puts("invalid user");
             }
             pthread_mutex_lock(&msglock);
             if (pvalid) pushRet(msgdata[index].pid, retno, retdata);
@@ -327,7 +329,6 @@ static void* servthread(void* args) {
 
 bool initServer() {
     pthread_mutex_init(&msglock, NULL);
-    pthread_mutex_init(&cblock, NULL);
     return true;
 }
 
@@ -340,10 +341,6 @@ static pthread_t servnetthreadh;
 
 void* servnetthread(void* args) {
     struct servnetinf* inf = args;
-    //signal(SIGUSR1, usr1handler);
-    //pthread_mutex_init(&writelock, NULL);
-    //pthread_mutex_init(&acklock, NULL);
-    struct bufinf* buf = allocbuf(SERVER_BUF_SIZE);
     unsigned char* buf2 = calloc(SERVER_BUF_SIZE, 1);
     int flags = fcntl(inf->socket, F_GETFL);
     fcntl(inf->socket, F_SETFL, flags | O_NONBLOCK);
@@ -352,13 +349,7 @@ void* servnetthread(void* args) {
     tmptime.tv_usec = 0;
     setsockopt(inf->socket, SOL_SOCKET, SO_RCVTIMEO, &tmptime, sizeof(tmptime));
     setsockopt(inf->socket, SOL_SOCKET, SO_SNDTIMEO, &tmptime, sizeof(tmptime));
-    //pthread_t netwrite;
-    //struct servnetwriteinf* writeinf = calloc(1, sizeof(struct servnetwriteinf));
-    //writeinf->netinf = inf;
-    //writeinf->pinfo = pinfo;
-    //pthread_create(&netwrite, NULL, &servnetthreadwrite, (void*)writeinf);
     socklen_t socklen = sizeof(inf->address);
-    bool servackcmd = true;
     bool activity = true;
     while (1) {
         microwait((activity) ? cfgvar.server_delay : cfgvar.server_idledelay);
@@ -368,13 +359,11 @@ void* servnetthread(void* args) {
             pthread_mutex_lock(&pinfolock);
             for (int i = 0; i < maxclients; ++i) {
                 if (!pinfo[i].valid) {
-                    pinfo[i].socket = newsock;
-                    //fcntl(newsock, F_SETFL, fcntl(newsock, F_GETFL) | O_NONBLOCK);
                     int tmpint = SERVER_BUF_SIZE;
                     setsockopt(newsock, SOL_SOCKET, SO_SNDBUF, &tmpint, sizeof(tmpint));
-                    pinfo[i].uid = getRandQWord(1);
-                    printf("New connection: [%d] {%s:%d} [%d] [uid: %lu]\n", i, inet_ntoa(inf->address.sin_addr), ntohs(inf->address.sin_port), newsock, pinfo[i].uid);
-                    pinfo[i].valid = true;
+                    memset(&pinfo[i], 0, sizeof(struct player));
+                    pinfo[i] = (struct player){.valid = true, .socket = newsock, .uid = getRandQWord(1), .buf = allocbuf(SERVER_BUF_SIZE), .ack = true};
+                    printf("New connection: [%d] {%s:%d} [%d] [uid: 0x%lX]\n", i, inet_ntoa(inf->address.sin_addr), ntohs(inf->address.sin_port), newsock, pinfo[i].uid);
                     goto cont;
                 }
             }
@@ -383,29 +372,30 @@ void* servnetthread(void* args) {
             cont:;
             pthread_mutex_unlock(&pinfolock);
         }
-        for (int i = 0; i < maxclients; ++i) {
+        for (int pn = 0; pn < maxclients; ++pn) {
             pthread_mutex_lock(&pinfolock);
-            if (!pinfo[i].valid) {
+            if (!pinfo[pn].valid) {
                 pthread_mutex_unlock(&pinfolock);
                 continue;
             }
-            struct player p = pinfo[i];
+            //printf("doing [%d]\n", pn);
+            struct player p = pinfo[pn];
             pthread_mutex_unlock(&pinfolock);
             int tmpflags = fcntl(p.socket, F_GETFL);
-            //printf("DATA: [%d]\n", i);
+            //printf("DATA: [%d]\n", pn);
             fcntl(inf->socket, F_SETFL, flags);
             fcntl(p.socket, F_SETFL, tmpflags);
             //puts("SERVER GETBUF");
-            int msglen = getbuf(p.socket, buf2, 1, buf);
+            int msglen = getbuf(p.socket, buf2, 1, p.buf);
             //printf("SERVER GOTBUF [%d]\n", msglen);
             if (msglen > 0) {
-                //if (buf2[0] != 'A') printf("server: gotmsg: [%c] [%02X]\n", buf2[0], buf2[0]);
+                //if (buf2[0] != 'A') printf("server: gotmsg: [%c] [%02X] from [0x%lX]\n", buf2[0], buf2[0], p.uid);
                 //microwait(server_readdelay);
                 switch (buf2[0]) {
                     case 'M':;
-                        getbuf(p.socket, buf2, 1, buf);
+                        getbuf(p.socket, buf2, 1, p.buf);
                         int msg = buf2[0];
-                        //printf("M: [%d]\n", msg);
+                        //printf("M: [%d] [0x%lX]\n", msg, p.uid);
                         int datasize = 0;
                         switch (msg) {
                             case SERVER_MSG_GETCHUNK:;
@@ -422,101 +412,95 @@ void* servnetthread(void* args) {
                                 break;
                         }
                         unsigned char* data = calloc(datasize, 1);
-                        getbuf(p.socket, data, datasize, buf);
+                        getbuf(p.socket, data, datasize, p.buf);
                         //read(p.socket, data, datasize);
-                        pushMsg(pinfo[i].uid, msg, data);
-                        //puts("server: sending A");
-                        //pthread_mutex_lock(&writelock);
-                        //microwait(10000);
-                        //microwait(server_ackdelay);
+                        pushMsg(pinfo[pn].uid, msg, data);
+                        //printf("server: sending A to 0x%lX\n", pinfo[pn].uid);
                         write(p.socket, "A", 1);
-                        //pthread_mutex_unlock(&writelock);
                         break;
                     case 'A':;
-                        //puts("server: recieved A");
-                        //pthread_mutex_lock(&acklock);
-                        servackcmd = true;
+                        //printf("server: recieved A from 0x%lX\n", pinfo[pn].uid);
+                        pthread_mutex_lock(&pinfolock);
+                        if (pinfo[pn].valid) {
+                            pinfo[pn].ack = true;
+                            p.ack = true;
+                        }
+                        pthread_mutex_unlock(&pinfolock);
                         //puts("server: set ack to true");
-                        //pthread_mutex_unlock(&acklock);
                         break;
                 }
                 activity = true;
             } else if (msglen < 0) {
-                getpeername(p.socket, (struct sockaddr*)&inf->address, &socklen);
-                printf("Closing connection: [%d] {%s:%d} [%d]\n", i, inet_ntoa(inf->address.sin_addr), ntohs(inf->address.sin_port), p.socket);
-                close(p.socket);
                 pthread_mutex_lock(&pinfolock);
-                memset(&pinfo[i], 0, sizeof(struct player));
+                getpeername(p.socket, (struct sockaddr*)&inf->address, &socklen);
+                printf("Closing connection: [%d] {%s:%d} [%d]\n", pn, inet_ntoa(inf->address.sin_addr), ntohs(inf->address.sin_port), p.socket);
+                close(p.socket);
+                freebuf(p.buf);
+                memset(&pinfo[pn], 0, sizeof(struct player));
                 pthread_mutex_unlock(&pinfolock);
             }
             fcntl(p.socket, F_SETFL, tmpflags | O_NONBLOCK);
             fcntl(inf->socket, F_SETFL, flags | O_NONBLOCK);
-            //} else {
-            //    //printf("NO DATA: [%d]\n", i);
-            //}
             //pthread_mutex_unlock(&pinfolock);
-        }
-        if (servackcmd) {
-            pthread_mutex_lock(&retlock);
-            int msgct = 0;
-            static int leftoffi = 0;
-            for (int i = leftoffi, j = 0; retsize > 0 /*&& i < retsize*/; ++i, ++j) {
-                if (i >= retsize) {
-                    i = 0;
-                }
-                if (j > 0 && i == leftoffi) {
-                    break;
-                }
-                //printf("trying message [%d]/[%d]\n", i + 1, retsize);
-                buf2[0] = 'R';
-                int msg = SERVER_RET_NONE;
-                void* data = NULL;
-                buf2[1] = msg = retdata[i].msg;
-                if (msg != SERVER_RET_NONE) {
-                    //pthread_mutex_lock(&writelock);
-                    data = retdata[i].data;
-                    int datasize = 0;
-                    switch (msg) {
-                        case SERVER_RET_UPDATECHUNK:;
-                            datasize = sizeof(struct server_ret_chunk);
-                            break;
-                        case SERVER_RET_UPDATECHUNKCOL:;
-                            datasize = sizeof(struct server_ret_chunkcol);
-                            break;
+            if (p.ack) {
+                pthread_mutex_lock(&retlock);
+                //printf("msg for [%d]\n", pn);
+                int msgct = 0;
+                static int leftoffi = 0;
+                for (int i = leftoffi, j = 0; retsize > 0; ++i, ++j) {
+                    if (i >= retsize) {
+                        i = 0;
                     }
-                    if (data) memcpy(&buf2[2], data, datasize);
-                    //printf("Pushing task to [%d]\n", retdata[i].uid);
-                    struct player tmppi;
-                    bool tmpret = getPlayer(retdata[i].pid, &tmppi);
-                    if (tmpret) {
-                        //printf("server: sendmsg: [%c] [%02X]\n", 'R', 'R');
-                        ++msgct;
-                        write(tmppi.socket, buf2, datasize + 2);
-                        //pthread_mutex_lock(&acklock);
-                        servackcmd = false;
-                        //puts("server: set ack to false");
-                        //pthread_mutex_unlock(&acklock);
-                        /*
-                        int tmpflags = fcntl(pi.socket, F_GETFL);
-                        fcntl(tmppi.socket, F_SETFL, tmpflags);
-                        read(tmppi.socket, buf2, 2);
-                        fcntl(tmppi.socket, F_SETFL, tmpflags | O_NONBLOCK);
-                        */
+                    if (j > 0 && i == leftoffi) {
+                        break;
                     }
-                    retdata[i].msg = SERVER_RET_NONE;
-                    if (data) free(data);
-                    //pthread_mutex_unlock(&writelock);
-                    leftoffi = i;
-                    break;
+                    //printf("trying message [%d]/[%d]\n", i + 1, retsize);
+                    buf2[0] = 'R';
+                    int msg = SERVER_RET_NONE;
+                    void* data = NULL;
+                    buf2[1] = msg = retdata[i].msg;
+                    if (msg != SERVER_RET_NONE) {
+                        //printf("Pushing message to [0x%lX] (chk [0x%lX])\n", retdata[i].pid, p.uid);
+                        if (retdata[i].pid == p.uid) {
+                            data = retdata[i].data;
+                            int datasize = 0;
+                            switch (msg) {
+                                case SERVER_RET_UPDATECHUNK:;
+                                    datasize = sizeof(struct server_ret_chunk);
+                                    break;
+                                case SERVER_RET_UPDATECHUNKCOL:;
+                                    datasize = sizeof(struct server_ret_chunkcol);
+                                    break;
+                            }
+                            if (data) memcpy(&buf2[2], data, datasize);
+                            struct player tmppi;
+                            bool tmpret = getPlayer(retdata[i].pid, &tmppi);
+                            if (tmpret) {
+                                pthread_mutex_lock(&pinfolock);
+                                if (pinfo[pn].valid) {
+                                    //printf("server: sendmsg to [0x%lX]: [%c] [%02X]\n", pinfo[pn].uid, 'R', 'R');
+                                    ++msgct;
+                                    write(tmppi.socket, buf2, datasize + 2);
+                                    pinfo[pn].ack = false;
+                                    p.ack = false;
+                                    //puts("server: set ack to false");
+                                }
+                                pthread_mutex_unlock(&pinfolock);
+                            }
+                            retdata[i].msg = SERVER_RET_NONE;
+                            if (data) free(data);
+                            leftoffi = i;
+                            break;
+                        }
+                    }
                 }
+                //if (msgct) puts("server: no messages to send");
+                pthread_mutex_unlock(&retlock);
+                activity = true;
+            } else {
+                //printf("waiting for ack for user [0x%lX]\n", p.uid);
             }
-            //if (msgct) puts("server: no messages to send");
-            pthread_mutex_unlock(&retlock);
-            activity = true;
-        //} else {
-            //puts("server: waiting for ack");
         }
-        //puts("LOOP");
     }
     free(buf2);
     free(pinfo);
@@ -527,10 +511,8 @@ void* servnetthread(void* args) {
 int servStart(char* addr, int port, char* world, int mcli) {
     if (mcli > 0) maxclients = mcli;
     cfgvar.server_delay = atoi(getConfigVarStatic(config, "server.server_delay", "1000", 64));
-    cfgvar.server_idledelay = atoi(getConfigVarStatic(config, "server.server_idledelay", "50000", 64));
+    cfgvar.server_idledelay = atoi(getConfigVarStatic(config, "server.server_idledelay", "5000", 64));
     cfgvar.unamemax =  atoi(getConfigVarStatic(config, "server.unamemax", "32", 64));
-    //server_ackdelay = atoi(getConfigVarStatic(config, "server.server_ackdelay", "0", 64));
-    //server_readdelay = atoi(getConfigVarStatic(config, "server.server_readdelay", "100", 64));
     setRandSeed(0, 14876);
     initNoiseTable(0);
     setRandSeed(1, altutime() + (uintptr_t)"");
@@ -560,6 +542,7 @@ int servStart(char* addr, int port, char* world, int mcli) {
         close(socketfd);
         return -1;
     }
+    printf("Starting server on %s:%d with a max of %d players...\n", (addr) ? addr : "0.0.0.0", port, maxclients);
     pthread_mutex_init(&pinfolock, NULL);
     pinfo = calloc(maxclients, sizeof(struct player));
     #ifdef NAME_THREADS
@@ -611,7 +594,7 @@ void* clinetthread(void* args) {
         msglen = getbuf(inf->socket, buf2, 1, buf);
         //printf("CLIENT GOTBUF [%d]\n", msglen);
         if (msglen > 0) {
-            //if (buf2[0] != 'A') printf("client: gotmsg: [%c] [%02X]\n", buf2[0], buf2[0]);
+            //if (buf2[0] != 'A') printf("client [%s]: gotmsg: [%c] [%02X]\n", argv[4], buf2[0], buf2[0]);
             switch (buf2[0]) {
                 case 'R':;
                     fcntl(inf->socket, F_SETFL, flags);
@@ -646,12 +629,12 @@ void* clinetthread(void* args) {
                     indata[index] = (struct cliret){msg, data};
                     //printf("pushCliRet [%d]/[%d] [%d][0x%016lX]\n", index, insize, msg, (uintptr_t)indata[index].data);
                     pthread_mutex_unlock(&inlock);
-                    //puts("client: sending A");
+                    //printf("client [%s]: sending A\n", argv[4]);
                     //microwait(client_ackdelay);
                     write(inf->socket, "A", 1);
                     break;
                 case 'A':;
-                    //puts("client: recieved A");
+                    //printf("client [%s]: recieved A\n", argv[4]);
                     ackcmd = true;
                     //puts("client: set ack to true");
                     break;
@@ -687,7 +670,7 @@ void* clinetthread(void* args) {
                 //puts("client: no messages to send");
                 //microwait(100000);
             } else {
-                //printf("client: sendmsg: [%c] [%02X]\n", 'M', 'M');
+                //printf("client [%s]: sendmsg: [%c] [%02X]\n", argv[4], 'M', 'M');
                 msglen = 0;
                 buf2[0] = 'M';
                 ++msglen;
