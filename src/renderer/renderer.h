@@ -119,12 +119,20 @@ void setSkyColor(float, float, float);
 void setScreenMult(float, float, float);
 void setSpace(int);
 
+extern struct renderer_info rendinf;
+
 #define GFX_DEFAULT_POS (coord_3d){0.0, 0.0, 0.0}
 #define GFX_DEFAULT_ROT (coord_3d){0.0, 0.0, 0.0}
 #define GFX_DEFAULT_SCALE (coord_3d){1.0, 1.0, 1.0}
 #define GFX_DEFAULT_MAT4 {{1.0, 0.0, 0.0, 0.0}, {0.0, 1.0, 0.0, 0.0}, {0.0, 0.0, -1.0, 0.0}, {0.0, 0.0, 0.0, 1.0}}
 
-extern struct renderer_info rendinf;
+// RENDERER_LAZY disables some safety measures to speed up rendering
+#ifndef _WIN32 // Windows doesn't seem to like RENDERER_LAZY (only tested under WINE)
+    #define RENDERER_LAZY
+#endif
+
+// RENDERER_UNSAFE disables more safety measures to speed up rendering
+//#define RENDERER_UNSAFE
 
 #endif
 

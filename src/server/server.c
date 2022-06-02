@@ -2,22 +2,29 @@
 #include "server.h"
 #include <game.h>
 #include <chunk.h>
+#include <noise.h>
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <pthread.h>
 #include <stdbool.h>
-#include <noise.h>
-#include <endian.h>
-//#include <sys/socket.h>
-#include <sys/fcntl.h>
-#include <arpa/inet.h>
-//#include <netinet/in.h>
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
-//#include <signal.h>
-#include <poll.h>
+
+#ifndef _WIN32
+    #include <sys/fcntl.h>
+    #include <arpa/inet.h>
+    #include <endian.h>
+    #define PRIsock "d"
+#else
+    #include <winsock2.h>
+    #include <ws2tcpip.h>
+    #include <windows.h>
+    #define PRIsock PRIu64
+    WSADATA wsadata;
+    WORD wsaver = MAKEWORD(2, 2);
+#endif
 
 static struct {
     int unamemax;
@@ -77,6 +84,12 @@ struct bufinf {
     int max;
 };
 
+#ifndef _WIN32
+    typedef int sock_t;
+#else
+    typedef SOCKET sock_t;
+#endif
+
 struct player {
     bool valid;
     bool login;
@@ -87,7 +100,7 @@ struct player {
     bool admin;
     bool fly;
     uint8_t mode;
-    int socket;
+    sock_t socket;
     char* username;
     int64_t chunkx;
     int64_t chunkz;
@@ -149,11 +162,31 @@ void freebuf(struct bufinf* buf) {
     free(buf);
 }
 
-static int getbuf(int sockfd, void* _dest, int len, struct bufinf* buf) {
+int rsock(sock_t sock, void* buf, int len) {
+    #ifndef _WIN32
+    return read(sock, buf, len);
+    #else
+    int ret = recv(sock, buf, len, 0);
+    if (ret == SOCKET_ERROR) return -1;
+    return ret;
+    #endif
+}
+
+void wsock(sock_t sock, void* buf, int len) {
+    #ifndef _WIN32
+    write(sock, buf, len);
+    #else
+    send(sock, buf, len, 0);
+    #endif
+}
+
+static int getbuf(sock_t sockfd, void* _dest, int len, struct bufinf* buf) {
     unsigned char* dest = _dest;
     for (int i = 0; i < len; ++i) {
         if (buf->cached < 1) {
-            int ret = read(sockfd, buf->buffer, buf->max);
+            //puts("READ");
+            int ret = rsock(sockfd, buf->buffer, buf->max);
+            //printf("RET [%d]\n", ret);
             if (!ret) {
                 return -1;
             } else if (ret < 0) {
@@ -260,11 +293,11 @@ static void* servthread(void* args) {
             if (pvalid) {
                 switch (msgdata[index].id) {
                     default:; {
-                            printf("Server thread [%d]: Recieved invalid task: [%d][%d] from [0x%lX]\n", id, index, msgdata[index].id, p.uid);
+                            printf("Server thread [%d]: Recieved invalid task: [%d][%d] from [0x%"PRIX64"]\n", id, index, msgdata[index].id, p.uid);
                         }
                         break;
                     case SERVER_MSG_PING:; {
-                            //printf("Server thread [%d]: Pong [0x%lX]\n", id, p.uid);
+                            //printf("Server thread [%d]: Pong [0x%"PRIX64"]\n", id, p.uid);
                             retno = SERVER_RET_PONG;
                         }
                         break;
@@ -329,11 +362,17 @@ static void* servthread(void* args) {
 
 bool initServer() {
     pthread_mutex_init(&msglock, NULL);
+    #ifdef _WIN32
+    int wsaerror;
+    if ((wsaerror = WSAStartup(wsaver, &wsadata))) {
+        fprintf(stderr, "WSA init failed: [%d]\n", wsaerror);
+    }
+    #endif
     return true;
 }
 
 struct servnetinf {
-    int socket;
+    sock_t socket;
     struct sockaddr_in address;
 };
 
@@ -342,28 +381,44 @@ static pthread_t servnetthreadh;
 void* servnetthread(void* args) {
     struct servnetinf* inf = args;
     unsigned char* buf2 = calloc(SERVER_BUF_SIZE, 1);
+    #ifndef _WIN32
     int flags = fcntl(inf->socket, F_GETFL);
     fcntl(inf->socket, F_SETFL, flags | O_NONBLOCK);
-    struct timeval tmptime;
-    tmptime.tv_sec = 1;
-    tmptime.tv_usec = 0;
+    #else
+    {unsigned long o = 1; ioctlsocket(inf->socket, FIONBIO, &o);}
+    #endif
+    #ifndef _WIN32
+    struct timeval tmptime = (struct timeval){.tv_sec = 1, .tv_usec = 0};
     setsockopt(inf->socket, SOL_SOCKET, SO_RCVTIMEO, &tmptime, sizeof(tmptime));
     setsockopt(inf->socket, SOL_SOCKET, SO_SNDTIMEO, &tmptime, sizeof(tmptime));
+    #else
+    DWORD tmptime = 1000;
+    setsockopt(inf->socket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tmptime, sizeof(tmptime));
+    setsockopt(inf->socket, SOL_SOCKET, SO_SNDTIMEO, (const char*)&tmptime, sizeof(tmptime));
+    #endif
     socklen_t socklen = sizeof(inf->address);
     bool activity = true;
     while (1) {
         microwait((activity) ? cfgvar.server_delay : cfgvar.server_idledelay);
         activity = false;
-        int newsock;
+        sock_t newsock;
+        #ifndef _WIN32
         if ((newsock = accept(inf->socket, (struct sockaddr*)&inf->address, &socklen)) >= 0) {
+        #else
+        if ((newsock = accept(inf->socket, (struct sockaddr*)&inf->address, &socklen)) != INVALID_SOCKET) {
+        #endif
             pthread_mutex_lock(&pinfolock);
             for (int i = 0; i < maxclients; ++i) {
                 if (!pinfo[i].valid) {
                     int tmpint = SERVER_BUF_SIZE;
+                    #ifndef _WIN32
                     setsockopt(newsock, SOL_SOCKET, SO_SNDBUF, &tmpint, sizeof(tmpint));
+                    #else
+                    setsockopt(newsock, SOL_SOCKET, SO_SNDBUF, (const char*)&tmpint, sizeof(tmpint));
+                    #endif
                     memset(&pinfo[i], 0, sizeof(struct player));
                     pinfo[i] = (struct player){.valid = true, .socket = newsock, .uid = getRandQWord(1), .buf = allocbuf(SERVER_BUF_SIZE), .ack = true};
-                    printf("New connection: [%d] {%s:%d} [%d] [uid: 0x%lX]\n", i, inet_ntoa(inf->address.sin_addr), ntohs(inf->address.sin_port), newsock, pinfo[i].uid);
+                    printf("New connection: [%d] {%s:%d} [%"PRIsock"] [uid: 0x%"PRIX64"]\n", i, inet_ntoa(inf->address.sin_addr), ntohs(inf->address.sin_port), newsock, pinfo[i].uid);
                     goto cont;
                 }
             }
@@ -381,21 +436,25 @@ void* servnetthread(void* args) {
             //printf("doing [%d]\n", pn);
             struct player p = pinfo[pn];
             pthread_mutex_unlock(&pinfolock);
-            int tmpflags = fcntl(p.socket, F_GETFL);
             //printf("DATA: [%d]\n", pn);
+            #ifndef _WIN32
+            int tmpflags = fcntl(p.socket, F_GETFL);
             fcntl(inf->socket, F_SETFL, flags);
             fcntl(p.socket, F_SETFL, tmpflags);
+            #else
+            //{unsigned long o = 0; ioctlsocket(inf->socket, FIONBIO, &o); ioctlsocket(p.socket, FIONBIO, &o);}
+            #endif
             //puts("SERVER GETBUF");
             int msglen = getbuf(p.socket, buf2, 1, p.buf);
             //printf("SERVER GOTBUF [%d]\n", msglen);
             if (msglen > 0) {
-                //if (buf2[0] != 'A') printf("server: gotmsg: [%c] [%02X] from [0x%lX]\n", buf2[0], buf2[0], p.uid);
+                //if (buf2[0] != 'A') printf("server: gotmsg: [%c] [%02X] from [0x%"PRIX64"]\n", buf2[0], buf2[0], p.uid);
                 //microwait(server_readdelay);
                 switch (buf2[0]) {
                     case 'M':;
                         getbuf(p.socket, buf2, 1, p.buf);
                         int msg = buf2[0];
-                        //printf("M: [%d] [0x%lX]\n", msg, p.uid);
+                        //printf("M: [%d] [0x%"PRIX64"]\n", msg, p.uid);
                         int datasize = 0;
                         switch (msg) {
                             case SERVER_MSG_GETCHUNK:;
@@ -413,10 +472,10 @@ void* servnetthread(void* args) {
                         }
                         unsigned char* data = calloc(datasize, 1);
                         getbuf(p.socket, data, datasize, p.buf);
-                        //read(p.socket, data, datasize);
+                        //rsock(p.socket, data, datasize);
                         pushMsg(pinfo[pn].uid, msg, data);
-                        //printf("server: sending A to 0x%lX\n", pinfo[pn].uid);
-                        write(p.socket, "A", 1);
+                        //printf("server: sending A to 0x%"PRIX64"\n", pinfo[pn].uid);
+                        wsock(p.socket, "A", 1);
                         break;
                     case 'A':;
                         //printf("server: recieved A from 0x%lX\n", pinfo[pn].uid);
@@ -433,14 +492,18 @@ void* servnetthread(void* args) {
             } else if (msglen < 0) {
                 pthread_mutex_lock(&pinfolock);
                 getpeername(p.socket, (struct sockaddr*)&inf->address, &socklen);
-                printf("Closing connection: [%d] {%s:%d} [%d]\n", pn, inet_ntoa(inf->address.sin_addr), ntohs(inf->address.sin_port), p.socket);
+                //printf("Closing connection: [%d] {%s:%d} [%"PRIsock"]\n", pn, inet_ntoa(inf->address.sin_addr), ntohs(inf->address.sin_port), p.socket);
                 close(p.socket);
                 freebuf(p.buf);
                 memset(&pinfo[pn], 0, sizeof(struct player));
                 pthread_mutex_unlock(&pinfolock);
             }
+            #ifndef _WIN32
             fcntl(p.socket, F_SETFL, tmpflags | O_NONBLOCK);
             fcntl(inf->socket, F_SETFL, flags | O_NONBLOCK);
+            #else
+            //{unsigned long o = 1; ioctlsocket(inf->socket, FIONBIO, &o); ioctlsocket(p.socket, FIONBIO, &o);}
+            #endif
             //pthread_mutex_unlock(&pinfolock);
             if (p.ack) {
                 pthread_mutex_lock(&retlock);
@@ -478,9 +541,9 @@ void* servnetthread(void* args) {
                             if (tmpret) {
                                 pthread_mutex_lock(&pinfolock);
                                 if (pinfo[pn].valid) {
-                                    //printf("server: sendmsg to [0x%lX]: [%c] [%02X]\n", pinfo[pn].uid, 'R', 'R');
+                                    //printf("server: sendmsg to [0x%"PRIX64"]: [%c] [%02X]\n", pinfo[pn].uid, 'R', 'R');
                                     ++msgct;
-                                    write(tmppi.socket, buf2, datasize + 2);
+                                    wsock(tmppi.socket, buf2, datasize + 2);
                                     pinfo[pn].ack = false;
                                     p.ack = false;
                                     //puts("server: set ack to false");
@@ -516,13 +579,22 @@ int servStart(char* addr, int port, char* world, int mcli) {
     setRandSeed(0, 14876);
     initNoiseTable(0);
     setRandSeed(1, altutime() + (uintptr_t)"");
-    int socketfd;
+    sock_t socketfd;
+    #ifndef _WIN32
     if ((socketfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+    #else
+    if ((socketfd = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET) {
+    #endif
         fputs("servStart: Failed to create socket\n", stderr);
         return -1;
     }
+    #ifndef _WIN32
     int opt = 1;
-    if (setsockopt(socketfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+    if (setsockopt(socketfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))) {
+    #else
+    BOOL opt = true;
+    if (setsockopt(socketfd, SOL_SOCKET, SO_REUSEADDR, (const char*)&opt, sizeof(opt))) {
+    #endif
         fputs("servStart: Failed to set socket options\n", stderr);
         close(socketfd);
         return -1;
@@ -584,8 +656,12 @@ void* clinetthread(void* args) {
     struct bufinf* buf = allocbuf(SERVER_BUF_SIZE);
     unsigned char* buf2 = calloc(CLIENT_BUF_SIZE, 1);
     int msglen;
+    #ifndef _WIN32
     int flags = fcntl(inf->socket, F_GETFL);
     fcntl(inf->socket, F_SETFL, flags | O_NONBLOCK);
+    #else
+    {unsigned long o = 1; ioctlsocket(inf->socket, FIONBIO, &o);}
+    #endif
     //uint64_t starttime = altutime();
     bool ackcmd = true;
     while (1) {
@@ -597,7 +673,11 @@ void* clinetthread(void* args) {
             //if (buf2[0] != 'A') printf("client [%s]: gotmsg: [%c] [%02X]\n", argv[4], buf2[0], buf2[0]);
             switch (buf2[0]) {
                 case 'R':;
+                    #ifndef _WIN32
                     fcntl(inf->socket, F_SETFL, flags);
+                    #else
+                    {unsigned long o = 0; ioctlsocket(inf->socket, FIONBIO, &o);}
+                    #endif
                     int datasize = 0;
                     getbuf(inf->socket, buf2, 1, buf);
                     //printf("Client stage 2 received: {%d}\n", buf2[0]);
@@ -615,7 +695,11 @@ void* clinetthread(void* args) {
                     unsigned char* data = calloc(datasize, 1);
                     msglen = getbuf(inf->socket, data, datasize, buf);
                     //printf("Client stage 3 received: {%d}\n", msglen);
+                    #ifndef _WIN32
                     fcntl(inf->socket, F_SETFL, flags | O_NONBLOCK);
+                    #else
+                    {unsigned long o = 1; ioctlsocket(inf->socket, FIONBIO, &o);}
+                    #endif
                     pthread_mutex_lock(&inlock);
                     int index = -1;
                     for (int i = 0; i < insize; ++i) {
@@ -631,10 +715,10 @@ void* clinetthread(void* args) {
                     pthread_mutex_unlock(&inlock);
                     //printf("client [%s]: sending A\n", argv[4]);
                     //microwait(client_ackdelay);
-                    write(inf->socket, "A", 1);
+                    wsock(inf->socket, "A", 1);
                     break;
                 case 'A':;
-                    //printf("client [%s]: recieved A\n", argv[4]);
+                    //printf("client: recieved A\n");
                     ackcmd = true;
                     //puts("client: set ack to true");
                     break;
@@ -695,10 +779,10 @@ void* clinetthread(void* args) {
                 //fcntl(inf->socket, F_SETFL, flags);
                 //microwait(client_senddelay);
                 //printf("cli writing [%d] bytes (tmplen: [%d])\n", msglen, tmplen);
-                write(inf->socket, buf2, msglen);
+                wsock(inf->socket, buf2, msglen);
                 ackcmd = false;
                 //puts("client: set ack to false");
-                //read(inf->socket, buf2, 2);
+                //rsock(inf->socket, buf2, 2);
                 //buf2[2] = 0;
                 //printf("from server: {%s} [%02X%02X]\n", buf2, buf2[0], buf2[1]);
                 //fcntl(inf->socket, F_SETFL, flags | O_NONBLOCK);
@@ -718,8 +802,12 @@ void* clinetthread(void* args) {
 
 bool servConnect(char* addr, int port) {
     printf("Connecting to %s:%d...\n", addr, port);
-    int socketfd;
+    sock_t socketfd;
+    #ifndef _WIN32
     if ((socketfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+    #else
+    if ((socketfd = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET) {
+    #endif
         fputs("servConnect: Failed to create socket\n", stderr);
         return false;
     }
@@ -730,11 +818,17 @@ bool servConnect(char* addr, int port) {
     server.sin_family = AF_INET;
     server.sin_addr.s_addr = inet_addr(addr);
     server.sin_port = htons(port);
+    #ifndef _WIN32
     struct timeval tmptime;
     tmptime.tv_sec = 15;
     tmptime.tv_usec = 0;
-    if (setsockopt(socketfd, SOL_SOCKET, SO_RCVTIMEO, &tmptime, sizeof(tmptime)) < 0 ||
-        setsockopt(socketfd, SOL_SOCKET, SO_SNDTIMEO, &tmptime, sizeof(tmptime)) < 0) {
+    if (setsockopt(socketfd, SOL_SOCKET, SO_RCVTIMEO, &tmptime, sizeof(tmptime)) ||
+        setsockopt(socketfd, SOL_SOCKET, SO_SNDTIMEO, &tmptime, sizeof(tmptime))) {
+    #else
+    DWORD tmptime = 15000;
+    if (setsockopt(socketfd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tmptime, sizeof(tmptime)) ||
+        setsockopt(socketfd, SOL_SOCKET, SO_SNDTIMEO, (const char*)&tmptime, sizeof(tmptime))) {
+    #endif
         fputs("servConnect: Failed to set socket options\n", stderr);
         close(socketfd);
         return false;
@@ -744,17 +838,27 @@ bool servConnect(char* addr, int port) {
         close(socketfd);
         return false;
     }
+    #ifndef _WIN32
     tmptime.tv_sec = 1;
     tmptime.tv_usec = 0;
-    if (setsockopt(socketfd, SOL_SOCKET, SO_RCVTIMEO, &tmptime, sizeof(tmptime)) < 0 ||
-        setsockopt(socketfd, SOL_SOCKET, SO_SNDTIMEO, &tmptime, sizeof(tmptime)) < 0) {
+    if (setsockopt(socketfd, SOL_SOCKET, SO_RCVTIMEO, &tmptime, sizeof(tmptime)) ||
+        setsockopt(socketfd, SOL_SOCKET, SO_SNDTIMEO, &tmptime, sizeof(tmptime))) {
+    #else
+    tmptime = 1000;
+    if (setsockopt(socketfd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tmptime, sizeof(tmptime)) ||
+        setsockopt(socketfd, SOL_SOCKET, SO_SNDTIMEO, (const char*)&tmptime, sizeof(tmptime))) {
+    #endif
         fputs("servConnect: Failed to set socket options\n", stderr);
         close(socketfd);
         return false;
     }
     {
         int tmpint = SERVER_BUF_SIZE;
+        #ifndef _WIN32
         setsockopt(socketfd, SOL_SOCKET, SO_RCVBUF, &tmpint, sizeof(tmpint));
+        #else
+        setsockopt(socketfd, SOL_SOCKET, SO_RCVBUF, (const char*)&tmpint, sizeof(tmpint));
+        #endif
     }
     //fcntl(socketfd, F_SETFL, fcntl(socketfd, F_GETFL) | O_NONBLOCK);
     cfgvar.client_delay = atoi(getConfigVarStatic(config, "server.client_delay", "1000", 64));

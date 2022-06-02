@@ -38,7 +38,7 @@ CFLAGS += -Wall -Wextra -I. -g -O2
 ifndef OS
 BINFLAGS += -lpthread -ldl -lglfw -lm
 else
-BINFLAGS += -lpthread -lglfw3 -lopengl32 -lgdi32 -lm
+BINFLAGS += -lpthread -lglfw3 -lopengl32 -lgdi32 -lm -lws2_32
 endif
 
 MKENV = NAME=$@ HEADDIR="$(CURDIR)" SRCDIR="$(SRCDIR)" OBJDIR="$(OBJDIR)" COMMONMK="$(CURDIR)/common.mk" CC="$(CC)" CFLAGS="$(CFLAGS) $(INCLUDEDIRS)"
