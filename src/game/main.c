@@ -13,6 +13,10 @@
 #include <signal.h>
 #include <unistd.h>
 
+#ifdef _WIN32
+    #include <windows.h>
+#endif
+
 uint32_t indices[] = {
     0, 1, 2,
     2, 3, 0,
@@ -67,7 +71,7 @@ int main(int _argc, char** _argv) {
     #ifndef _WIN32
     startdir = realpath(".", NULL);
     #else
-    startdir = _fullpath(".", argv[0], MAX_PATH);
+    startdir = _fullpath(NULL, ".", MAX_PATH);
     #endif
     {
         uint32_t tmplen = strlen(startdir);

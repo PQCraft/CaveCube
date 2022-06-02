@@ -1,5 +1,5 @@
-#include "common.h"
 #include "main.h"
+#include "common.h"
 
 #include <LzmaLib.h>
 #include <7zTypes.h>
@@ -14,6 +14,10 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <unistd.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 uint64_t altutime() {
     struct timeval time1;
@@ -299,7 +303,7 @@ unsigned char* decompressData(unsigned char* data, size_t insize, size_t outsize
     outsize -= LZMA_PROPS_SIZE;
     int ret = LzmaUncompress(outbuf, &outsize, &data[LZMA_PROPS_SIZE], &insize, data, LZMA_PROPS_SIZE);
     //printf("decompressData: [%lu]\n", outsize + LZMA_PROPS_SIZE);
-    if (ret != SZ_OK) {fprintf(stderr, "decompressData: error [%d] at [%lu]\n", ret, outsize); free(outbuf); return NULL;}
+    if (ret != SZ_OK) {fprintf(stderr, "decompressData: error [%d] at [%"PRIuz"]\n", ret, outsize); free(outbuf); return NULL;}
     return outbuf;
 }
 
@@ -310,7 +314,7 @@ unsigned char* compressData(unsigned char* data, size_t insize, size_t* outsize)
     insize -= LZMA_PROPS_SIZE;
     size_t propsSize = LZMA_PROPS_SIZE;
     int ret = LzmaCompress(&outbuf[LZMA_PROPS_SIZE], outsize, data, insize, outbuf, &propsSize, 9, 0, -1, -1, -1, -1, 1);
-    if (ret != SZ_OK) {fprintf(stderr, "compressData: error [%d] at [%lu]\n", ret, *outsize); free(outbuf); return NULL;}
+    if (ret != SZ_OK) {fprintf(stderr, "compressData: error [%d] at [%"PRIuz"]\n", ret, *outsize); free(outbuf); return NULL;}
     *outsize += LZMA_PROPS_SIZE;
     return outbuf;
 }

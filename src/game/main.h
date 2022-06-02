@@ -21,6 +21,22 @@
     #endif
 #endif
 
+#ifndef _WIN32
+    #define PRIdz "zd"
+    #define PRIuz "zu"
+    #define PRIxz "zx"
+    #define PRIXz "zX"
+#else
+    #define PRIdz "Id"
+    #define PRIuz "Iu"
+    #define PRIxz "Ix"
+    #define PRIXz "IX"
+#endif
+
+#ifdef _WIN32
+    #define pause() sleep(INFINITE)
+#endif
+
 extern char* config;
 extern int quitRequest;
 extern int argc;

@@ -5,7 +5,7 @@
 #include <chunk.h>
 
 #ifndef SERVER_THREADS
-    #define SERVER_THREADS 4
+    #define SERVER_THREADS 2
 #endif
 
 #ifndef MAX_CLIENTS

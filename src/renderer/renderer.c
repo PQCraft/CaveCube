@@ -56,6 +56,10 @@ static int curspace = -1;
 void setSpace(int space) {
     if (space == curspace) return;
     curspace = space;
+    #ifndef RENDERER_UNSAFE
+    pthread_mutex_lock(&gllock);
+    glfwMakeContextCurrent(rendinf.window);
+    #endif
     switch (space) {
         default:;
             setSkyColor(0, 0.7, 0.9);
@@ -76,10 +80,19 @@ void setSpace(int space) {
             glUniform1i(glGetUniformLocation(rendinf.shaderprog, "vis"), -10);
             glUniform1f(glGetUniformLocation(rendinf.shaderprog, "vismul"), 0.8);
     }
+    #ifndef RENDERER_UNSAFE
+    #ifndef RENDERER_LAZY
+    glfwMakeContextCurrent(NULL);
+    #endif
+    pthread_mutex_unlock(&gllock);
+    #endif
 }
 
 void updateCam() {
+    #ifndef RENDERER_UNSAFE
     pthread_mutex_lock(&gllock);
+    glfwMakeContextCurrent(rendinf.window);
+    #endif
     mat4 view __attribute__((aligned (32)));
     mat4 projection __attribute__((aligned (32)));
     glm_perspective(rendinf.camfov * M_PI / 180.0, gfx_aspect, 0.05, 1024.0, projection);
@@ -100,7 +113,12 @@ void updateCam() {
     }
     */
     //setUniform3f(rendinf.shaderprog, "viewPos", (float[]){rendinf.campos.x, rendinf.campos.y, rendinf.campos.z});
+    #ifndef RENDERER_UNSAFE
+    #ifndef RENDERER_LAZY
+    glfwMakeContextCurrent(NULL);
+    #endif
     pthread_mutex_unlock(&gllock);
+    #endif
 }
 
 void setFullscreen(bool fullscreen) {
@@ -284,10 +302,15 @@ void renderModel(struct model* m, bool advanced) {
 
 void updateScreen() {
     static int lv = 0;
-    if (rendinf.vsync != lv) {glfwSwapInterval(rendinf.vsync); lv = rendinf.vsync;}
     pthread_mutex_lock(&gllock);
     glfwMakeContextCurrent(rendinf.window);
+    if (rendinf.vsync != lv) {glfwSwapInterval(rendinf.vsync); lv = rendinf.vsync;}
     glfwSwapBuffers(rendinf.window);
+    #ifndef RENDERER_UNSAFE
+    #ifndef RENDERER_LAZY
+    glfwMakeContextCurrent(NULL);
+    #endif
+    #endif
     pthread_mutex_unlock(&gllock);
 }
 
@@ -466,6 +489,11 @@ static void* meshthread(void* args) {
             glBindBuffer(GL_ARRAY_BUFFER, data->renddata[c].VBO2);
             glBufferData(GL_ARRAY_BUFFER, tmpsize2, _vptr2, GL_STATIC_DRAW);
         }
+        #ifndef RENDERER_UNSAFE
+        #ifndef RENDERER_LAZY
+        glfwMakeContextCurrent(NULL);
+        #endif
+        #endif
         pthread_mutex_unlock(&gllock);
         free(_vptr);
         free(_vptr2);
@@ -531,6 +559,11 @@ void renderText(float x, float y, float scale, unsigned end, char* text, void* e
 
 static char tbuf[1][32768];
 
+const unsigned char* glver;
+const unsigned char* glslver;
+const unsigned char* glvend;
+const unsigned char* glrend;
+
 void renderChunks(void* vdata) {
     struct chunkdata* data = vdata;
     pthread_mutex_lock(&gllock);
@@ -557,37 +590,21 @@ void renderChunks(void* vdata) {
     }
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "isAni"), 1);
     glUniform1ui(glGetUniformLocation(rendinf.shaderprog, "TexAni"), (altutime() / 200000) % 6);
-    if (curspace == SPACE_UNDERWATER) {
-        for (uint32_t c = 0; c < data->info.size; ++c) {
-            if (!data->renddata[c].buffered || !data->renddata[c].vcount2) continue;
-            int x = c % data->info.width;
-            int z = c / data->info.width % data->info.width;
-            int y = c / data->info.widthsq;
-            setUniform3f(rendinf.shaderprog, "ccoord", (float[]){x - (int)data->info.dist, y, z - (int)data->info.dist});
-            glBindBuffer(GL_ARRAY_BUFFER, data->renddata[c].VBO2);
-            glEnableVertexAttribArray(0);
-            glEnableVertexAttribArray(1);
-            glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 2 * sizeof(uint32_t), (void*)0);
-            glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 2 * sizeof(uint32_t), (void*)sizeof(uint32_t));
-            glFrontFace(GL_CW);
-            glDrawArrays(GL_TRIANGLES, 0, data->renddata[c].vcount2);
-            glFrontFace(GL_CCW);
-            glDrawArrays(GL_TRIANGLES, 0, data->renddata[c].vcount2);
-        }
-    } else {
-        for (uint32_t c = 0; c < data->info.size; ++c) {
-            if (!data->renddata[c].buffered || !data->renddata[c].vcount2) continue;
-            int x = c % data->info.width;
-            int z = c / data->info.width % data->info.width;
-            int y = c / data->info.widthsq;
-            setUniform3f(rendinf.shaderprog, "ccoord", (float[]){x - (int)data->info.dist, y, z - (int)data->info.dist});
-            glBindBuffer(GL_ARRAY_BUFFER, data->renddata[c].VBO2);
-            glEnableVertexAttribArray(0);
-            glEnableVertexAttribArray(1);
-            glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 2 * sizeof(uint32_t), (void*)0);
-            glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 2 * sizeof(uint32_t), (void*)sizeof(uint32_t));
-            glDrawArrays(GL_TRIANGLES, 0, data->renddata[c].vcount2);
-        }
+    for (uint32_t c = 0; c < data->info.size; ++c) {
+        if (!data->renddata[c].buffered || !data->renddata[c].vcount2) continue;
+        int x = c % data->info.width;
+        int z = c / data->info.width % data->info.width;
+        int y = c / data->info.widthsq;
+        setUniform3f(rendinf.shaderprog, "ccoord", (float[]){x - (int)data->info.dist, y, z - (int)data->info.dist});
+        glBindBuffer(GL_ARRAY_BUFFER, data->renddata[c].VBO2);
+        glEnableVertexAttribArray(0);
+        glEnableVertexAttribArray(1);
+        glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 2 * sizeof(uint32_t), (void*)0);
+        glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 2 * sizeof(uint32_t), (void*)sizeof(uint32_t));
+        glFrontFace(GL_CW);
+        glDrawArrays(GL_TRIANGLES, 0, data->renddata[c].vcount2);
+        glFrontFace(GL_CCW);
+        glDrawArrays(GL_TRIANGLES, 0, data->renddata[c].vcount2);
     }
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "isAni"), 0);
     glDisable(GL_DEPTH_TEST);
@@ -607,14 +624,29 @@ void renderChunks(void* vdata) {
         tbuf[i] = rand();
     }
     */
+    static int toff = 0;
+    if (!tbuf[0][0]) {
+        sprintf(
+            tbuf[0],
+            "OpenGL version: %s\n"
+            "GLSL version: %s\n"
+            "Vendor string: %s\n"
+            "Renderer string: %s\n",
+            glver,
+            glslver,
+            glvend,
+            glrend
+        );
+        toff = strlen(tbuf[0]);
+    }
     sprintf(
-        tbuf[0],
+        &tbuf[0][toff],
         "FPS: %d\n"
         "Position: (%lf, %lf, %lf)\n"
         "Velocity: (%f, %f, %f)\n"
         "Rotation: (%f, %f, %f)\n"
         "Block: (%d, %d, %d)\n"
-        "Chunk: (%ld, %ld, %ld)\n",
+        "Chunk: (%"PRId64", %"PRId64", %"PRId64")\n",
         fps,
         pcoord.x, pcoord.y, pcoord.z,
         pvelocity.x, pvelocity.y, pvelocity.z,
@@ -628,6 +660,11 @@ void renderChunks(void* vdata) {
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     //printf("rendered in: [%f]s\n", (float)(altutime() - starttime) / 1000000.0);
+    #ifndef RENDERER_UNSAFE
+    #ifndef RENDERER_LAZY
+    glfwMakeContextCurrent(NULL);
+    #endif
+    #endif
     pthread_mutex_unlock(&gllock);
 }
 
@@ -657,6 +694,7 @@ bool initRenderer() {
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_TRUE);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_FALSE);
 
     if (!(rendinf.monitor = glfwGetPrimaryMonitor())) {
         fputs("initRenderer: Failed to fetch primary monitor handle\n", stderr);
@@ -683,6 +721,7 @@ bool initRenderer() {
         fputs("initRenderer: Failed to create window\n", stderr);
         return false;
     }
+    pthread_mutex_lock(&gllock);
     glfwMakeContextCurrent(rendinf.window);
     glfwSetInputMode(rendinf.window, GLFW_STICKY_KEYS, GLFW_TRUE);
 
@@ -715,8 +754,24 @@ bool initRenderer() {
 
     printf("Windowed resolution: [%ux%u@%d]\n", rendinf.win_width, rendinf.win_height, rendinf.win_fps);
     printf("Fullscreen resolution: [%ux%u@%d]\n", rendinf.full_width, rendinf.full_height, rendinf.full_fps);
+
+    glver = glGetString(GL_VERSION);
+    printf("OpenGL version: %s\n", glver);
+    glslver = glGetString(GL_SHADING_LANGUAGE_VERSION);
+    printf("GLSL version: %s\n", glslver);
+    glvend = glGetString(GL_VENDOR);
+    printf("Vendor string: %s\n", glvend);
+    glrend = glGetString(GL_RENDERER);
+    printf("Renderer string: %s\n", glrend);
+
     setShaderProg(shader_block);
+    #ifndef RENDERER_LAZY
+    glfwMakeContextCurrent(NULL);
+    #endif
+    pthread_mutex_unlock(&gllock);
     setFullscreen(rendinf.fullscr);
+    pthread_mutex_lock(&gllock);
+    glfwMakeContextCurrent(rendinf.window);
 
     glViewport(0, 0, rendinf.width, rendinf.height);
     glEnable(GL_DEPTH_TEST);
@@ -730,7 +785,13 @@ bool initRenderer() {
     glfwSwapBuffers(rendinf.window);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glfwSwapBuffers(rendinf.window);
+    #ifndef RENDERER_LAZY
+    glfwMakeContextCurrent(NULL);
+    #endif
+    pthread_mutex_unlock(&gllock);
     updateCam();
+    pthread_mutex_lock(&gllock);
+    glfwMakeContextCurrent(rendinf.window);
     glfwPollEvents();
 
     //glUniform1i(glGetUniformLocation(rendinf.shaderprog, "is2D"), 1);
@@ -814,14 +875,17 @@ bool initRenderer() {
 
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
+    #ifndef RENDERER_UNSAFE
+    #ifndef RENDERER_LAZY
+    glfwMakeContextCurrent(NULL);
+    #endif
+    #endif
+    pthread_mutex_unlock(&gllock);
     free(tmpbuf);
     return true;
 }
 
 void quitRenderer() {
-    //pthread_mutex_lock(&uclock);
-    //pthread_mutex_lock(&gllock);
-    //puts("RENDEXIT");
     if (setchunks) {
         for (int i = 0; i < MESHER_THREADS && i < MAX_THREADS; ++i) {
             pthread_join(pthreads[i], NULL);
