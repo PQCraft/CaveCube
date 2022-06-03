@@ -329,20 +329,21 @@ bool genChunk(struct chunkinfo* chunks, int cx, int cy, int cz, int64_t xo, int6
                     }
                     break;
                 case 4:; {
-                        double s1 = perlin2d(0, (double)(nx + x) / 55, (double)(nz + z) / 55, 1, 4);
+                        double s1 = perlin2d(0, (double)(nx + x) / 73, (double)(nz + z) / 73, 1, 4);
                         double s6 = perlin2d(1, (double)(nx + x) / 174, (double)(nz + z) / 174, 1, 2) * 5.0 - 2.0;
                         if (s6 < 0.0) s6 = 0.0;
                         else if (s6 > 1.0) s6 = 1.0;
-                        double s2 = perlin2d(2, (double)(nx + x) / 52, (double)(nz + z) / 52, 1, 5) * 0.8 * s6 + perlin2d(3, (double)(nx + x) / 82, (double)(nz + z) / 82, 1, 3) * (1.0 - s6);
-                        double s3 = perlin2d(4, (double)(nx + x) / 56, (double)(nz + z) / 56, 1, 5);
+                        double s2 = perlin2d(2, (double)(nx + x) / 70, (double)(nz + z) / 70, 1, 5) * 0.8 * s6 + perlin2d(3, (double)(nx + x) / 82, (double)(nz + z) / 82, 1, 3) * (1.0 - s6);
+                        double s3 = perlin2d(4, (double)(nx + x) / 66, (double)(nz + z) / 66, 1, 5);
                         int s4 = noise2d(5, (double)(nx + x), (double)(nz + z));
-                        double s5 = perlin2d(6, (double)(nx + x) / 345, (double)(nz + z) / 345, 1, 9) * 2.5 - 0.75;
+                        double s5 = perlin2d(6, (double)(nx + x) / 325, (double)(nz + z) / 325, 1, 8) * 2.5 - 0.75;
+                        double s7 = perlin2d(7, (double)(nx + x) / 17, (double)(nz + z) / 17, 1, 1);
                         if (s5 < 0.2) s5 = 0.2;
                         else if (s5 > 1.0) s5 = 1.0;
                         for (int y = btm; y <= top && y < 65; ++y) {
                             data[(y - btm) * 256 + z * 16 + x].id = 7;
                         }
-                        double s = ((s1 * 10 - 5) + (s2 * 50 - 25)) * (1.0 - s5 * 0.5) + 40 + s5 * 55;
+                        double s = ((s1 * 16 - 8) + (s2 * 50 - 25)) * (1.0 - s5 * 0.5) + 40.5 + s5 * 54.5 + round(s7 * 2) / 1.75;
                         int si = round(s);
                         if (si >= btm && si <= top) data[(si - btm) * 256 + z * 16 + x].id = ((double)si - round(s3 * 11) + 1 < 62) ? 8 : ((si < 64) ? 2 : 3);
                         for (int y = ((si - 1) > top) ? top : si - 1; y >= btm; --y) {
@@ -368,9 +369,6 @@ static pthread_mutex_t cidlock;
 
 void genChunks_cb(struct chunkdata* chunks, void* ptr) {
     struct server_ret_chunk* srvchunk = ptr;
-    /*
-    if (srvchunk->id != cid) {
-    */
     pthread_mutex_lock(&uclock);
     if (srvchunk->id != cid || srvchunk->xo != cxo || srvchunk->zo != czo) {
         //printf("Dropping chunk ([s:%d] != [c:%d])\n", srvchunk->id, cid);
@@ -378,25 +376,14 @@ void genChunks_cb(struct chunkdata* chunks, void* ptr) {
         return;
     }
     uint32_t coff = (srvchunk->z + chunks->info.dist) * chunks->info.width + srvchunk->y * chunks->info.widthsq + (srvchunk->x + chunks->info.dist);
-    //static unsigned chunk = 0;
-    //printf("Writing chunk [%d][%d][%d]\n", srvchunk->x, srvchunk->y, srvchunk->z);
-    //++chunk;
     memcpy(chunks->data[coff], srvchunk->data, 4096 * sizeof(struct blockdata));
-    //chunks->renddata[coff].sent = false;
     chunks->renddata[coff].updated = false;
-    //chunkUpdateCol(chunks, srvchunk->x, srvchunk->z);
+    chunkUpdate(chunks, coff);
     chunks->renddata[coff].generated = true;
     pthread_mutex_unlock(&uclock);
-    /*
-    if (srvchunk->data->renddata[coff].moved) {
-        srvchunk->data->renddata[coff].sent = false;
-        srvchunk->data->renddata[coff].updated = false;
-    }
-    */
 }
 
 void genChunks_cb2(struct chunkdata* chunks, void* ptr) {
-    //uint64_t starttime = altutime();
     struct server_ret_chunkcol* srvchunk = ptr;
     pthread_mutex_lock(&uclock);
     if (srvchunk->id != cid || srvchunk->xo != cxo || srvchunk->zo != czo) {
@@ -404,7 +391,6 @@ void genChunks_cb2(struct chunkdata* chunks, void* ptr) {
         pthread_mutex_unlock(&uclock);
         return;
     }
-    //printf("passing [%u]\n", srvchunk->id);
     uint32_t coff = (srvchunk->z + chunks->info.dist) * chunks->info.width + (srvchunk->x + chunks->info.dist);
     uint32_t coff2 = coff;
     for (int i = 0; i < 16; ++i) {
@@ -415,7 +401,6 @@ void genChunks_cb2(struct chunkdata* chunks, void* ptr) {
         coff2 += chunks->info.widthsq;
     }
     pthread_mutex_unlock(&uclock);
-    //printf("[%lu]\n", altutime() - starttime);
 }
 
 void genChunks(struct chunkdata* chunks, int64_t xo, int64_t zo) {
@@ -439,11 +424,11 @@ void genChunks(struct chunkdata* chunks, int64_t xo, int64_t zo) {
         for (int z = -i; z <= i; ++z) {
             for (int x = -i; x <= i; ++x) {
                 if (abs(z) == i || (abs(z) != i && abs(x) == i)) {
-                    bool gen = true;
+                    int gen = 0;
                     uint32_t coff = (z + chunks->info.dist) * chunks->info.width + (x + chunks->info.dist);
                     uint32_t coff2 = coff;
                     for (int y = 0; y < 16; ++y) {
-                        if (!chunks->renddata[coff2].generated) {gen = false; break;}
+                        if (chunks->renddata[coff2].generated) ++gen;
                         coff2 += chunks->info.widthsq;
                     }
                     if (!gen) {
@@ -451,6 +436,16 @@ void genChunks(struct chunkdata* chunks, int64_t xo, int64_t zo) {
                         struct server_msg_chunkcol* srvchunk = malloc(sizeof(struct server_msg_chunkcol));
                         *srvchunk = (struct server_msg_chunkcol){.id = cid, .info = chunks->info, .x = x, .z = z, .xo = xo, .zo = zo};
                         servSend(SERVER_MSG_GETCHUNKCOL, srvchunk, true);
+                    } else if (gen < 16) {
+                        coff2 = coff;
+                        for (int y = 0; y < 16; ++y) {
+                            if (chunks->renddata[coff2].generated) {
+                                struct server_msg_chunk* srvchunk2 = malloc(sizeof(struct server_msg_chunk));
+                                *srvchunk2 = (struct server_msg_chunk){.id = cid, .info = chunks->info, .x = x, .y = y, .z = z, .xo = xo, .zo = zo};
+                                servSend(SERVER_MSG_GETCHUNK, srvchunk2, true);
+                            }
+                            coff2 += chunks->info.widthsq;
+                        }
                     }
                 }
             }

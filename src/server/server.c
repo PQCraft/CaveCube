@@ -22,8 +22,22 @@
     #include <ws2tcpip.h>
     #include <windows.h>
     #define PRIsock PRIu64
-    WSADATA wsadata;
-    WORD wsaver = MAKEWORD(2, 2);
+    static WSADATA wsadata;
+    static WORD wsaver = MAKEWORD(2, 2);
+    static bool wsainit = false;
+#endif
+
+#ifdef _WIN32
+bool startwsa() {
+    if (wsainit) return true;
+    int wsaerror;
+    if ((wsaerror = WSAStartup(wsaver, &wsadata))) {
+        fprintf(stderr, "WSA init failed: [%d]\n", wsaerror);
+        return false;
+    }
+    wsainit = true;
+    return true;
+}
 #endif
 
 static struct {
@@ -362,12 +376,6 @@ static void* servthread(void* args) {
 
 bool initServer() {
     pthread_mutex_init(&msglock, NULL);
-    #ifdef _WIN32
-    int wsaerror;
-    if ((wsaerror = WSAStartup(wsaver, &wsadata))) {
-        fprintf(stderr, "WSA init failed: [%d]\n", wsaerror);
-    }
-    #endif
     return true;
 }
 
@@ -492,7 +500,7 @@ void* servnetthread(void* args) {
             } else if (msglen < 0) {
                 pthread_mutex_lock(&pinfolock);
                 getpeername(p.socket, (struct sockaddr*)&inf->address, &socklen);
-                //printf("Closing connection: [%d] {%s:%d} [%"PRIsock"]\n", pn, inet_ntoa(inf->address.sin_addr), ntohs(inf->address.sin_port), p.socket);
+                printf("Closing connection: [%d] {%s:%d} [%"PRIsock"]\n", pn, inet_ntoa(inf->address.sin_addr), ntohs(inf->address.sin_port), p.socket);
                 close(p.socket);
                 freebuf(p.buf);
                 memset(&pinfo[pn], 0, sizeof(struct player));
@@ -572,6 +580,9 @@ void* servnetthread(void* args) {
 }
 
 int servStart(char* addr, int port, char* world, int mcli) {
+    #ifdef _WIN32
+    if (!startwsa()) return -1;
+    #endif
     if (mcli > 0) maxclients = mcli;
     cfgvar.server_delay = atoi(getConfigVarStatic(config, "server.server_delay", "1000", 64));
     cfgvar.server_idledelay = atoi(getConfigVarStatic(config, "server.server_idledelay", "5000", 64));
@@ -801,6 +812,9 @@ void* clinetthread(void* args) {
 }
 
 bool servConnect(char* addr, int port) {
+    #ifdef _WIN32
+    if (!startwsa()) return false;
+    #endif
     printf("Connecting to %s:%d...\n", addr, port);
     sock_t socketfd;
     #ifndef _WIN32

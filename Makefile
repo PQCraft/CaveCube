@@ -5,7 +5,11 @@ CC = gcc
 endif
 
 SRCDIR ?= src
+ifndef OS
 OBJDIR ?= obj
+else
+OBJDIR ?= winobj
+endif
 
 SRCDIR := $(abspath $(SRCDIR))
 OBJDIR := $(abspath $(OBJDIR))
@@ -86,7 +90,7 @@ $(BIN): files
 	@$(MAKE) --silent --no-print-directory -f $(lastword $(MAKEFILE_LIST)) ${MKENV2} MKSUB=y $@
 endif
 
-run:
+run: bin
 ifndef OS
 	./$(BIN)
 else
