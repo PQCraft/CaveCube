@@ -64,7 +64,37 @@ void sigh(int sig) {
     ++quitRequest;
 }
 
+#ifndef _WIN32
+    #define OPTPREFIX '-'
+    #define OPTPREFIXSTR "-"
+#else
+    #define OPTPREFIX '/'
+    #define OPTPREFIXSTR "/"
+#endif
+
 int main(int _argc, char** _argv) {
+    #ifndef _WIN32
+    bool winopt = false;
+    #else
+    bool winopt = true;
+    #endif
+    if (_argc > 1 && (!strcmp(_argv[1], "-help") || !strcmp(_argv[1], "--help") || (winopt && !strcmp(_argv[1], "/help")))) {
+        printf("%s [ARGUMENTS]\n", _argv[0]);
+        puts("    With no arguments, the client is connected to a server started for 1 person on 0.0.0.0.");
+        puts("    Arguments:");
+        puts("        "OPTPREFIXSTR"help");
+        puts("            Shows the help text.");
+        puts("        "OPTPREFIXSTR"server [<ADDRESS> [<PORT> [<MAX PLAYERS>]]]");
+        puts("            Starts the server.");
+        puts("            ADDRESS: IP address to start server on (empty or not provided for 0.0.0.0).");
+        puts("            PORT: Port to start server on (-1 or not provided for auto (assigns a random port from 46000 to 46999)).");
+        puts("            MAX PLAYERS: Max amount of players allowed to connect (0 or less to use the internal maximum, not provided for 1).");
+        puts("        "OPTPREFIXSTR"connect <ADDRESS> <PORT>");
+        puts("            Connects to a server.");
+        puts("            ADDRESS: IP address to connect to.");
+        puts("            PORT: Port to connect to.");
+        return 0;
+    }
     argc = _argc;
     argv = _argv;
     maindir = strdup(pathfilename(execpath()));
@@ -96,22 +126,7 @@ int main(int _argc, char** _argv) {
     }
     config = (char*)config_filedata.data;
     stbi_set_flip_vertically_on_load(true);
-    if (argc > 1 && (!strcmp(argv[1], "-help") || !strcmp(argv[1], "--help"))) {
-        printf("%s [ARGUMENTS]\n", argv[0]);
-        puts("    With no arguments, the client is connected to a server started for 1 person on 0.0.0.0.");
-        puts("    Arguments:");
-        puts("        -help");
-        puts("            Shows the help text.");
-        puts("        -server [<ADDRESS> [<PORT> [<MAX PLAYERS>]]]");
-        puts("            Starts the server.");
-        puts("            ADDRESS: IP address to start server on (empty or not provided for 0.0.0.0).");
-        puts("            PORT: Port to start server on (-1 or not provided for auto (assigns a random port from 46000 to 46999)).");
-        puts("            MAX PLAYERS: Max amount of players allowed to connect (0 or less to use the internal maximum, not provided for 1).");
-        puts("        -connect <ADDRESS> <PORT>");
-        puts("            Connects to a server.");
-        puts("            ADDRESS: IP address to connect to.");
-        puts("            PORT: Port to connect to.");
-    } else if (argc > 1 && !strcmp(argv[1], "-server")) {
+    if (argc > 1 && (!strcmp(argv[1], "-server") || (winopt && !strcmp(argv[1], "/server")))) {
         if (!initServer()) return 1;
         char* addr = (argc > 2 && argv[2][0]) ? argv[2] : NULL;
         int port = (argc > 3) ? atoi(argv[3]) : -1;
@@ -122,7 +137,7 @@ int main(int _argc, char** _argv) {
             return 1;
         }
         pause();
-    } else if (argc > 1 && !strcmp(argv[1], "-connect")) {
+    } else if (argc > 1 && (!strcmp(argv[1], "-connect") || (winopt && !strcmp(argv[1], "/connect")))) {
         //microwait(1000000);
         if (argc < 3) {fputs("Please provide address and port\n", stderr); return 1;}
         if (!initRenderer()) return 1;
@@ -131,6 +146,9 @@ int main(int _argc, char** _argv) {
         //freeAllResources();
         freeFile(config_filedata);
         return !game_ecode;
+    } else if (argc > 1) {
+        fprintf(stderr, "Invalid option '%s'\n", argv[1]);
+        return 1;
     } else {
         if (!initServer()) return 1;
         if (!initRenderer()) return 1;
