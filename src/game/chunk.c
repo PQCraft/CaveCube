@@ -60,7 +60,7 @@ struct blockdata getBlock(struct chunkdata* data, int cx, int cy, int cz, int x,
     cy = c / data->info.widthsq;
     //printf("resolved: [%d, %d, %d] [%d, %d, %d]\n", cx, cy, cz, x, y, z);
     if (c < 0 || c >= (int32_t)data->info.size || x < 0 || y < 0 || z < 0 || x > 15 || y > 15 || z > 15) return (struct blockdata){0, 0, 0};
-    if (!data->renddata[c].generated) return (struct blockdata){0, 0, 0};
+    if (!data->renddata[c].generated) return (struct blockdata){255, 0, 0};
     return data->data[c][y * 256 + z * 16 + x];
 }
 
@@ -329,25 +329,27 @@ bool genChunk(struct chunkinfo* chunks, int cx, int cy, int cz, int64_t xo, int6
                     }
                     break;
                 case 4:; {
-                        double s1 = perlin2d(0, (double)(nx + x) / 73, (double)(nz + z) / 73, 1, 4);
-                        double s6 = perlin2d(1, (double)(nx + x) / 174, (double)(nz + z) / 174, 1, 2) * 5.0 - 2.0;
+                        double s1 = perlin2d(0, (double)(nx + x) / 18, (double)(nz + z) / 18, 1, 3);
+                        double s6 = perlin2d(1, (double)(nx + x) / 174, (double)(nz + z) / 174, 1, 3) * 5.0 - 2.0;
                         if (s6 < 0.0) s6 = 0.0;
                         else if (s6 > 1.0) s6 = 1.0;
-                        double s2 = perlin2d(2, (double)(nx + x) / 70, (double)(nz + z) / 70, 1, 5) * 0.8 * s6 + perlin2d(3, (double)(nx + x) / 82, (double)(nz + z) / 82, 1, 3) * (1.0 - s6);
-                        double s3 = perlin2d(4, (double)(nx + x) / 66, (double)(nz + z) / 66, 1, 5);
+                        double s2 = perlin2d(2, (double)(nx + x) / 67, (double)(nz + z) / 67, 1, 2) * 0.8 * s6 + perlin2d(3, (double)(nx + x) / 82, (double)(nz + z) / 82, 1, 2) * (1.0 - s6);
+                        double s3 = perlin2d(4, (double)(nx + x) / 16, (double)(nz + z) / 16, 1, 3);
+                        double s7 = perlin2d(7, (double)(nx + x) / 16, (double)(nz + z) / 16, 1, 3);
                         int s4 = noise2d(5, (double)(nx + x), (double)(nz + z));
-                        double s5 = perlin2d(6, (double)(nx + x) / 325, (double)(nz + z) / 325, 1, 8) * 2.5 - 0.75;
-                        double s7 = perlin2d(7, (double)(nx + x) / 17, (double)(nz + z) / 17, 1, 1);
+                        double s5 = perlin2d(6, (double)(nx + x) / 397.352, (double)(nz + z) / 397.352, 1, 8) * 2 - 0.5;
                         if (s5 < 0.2) s5 = 0.2;
                         else if (s5 > 1.0) s5 = 1.0;
                         for (int y = btm; y <= top && y < 65; ++y) {
                             data[(y - btm) * 256 + z * 16 + x].id = 7;
                         }
-                        double s = ((s1 * 16 - 8) + (s2 * 50 - 25)) * (1.0 - s5 * 0.5) + 40.5 + s5 * 54.5 + round(s7 * 2) / 1.75;
+                        double s = roundf(((s1 * 8 - 4) + s2 * 50 - 25) * (1.0 - s5 * 0.5) + (s5 * 54.5 * 1.25)) + 40;
                         int si = round(s);
-                        if (si >= btm && si <= top) data[(si - btm) * 256 + z * 16 + x].id = ((double)si - round(s3 * 11) + 1 < 62) ? 8 : ((si < 64) ? 2 : 3);
+                        if (si >= btm && si <= top) {
+                            data[(si - btm) * 256 + z * 16 + x].id = ((round(s7 * 10) < 7 || si > 58 - s3 * 5) && si < 67 + s3 * 3 && si < ((s2 * 32 - 20) + 75)) ? 8 : ((si < 64) ? 2 : 3);
+                        }
                         for (int y = ((si - 1) > top) ? top : si - 1; y >= btm; --y) {
-                            data[(y - btm) * 256 + z * 16 + x].id = (y < s * 0.9) ? 1 : ((double)y - round(s3 * 10) < 64 && y > ((s2 * 40 - 26) + 40)) ? 8 : 2;
+                            data[(y - btm) * 256 + z * 16 + x].id = (y + 4 < s * 0.975) ? 1 : ((round(s7 * 10) < 7 || y > 58 - s3 * 5) && si < 67 + s3 * 3) ? 8 : 2;
                         }
                         if (!btm) {
                             data[z * 16 + x].id = 6;
