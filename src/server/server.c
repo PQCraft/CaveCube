@@ -216,7 +216,7 @@ static int getbuf(sock_t sockfd, void* _dest, int len, struct bufinf* buf) {
     return len;
 }
 
-static int worldtype = 4;
+static int worldtype = 5;
 
 static pthread_t servpthreads[MAX_THREADS];
 

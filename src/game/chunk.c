@@ -329,21 +329,22 @@ bool genChunk(struct chunkinfo* chunks, int cx, int cy, int cz, int64_t xo, int6
                     }
                     break;
                 case 4:; {
-                        double s1 = perlin2d(0, (double)(nx + x) / 18, (double)(nz + z) / 18, 1, 3);
+                        double s1 = perlin2d(0, (double)(nx + x) / 44, (double)(nz + z) / 44, 1, 5);
                         double s6 = perlin2d(1, (double)(nx + x) / 174, (double)(nz + z) / 174, 1, 3) * 5.0 - 2.0;
                         if (s6 < 0.0) s6 = 0.0;
                         else if (s6 > 1.0) s6 = 1.0;
-                        double s2 = perlin2d(2, (double)(nx + x) / 67, (double)(nz + z) / 67, 1, 2) * 0.8 * s6 + perlin2d(3, (double)(nx + x) / 82, (double)(nz + z) / 82, 1, 2) * (1.0 - s6);
-                        double s3 = perlin2d(4, (double)(nx + x) / 16, (double)(nz + z) / 16, 1, 3);
-                        double s7 = perlin2d(7, (double)(nx + x) / 16, (double)(nz + z) / 16, 1, 3);
+                        double s2 = perlin2d(2, (double)(nx + x) / 78.214, (double)(nz + z) / 78.214, 1, 3) * 0.85 * s6 +
+                                    perlin2d(3, (double)(nx + x) / 87.153, (double)(nz + z) / 87.153, 1, 3) * (1.0 - s6);
+                        double s3 = perlin2d(4, (double)(nx + x) / 18, (double)(nz + z) / 18, 1, 3);
+                        double s7 = perlin2d(7, (double)(nx + x) / 18, (double)(nz + z) / 18, 1, 3);
                         int s4 = noise2d(5, (double)(nx + x), (double)(nz + z));
-                        double s5 = perlin2d(6, (double)(nx + x) / 397.352, (double)(nz + z) / 397.352, 1, 8) * 2 - 0.5;
+                        double s5 = perlin2d(6, (double)(nx + x) / 397.352, (double)(nz + z) / 397.352, 1, 10) * 2 - 0.5;
                         if (s5 < 0.2) s5 = 0.2;
                         else if (s5 > 1.0) s5 = 1.0;
                         for (int y = btm; y <= top && y < 65; ++y) {
                             data[(y - btm) * 256 + z * 16 + x].id = 7;
                         }
-                        double s = roundf(((s1 * 8 - 4) + s2 * 50 - 25) * (1.0 - s5 * 0.5) + (s5 * 54.5 * 1.25)) + 40;
+                        double s = roundf((s1 * 20 - 10) + (s2 * 50.2 - 25) * (1.0 - fabs(s5) * 0.5) + (s5 * 67)) + 40;
                         int si = round(s);
                         if (si >= btm && si <= top) {
                             data[(si - btm) * 256 + z * 16 + x].id = ((round(s7 * 10) < 7 || si > 58 - s3 * 5) && si < 67 + s3 * 3 && si < ((s2 * 32 - 20) + 75)) ? 8 : ((si < 64) ? 2 : 3);
@@ -355,6 +356,54 @@ bool genChunk(struct chunkinfo* chunks, int cx, int cy, int cz, int64_t xo, int6
                             data[z * 16 + x].id = 6;
                             if (!(s4 % 2) || !(s4 % 3)) data[256 + z * 16 + x].id = 6;
                             if (!(s4 % 4)) data[512 + z * 16 + x].id = 6;
+                        }
+                    }
+                    break;
+                case 5:; {
+                        int xzoff = z * 16 + x;
+                        double cx = (double)(nx + x);
+                        double cz = (double)(nz + z);
+
+                        for (int y = btm; y <= top && y < 65; ++y) {
+                            data[(y - btm) * 256 + xzoff].id = 7;
+                        }
+
+                        double p0 = tanhf(nperlin2d(0, cx, cz, 0.00867, 5) * 2);
+                        if (p0 < 0) p0 *= 0.5;
+                        double p1 = tanhf(nperlin2d(1, cx, cz, 0.0021415, 3) * 4);
+                        if (p1 < 0) p1 *= 0.5;
+                        double h0 = p0 * 18 + p1 * 39;
+                        double p3 = tanhf(nperlin2d(3, cx, cz, 0.0454, 2) * 4) * 2;
+                        double m0 = h0 / 67;
+                        if (m0 < 0) m0 *= 1.5;
+                        if (m0 > 1) m0 = 1;
+                        if (m0 < -1) m0 = -1;
+                        double m1 = cos(2 * m0 * M_PI) / 2 + 0.5;
+                        double p4 = tanhf((nperlin2d(4, cx, cz, 0.01032, 2) - 0.1) * 4) * 1.1;
+                        if (p4 < 0.05) p4 = 0.05;
+                        double p2 = tanhf((nperlin2d(2, cx, cz, 0.0176, 4) - 0.1) * 6) * 2.125;
+                        if (p2 < 0) p2 *= 0.33;
+                        double h1 = (p2 * 9.75 * p4 + p3 * 5) * m1;
+                        double h2 = (tanhf(nperlin2d(5, cx, cz, 0.005291, 1) * 3) / 2 + 0.5) * 0.9 + 0.2;
+                        double h = round((h1 + h0) * h2 + 67);
+
+                        double p9 = perlin2d(9, (double)(nx + x), (double)(nz + z), 0.025, 5);
+                        double p10 = perlin2d(10, (double)(nx + x), (double)(nz + z), 0.045, 2);
+                        int hi = h;
+                        for (int y = (hi > top) ? top : hi; y >= btm; --y) {
+                            bool c1 = y < 62 + p9 * 6;
+                            bool c2 = hi < 62 - p9 * 2 && hi <= hi - p10 * 4 + 2;
+                            uint8_t b1 = (c1) ? ((c2) ? 4 : 8) : 2;
+                            uint8_t b2 = (c1) ? ((c2 && y < 64) ? 4 : 8) : ((y < 64) ? 2 : 3);
+                            uint8_t blockid = (y < hi) ? ((y < hi - (3 - round(fabs(p4) * 2))) ? 1 : b1) : b2;
+                            data[(y - btm) * 256 + xzoff].id = blockid;
+                        }
+
+                        int n0 = noise2d(8, (double)(nx + x), (double)(nz + z));
+                        if (!btm) {
+                            data[xzoff].id = 6;
+                            if (!(n0 % 2) || !(n0 % 3)) data[256 + xzoff].id = 6;
+                            if (!(n0 % 4)) data[512 + xzoff].id = 6;
                         }
                     }
                     break;

@@ -51,6 +51,21 @@ double noise2d(int tbl, double x, double y) {
     return result;
 }
 
+double nnoise2d(int tbl, double x, double y) {
+    const int64_t x_int = floor(x);
+    const int64_t y_int = floor(y);
+    const double x_frac = x - x_int;
+    const double y_frac = y - y_int;
+    const int64_t s = noise2(tbl, x_int, y_int);
+    const int64_t t = noise2(tbl, x_int + 1, y_int);
+    const int64_t u = noise2(tbl, x_int, y_int + 1);
+    const int64_t v = noise2(tbl, x_int + 1, y_int + 1);
+    const double low = smooth_inter(s, t, x_frac);
+    const double high = smooth_inter(u, v, x_frac);
+    const double result = smooth_inter(low, high, y_frac);
+    return result * 2 - 1;
+}
+
 double perlin2d(int t, double x, double y, double freq, int depth) {
     double xa = x * freq;
     double ya = y * freq;
@@ -65,6 +80,22 @@ double perlin2d(int t, double x, double y, double freq, int depth) {
         ya += ya;
     }
     return fin / div;
+}
+
+double nperlin2d(int t, double x, double y, double freq, int depth) {
+    double xa = x * freq;
+    double ya = y * freq;
+    double amp = 1.0;
+    double fin = 0;
+    double div = 0.0;
+    for (int i = 0; i < depth; i++) {
+        div += 256 * amp;
+        fin += noise2d(t, xa, ya) * amp;
+        amp /= 2;
+        xa += xa;
+        ya += ya;
+    }
+    return (fin / div) * 2 - 1;
 }
 
 double mperlin2d(int t, double x, double y, double freq, int depth, int samples) {
