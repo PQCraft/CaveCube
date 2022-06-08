@@ -20,7 +20,7 @@ uniform vec3 mcolor;
 void main() {
     if (FragPos2.z < 0) discard;
     vec4 color = texture(TexData, vec3(TexCoord, TexOff));
-    if (color.a >= 0.1) {
+    if (color.a > 0.0) {
         FragColor = vec4(color.rgba);
     } else {
         discard;

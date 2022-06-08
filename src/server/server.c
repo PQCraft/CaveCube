@@ -1,7 +1,7 @@
 #include <main.h>
 #include "server.h"
 #include <game.h>
-#include <chunk.h>
+#include <worldgen.h>
 #include <noise.h>
 
 #include <stdlib.h>

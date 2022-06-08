@@ -442,7 +442,7 @@ bool doGame(char* addr, int port) {
             if (!placehold || (altutime() - ptime) >= 500000)
                 if ((altutime() - ptime2) >= 125000 && blockid && blockid != 7 && (!blockid2 || blockid2 == 7)) {
                     ptime2 = altutime();
-                    setBlock(&chunks, 0, 0, 0, lastblockx, lastblocky, lastblockz, (struct blockdata){1, 0, 0});
+                    setBlock(&chunks, 0, 0, 0, lastblockx, lastblocky, lastblockz, (struct blockdata){9, 0, 0});
                 }
             placehold = true;
         } else {
