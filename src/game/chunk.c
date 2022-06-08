@@ -368,33 +368,34 @@ bool genChunk(struct chunkinfo* chunks, int cx, int cy, int cz, int64_t xo, int6
                             data[(y - btm) * 256 + xzoff].id = 7;
                         }
 
-                        double p0 = tanhf(nperlin2d(0, cx, cz, 0.00867, 5) * 2);
+                        double p0 = tanhf(nperlin2d(0, cx, cz, 0.008675, 5) * 2);
                         if (p0 < 0) p0 *= 0.5;
-                        double p1 = tanhf(nperlin2d(1, cx, cz, 0.0021415, 3) * 4);
+                        double p1 = tanhf(nperlin2d(1, cx, cz, 0.001942, 3) * 3);
                         if (p1 < 0) p1 *= 0.5;
                         double h0 = p0 * 18 + p1 * 39;
-                        double p3 = tanhf(nperlin2d(3, cx, cz, 0.0454, 2) * 4) * 2;
+                        double p3 = tanhf(nperlin2d(3, cx, cz, 0.045462, 2) * 4) * 1.9653;
                         double m0 = h0 / 67;
                         if (m0 < 0) m0 *= 1.5;
                         if (m0 > 1) m0 = 1;
                         if (m0 < -1) m0 = -1;
                         double m1 = cos(2 * m0 * M_PI) / 2 + 0.5;
-                        double p4 = tanhf((nperlin2d(4, cx, cz, 0.01032, 2) - 0.1) * 4) * 1.1;
+                        double p4 = tanhf((nperlin2d(4, cx, cz, 0.009612, 2) - 0.1) * 4) * 1.095;
                         if (p4 < 0.05) p4 = 0.05;
-                        double p2 = tanhf((nperlin2d(2, cx, cz, 0.0176, 4) - 0.1) * 6) * 2.125;
+                        double p2 = tanhf((nperlin2d(2, cx, cz, 0.010358, 4) - 0.1) * 7) * 2.14;
                         if (p2 < 0) p2 *= 0.33;
                         double h1 = (p2 * 9.75 * p4 + p3 * 5) * m1;
-                        double h2 = (tanhf(nperlin2d(5, cx, cz, 0.005291, 1) * 3) / 2 + 0.5) * 0.9 + 0.2;
-                        double h = round((h1 + h0) * h2 + 67);
+                        double h2 = (tanhf(nperlin2d(5, cx, cz, 0.005291, 1) * 2) / 2 + 0.5) * 0.9 + 0.2;
+                        double h = round((h1 + h0) * h2 + 65);
 
-                        double p9 = perlin2d(9, (double)(nx + x), (double)(nz + z), 0.025, 5);
-                        double p10 = perlin2d(10, (double)(nx + x), (double)(nz + z), 0.045, 2);
+                        double p9 = perlin2d(9, (double)(nx + x), (double)(nz + z), 0.025148, 5);
+                        double p10 = perlin2d(10, (double)(nx + x), (double)(nz + z), 0.184541, 1);
+                        double p11 = perlin2d(11, (double)(nx + x), (double)(nz + z), 0.049216, 2);
                         int hi = h;
                         for (int y = (hi > top) ? top : hi; y >= btm; --y) {
                             bool c1 = y < 62 + p9 * 6;
-                            bool c2 = hi < 62 - p9 * 2 && hi <= hi - p10 * 4 + 2;
+                            bool c2 = p11 > 0.33 && y < 56 + p10 * 3;
                             uint8_t b1 = (c1) ? ((c2) ? 4 : 8) : 2;
-                            uint8_t b2 = (c1) ? ((c2 && y < 64) ? 4 : 8) : ((y < 64) ? 2 : 3);
+                            uint8_t b2 = (c1) ? ((c2) ? 4 : 8) : ((y < 64) ? 2 : 3);
                             uint8_t blockid = (y < hi) ? ((y < hi - (3 - round(fabs(p4) * 2))) ? 1 : b1) : b2;
                             data[(y - btm) * 256 + xzoff].id = blockid;
                         }
