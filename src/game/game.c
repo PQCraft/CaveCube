@@ -288,7 +288,7 @@ bool doGame(char* addr, int port) {
         //uint64_t st1 = altutime();
         glfwSetTime(0);
         microwait(loopdelay);
-        float npmult = 5;
+        float npmult = 0.5;
         float nrmult = 1.0;
         struct input_info input = getInput();
         bool crouch = false;
@@ -383,7 +383,7 @@ bool doGame(char* addr, int port) {
                 rendinf.campos.y = (float)((int)(rendinf.campos.y)) + 0.5;
             }
             if (yvel <= 0 && (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_JUMP))) {
-                yvel = 5.0;
+                yvel = 1.0;
             }
             if (yvel < 0) yvel = 0.0;
         } else {
