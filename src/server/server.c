@@ -75,6 +75,8 @@ struct cliret {
     void* data;
 };
 
+int SERVER_THREADS;
+
 static int msgsize = 0;
 static struct servmsg* msgdata;
 static pthread_mutex_t msglock;
@@ -216,7 +218,7 @@ static int getbuf(sock_t sockfd, void* _dest, int len, struct bufinf* buf) {
     return len;
 }
 
-static int worldtype = 5;
+static int worldtype = 1;
 
 static pthread_t servpthreads[MAX_THREADS];
 

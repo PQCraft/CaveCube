@@ -19,6 +19,24 @@
 #include <windows.h>
 #endif
 
+int getCoreCt() {
+    #if defined(_WIN32)
+        SYSTEM_INFO sysinfo;
+        GetSystemInfo(&sysinfo);
+        return sysinfo.dwNumberOfProcessors;
+    #elif defined(BSD) || defined(__APPLE__)
+        int mib[4];
+        int corect;
+        size_t len = sizeof(corect);
+        mib[0] = CTL_HW;
+        mib[1] = HW_AVAILCPU;
+        sysctl(mib, 2, &corect, &len, NULL, 0);
+        return (corect > 0) ? corect : 1;
+    #else
+        return sysconf(_SC_NPROCESSORS_ONLN);
+    #endif
+}
+
 uint64_t altutime() {
     struct timeval time1;
     gettimeofday(&time1, NULL);
