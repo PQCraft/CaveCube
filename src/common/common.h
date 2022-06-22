@@ -36,5 +36,6 @@ void microwait(uint64_t);
 char* basefilename(char*);
 char* pathfilename(char*);
 char* execpath(void);
+int getCoreCt(void);
 
 #endif

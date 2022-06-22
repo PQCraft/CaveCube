@@ -283,11 +283,12 @@ bool doGame(char* addr, int port) {
     }
     #endif
     startMesher(&chunks);
+    setRandSeed(8, altutime());
     while (!quitRequest) {
         //uint64_t st1 = altutime();
         glfwSetTime(0);
         microwait(loopdelay);
-        float npmult = 0.5;
+        float npmult = 5;
         float nrmult = 1.0;
         struct input_info input = getInput();
         bool crouch = false;
@@ -382,7 +383,7 @@ bool doGame(char* addr, int port) {
                 rendinf.campos.y = (float)((int)(rendinf.campos.y)) + 0.5;
             }
             if (yvel <= 0 && (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_JUMP))) {
-                yvel = 1.0;
+                yvel = 5.0;
             }
             if (yvel < 0) yvel = 0.0;
         } else {
@@ -442,7 +443,7 @@ bool doGame(char* addr, int port) {
             if (!placehold || (altutime() - ptime) >= 500000)
                 if ((altutime() - ptime2) >= 125000 && blockid && blockid != 7 && (!blockid2 || blockid2 == 7)) {
                     ptime2 = altutime();
-                    setBlock(&chunks, 0, 0, 0, lastblockx, lastblocky, lastblockz, (struct blockdata){9, 0, 0});
+                    setBlock(&chunks, 0, 0, 0, lastblockx, lastblocky, lastblockz, (struct blockdata){/*(getRandWord(8) % 9) + 1*/5, 0, 0});
                 }
             placehold = true;
         } else {

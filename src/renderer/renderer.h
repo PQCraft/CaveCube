@@ -11,10 +11,6 @@
 //#include <game.h>
 #include <pthread.h>
 
-#ifndef MESHER_THREADS
-    #define MESHER_THREADS 2
-#endif
-
 typedef struct {
     float x;
     float y;
@@ -100,6 +96,7 @@ typedef unsigned int texture_t;
 
 extern struct renderer_info rendinf;
 extern pthread_mutex_t uclock;
+extern int MESHER_THREADS;
 
 bool initRenderer(void);
 void quitRenderer(void);

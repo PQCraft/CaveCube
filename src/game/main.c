@@ -120,6 +120,8 @@ int main(int _argc, char** _argv) {
     printf("Start directory: {%s}\n", startdir);
     chdir(maindir);
     signal(SIGINT, sigh);
+    int cores = getCoreCt() - 4;
+    if (cores < 1) cores = 1;
     while (!(config_filedata = getTextFile("config.cfg")).data) {
         FILE* fp = fopen("config.cfg", "w");
         fclose(fp);
@@ -127,6 +129,7 @@ int main(int _argc, char** _argv) {
     config = (char*)config_filedata.data;
     stbi_set_flip_vertically_on_load(true);
     if (argc > 1 && (!strcmp(argv[1], "-server") || (winopt && !strcmp(argv[1], "/server")))) {
+        SERVER_THREADS = cores;
         if (!initServer()) return 1;
         char* addr = (argc > 2 && argv[2][0]) ? argv[2] : NULL;
         int port = (argc > 3) ? atoi(argv[3]) : -1;
@@ -138,6 +141,7 @@ int main(int _argc, char** _argv) {
         }
         pause();
     } else if (argc > 1 && (!strcmp(argv[1], "-connect") || (winopt && !strcmp(argv[1], "/connect")))) {
+        MESHER_THREADS = cores;
         //microwait(1000000);
         if (argc < 3) {fputs("Please provide address and port\n", stderr); return 1;}
         if (!initRenderer()) return 1;
@@ -147,9 +151,12 @@ int main(int _argc, char** _argv) {
         freeFile(config_filedata);
         return !game_ecode;
     } else if (argc > 1) {
-        fprintf(stderr, "Invalid option '%s'\n", argv[1]);
+        fprintf(stderr, "Invalid argument: %s\n", argv[1]);
         return 1;
     } else {
+        if (cores < 2) cores = 2;
+        SERVER_THREADS = cores / 2;
+        MESHER_THREADS = cores / 2;
         if (!initServer()) return 1;
         if (!initRenderer()) return 1;
         bool game_ecode = doGame(NULL, -1);

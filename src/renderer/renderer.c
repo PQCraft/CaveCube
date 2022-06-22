@@ -15,11 +15,10 @@
 #include <GLFW/glfw3.h>
 #include <cglm/cglm.h>
 
+int MESHER_THREADS;
+
 struct renderer_info rendinf;
 //static resdata_bmd* blockmodel;
-unsigned char* texmap;
-texture_t texmaph;
-texture_t charseth;
 
 static pthread_mutex_t gllock;
 
@@ -528,6 +527,7 @@ void startMesher(void* vdata) {
             name2[0] = 0;
             #endif
             pthread_create(&pthreads[i], NULL, &meshthread, vdata);
+            printf("Mesher: Started thread [%d]\n", i);
             #ifdef NAME_THREADS
             pthread_getname_np(pthreads[i], name2, 256);
             sprintf(name, "%s:msh%d", name2, i);
@@ -804,11 +804,14 @@ bool initRenderer() {
     //puts("loading block struct model...");
     //blockmodel = loadResource(RESOURCE_BMD, "game/models/block/default.bmd");
 
-    for (int i = 0; i < 6; ++i) {
-        texmap = malloc(1572864);
-        memset(texmap, 255, 1572864);
-    }
+    unsigned char* texmap;
+    texture_t texmaph;
+    texture_t charseth;
+
     //puts("creating texture map...");
+    texmap = malloc(1572864);
+    memset(texmap, 255, 1572864);
+
     char* tmpbuf = malloc(4096);
     for (int i = 1; i < 256; ++i) {
         sprintf(tmpbuf, "game/textures/blocks/%d/", i);
@@ -828,40 +831,41 @@ bool initRenderer() {
                 --j;
                 continue;
             }
-            //printf("adding texture {%s} at offset [%u] of map [%d]...\n", tmpbuf, j * 262144 + i * 1024, j);
-            memcpy(&texmap[j * 262144 + i * 1024], img->data, 1024);
+            int mapoff = i * 6144 + j * 1024;
+            //printf("adding texture {%s} at offset [%u] of map [%d]...\n", tmpbuf, mapoff, i);
+            memcpy(&texmap[mapoff], img->data, 1024);
             freeResource(img);
         }
     }
 
     glGenTextures(1, &texmaph);
-    glActiveTexture(GL_TEXTURE0);
+    glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_3D, texmaph);
     glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA, 16, 16, 1536, 0, GL_RGBA, GL_UNSIGNED_BYTE, texmap);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "TexData"), 0);
+    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "TexData"), 1);
 
     glGenBuffers(1, &VBO2D);
     glBindBuffer(GL_ARRAY_BUFFER, VBO2D);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vert2D), vert2D, GL_STATIC_DRAW);
 
     setShaderProg(shader_2d);
-    glActiveTexture(GL_TEXTURE1);
+    glActiveTexture(GL_TEXTURE2);
     resdata_texture* crosshair = loadResource(RESOURCE_TEXTURE, "game/textures/ui/crosshair.png");
     glBindTexture(GL_TEXTURE_2D, crosshair->data);
-    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "TexData"), 1);
+    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "TexData"), 2);
     setUniform4f(rendinf.shaderprog, "mcolor", (float[]){1.0, 1.0, 1.0, 1.0});
 
     setShaderProg(shader_text);
     glGenTextures(1, &charseth);
-    glActiveTexture(GL_TEXTURE2);
+    glActiveTexture(GL_TEXTURE3);
     resdata_image* charset = loadResource(RESOURCE_IMAGE, "game/textures/ui/charset.png");
     glBindTexture(GL_TEXTURE_3D, charseth);
     glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA, 8, 16, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, charset->data);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "TexData"), 2);
+    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "TexData"), 3);
     setUniform4f(rendinf.shaderprog, "mcolor", (float[]){1.0, 1.0, 1.0, 1.0});
 
     setShaderProg(shader_block);

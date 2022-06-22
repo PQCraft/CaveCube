@@ -4,10 +4,6 @@
 #include <stdbool.h>
 #include <chunk.h>
 
-#ifndef SERVER_THREADS
-    #define SERVER_THREADS 2
-#endif
-
 #ifndef MAX_CLIENTS
     #define MAX_CLIENTS 256
 #endif
@@ -90,6 +86,8 @@ struct server_ret {
     int msg;
     void* data;
 };
+
+extern int SERVER_THREADS;
 
 bool initServer(void);
 int servStart(char*, int, char*, int);

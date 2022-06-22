@@ -29,7 +29,7 @@ void main() {
     } else {
         TexOff2 = (data1 >> 2) & uint(7);
     }
-    TexOff = (float(TexID) + float(TexOff2) * 256.0) / 1535.0;
+    TexOff = (float(TexID) * 6.0 + float(TexOff2)) / 1535.0;
     FragPos.x = (float(((data1 >> 24) & uint(255)) + ((data1 >> 7) & uint(1)))) / 16.0 - 8;
     FragPos.y = (float(((data1 >> 16) & uint(255)) + ((data1 >> 6) & uint(1)))) / 16.0;
     FragPos.z = ((float(((data1 >> 8) & uint(255)) + ((data1 >> 5) & uint(1)))) / 16.0 - 8) * -1;
