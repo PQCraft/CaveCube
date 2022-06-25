@@ -266,8 +266,6 @@ bool doGame(char* addr, int port) {
     float yvel = 0.0;
     float xcm = 0.0;
     float zcm = 0.0;
-    //rendinf.camrot.z = 10;
-    //uint64_t loop = 0;
     #ifdef NAME_THREADS
     {
         char name[256];
@@ -284,6 +282,7 @@ bool doGame(char* addr, int port) {
     #endif
     startMesher(&chunks);
     setRandSeed(8, altutime());
+    coord_3d tmpcamrot = {0, 0, 0};
     while (!quitRequest) {
         //uint64_t st1 = altutime();
         glfwSetTime(0);
@@ -299,13 +298,18 @@ bool doGame(char* addr, int port) {
             npmult *= 2.0;
         }
         //printf("[%u]\n", input.mmovti);
-        rendinf.camrot.x += input.mymov * nrmult * mousesns * ((input.mmovti) ? rotmult : rmult);
-        rendinf.camrot.y -= input.mxmov * nrmult * mousesns * ((input.mmovti) ? rotmult : rmult);
-        if (rendinf.camrot.y < 0) rendinf.camrot.y += 360;
-        else if (rendinf.camrot.y >= 360) rendinf.camrot.y -= 360;
+        tmpcamrot.x += input.mymov * nrmult * mousesns * ((input.mmovti) ? rotmult : rmult);
+        tmpcamrot.y -= input.mxmov * nrmult * mousesns * ((input.mmovti) ? rotmult : rmult);
+        rendinf.camrot.x = tmpcamrot.x - input.zmov * npmult;
         if (rendinf.camrot.x > 89.99) rendinf.camrot.x = 89.99;
         if (rendinf.camrot.x < -89.99) rendinf.camrot.x = -89.99;
-        float yrotrad = (rendinf.camrot.y / 180 * M_PI);
+        rendinf.camrot.y = tmpcamrot.y;
+        rendinf.camrot.z = input.xmov * npmult;
+        if (tmpcamrot.y < 0) tmpcamrot.y += 360;
+        else if (tmpcamrot.y >= 360) tmpcamrot.y -= 360;
+        if (tmpcamrot.x > 89.99) tmpcamrot.x = 89.99;
+        if (tmpcamrot.x < -89.99) tmpcamrot.x = -89.99;
+        float yrotrad = (tmpcamrot.y / 180 * M_PI);
         int cmx = 0, cmz = 0;
         static bool first = true;
         coord_3d oldpos = rendinf.campos;
@@ -443,7 +447,7 @@ bool doGame(char* addr, int port) {
             if (!placehold || (altutime() - ptime) >= 500000)
                 if ((altutime() - ptime2) >= 125000 && blockid && blockid != 7 && (!blockid2 || blockid2 == 7)) {
                     ptime2 = altutime();
-                    setBlock(&chunks, 0, 0, 0, lastblockx, lastblocky, lastblockz, (struct blockdata){(getRandWord(8) % 9) + 1, 0, 0});
+                    setBlock(&chunks, 0, 0, 0, lastblockx, lastblocky, lastblockz, (struct blockdata){(getRandWord(8) % 10) + 1, 0, 0});
                 }
             placehold = true;
         } else {

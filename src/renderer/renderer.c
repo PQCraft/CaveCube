@@ -22,8 +22,6 @@ struct renderer_info rendinf;
 
 static pthread_mutex_t gllock;
 
-float gfx_aspect = 1.0;
-
 void setMat4(GLuint prog, char* name, mat4 val) {
     glUniformMatrix4fv(glGetUniformLocation(prog, name), 1, GL_FALSE, *val);
 }
@@ -87,31 +85,45 @@ void setSpace(int space) {
     #endif
 }
 
+static float uc_fov = -1.0, uc_asp = -1.0;
+static float uc_rotradx, uc_rotrady;
+static mat4 uc_projection __attribute__((aligned (32)));
+static mat4 uc_view __attribute__((aligned (32)));
+static vec3 uc_direction __attribute__((aligned (32)));
+static vec3 uc_up __attribute__((aligned (32)));
+static vec3 uc_front __attribute__((aligned (32)));
+static bool uc_uproj = false;
+
 void updateCam() {
     #ifndef RENDERER_UNSAFE
     pthread_mutex_lock(&gllock);
     glfwMakeContextCurrent(rendinf.window);
     #endif
-    mat4 view __attribute__((aligned (32)));
-    mat4 projection __attribute__((aligned (32)));
-    glm_perspective(rendinf.camfov * M_PI / 180.0, gfx_aspect, 0.05, 1024.0, projection);
-    setMat4(rendinf.shaderprog, "projection", projection);
-    vec3 direction __attribute__((aligned (32))) = {cosf((rendinf.camrot.y - 90.0) * M_PI / 180.0) * cosf(rendinf.camrot.x * M_PI / 180.0),
-        sin(rendinf.camrot.x * M_PI / 180.0),
-        sinf((rendinf.camrot.y - 90.0) * M_PI / 180.0) * cosf(rendinf.camrot.x * M_PI / 180.0)};
-    direction[0] += rendinf.campos.x;
-    direction[1] += rendinf.campos.y;
-    direction[2] += rendinf.campos.z;
-    glm_lookat((vec3){rendinf.campos.x, rendinf.campos.y, rendinf.campos.z},
-        direction, (vec3){0.0, 1.0, 0.0}, view);
-    setMat4(rendinf.shaderprog, "view", view);
-    /*
-    puts("view:");
-    for (int i = 0; i < 4; ++i) {
-        printf("[%f] [%f] [%f] [%f]\n", view[i][0], view[i][1], view[i][2], view[i][3]);
+    if (rendinf.aspect != uc_asp) {uc_asp = rendinf.aspect; uc_uproj = true;}
+    if (rendinf.camfov != uc_fov) {uc_fov = rendinf.camfov; uc_uproj = true;}
+    if (uc_uproj) {
+        glm_perspective(uc_fov * M_PI / 180.0, uc_asp, 0.05, 1024.0, uc_projection);
+        setMat4(rendinf.shaderprog, "projection", uc_projection);
+        uc_uproj = false;
     }
-    */
-    //setUniform3f(rendinf.shaderprog, "viewPos", (float[]){rendinf.campos.x, rendinf.campos.y, rendinf.campos.z});
+    uc_rotradx = rendinf.camrot.x * M_PI / 180.0;
+    uc_rotrady = (rendinf.camrot.y - 90.0) * M_PI / 180.0;
+    uc_direction[0] = cos(uc_rotrady) * cos(uc_rotradx);
+    uc_direction[1] = sin(uc_rotradx);
+    uc_direction[2] = sin(uc_rotrady) * cos(uc_rotradx);
+    uc_up[0] = 0;
+    uc_up[1] = 1;
+    uc_up[2] = 0;
+    uc_front[0] = uc_direction[0];
+    uc_front[1] = uc_direction[1];
+    uc_front[2] = uc_direction[2];
+    uc_direction[0] += rendinf.campos.x;
+    uc_direction[1] += rendinf.campos.y;
+    uc_direction[2] += rendinf.campos.z;
+    glm_vec3_rotate(uc_up, rendinf.camrot.z * M_PI / 180.0, uc_front);
+    glm_lookat((vec3){rendinf.campos.x, rendinf.campos.y, rendinf.campos.z},
+        uc_direction, uc_up, uc_view);
+    setMat4(rendinf.shaderprog, "view", uc_view);
     #ifndef RENDERER_UNSAFE
     #ifndef RENDERER_LAZY
     glfwMakeContextCurrent(NULL);
@@ -123,7 +135,7 @@ void updateCam() {
 void setFullscreen(bool fullscreen) {
     static int winox, winoy = 0;
     if (fullscreen) {
-        gfx_aspect = (float)rendinf.full_width / (float)rendinf.full_height;
+        rendinf.aspect = (float)rendinf.full_width / (float)rendinf.full_height;
         rendinf.width = rendinf.full_width;
         rendinf.height = rendinf.full_height;
         rendinf.fps = rendinf.full_fps;
@@ -131,7 +143,7 @@ void setFullscreen(bool fullscreen) {
         glfwSetWindowMonitor(rendinf.window, rendinf.monitor, 0, 0, rendinf.full_width, rendinf.full_height, rendinf.full_fps);
         rendinf.fullscr = true;
     } else {
-        gfx_aspect = (float)rendinf.win_width / (float)rendinf.win_height;
+        rendinf.aspect = (float)rendinf.win_width / (float)rendinf.win_height;
         rendinf.width = rendinf.win_width;
         rendinf.height = rendinf.win_height;
         rendinf.fps = rendinf.win_fps;
@@ -564,6 +576,8 @@ const unsigned char* glslver;
 const unsigned char* glvend;
 const unsigned char* glrend;
 
+static uint32_t rendc;
+
 void renderChunks(void* vdata) {
     struct chunkdata* data = vdata;
     pthread_mutex_lock(&gllock);
@@ -575,36 +589,34 @@ void renderChunks(void* vdata) {
     //glDisable(GL_CULL_FACE);
     //glDepthFunc(GL_LESS);
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    for (uint32_t c = 0; c < data->info.size; ++c) {
-        if (!data->renddata[c].buffered || !data->renddata[c].vcount) continue;
-        int x = c % data->info.width;
-        int z = c / data->info.width % data->info.width;
-        int y = c / data->info.widthsq;
-        setUniform3f(rendinf.shaderprog, "ccoord", (float[]){x - (int)data->info.dist, y, z - (int)data->info.dist});
-        glBindBuffer(GL_ARRAY_BUFFER, data->renddata[c].VBO);
+    for (rendc = 0; rendc < data->info.size; ++rendc) {
+        if (!data->renddata[rendc].buffered || !data->renddata[rendc].vcount) continue;
+        setUniform3f(rendinf.shaderprog, "ccoord", (float[]){(int)(rendc % data->info.width) - (int)data->info.dist,
+                                                             (int)(rendc / data->info.widthsq),
+                                                             (int)(rendc / data->info.width % data->info.width) - (int)data->info.dist});
+        glBindBuffer(GL_ARRAY_BUFFER, data->renddata[rendc].VBO);
         glEnableVertexAttribArray(0);
         glEnableVertexAttribArray(1);
         glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 2 * sizeof(uint32_t), (void*)0);
         glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 2 * sizeof(uint32_t), (void*)sizeof(uint32_t));
-        glDrawArrays(GL_TRIANGLES, 0, data->renddata[c].vcount);
+        glDrawArrays(GL_TRIANGLES, 0, data->renddata[rendc].vcount);
     }
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "isAni"), 1);
     glUniform1ui(glGetUniformLocation(rendinf.shaderprog, "TexAni"), (altutime() / 200000) % 6);
-    for (uint32_t c = 0; c < data->info.size; ++c) {
-        if (!data->renddata[c].buffered || !data->renddata[c].vcount2) continue;
-        int x = c % data->info.width;
-        int z = c / data->info.width % data->info.width;
-        int y = c / data->info.widthsq;
-        setUniform3f(rendinf.shaderprog, "ccoord", (float[]){x - (int)data->info.dist, y, z - (int)data->info.dist});
-        glBindBuffer(GL_ARRAY_BUFFER, data->renddata[c].VBO2);
+    for (rendc = 0; rendc < data->info.size; ++rendc) {
+        if (!data->renddata[rendc].buffered || !data->renddata[rendc].vcount2) continue;
+        setUniform3f(rendinf.shaderprog, "ccoord", (float[]){(int)(rendc % data->info.width) - (int)data->info.dist,
+                                                             (int)(rendc / data->info.widthsq),
+                                                             (int)(rendc / data->info.width % data->info.width) - (int)data->info.dist});
+        glBindBuffer(GL_ARRAY_BUFFER, data->renddata[rendc].VBO2);
         glEnableVertexAttribArray(0);
         glEnableVertexAttribArray(1);
         glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 2 * sizeof(uint32_t), (void*)0);
         glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 2 * sizeof(uint32_t), (void*)sizeof(uint32_t));
         glFrontFace(GL_CW);
-        glDrawArrays(GL_TRIANGLES, 0, data->renddata[c].vcount2);
+        glDrawArrays(GL_TRIANGLES, 0, data->renddata[rendc].vcount2);
         glFrontFace(GL_CCW);
-        glDrawArrays(GL_TRIANGLES, 0, data->renddata[c].vcount2);
+        glDrawArrays(GL_TRIANGLES, 0, data->renddata[rendc].vcount2);
     }
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "isAni"), 0);
     glDisable(GL_DEPTH_TEST);
