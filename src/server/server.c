@@ -627,7 +627,7 @@ int servStart(char* addr, int port, char* world, int mcli) {
         close(socketfd);
         return -1;
     }
-    printf("Starting server on %s:%d with a max of %d players...\n", (addr) ? addr : "0.0.0.0", port, maxclients);
+    printf("Starting server on %s:%d with a max of %d player%c...\n", (addr) ? addr : "0.0.0.0", port, maxclients, (maxclients == 1) ? 0 : 's');
     pthread_mutex_init(&pinfolock, NULL);
     pinfo = calloc(maxclients, sizeof(struct player));
     #ifdef NAME_THREADS

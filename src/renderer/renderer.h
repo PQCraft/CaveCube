@@ -49,6 +49,7 @@ struct renderer_info {
     coord_3d campos;
     coord_3d camrot;
     float camfov;
+    float aspect;
     GLuint shaderprog;
 };
 
