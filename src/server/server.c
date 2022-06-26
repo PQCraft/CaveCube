@@ -17,11 +17,13 @@
     #include <arpa/inet.h>
     #include <endian.h>
     #define PRIsock "d"
+    #define SOCKINVAL(s) ((s) < 0)
 #else
     #include <winsock2.h>
     #include <ws2tcpip.h>
     #include <windows.h>
     #define PRIsock PRIu64
+    #define SOCKINVAL(s) ((s) == INVALID_SOCKET)
     static WSADATA wsadata;
     static WORD wsaver = MAKEWORD(2, 2);
     static bool wsainit = false;
@@ -593,11 +595,7 @@ int servStart(char* addr, int port, char* world, int mcli) {
     initNoiseTable(0);
     setRandSeed(1, altutime() + (uintptr_t)"");
     sock_t socketfd;
-    #ifndef _WIN32
-    if ((socketfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-    #else
-    if ((socketfd = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET) {
-    #endif
+    if (SOCKINVAL(socketfd = socket(AF_INET, SOCK_STREAM, 0))) {
         fputs("servStart: Failed to create socket\n", stderr);
         return -1;
     }
@@ -819,11 +817,7 @@ bool servConnect(char* addr, int port) {
     #endif
     printf("Connecting to %s:%d...\n", addr, port);
     sock_t socketfd;
-    #ifndef _WIN32
-    if ((socketfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-    #else
-    if ((socketfd = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET) {
-    #endif
+    if (SOCKINVAL(socketfd = socket(AF_INET, SOCK_STREAM, 0))) {
         fputs("servConnect: Failed to create socket\n", stderr);
         return false;
     }
