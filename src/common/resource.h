@@ -40,9 +40,12 @@ enum {
     RESOURCE_SOUND,
 };
 
+void initResource(void);
 void* loadResource(int, char*);
 int resourceExists(char*);
 void freeResource(void*);
 void freeAllResources(void);
+bool addResourcePack(char*, int);
+bool removeResourcePack(char*);
 
 #endif

@@ -6,6 +6,7 @@
 #include <noise.h>
 #include <game.h>
 #include <chunk.h>
+#include <blocks.h>
 
 #include <stdbool.h>
 #include <string.h>
@@ -399,6 +400,7 @@ static float vert2D[] = {
 
 static pthread_t pthreads[MAX_THREADS];
 pthread_mutex_t uclock;
+static uint8_t water;
 
 static void* meshthread(void* args) {
     struct chunkdata* data = args;
@@ -442,12 +444,15 @@ static void* meshthread(void* args) {
                     bdata2[4] = rendGetBlock(data, c, x, y + 1, z);
                     bdata2[5] = rendGetBlock(data, c, x, y - 1, z);
                     for (int i = 0; i < 6; ++i) {
-                        if (bdata2[i].id && bdata2[i].id <= maxblockid && (bdata2[i].id != 5 || bdata.id == 5) && (bdata2[i].id != 7 || bdata.id == 7)) continue;
+                        if (bdata2[i].id && bdata2[i].id <= maxblockid) {
+                            if (!blockinf[bdata2[i].id].transparency) continue;
+                            if (blockinf[bdata.id].transparency && (bdata.id == water || bdata.id == bdata2[i].id)) continue;
+                        }
                         if (bdata2[i].id == 255) continue;
                         uint32_t baseVert1 = (x << 28) | (y << 20) | (z << 12) | (i << 2);
                         uint8_t light = bdata2[i].light;
                         uint32_t baseVert2 = (bdata.id << 24) | (light << 20);
-                        if (bdata.id == 7) {
+                        if (bdata.id == water) {
                             for (int j = 0; j < 6; ++j) {
                                 *vptr2 = baseVert1 | constBlockVert[i][j];
                                 if (!bdata2[4].id && (*vptr2 & 0x000F0000)) {
@@ -827,21 +832,29 @@ bool initRenderer() {
     char* tmpbuf = malloc(4096);
     for (int i = 1; i < 256; ++i) {
         sprintf(tmpbuf, "game/textures/blocks/%d/", i);
-        if (resourceExists(tmpbuf) == -1) break;
+        if (resourceExists(tmpbuf) == -1) {
+            maxblockid = i - 1;
+            break;
+        }
         //printf("loading block [%d]...\n", i);
-        maxblockid = i;
         bool st = false;
         int o = 0;
         for (int j = 0; j < 6; ++j) {
             if (st) o = j;
             sprintf(tmpbuf, "game/textures/blocks/%d/%d.png", i, j - o);
-            resdata_image* img = loadResource(RESOURCE_IMAGE, tmpbuf);
-            if (!img) {
+            if (resourceExists(tmpbuf) == -1) {
                 if (j == 1) st = true;
                 else if (j == 3) o = 3;
                 else break;
                 --j;
                 continue;
+            }
+            resdata_image* img = loadResource(RESOURCE_IMAGE, tmpbuf);
+            for (int j = 3; j < 1024; j += 4) {
+                if (img->data[j] < 255) {
+                    blockinf[i].transparency = 1;
+                    //printf("! [%d]: [%u]\n", i, (uint8_t)img->data[j]);
+                }
             }
             int mapoff = i * 6144 + j * 1024;
             //printf("adding texture {%s} at offset [%u] of map [%d]...\n", tmpbuf, mapoff, i);
@@ -849,7 +862,6 @@ bool initRenderer() {
             freeResource(img);
         }
     }
-
     glGenTextures(1, &texmaph);
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_3D, texmaph);
@@ -890,6 +902,8 @@ bool initRenderer() {
     //glEnableVertexAttribArray(1);
 
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+    water = blockNoFromID("water");
 
     #ifndef RENDERER_UNSAFE
     #ifndef RENDERER_LAZY

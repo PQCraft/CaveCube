@@ -1,24 +1,34 @@
 #include "worldgen.h"
 #include <noise.h>
+#include <blocks.h>
 
 #include <math.h>
 #include <string.h>
 #include <stdlib.h>
+#include <inttypes.h>
 
+static uint8_t stone;
+static uint8_t dirt;
+static uint8_t grass_block;
+static uint8_t gravel;
+static uint8_t sand;
+static uint8_t water;
+static uint8_t bedrock;
+    
 static inline void genSliver(int type, double cx, double cz, int top, int btm, uint8_t* data) {
     switch (type) {
         default:; {
                 if (!btm) {
-                    data[0] = 6;
-                    data[1] = 1;
-                    data[2] = 2;
-                    data[3] = 3;
+                    data[0] = bedrock;
+                    data[1] = stone;
+                    data[2] = dirt;
+                    data[3] = grass_block;
                 }
             }
             break;
         case 1:; {
                 for (int y = btm; y <= top && y < 65; ++y) {
-                    data[y - btm] = 7;
+                    data[y - btm] = water;
                 }
                 double p0 = tanhf(nperlin2d(0, cx, cz, 0.006675, 6));
                 if (p0 < 0) p0 *= 0.5;
@@ -46,16 +56,16 @@ static inline void genSliver(int type, double cx, double cz, int top, int btm, u
                 for (int y = (hi > top) ? top : hi; y >= btm; --y) {
                     bool c1 = y < 62 + p9 * 6;
                     bool c2 = p11 > 0.4 && y < 56 + p10 * 3;
-                    uint8_t b1 = (c1) ? ((c2) ? 4 : 8) : 2;
-                    uint8_t b2 = (c1) ? ((c2) ? 4 : 8) : ((y < 64) ? 2 : 3);
-                    uint8_t blockid = (y < hi) ? ((y < hi - (3 - round(fabs(p4) * 2))) ? 1 : b1) : b2;
+                    uint8_t b1 = (c1) ? ((c2) ? gravel : sand) : dirt;
+                    uint8_t b2 = (c1) ? ((c2) ? gravel : sand) : ((y < 64) ? dirt : grass_block);
+                    uint8_t blockid = (y < hi) ? ((y < hi - (3 - round(fabs(p4) * 2))) ? stone : b1) : b2;
                     data[y - btm] = blockid;
                 }
                 int n0 = noise2d(8, cx, cz);
                 if (!btm) {
-                    data[0] = 6;
-                    if (!(n0 % 2) || !(n0 % 3)) data[1] = 6;
-                    if (!(n0 % 4)) data[2] = 6;
+                    data[0] = bedrock;
+                    if (!(n0 % 2) || !(n0 % 3)) data[1] = bedrock;
+                    if (!(n0 % 4)) data[2] = bedrock;
                 }
             }
             break;
@@ -63,6 +73,17 @@ static inline void genSliver(int type, double cx, double cz, int top, int btm, u
 }
 
 bool genChunk(struct chunkinfo* chunks, int cx, int cy, int cz, int64_t xo, int64_t zo, struct blockdata* data, int type) {
+    static bool init = false;
+    if (!init) {
+        stone = blockNoFromID("stone");
+        dirt = blockNoFromID("dirt");
+        grass_block = blockNoFromID("grass_block");
+        gravel = blockNoFromID("gravel");
+        sand = blockNoFromID("sand");
+        water = blockNoFromID("water");
+        bedrock = blockNoFromID("bedrock");
+        init = true;
+    }
     int64_t nx = ((int64_t)cx + xo) * 16;
     int64_t nz = ((int64_t)cz * -1 + zo) * 16;
     cx += chunks->dist;

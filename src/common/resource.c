@@ -15,26 +15,40 @@ typedef struct {
     void* data;
 } resentry;
 
-struct {
+static struct {
     int entries;
     resentry* entry;
 } reslist;
 
-struct {
-    int packs;
-    char** pack;
-} packlist;
+struct pack {
+    char* dir;
+    char* name;
+    char* id;
+};
+
+static int packct;
+static struct pack* packs;
+
+void initResource() {
+    packct = 1;
+    packs = malloc(sizeof(struct pack));
+    packs[0].dir = strdup("base");
+}
+
+bool addResourcePack(char* dir, int pos) {
+    return true;
+}
+
+bool removeResourcePack(char* dir) {
+    return true;
+}
 
 char* getResourcePath(char* path) {
     static char* npath = NULL;
     if (!npath) npath = malloc(32768);
-    if (!packlist.pack) {
-        packlist.packs = 1;
-        packlist.pack = malloc(sizeof(char*));
-        packlist.pack[0] = strdup("base");
-    }
-    for (int i = packlist.packs - 1; i > -1; --i) {
-        sprintf(npath, "resources/%s/%s", packlist.pack[i], path);
+    for (int i = packct - 1; i >= 0; --i) {
+        if (!packs[i].dir) continue;
+        sprintf(npath, "resources/%s/%s", packs[i].dir, path);
         if (isFile(npath) == 1) break;
     }
     return npath;

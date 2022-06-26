@@ -5,6 +5,7 @@
 #include <bmd.h>
 #include <renderer.h>
 #include <server.h>
+#include <blocks.h>
 #include <stb_image.h>
 
 #include <stdio.h>
@@ -16,6 +17,8 @@
 #ifdef _WIN32
     #include <windows.h>
 #endif
+
+#define COMMON_SETUP() {initResource(); initBlocks();}
 
 uint32_t indices[] = {
     0, 1, 2,
@@ -130,6 +133,7 @@ int main(int _argc, char** _argv) {
     stbi_set_flip_vertically_on_load(true);
     if (argc > 1 && (!strcmp(argv[1], "-server") || (winopt && !strcmp(argv[1], "/server")))) {
         SERVER_THREADS = cores;
+        COMMON_SETUP();
         if (!initServer()) return 1;
         char* addr = (argc > 2 && argv[2][0]) ? argv[2] : NULL;
         int port = (argc > 3) ? atoi(argv[3]) : -1;
@@ -144,6 +148,7 @@ int main(int _argc, char** _argv) {
         MESHER_THREADS = cores;
         //microwait(1000000);
         if (argc < 3) {fputs("Please provide address and port\n", stderr); return 1;}
+        COMMON_SETUP();
         if (!initRenderer()) return 1;
         bool game_ecode = doGame(argv[2], atoi(argv[3]));
         quitRenderer();
@@ -157,6 +162,7 @@ int main(int _argc, char** _argv) {
         if (cores < 2) cores = 2;
         SERVER_THREADS = cores / 2;
         MESHER_THREADS = cores / 2;
+        COMMON_SETUP();
         if (!initServer()) return 1;
         if (!initRenderer()) return 1;
         bool game_ecode = doGame(NULL, -1);
