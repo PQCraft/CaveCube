@@ -3,5 +3,6 @@
 !resources/
 !src/
 !common.mk
-!Makefile
 !LICENSE
+!Makefile
+!README.md
