@@ -41,13 +41,13 @@ static inline void genSliver(int type, double cx, double cz, int top, int btm, u
                 if (m0 > 1) m0 = 1;
                 if (m0 < -1) m0 = -1;
                 double m1 = (1 - (cos(2 * fabs(m0) * M_PI) / 2 + 0.5)) * 0.9 + 0.1;
-                double p2 = (tanhf((nperlin2d(2, cx, cz, 0.010231, 3) - 0.025) * 20) + tanhf((nperlin2d(6, cx, cz, 0.009628, 2) - 0.05) * 20) * 0.5) * 2.1;
-                double p3 = tanhf((nperlin2d(3, cx, cz, 0.0125, 3) - 0.33) * (5 + perlin2d(7, cx, cz, 0.05, 2) * 10));
+                double p2 = (tanhf((nperlin2d(2, cx, cz, 0.010231, 1) - 0.025) * 12.5) + tanhf((nperlin2d(6, cx, cz, 0.009628, 2) - 0.05) * 12.5) * 0.5) * 1.89;
+                double p3 = tanhf((nperlin2d(3, cx, cz, 0.01, 3) - 0.33) * (5 + perlin2d(7, cx, cz, 0.025, 2) * 10));
                 double p4 = (tanhf(nperlin2d(4, cx, cz, 0.012847, 3) * 2) * 1.095) * 0.33 + 0.67;
                 if (p4 < 0.05) p4 = 0.05;
                 double h1 = (p2 * 8 + p3 * 7) * p4 * m1;
                 double h2 = (tanhf(nperlin2d(5, cx, cz, 0.005291, 1) * 2) / 2 + 0.5) * 0.9 + 0.2;
-                double h = (h1 + h0) * h2 + 65 + tanhf(nperlin2d(12, cx, cz, 0.0375, 2) * 1.5) * 2;
+                double h = (h1 + h0) * h2 + 65 + tanhf(nperlin2d(12, cx, cz, 0.0375, 3) * 1.5) * 2;
                 double p9 = nperlin2d(13, cx, cz, 0.025148, 5);
                 double p10 = perlin2d(14, cx, cz, 0.184541, 1);
                 double p11 = perlin2d(15, cx, cz, 0.049216, 2);

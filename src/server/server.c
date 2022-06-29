@@ -591,7 +591,7 @@ int servStart(char* addr, int port, char* world, int mcli) {
     cfgvar.server_delay = atoi(getConfigVarStatic(config, "server.server_delay", "1000", 64));
     cfgvar.server_idledelay = atoi(getConfigVarStatic(config, "server.server_idledelay", "5000", 64));
     cfgvar.unamemax =  atoi(getConfigVarStatic(config, "server.unamemax", "32", 64));
-    setRandSeed(0, 291040);
+    setRandSeed(0, 32464);
     initNoiseTable(0);
     setRandSeed(1, altutime() + (uintptr_t)"");
     sock_t socketfd;

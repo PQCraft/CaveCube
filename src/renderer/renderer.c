@@ -334,10 +334,6 @@ void updateScreen() {
     pthread_mutex_unlock(&gllock);
 }
 
-uint32_t chunkcachesize = 0;
-bool chunkcacheinit = false;
-//chunkcachedata chunkcache;
-
 static uint32_t maxblockid = 0;
 
 static unsigned VAO;
@@ -441,10 +437,13 @@ static void* meshthread(void* args) {
         }
         uint32_t* _vptr = malloc(147456 * sizeof(uint32_t) * 2);
         uint32_t* _vptr2 = malloc(147456 * sizeof(uint32_t) * 2);
+        uint32_t* _vptr3 = malloc(147456 * sizeof(uint32_t) * 2);
         uint32_t* vptr = _vptr;
         uint32_t* vptr2 = _vptr2;
+        uint32_t* vptr3 = _vptr3;
         uint32_t tmpsize = 0;
         uint32_t tmpsize2 = 0;
+        uint32_t tmpsize3 = 0;
         //printf("MESHING [%d]\n", c);
         for (int y = 15; y >= 0; --y) {
             for (int z = 0; z < 16; ++z) {
@@ -467,19 +466,24 @@ static void* meshthread(void* args) {
                         uint8_t light = bdata2[i].light;
                         uint32_t baseVert2 = (bdata.id << 24) | (light << 20);
                         if (bdata.id == water) {
-                            for (int j = 0; j < 6; ++j) {
-                                *vptr2 = baseVert1 | constBlockVert[i][j];
-                                /*
-                                if (!bdata2[4].id && (*vptr2 & 0x000F0000)) {
-                                    *vptr2 = (*vptr2 & 0xFFF0FFFF) | 0x000E0000;
+                            if (!bdata2[i].id) {
+                                for (int j = 0; j < 6; ++j) {
+                                    *vptr2 = baseVert1 | constBlockVert[i][j];
+                                    ++vptr2;
+                                    *vptr2 = baseVert2;
+                                    ++vptr2;
                                 }
-                                */
-                                ++vptr2;
-                                *vptr2 = baseVert2;
-                                ++vptr2;
+                                ++tmpsize2;
+                            } else {
+                                for (int j = 0; j < 6; ++j) {
+                                    *vptr3 = baseVert1 | constBlockVert[i][j];
+                                    ++vptr3;
+                                    *vptr3 = baseVert2;
+                                    ++vptr3;
+                                }
+                                ++tmpsize3;
                             }
                             //printf("added [%d][%d %d %d][%d]: [%u]: [%08X]...\n", c, x, y, z, i, (uint8_t)bdata.id, baseVert1);
-                            ++tmpsize2;
                         } else {
                             for (int j = 0; j < 6; ++j) {
                                 *vptr = baseVert1 | constBlockVert[i][j];
@@ -494,25 +498,20 @@ static void* meshthread(void* args) {
                 }
             }
         }
-        //uint32_t tmpsize2 = tmpsize;
-        chunkcachesize += tmpsize + tmpsize2;
         tmpsize *= 6;
         tmpsize2 *= 6;
-        /*
-        for (uint32_t i = 0; i < tmpsize; ++i) {
-            data->renddata[c].vertices[i] = (getRandByte() << 24) | (getRandByte() << 16) | (getRandByte() << 8) | getRandByte();
-        }
-        */
+        tmpsize3 *= 6;
         data->renddata[c].vcount = tmpsize;
         data->renddata[c].vcount2 = tmpsize2;
+        data->renddata[c].vcount3 = tmpsize3;
         tmpsize *= sizeof(uint32_t) * 2;
         tmpsize2 *= sizeof(uint32_t) * 2;
-        //_vptr = realloc(_vptr, tmpsize);
-        //_vptr2 = realloc(_vptr2, tmpsize2);
+        tmpsize3 *= sizeof(uint32_t) * 2;
         pthread_mutex_lock(&gllock);
         glfwMakeContextCurrent(rendinf.window);
         if (!data->renddata[c].VBO) glGenBuffers(1, &data->renddata[c].VBO);
         if (!data->renddata[c].VBO2) glGenBuffers(1, &data->renddata[c].VBO2);
+        if (!data->renddata[c].VBO3) glGenBuffers(1, &data->renddata[c].VBO3);
         if (tmpsize) {
             glBindBuffer(GL_ARRAY_BUFFER, data->renddata[c].VBO);
             glBufferData(GL_ARRAY_BUFFER, tmpsize, _vptr, GL_STATIC_DRAW);
@@ -520,6 +519,10 @@ static void* meshthread(void* args) {
         if (tmpsize2) {
             glBindBuffer(GL_ARRAY_BUFFER, data->renddata[c].VBO2);
             glBufferData(GL_ARRAY_BUFFER, tmpsize2, _vptr2, GL_STATIC_DRAW);
+        }
+        if (tmpsize3) {
+            glBindBuffer(GL_ARRAY_BUFFER, data->renddata[c].VBO3);
+            glBufferData(GL_ARRAY_BUFFER, tmpsize3, _vptr3, GL_STATIC_DRAW);
         }
         #ifndef RENDERER_UNSAFE
         #ifndef RENDERER_LAZY
@@ -529,14 +532,7 @@ static void* meshthread(void* args) {
         pthread_mutex_unlock(&gllock);
         free(_vptr);
         free(_vptr2);
-        //data->renddata[c].vertices = _vptr;
-        //data->renddata[c].vertices2 = _vptr2;
-        //glGenVertexArrays(1, &data->renddata[c].VAO);
-        //glBindVertexArray(data->renddata[c].VAO);
-        //data->renddata[c].updated = true;
-        //pthread_mutex_lock(&uclock);
-        //data->renddata[c].busy = false;
-        //data->renddata[c].ready = true;
+        free(_vptr3);
         data->renddata[c].updated = true;
         data->renddata[c].ready = false;
         data->renddata[c].buffered = true;
@@ -611,10 +607,6 @@ void renderChunks(void* vdata) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "dist"), data->info.dist);
     setUniform3f(rendinf.shaderprog, "cam", (float[]){rendinf.campos.x, rendinf.campos.y, rendinf.campos.z});
-    //uint64_t starttime = altutime();
-    //glDisable(GL_CULL_FACE);
-    //glDepthFunc(GL_LESS);
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     for (rendc = 0; rendc < data->info.size; ++rendc) {
         if (!data->renddata[rendc].buffered || !data->renddata[rendc].vcount) continue;
         setUniform3f(rendinf.shaderprog, "ccoord", (float[]){(int)(rendc % data->info.width) - (int)data->info.dist,
@@ -632,6 +624,19 @@ void renderChunks(void* vdata) {
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "isAni"), 1);
     glUniform1ui(glGetUniformLocation(rendinf.shaderprog, "TexAni"), (altutime() / 200000) % 6);
     for (rendc = 0; rendc < data->info.size; ++rendc) {
+        if (!data->renddata[rendc].buffered || !data->renddata[rendc].vcount3) continue;
+        setUniform3f(rendinf.shaderprog, "ccoord", (float[]){(int)(rendc % data->info.width) - (int)data->info.dist,
+                                                             (int)(rendc / data->info.widthsq),
+                                                             (int)(rendc / data->info.width % data->info.width) - (int)data->info.dist});
+        glBindBuffer(GL_ARRAY_BUFFER, data->renddata[rendc].VBO3);
+        glEnableVertexAttribArray(0);
+        glEnableVertexAttribArray(1);
+        glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 2 * sizeof(uint32_t), (void*)0);
+        glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 2 * sizeof(uint32_t), (void*)sizeof(uint32_t));
+        glDrawArrays(GL_TRIANGLES, 0, data->renddata[rendc].vcount3);
+    }
+    glDisable(GL_CULL_FACE);
+    for (rendc = 0; rendc < data->info.size; ++rendc) {
         if (!data->renddata[rendc].buffered || !data->renddata[rendc].vcount2) continue;
         setUniform3f(rendinf.shaderprog, "ccoord", (float[]){(int)(rendc % data->info.width) - (int)data->info.dist,
                                                              (int)(rendc / data->info.widthsq),
@@ -641,19 +646,11 @@ void renderChunks(void* vdata) {
         glEnableVertexAttribArray(1);
         glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 2 * sizeof(uint32_t), (void*)0);
         glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 2 * sizeof(uint32_t), (void*)sizeof(uint32_t));
-        //glFrontFace(GL_CW);
         glDrawArrays(GL_TRIANGLES, 0, data->renddata[rendc].vcount2);
-        //glEnable(GL_CULL_FACE);
-        //glFrontFace(GL_CCW);
-        glCullFace(GL_BACK);
-        glDrawArrays(GL_TRIANGLES, 0, data->renddata[rendc].vcount2);
-        glCullFace(GL_FRONT);
     }
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "isAni"), 0);
     glDisable(GL_DEPTH_TEST);
-    glDisable(GL_CULL_FACE);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     setShaderProg(shader_2d);
     glBindBuffer(GL_ARRAY_BUFFER, VBO2D);
     glEnableVertexAttribArray(0);
@@ -661,7 +658,7 @@ void renderChunks(void* vdata) {
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "TexData"), 1);
-    setUniform4f(rendinf.shaderprog, "mcolor", (float[]){1, 1, 1, 0.65});
+    setUniform4f(rendinf.shaderprog, "mcolor", (float[]){1, 1, 1, 0.6});
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
     glDrawArrays(GL_TRIANGLES, 0, 6);
     setUniform4f(rendinf.shaderprog, "mcolor", (float[]){1, 1, 1, 1});
@@ -672,11 +669,6 @@ void renderChunks(void* vdata) {
     setShaderProg(shader_text);
     static uint64_t frames = 0;
     ++frames;
-    /*
-    for (int i = 0; i < 32767; ++i) {
-        tbuf[i] = rand();
-    }
-    */
     static int toff = 0;
     if (!tbuf[0][0]) {
         sprintf(
@@ -712,7 +704,6 @@ void renderChunks(void* vdata) {
     setShaderProg(shader_block);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
-    //printf("rendered in: [%f]s\n", (float)(altutime() - starttime) / 1000000.0);
     #ifndef RENDERER_UNSAFE
     #ifndef RENDERER_LAZY
     glfwMakeContextCurrent(NULL);
@@ -857,15 +848,9 @@ bool initRenderer() {
     glfwMakeContextCurrent(rendinf.window);
     glfwPollEvents();
 
-    //glUniform1i(glGetUniformLocation(rendinf.shaderprog, "is2D"), 1);
-    //glUniform1i(glGetUniformLocation(rendinf.shaderprog, "fIs2D"), 1);
-    //glDisable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glCullFace(GL_FRONT);
     glFrontFace(GL_CCW);
-    //return true;
-    //puts("loading block struct model...");
-    //blockmodel = loadResource(RESOURCE_BMD, "game/models/block/default.bmd");
 
     glGenRenderbuffers(1, &DBUF);
     glBindRenderbuffer(GL_RENDERBUFFER, DBUF);
@@ -972,10 +957,6 @@ bool initRenderer() {
 
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
-    //glEnableVertexAttribArray(0);
-    //glEnableVertexAttribArray(1);
-
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     water = blockNoFromID("water");
     blockinf[water].transparency = 1;

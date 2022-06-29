@@ -89,13 +89,6 @@ void setBlock(struct chunkdata* data, int cx, int cy, int cz, int x, int y, int 
     pthread_mutex_unlock(&uclock);
 }
 
-static inline int compare(const void* b, const void* a) {
-    float fa = ((struct rendorder*)a)->dist;
-    float fb = ((struct rendorder*)b)->dist;
-    //printf("[%f]\n", ((struct rendorder*)a)->dist);
-    return (fa > fb) - (fa < fb);
-}
-
 static inline float distance(float x1, float z1, float x2, float z2) {
     //float f = sqrt(fabs(x2 - x1) * fabs(x2 - x1) + fabs(z2 - z1) * fabs(z2 - z1));
     //printf("[%f][%f][%f][%f] [%f]\n", x1, z1, x2, z2, f);
@@ -116,15 +109,6 @@ struct chunkdata allocChunks(uint32_t dist) {
         chunks.data[i] = calloc(4096 * sizeof(struct blockdata), 1);
     }
     chunks.renddata = calloc(dist * sizeof(struct chunk_renddata), 1);
-    chunks.rordr = calloc(chunks.info.widthsq * sizeof(struct rendorder), 1);
-    for (unsigned x = 0; x < chunks.info.width; ++x) {
-        for (unsigned z = 0; z < chunks.info.width; ++z) {
-            uint32_t c = x + z * chunks.info.width;
-            chunks.rordr[c].dist = distance((int)(x - chunks.info.dist), (int)(z - chunks.info.dist), 0, 0);
-            chunks.rordr[c].c = c;
-        }
-    }
-    qsort(chunks.rordr, chunks.info.widthsq, sizeof(struct rendorder), compare);
     return chunks;
 }
 
