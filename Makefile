@@ -40,7 +40,7 @@ BIN := $(BINNAME)$(BINEXT)
 CFLAGS += -Wall -Wextra -I. -g -O2
 
 ifndef OS
-BINFLAGS += -lpthread -ldl -lglfw -lm
+BINFLAGS += -lpthread -ldl -lglfw -lm -lX11
 else
 BINFLAGS += -lpthread -lglfw3 -lopengl32 -lgdi32 -lm -lws2_32
 endif
@@ -58,7 +58,7 @@ define null
 endef
 endif
 
-all: bin
+build: bin
 
 clean.flags:
 	@$(eval FLAGS := clean)
@@ -97,13 +97,7 @@ else
 	.\\$(BIN)
 endif	
 
-test:
-	@echo $(SRCDIR)
-	@echo $(OBJDIR)
-	@echo $(BASEDIRS)
-	@echo $(DIRS)
-
 FORCE:
 
-.PHONY: all clean clean.flags files bin bmsg run test $(MKFILES)
+.PHONY: all clean clean.flags files bin bmsg run $(MKFILES)
 
