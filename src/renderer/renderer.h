@@ -70,13 +70,15 @@ struct model {
 };
 
 struct chunk_renddata {
-    //unsigned VAO;
     unsigned VBO;
     uint32_t vcount;
     uint32_t* vertices;
     unsigned VBO2;
     uint32_t vcount2;
     uint32_t* vertices2;
+    unsigned VBO3;
+    uint32_t vcount3;
+    uint32_t* vertices3;
     bool buffered:1;
     bool ready:1;
     bool busy:1;
@@ -106,10 +108,6 @@ int rendererQuitRequest(void);
 void createTexture(unsigned char*, resdata_texture*);
 void destroyTexture(resdata_texture*);
 struct model* loadModel(char*, char**);
-//void renderModelAt(struct model*, coord_3d, bool);
-//void renderModel(struct model*, bool);
-//void renderPartAt(struct model*, unsigned, coord_3d, bool);
-//void renderPart(struct model*, unsigned, bool);
 void updateCam(void);
 void updateScreen(void);
 void startMesher(void*);

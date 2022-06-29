@@ -10,11 +10,6 @@ struct blockdata {
     uint8_t rot:4;
 };
 
-struct rendorder {
-    uint32_t c;
-    float dist;
-};
-
 struct chunkinfo {
     uint32_t dist;
     uint32_t width;
@@ -24,7 +19,6 @@ struct chunkinfo {
 
 struct chunkdata {
     struct chunkinfo info;
-    struct rendorder* rordr;
     struct blockdata** data;
     struct chunk_renddata* renddata;
 };
