@@ -30,10 +30,10 @@ static inline void genSliver(int type, double cx, double cz, int top, int btm, u
                 for (int y = btm; y <= top && y < 65; ++y) {
                     data[y - btm] = water;
                 }
-                double p0 = tanhf(nperlin2d(0, cx, cz, 0.006675, 6));
+                double p0 = tanhf(nperlin2d(0, cx, cz, 0.006675, 5));
                 if (p0 < 0) p0 *= 0.5;
-                double p1 = tanhf(nperlin2d(1, cx, cz, 0.001442, 2) * 3);
-                if (p1 < 0) p1 *= 0.5;
+                double p1 = tanhf((nperlin2d(1, cx, cz, 0.001142, 2) + 0.15) * 3);
+                if (p1 < 0) p1 *= 0.7;
                 double h0 = p0 * 20 + p1 * 40;
                 double m0 = h0 / 60;
                 if (m0 < 0) m0 *= 0.75;
@@ -41,20 +41,19 @@ static inline void genSliver(int type, double cx, double cz, int top, int btm, u
                 if (m0 > 1) m0 = 1;
                 if (m0 < -1) m0 = -1;
                 double m1 = (1 - (cos(2 * fabs(m0) * M_PI) / 2 + 0.5)) * 0.9 + 0.1;
-                double p2 = (tanhf(nperlin2d(2, cx, cz, 0.010628, 2) * 4) + tanhf(nperlin2d(6, cx, cz, 0.020628, 2) * 1.5) * 0.5) * 2.54;
-                if (p2 < 0) p2 *= 0.33;
-                double p3 = tanhf(nperlin2d(3, cx, cz, 0.025, 2) * (3 + perlin2d(7, cx, cz, 0.01, 2) * 3));
+                double p2 = (tanhf((nperlin2d(2, cx, cz, 0.010231, 3) - 0.025) * 20) + tanhf((nperlin2d(6, cx, cz, 0.009628, 2) - 0.05) * 20) * 0.5) * 2.1;
+                double p3 = tanhf((nperlin2d(3, cx, cz, 0.0125, 3) - 0.33) * (5 + perlin2d(7, cx, cz, 0.05, 2) * 10));
                 double p4 = (tanhf(nperlin2d(4, cx, cz, 0.012847, 3) * 2) * 1.095) * 0.33 + 0.67;
                 if (p4 < 0.05) p4 = 0.05;
-                double h1 = (p2 * 10 + p3 * 5) * p4 * m1;
+                double h1 = (p2 * 8 + p3 * 7) * p4 * m1;
                 double h2 = (tanhf(nperlin2d(5, cx, cz, 0.005291, 1) * 2) / 2 + 0.5) * 0.9 + 0.2;
-                double h = (h1 + h0) * h2 + 65 + tanhf(nperlin2d(12, cx, cz, 0.0375, 2) * 2) * 2;
-                double p9 = perlin2d(13, cx, cz, 0.025148, 5);
+                double h = (h1 + h0) * h2 + 65 + tanhf(nperlin2d(12, cx, cz, 0.0375, 2) * 1.5) * 2;
+                double p9 = nperlin2d(13, cx, cz, 0.025148, 5);
                 double p10 = perlin2d(14, cx, cz, 0.184541, 1);
                 double p11 = perlin2d(15, cx, cz, 0.049216, 2);
                 int hi = round(h);
                 for (int y = (hi > top) ? top : hi; y >= btm; --y) {
-                    bool c1 = y < 62 + p9 * 6;
+                    bool c1 = y < 67 + p9 * 5;
                     bool c2 = p11 > 0.4 && y < 56 + p10 * 3;
                     uint8_t b1 = (c1) ? ((c2) ? gravel : sand) : dirt;
                     uint8_t b2 = (c1) ? ((c2) ? gravel : sand) : ((y < 64) ? dirt : grass_block);
