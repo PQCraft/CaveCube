@@ -602,7 +602,7 @@ void renderChunks(void* vdata) {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glClearColor(sky.r, sky.g, sky.b, 1);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glClearColor(0, 0, 0, 0);
+    glClearColor(sky.r, sky.g, sky.b, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, FBO0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "dist"), data->info.dist);
@@ -621,6 +621,7 @@ void renderChunks(void* vdata) {
     }
     glBindFramebuffer(GL_FRAMEBUFFER, FBO1);
     glClear(GL_COLOR_BUFFER_BIT);
+    glDepthMask(GL_FALSE);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "isAni"), 1);
     glUniform1ui(glGetUniformLocation(rendinf.shaderprog, "TexAni"), (altutime() / 200000) % 6);
     for (rendc = 0; rendc < data->info.size; ++rendc) {
@@ -648,6 +649,7 @@ void renderChunks(void* vdata) {
         glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 2 * sizeof(uint32_t), (void*)sizeof(uint32_t));
         glDrawArrays(GL_TRIANGLES, 0, data->renddata[rendc].vcount2);
     }
+    glDepthMask(GL_TRUE);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "isAni"), 0);
     glDisable(GL_DEPTH_TEST);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -658,10 +660,10 @@ void renderChunks(void* vdata) {
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "TexData"), 1);
-    setUniform4f(rendinf.shaderprog, "mcolor", (float[]){1, 1, 1, 0.6});
+    //setUniform4f(rendinf.shaderprog, "mcolor", (float[]){1, 1, 1, 0.6});
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
     glDrawArrays(GL_TRIANGLES, 0, 6);
-    setUniform4f(rendinf.shaderprog, "mcolor", (float[]){1, 1, 1, 1});
+    //setUniform4f(rendinf.shaderprog, "mcolor", (float[]){1, 1, 1, 1});
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "TexData"), 3);
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
     glDrawArrays(GL_TRIANGLES, 0, 6);
