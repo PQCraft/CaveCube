@@ -1,7 +1,10 @@
 *
 !docs/
+!docs/**
 !resources/
+!resources/**
 !src/
+!src/**
 !common.mk
 !LICENSE
 !Makefile
