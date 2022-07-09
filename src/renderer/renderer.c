@@ -838,7 +838,6 @@ bool initRenderer() {
     updateCam();
     pthread_mutex_lock(&gllock);
     glfwMakeContextCurrent(rendinf.window);
-    glfwPollEvents();
 
     glEnable(GL_CULL_FACE);
     glCullFace(GL_FRONT);
