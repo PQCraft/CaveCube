@@ -339,12 +339,6 @@ static uint32_t maxblockid = 0;
 static unsigned VAO;
 static unsigned VBO2D;
 
-static unsigned DBUF;
-static unsigned FBO0;
-static unsigned FBO1;
-static unsigned FBTEX0;
-static unsigned FBTEX1;
-
 static GLuint shader_block;
 static GLuint shader_2d;
 static GLuint shader_text;
@@ -604,7 +598,6 @@ static inline coord_3d_dbl intCoord_dbl(coord_3d_dbl in) {
 }
 
 static uint32_t rendc;
-static uint32_t rendc2;
 
 void renderChunks(void* vdata) {
     struct chunkdata* data = vdata;
@@ -851,31 +844,15 @@ bool initRenderer() {
     glCullFace(GL_FRONT);
     glFrontFace(GL_CCW);
 
-    glGenRenderbuffers(1, &DBUF);
-    glBindRenderbuffer(GL_RENDERBUFFER, DBUF);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, rendinf.width, rendinf.height);
-
     glActiveTexture(GL_TEXTURE0);
-    glGenFramebuffers(1, &FBO0);
-    glBindFramebuffer(GL_FRAMEBUFFER, FBO0);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, DBUF);
-    glGenTextures(1, &FBTEX0);
-    glBindTexture(GL_TEXTURE_2D, FBTEX0);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, rendinf.width, rendinf.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, FBTEX0, 0);
 
     glActiveTexture(GL_TEXTURE1);
-    glGenFramebuffers(1, &FBO1);
-    glBindFramebuffer(GL_FRAMEBUFFER, FBO1);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, DBUF);
-    glGenTextures(1, &FBTEX1);
-    glBindTexture(GL_TEXTURE_2D, FBTEX1);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, rendinf.width, rendinf.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, FBTEX1, 0);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 

@@ -5,10 +5,10 @@
 [![image](https://raw.githubusercontent.com/PQCraft/PQCraft/master/Screenshot_20220709_023207.png)](#?)
 
 ---
-### Requrements
+### Prerequisites
 GLFW, GNU Make, and a C compiler are needed to build CaveCube.<br>
 For Windows, the GLFW development binaries must be installed.<br>
-For outdated/stable Linux distributions, GLFW must be built from source due to the package being out of date.<br>
+For outdated/stable Linux distributions (such as Debian or Ubuntu), GLFW must be built from source due to the package being out of date.<br>
 
 ---
 ### Bulding
