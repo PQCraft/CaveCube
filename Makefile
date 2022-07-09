@@ -39,10 +39,12 @@ BIN := $(BINNAME)$(BINEXT)
 
 CFLAGS += -Wall -Wextra -I. -g -O2
 
+BINFLAGS += -lm -lpthread
+
 ifndef OS
-BINFLAGS += -lpthread -ldl -lglfw -lm -lX11
+BINFLAGS += -lglfw -lX11 -ldl
 else
-BINFLAGS += -lpthread -lglfw3 -lopengl32 -lgdi32 -lm -lws2_32
+BINFLAGS += -lglfw3 -lopengl32 -lgdi32 -lws2_32
 endif
 
 MKENV = NAME=$@ HEADDIR="$(CURDIR)" SRCDIR="$(SRCDIR)" OBJDIR="$(OBJDIR)" COMMONMK="$(CURDIR)/common.mk" CC="$(CC)" CFLAGS="$(CFLAGS) $(INCLUDEDIRS)"
