@@ -593,17 +593,23 @@ const unsigned char* glslver;
 const unsigned char* glvend;
 const unsigned char* glrend;
 
+static inline coord_3d_dbl intCoord_dbl(coord_3d_dbl in) {
+    in.x -= (in.x < 0) ? 1.0 : 0.0;
+    in.y -= (in.y < 0) ? 1.0 : 0.0;
+    in.z += (in.z > 0) ? 1.0 : 0.0;
+    in.x = (int)in.x;
+    in.y = (int)in.y;
+    in.z = (int)in.z;
+    return in;
+}
+
 static uint32_t rendc;
+static uint32_t rendc2;
 
 void renderChunks(void* vdata) {
     struct chunkdata* data = vdata;
     pthread_mutex_lock(&gllock);
     glfwMakeContextCurrent(rendinf.window);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glClearColor(sky.r, sky.g, sky.b, 1);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glClearColor(sky.r, sky.g, sky.b, 0);
-    glBindFramebuffer(GL_FRAMEBUFFER, FBO0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "dist"), data->info.dist);
     setUniform3f(rendinf.shaderprog, "cam", (float[]){rendinf.campos.x, rendinf.campos.y, rendinf.campos.z});
@@ -619,24 +625,10 @@ void renderChunks(void* vdata) {
         glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 2 * sizeof(uint32_t), (void*)sizeof(uint32_t));
         glDrawArrays(GL_TRIANGLES, 0, data->renddata[rendc].vcount);
     }
-    glBindFramebuffer(GL_FRAMEBUFFER, FBO1);
-    glClear(GL_COLOR_BUFFER_BIT);
-    glDepthMask(GL_FALSE);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "isAni"), 1);
     glUniform1ui(glGetUniformLocation(rendinf.shaderprog, "TexAni"), (altutime() / 200000) % 6);
-    for (rendc = 0; rendc < data->info.size; ++rendc) {
-        if (!data->renddata[rendc].buffered || !data->renddata[rendc].vcount3) continue;
-        setUniform3f(rendinf.shaderprog, "ccoord", (float[]){(int)(rendc % data->info.width) - (int)data->info.dist,
-                                                             (int)(rendc / data->info.widthsq),
-                                                             (int)(rendc / data->info.width % data->info.width) - (int)data->info.dist});
-        glBindBuffer(GL_ARRAY_BUFFER, data->renddata[rendc].VBO3);
-        glEnableVertexAttribArray(0);
-        glEnableVertexAttribArray(1);
-        glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 2 * sizeof(uint32_t), (void*)0);
-        glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 2 * sizeof(uint32_t), (void*)sizeof(uint32_t));
-        glDrawArrays(GL_TRIANGLES, 0, data->renddata[rendc].vcount3);
-    }
     glDisable(GL_CULL_FACE);
+    glDepthMask(false);
     for (rendc = 0; rendc < data->info.size; ++rendc) {
         if (!data->renddata[rendc].buffered || !data->renddata[rendc].vcount2) continue;
         setUniform3f(rendinf.shaderprog, "ccoord", (float[]){(int)(rendc % data->info.width) - (int)data->info.dist,
@@ -649,22 +641,26 @@ void renderChunks(void* vdata) {
         glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 2 * sizeof(uint32_t), (void*)sizeof(uint32_t));
         glDrawArrays(GL_TRIANGLES, 0, data->renddata[rendc].vcount2);
     }
-    glDepthMask(GL_TRUE);
+    glEnable(GL_CULL_FACE);
+    for (rendc = 0; rendc < data->info.size; ++rendc) {
+        if (!data->renddata[rendc].buffered || !data->renddata[rendc].vcount3) continue;
+        setUniform3f(rendinf.shaderprog, "ccoord", (float[]){(int)(rendc % data->info.width) - (int)data->info.dist,
+                                                             (int)(rendc / data->info.widthsq),
+                                                             (int)(rendc / data->info.width % data->info.width) - (int)data->info.dist});
+        glBindBuffer(GL_ARRAY_BUFFER, data->renddata[rendc].VBO3);
+        glEnableVertexAttribArray(0);
+        glEnableVertexAttribArray(1);
+        glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 2 * sizeof(uint32_t), (void*)0);
+        glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 2 * sizeof(uint32_t), (void*)sizeof(uint32_t));
+        glDrawArrays(GL_TRIANGLES, 0, data->renddata[rendc].vcount3);
+    }
+    glDepthMask(true);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "isAni"), 0);
+    glDisable(GL_CULL_FACE);
     glDisable(GL_DEPTH_TEST);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
     setShaderProg(shader_2d);
     glBindBuffer(GL_ARRAY_BUFFER, VBO2D);
     glEnableVertexAttribArray(0);
-    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "TexData"), 0);
-    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "TexData"), 1);
-    //setUniform4f(rendinf.shaderprog, "mcolor", (float[]){1, 1, 1, 0.6});
-    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-    //setUniform4f(rendinf.shaderprog, "mcolor", (float[]){1, 1, 1, 1});
-    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "TexData"), 3);
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
     glDrawArrays(GL_TRIANGLES, 0, 6);
 
@@ -833,6 +829,7 @@ bool initRenderer() {
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBlendEquation(GL_FUNC_ADD);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glClearColor(0, 0, 0, 1);
