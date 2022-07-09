@@ -89,12 +89,6 @@ void setBlock(struct chunkdata* data, int cx, int cy, int cz, int x, int y, int 
     pthread_mutex_unlock(&uclock);
 }
 
-static inline float distance(float x1, float z1, float x2, float z2) {
-    //float f = sqrt(fabs(x2 - x1) * fabs(x2 - x1) + fabs(z2 - z1) * fabs(z2 - z1));
-    //printf("[%f][%f][%f][%f] [%f]\n", x1, z1, x2, z2, f);
-    return /*f*/ sqrt(fabs(x2 - x1) * fabs(x2 - x1) + fabs(z2 - z1) * fabs(z2 - z1));
-}
-
 struct chunkdata allocChunks(uint32_t dist) {
     struct chunkdata chunks;
     chunks.info.dist = dist;

@@ -24,6 +24,7 @@ struct chunkdata {
 };
 
 struct chunkdata allocChunks(uint32_t);
+void sortChunks(struct chunkdata*, float);
 void genChunks(struct chunkdata*, int64_t, int64_t);
 void genChunks_cb(struct chunkdata*, void*);
 void genChunks_cb2(struct chunkdata*, void*);
