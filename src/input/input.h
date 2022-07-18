@@ -46,18 +46,19 @@ struct input_info {
     uint32_t multi_actions;
     uint16_t single_action;
     uint16_t modifiers;
-    bool movti;
-    float zmov;
-    float xmov;
-    bool mmovti;
-    float mxmov;
-    float mymov;
+    float mov_mult;
+    float mov_up;
+    float mov_right;
+    float rot_mult;
+    float rot_up;
+    float rot_right;
 };
 
 void setInputMode(int);
 bool initInput(void);
+void resetInput(void);
 struct input_info getInput(void);
 
-#define INPUT_EMPTY_INFO (struct input_info){INPUT_ACTION_MULTI__NONE, INPUT_ACTION_SINGLE__NONE, 0, false, 0.0, 0.0, false, 0.0, 0.0}
+#define INPUT_EMPTY_INFO (struct input_info){INPUT_ACTION_MULTI__NONE, INPUT_ACTION_SINGLE__NONE, 0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}
 
 #endif

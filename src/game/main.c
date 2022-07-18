@@ -18,40 +18,6 @@
     #include <windows.h>
 #endif
 
-#define COMMON_SETUP() {initResource(); initBlocks();}
-
-uint32_t indices[] = {
-    0, 1, 2,
-    2, 3, 0,
-};
-
-float vertices[6][20] = {
-    { 0.5,  0.5,  0.5,  0.0,  1.0, 
-     -0.5,  0.5,  0.5,  1.0,  1.0, 
-     -0.5, -0.5,  0.5,  1.0,  0.0, 
-      0.5, -0.5,  0.5,  0.0,  0.0,},
-    {-0.5,  0.5, -0.5,  0.0,  1.0, 
-      0.5,  0.5, -0.5,  1.0,  1.0, 
-      0.5, -0.5, -0.5,  1.0,  0.0, 
-     -0.5, -0.5, -0.5,  0.0,  0.0,},
-    {-0.5,  0.5,  0.5,  0.0,  1.0, 
-     -0.5,  0.5, -0.5,  1.0,  1.0, 
-     -0.5, -0.5, -0.5,  1.0,  0.0, 
-     -0.5, -0.5,  0.5,  0.0,  0.0,},
-    { 0.5,  0.5, -0.5,  0.0,  1.0, 
-      0.5,  0.5,  0.5,  1.0,  1.0, 
-      0.5, -0.5,  0.5,  1.0,  0.0, 
-      0.5, -0.5, -0.5,  0.0,  0.0,},
-    {-0.5,  0.5,  0.5,  0.0,  1.0, 
-      0.5,  0.5,  0.5,  1.0,  1.0, 
-      0.5,  0.5, -0.5,  1.0,  0.0, 
-     -0.5,  0.5, -0.5,  0.0,  0.0,},
-    {-0.5, -0.5, -0.5,  0.0,  1.0, 
-      0.5, -0.5, -0.5,  1.0,  1.0, 
-      0.5, -0.5,  0.5,  1.0,  0.0, 
-     -0.5, -0.5,  0.5,  0.0,  0.0,},
-};
-
 char* config;
 file_data config_filedata;
 int quitRequest = 0;
@@ -65,6 +31,7 @@ char* startdir = NULL;
 void sigh(int sig) {
     (void)sig;
     ++quitRequest;
+    signal(sig, sigh);
 }
 
 #ifndef _WIN32
@@ -74,6 +41,17 @@ void sigh(int sig) {
     #define OPTPREFIX '/'
     #define OPTPREFIXSTR "/"
 #endif
+
+static void commonSetup() {
+    while (!(config_filedata = getTextFile("config.cfg")).data) {
+        FILE* fp = fopen("config.cfg", "w");
+        fclose(fp);
+    }
+    config = (char*)config_filedata.data;
+    stbi_set_flip_vertically_on_load(true);
+    initResource();
+    initBlocks();
+}
 
 int main(int _argc, char** _argv) {
     #ifndef _WIN32
@@ -125,49 +103,43 @@ int main(int _argc, char** _argv) {
     signal(SIGINT, sigh);
     int cores = getCoreCt() - 4;
     if (cores < 1) cores = 1;
-    while (!(config_filedata = getTextFile("config.cfg")).data) {
-        FILE* fp = fopen("config.cfg", "w");
-        fclose(fp);
-    }
-    config = (char*)config_filedata.data;
-    stbi_set_flip_vertically_on_load(true);
-    if (argc > 1 && (!strcmp(argv[1], "-server") || (winopt && !strcmp(argv[1], "/server")))) {
-        SERVER_THREADS = cores;
-        COMMON_SETUP();
-        if (!initServer()) return 1;
-        char* addr = (argc > 2 && argv[2][0]) ? argv[2] : NULL;
-        int port = (argc > 3) ? atoi(argv[3]) : -1;
-        int players = (argc > 4) ? atoi(argv[4]) : 0;
-        puts("Starting server...");
-        if (servStart(addr, port, NULL, players) < 0) {
-            fputs("Server failed to start\n", stderr);
+    if (argc > 1) {
+        if (!strcmp(argv[1], "-server") || (winopt && !strcmp(argv[1], "/server"))) {
+            SERVER_THREADS = cores;
+            commonSetup();
+            if (!initServer()) return 1;
+            char* addr = (argc > 2 && argv[2][0]) ? argv[2] : NULL;
+            int port = (argc > 3) ? atoi(argv[3]) : -1;
+            int players = (argc > 4) ? atoi(argv[4]) : 0;
+            puts("Starting server...");
+            if (startServer(addr, port, NULL, players) < 0) {
+                fputs("Server failed to start\n", stderr);
+                return 1;
+            }
+            pause();
+        } else if (!strcmp(argv[1], "-connect") || (winopt && !strcmp(argv[1], "/connect"))) {
+            MESHER_THREADS = cores;
+            if (argc < 3) {fputs("Please provide address and port\n", stderr); return 1;}
+            commonSetup();
+            if (!initRenderer()) return 1;
+            bool game_ecode = doGame(argv[2], atoi(argv[3]));
+            quitRenderer();
+            freeFile(config_filedata);
+            return !game_ecode;
+        } else {
+            fprintf(stderr, "Invalid argument: %s\n", argv[1]);
             return 1;
         }
-        pause();
-    } else if (argc > 1 && (!strcmp(argv[1], "-connect") || (winopt && !strcmp(argv[1], "/connect")))) {
-        MESHER_THREADS = cores;
-        //microwait(1000000);
-        if (argc < 3) {fputs("Please provide address and port\n", stderr); return 1;}
-        COMMON_SETUP();
-        if (!initRenderer()) return 1;
-        bool game_ecode = doGame(argv[2], atoi(argv[3]));
-        quitRenderer();
-        //freeAllResources();
-        freeFile(config_filedata);
-        return !game_ecode;
-    } else if (argc > 1) {
-        fprintf(stderr, "Invalid argument: %s\n", argv[1]);
-        return 1;
     } else {
         if (cores < 2) cores = 2;
         SERVER_THREADS = cores / 2;
-        MESHER_THREADS = cores / 2;
-        COMMON_SETUP();
+        cores -= SERVER_THREADS;
+        MESHER_THREADS = cores;
+        commonSetup();
         if (!initServer()) return 1;
         if (!initRenderer()) return 1;
         bool game_ecode = doGame(NULL, -1);
         quitRenderer();
-        //freeAllResources();
         freeFile(config_filedata);
         return !game_ecode;
     }

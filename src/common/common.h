@@ -19,8 +19,6 @@ file_data getFile(char*, char*);
 file_data getBinFile(char*);
 file_data getTextFile(char*);
 void freeFile(file_data);
-unsigned char* decompressData(unsigned char*, size_t, size_t);
-unsigned char* compressData(unsigned char*, size_t, size_t*);
 void setRandSeed(int, uint64_t);
 uint8_t getRandByte(int);
 uint16_t getRandWord(int);

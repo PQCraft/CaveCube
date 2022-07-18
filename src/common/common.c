@@ -1,9 +1,6 @@
 #include "main.h"
 #include "common.h"
 
-#include <LzmaLib.h>
-#include <7zTypes.h>
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <inttypes.h>
@@ -314,27 +311,6 @@ bool getConfigValBool(char* val) {
     bool ret = (!strcmp(nval, "true") || !strcmp(nval, "yes") || atoi(nval) != 0);
     free(nval);
     return ret;
-}
-
-unsigned char* decompressData(unsigned char* data, size_t insize, size_t outsize) {
-    unsigned char* outbuf = malloc(outsize);
-    outsize -= LZMA_PROPS_SIZE;
-    int ret = LzmaUncompress(outbuf, &outsize, &data[LZMA_PROPS_SIZE], &insize, data, LZMA_PROPS_SIZE);
-    //printf("decompressData: [%lu]\n", outsize + LZMA_PROPS_SIZE);
-    if (ret != SZ_OK) {fprintf(stderr, "decompressData: error [%d] at [%"PRIuz"]\n", ret, outsize); free(outbuf); return NULL;}
-    return outbuf;
-}
-
-unsigned char* compressData(unsigned char* data, size_t insize, size_t* outsize) {
-    *outsize = insize + insize / 3 + 128;
-    unsigned char* outbuf = malloc(LZMA_PROPS_SIZE + *outsize);
-    memset(outbuf, 0, LZMA_PROPS_SIZE + *outsize);
-    insize -= LZMA_PROPS_SIZE;
-    size_t propsSize = LZMA_PROPS_SIZE;
-    int ret = LzmaCompress(&outbuf[LZMA_PROPS_SIZE], outsize, data, insize, outbuf, &propsSize, 9, 0, -1, -1, -1, -1, 1);
-    if (ret != SZ_OK) {fprintf(stderr, "compressData: error [%d] at [%"PRIuz"]\n", ret, *outsize); free(outbuf); return NULL;}
-    *outsize += LZMA_PROPS_SIZE;
-    return outbuf;
 }
 
 uint64_t qhash(char* str, int max) {
