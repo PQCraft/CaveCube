@@ -145,7 +145,7 @@ void freeResource(void* data) {
         }
     }
     if (!ent) return;
-    if (!(--ent->uses)) freeResStub(ent);
+    if (!(ent->uses)) freeResStub(ent);
 }
 
 void freeAllResources() {

@@ -90,7 +90,9 @@ struct server_ret {
 extern int SERVER_THREADS;
 
 bool initServer(void);
-int servStart(char*, int, char*, int);
+int startServer(char*, int, char*, int);
+void stopServer(void);
+
 bool servConnect(char*, int);
 void servSend(int, void*, bool);
 void servRecv(void (*)(int, void*), int);

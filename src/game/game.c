@@ -23,9 +23,7 @@ int64_t pchunkx, pchunky, pchunkz;
 int pblockx, pblocky, pblockz;
 
 static float posmult = 6.5;
-static float rotmult = 2.5;
 static float fpsmult = 0;
-static float mousesns = 0.05;
 
 static struct chunkdata chunks;
 
@@ -226,11 +224,10 @@ bool doGame(char* addr, int port) {
     rendinf.campos.y = 151.5;
     initInput();
     float pmult = posmult;
-    float rmult = rotmult;
     int servport = port;
     if (!addr) {
         puts("Starting server...");
-        if ((servport = servStart(NULL, servport, NULL, 1)) == -1) {
+        if ((servport = startServer(NULL, servport, NULL, 1)) == -1) {
             puts("Server failed to start");
             return false;
         }
@@ -283,28 +280,29 @@ bool doGame(char* addr, int port) {
     startMesher(&chunks);
     setRandSeed(8, altutime());
     coord_3d tmpcamrot = {0, 0, 0};
+    resetInput();
     while (!quitRequest) {
         //uint64_t st1 = altutime();
         glfwSetTime(0);
         microwait(loopdelay);
-        float npmult = 2.5;
-        float nrmult = 1.0;
+        float bps = 4; //blocks per second
         struct input_info input = getInput();
         bool crouch = false;
         if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_CROUCH)) {
             crouch = true;
-            npmult /= 2.0;
+            bps = 1.5;
         } else if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_RUN)) {
-            npmult *= 2.0;
+            bps = 6.75;
         }
         //printf("[%u]\n", input.mmovti);
-        tmpcamrot.x += input.mymov * nrmult * mousesns * ((input.mmovti) ? rotmult : rmult);
-        tmpcamrot.y -= input.mxmov * nrmult * mousesns * ((input.mmovti) ? rotmult : rmult);
-        rendinf.camrot.x = tmpcamrot.x - input.zmov * npmult;
+        float leanmult = bps / 3.0;
+        tmpcamrot.x += input.rot_up * input.rot_mult;
+        tmpcamrot.y -= input.rot_right * input.rot_mult;
+        rendinf.camrot.x = tmpcamrot.x - input.mov_up * leanmult;
         if (rendinf.camrot.x > 89.99) rendinf.camrot.x = 89.99;
         if (rendinf.camrot.x < -89.99) rendinf.camrot.x = -89.99;
         rendinf.camrot.y = tmpcamrot.y;
-        rendinf.camrot.z = input.xmov * npmult;
+        rendinf.camrot.z = input.mov_right * leanmult;
         if (tmpcamrot.y < 0) tmpcamrot.y += 360;
         else if (tmpcamrot.y >= 360) tmpcamrot.y -= 360;
         if (tmpcamrot.x > 89.99) tmpcamrot.x = 89.99;
@@ -313,12 +311,12 @@ bool doGame(char* addr, int port) {
         int cmx = 0, cmz = 0;
         static bool first = true;
         coord_3d oldpos = rendinf.campos;
-        rendinf.campos.z += zcm * pmult;
-        rendinf.campos.x += xcm * pmult;
+        rendinf.campos.z += zcm * input.mov_mult;
+        rendinf.campos.x += xcm * input.mov_mult;
         pvelocity.x = xcm;
         pvelocity.z = -zcm;
         float oldy = rendinf.campos.y;
-        int csteps = npmult * 10;
+        int csteps = bps * 10;
         //printf("csteps: [%d]\n", csteps);
         rendinf.campos.y = oldy - 0.5;
         pcollidepath(&chunks, oldpos, &rendinf.campos, csteps);
@@ -381,18 +379,18 @@ bool doGame(char* addr, int port) {
         //struct blockdata overbdata = getBlockF(&chunks, rendinf.campos.x, rendinf.campos.y + 1.5, rendinf.campos.z);
         //printf("pmult: [%f]\n", pmult);
         if (onblock) {
-            xcm = ((input.zmov * sinf(yrotrad) * npmult) + (input.xmov * cosf(yrotrad) * npmult))/* * mul + xcm * (1.0 - mul)*/;
-            zcm = (-(input.zmov * cosf(yrotrad) * npmult) + (input.xmov * sinf(yrotrad) * npmult))/* * mul + zcm * (1.0 - mul)*/;
+            xcm = ((input.mov_up * sinf(yrotrad) * bps) + (input.mov_right * cosf(yrotrad) * bps))/* * mul + xcm * (1.0 - mul)*/;
+            zcm = (-(input.mov_up * cosf(yrotrad) * bps) + (input.mov_right * sinf(yrotrad) * bps))/* * mul + zcm * (1.0 - mul)*/;
             if (rendinf.campos.y < (float)((int)(rendinf.campos.y)) + 0.5 && yvel <= 0.0) {
                 rendinf.campos.y = (float)((int)(rendinf.campos.y)) + 0.5;
             }
             if (yvel <= 0 && (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_JUMP))) {
-                yvel = 2;
+                yvel = 1;
             }
             if (yvel < 0) yvel = 0.0;
         } else {
-            xcm = ((input.zmov * sinf(yrotrad) * npmult) + (input.xmov * cosf(yrotrad) * npmult))/* * mul + xcm * (1.0 - mul)*/;
-            zcm = (-(input.zmov * cosf(yrotrad) * npmult) + (input.xmov * sinf(yrotrad) * npmult))/* * mul + zcm * (1.0 - mul)*/;
+            xcm = ((input.mov_up * sinf(yrotrad) * bps) + (input.mov_right * cosf(yrotrad) * bps))/* * mul + xcm * (1.0 - mul)*/;
+            zcm = (-(input.mov_up * cosf(yrotrad) * bps) + (input.mov_right * sinf(yrotrad) * bps))/* * mul + zcm * (1.0 - mul)*/;
         }
         //printf("yvel: [%f] [%f] [%f] [%f] [%u]\n", rendinf.campos.y, (float)((int)(blocky2)) + 0.5, yvel, pmult, underbdata.id & 0xFF);
         pvelocity.y = yvel;
@@ -508,7 +506,6 @@ bool doGame(char* addr, int port) {
         }
         fpsmult = glfwGetTime();
         pmult = posmult * fpsmult;
-        rmult = rotmult * fpsmult * 125;
     }
     for (int i = 0; i < 16; ++i) {
         free(tmpbuf[i]);

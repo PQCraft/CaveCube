@@ -175,12 +175,12 @@ static struct bufinf* allocbuf(int max) {
     return inf;
 }
 
-void freebuf(struct bufinf* buf) {
+static void freebuf(struct bufinf* buf) {
     free(buf->buffer);
     free(buf);
 }
 
-int rsock(sock_t sock, void* buf, int len) {
+static int rsock(sock_t sock, void* buf, int len) {
     #ifndef _WIN32
     return read(sock, buf, len);
     #else
@@ -190,7 +190,7 @@ int rsock(sock_t sock, void* buf, int len) {
     #endif
 }
 
-void wsock(sock_t sock, void* buf, int len) {
+static void wsock(sock_t sock, void* buf, int len) {
     #ifndef _WIN32
     write(sock, buf, len);
     #else
@@ -252,7 +252,7 @@ static void pushMsg(uint64_t uid, int m, void* d) {
                 p->chunkz = ((struct server_msg_chunkpos*)d)->z;
             }
             pthread_mutex_unlock(&pinfolock);
-            //printf("Set player pos to [%ld][%ld]\n", gxo, gzo);
+            //printf("Set player pos to [%ld][%ld]\n", p->chunkx, p->chunkz);
             free(d);
             break;
         default:;
@@ -390,7 +390,7 @@ struct servnetinf {
 
 static pthread_t servnetthreadh;
 
-void* servnetthread(void* args) {
+static void* servnetthread(void* args) {
     struct servnetinf* inf = args;
     unsigned char* buf2 = calloc(SERVER_BUF_SIZE, 1);
     #ifndef _WIN32
@@ -583,7 +583,7 @@ void* servnetthread(void* args) {
     return NULL;
 }
 
-int servStart(char* addr, int port, char* world, int mcli) {
+int startServer(char* addr, int port, char* world, int mcli) {
     #ifdef _WIN32
     if (!startwsa()) return -1;
     #endif
@@ -660,9 +660,13 @@ int servStart(char* addr, int port, char* world, int mcli) {
     return port;
 }
 
+void stopServer() {
+
+}
+
 static pthread_t clinetthreadh;
 
-void* clinetthread(void* args) {
+static void* clinetthread(void* args) {
     struct servnetinf* inf = args;
     struct bufinf* buf = allocbuf(SERVER_BUF_SIZE);
     unsigned char* buf2 = calloc(CLIENT_BUF_SIZE, 1);

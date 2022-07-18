@@ -44,7 +44,7 @@ unsigned char* createBMD(bmd_data* data, uint32_t* size) {
         fwrite(outbuf - sizeof(uint32_t), 1, *size, fp);
         fclose(fp);
     }
-    unsigned char* cdata = compressData(outbuf, *size, &outsize);
+    unsigned char* cdata = 0;//compressData(outbuf, *size, &outsize);
     memcpy(outbuf, cdata, *size);
     outbuf -= sizeof(uint32_t);
     outsize += sizeof(uint32_t);
@@ -60,7 +60,7 @@ bool readBMD(unsigned char* data, uint32_t size, bmd_data* bmd) {
     memcpy(&nsize, data, sizeof(uint32_t));
     data += sizeof(uint32_t);
     size -= sizeof(uint32_t);
-    unsigned char* out = decompressData(data, size, nsize);
+    unsigned char* out = 0;//decompressData(data, size, nsize);
     unsigned char* tmpout = out;
     uint32_t count = 0;
     memcpy(&count, tmpout, sizeof(uint32_t));

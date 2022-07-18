@@ -612,8 +612,6 @@ void renderChunks(void* vdata) {
                                                              (int)(rendc / data->info.widthsq),
                                                              (int)(rendc / data->info.width % data->info.width) - (int)data->info.dist});
         glBindBuffer(GL_ARRAY_BUFFER, data->renddata[rendc].VBO);
-        glEnableVertexAttribArray(0);
-        glEnableVertexAttribArray(1);
         glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 2 * sizeof(uint32_t), (void*)0);
         glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 2 * sizeof(uint32_t), (void*)sizeof(uint32_t));
         glDrawArrays(GL_TRIANGLES, 0, data->renddata[rendc].vcount);
@@ -628,8 +626,6 @@ void renderChunks(void* vdata) {
                                                              (int)(rendc / data->info.widthsq),
                                                              (int)(rendc / data->info.width % data->info.width) - (int)data->info.dist});
         glBindBuffer(GL_ARRAY_BUFFER, data->renddata[rendc].VBO2);
-        glEnableVertexAttribArray(0);
-        glEnableVertexAttribArray(1);
         glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 2 * sizeof(uint32_t), (void*)0);
         glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 2 * sizeof(uint32_t), (void*)sizeof(uint32_t));
         glDrawArrays(GL_TRIANGLES, 0, data->renddata[rendc].vcount2);
@@ -641,8 +637,6 @@ void renderChunks(void* vdata) {
                                                              (int)(rendc / data->info.widthsq),
                                                              (int)(rendc / data->info.width % data->info.width) - (int)data->info.dist});
         glBindBuffer(GL_ARRAY_BUFFER, data->renddata[rendc].VBO3);
-        glEnableVertexAttribArray(0);
-        glEnableVertexAttribArray(1);
         glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 2 * sizeof(uint32_t), (void*)0);
         glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 2 * sizeof(uint32_t), (void*)sizeof(uint32_t));
         glDrawArrays(GL_TRIANGLES, 0, data->renddata[rendc].vcount3);
@@ -653,7 +647,6 @@ void renderChunks(void* vdata) {
     glDisable(GL_DEPTH_TEST);
     setShaderProg(shader_2d);
     glBindBuffer(GL_ARRAY_BUFFER, VBO2D);
-    glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
     glDrawArrays(GL_TRIANGLES, 0, 6);
 
@@ -932,6 +925,8 @@ bool initRenderer() {
 
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
 
     water = blockNoFromID("water");
     blockinf[water].transparency = 1;
