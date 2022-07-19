@@ -8,7 +8,6 @@ layout (location = 1) in uint data2;
 
 out vec2 TexCoord;
 out vec3 FragPos;
-out vec4 FragPos2;
 out float TexOff;
 out float light;
 
@@ -35,5 +34,4 @@ void main() {
     FragPos.z = ((float(((data1 >> 8) & uint(255)) + ((data1 >> 5) & uint(1)))) / 16.0 - 8) * -1;
     FragPos += ccoord * 16;
     gl_Position = projection * view * vec4(FragPos, 1);
-    FragPos2 = gl_Position;
 }

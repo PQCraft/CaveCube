@@ -5,7 +5,6 @@ out vec4 FragColor;
 
 in vec2 TexCoord;
 in vec3 FragPos;
-in vec4 FragPos2;
 in float TexOff;
 in float light;
 
@@ -18,7 +17,6 @@ uniform vec3 skycolor;
 uniform vec3 mcolor;
 
 void main() {
-    if (FragPos2.z < 0) discard;
     vec4 color = texture(TexData, vec3(TexCoord, TexOff));
     if (color.a > 0.0) {
         FragColor = vec4(color.rgba);
