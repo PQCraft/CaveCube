@@ -11,6 +11,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <unistd.h>
+#include <math.h>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -47,8 +48,7 @@ void microwait(uint64_t d) {
     dts.tv_nsec = (d % 1000000) * 1000;
     nanosleep(&dts, NULL);
     #else
-    uint64_t t = d + altutime();
-    while (t > altutime()) {}
+    Sleep(round((double)(d) / (double)(1000.0)));
     #endif
 }
 

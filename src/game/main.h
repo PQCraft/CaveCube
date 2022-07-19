@@ -34,7 +34,8 @@
 #endif
 
 #ifdef _WIN32
-    #define pause() sleep(INFINITE)
+    #include <windows.h>
+    #define pause() Sleep(INFINITE)
 #endif
 
 extern char* config;
