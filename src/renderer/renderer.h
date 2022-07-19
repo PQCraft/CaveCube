@@ -89,7 +89,7 @@ struct chunk_renddata {
 enum {
     SPACE_NORMAL,
     SPACE_UNDERWATER,
-    SPACE_PARALLEL,
+    SPACE_UNDERWORLD,
 };
 
 #endif

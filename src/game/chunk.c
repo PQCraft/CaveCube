@@ -220,7 +220,7 @@ void genChunks_cb(struct chunkdata* chunks, void* ptr) {
     memcpy(chunks->data[coff], srvchunk->data, 4096 * sizeof(struct blockdata));
     chunks->renddata[coff].updated = false;
     chunkUpdate(chunks, coff);
-    chunks->renddata[coff].generated = true;
+    if (srvchunk->id == cid && srvchunk->xo == cxo && srvchunk->zo == czo) chunks->renddata[coff].generated = true;
     pthread_mutex_unlock(&uclock);
 }
 
@@ -238,7 +238,8 @@ void genChunks_cb2(struct chunkdata* chunks, void* ptr) {
         memcpy(chunks->data[coff2], srvchunk->data[i], 4096 * sizeof(struct blockdata));
         chunks->renddata[coff2].updated = false;
         chunkUpdate(chunks, coff2);
-        chunks->renddata[coff2].generated = true;
+        if (srvchunk->id == cid && srvchunk->xo == cxo && srvchunk->zo == czo) chunks->renddata[coff2].generated = true;
+        else break;
         coff2 += chunks->info.widthsq;
     }
     pthread_mutex_unlock(&uclock);

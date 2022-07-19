@@ -54,6 +54,14 @@ static inline coord_3d_dbl intCoord_dbl(coord_3d_dbl in) {
     return in;
 }
 
+static inline float dist2(float x1, float y1, float x2, float y2) {
+    return sqrt(fabs(x2 - x1) * fabs(x2 - x1) + fabs(y2 - y1) * fabs(y2 - y1));
+}
+
+static inline float distz(float x1, float y1) {
+    return sqrt(fabs(x1 * x1) + fabs(y1 * y1));
+}
+
 static inline bool bcollide(coord_3d bpos, coord_3d cpos) {
     if (cpos.x + 0.25 > bpos.x - 0.5 &&
         cpos.x - 0.25 < bpos.x + 0.5 &&
@@ -160,16 +168,17 @@ static inline uint8_t pcollide(struct chunkdata* chunks, coord_3d* pos) {
     return ret;
 }
 
-static inline void pcollidepath(struct chunkdata* chunks, coord_3d oldpos, coord_3d* pos, int steps) {
+static inline void pcollidepath(struct chunkdata* chunks, coord_3d oldpos, coord_3d* pos) {
     float changex = pos->x - oldpos.x;
     float changez = pos->z - oldpos.z;
+    float dist = distz(changex, changez);
+    int steps = (dist * 25.0) + 1;
     for (int i = 1; i <= steps; ++i) {
         float offset = (float)(i) / (float)(steps);
-        //printf("[%d] [%f]\n", i, offset);
         coord_3d tmpcoord = {oldpos.x + changex * offset, pos->y, oldpos.z + changez * offset};
         if (pcollide(chunks, &tmpcoord)) {
             *pos = tmpcoord;
-            //return;
+            return;
         }
     }
 }
@@ -284,7 +293,6 @@ bool doGame(char* addr, int port) {
     while (!quitRequest) {
         //uint64_t st1 = altutime();
         glfwSetTime(0);
-        microwait(loopdelay);
         float bps = 4; //blocks per second
         struct input_info input = getInput();
         bool crouch = false;
@@ -294,8 +302,9 @@ bool doGame(char* addr, int port) {
         } else if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_RUN)) {
             bps = 6.75;
         }
-        //printf("[%u]\n", input.mmovti);
-        float leanmult = bps / 3.0;
+        float speedmult = 1.0;
+        float leanmult = bps / 3.5 * (1.0 + (speedmult * 0.1));
+        bps *= speedmult;
         tmpcamrot.x += input.rot_up * input.rot_mult;
         tmpcamrot.y -= input.rot_right * input.rot_mult;
         rendinf.camrot.x = tmpcamrot.x - input.mov_up * leanmult;
@@ -316,14 +325,12 @@ bool doGame(char* addr, int port) {
         pvelocity.x = xcm;
         pvelocity.z = -zcm;
         float oldy = rendinf.campos.y;
-        int csteps = bps * 10;
-        //printf("csteps: [%d]\n", csteps);
         rendinf.campos.y = oldy - 0.5;
-        pcollidepath(&chunks, oldpos, &rendinf.campos, csteps);
+        pcollidepath(&chunks, oldpos, &rendinf.campos);
         rendinf.campos.y = oldy + 0.49 - ((crouch) ? 0.375 : 0);
-        pcollidepath(&chunks, oldpos, &rendinf.campos, csteps);
+        pcollidepath(&chunks, oldpos, &rendinf.campos);
         rendinf.campos.y = oldy - 1.15;
-        pcollidepath(&chunks, oldpos, &rendinf.campos, csteps);
+        pcollidepath(&chunks, oldpos, &rendinf.campos);
         rendinf.campos.y = oldy;
         if (pcaxis[0] && xcm < 0) xcm *= 0;
         if (pcaxis[1] && xcm > 0) xcm *= 0;
@@ -471,7 +478,7 @@ bool doGame(char* addr, int port) {
                 setSpace(SPACE_UNDERWATER);
             } else {
                 setSpace(SPACE_NORMAL);
-                //setSpace(SPACE_PARALLEL);
+                //setSpace(SPACE_UNDERWORLD);
             }
             if (crouch) rendinf.campos.y -= 0.375;
             updateCam();
