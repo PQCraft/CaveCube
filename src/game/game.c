@@ -228,7 +228,7 @@ bool doGame(char* addr, int port) {
         tmpbuf[i] = malloc(4096);
     }
     chunks = allocChunks(atoi(getConfigVarStatic(config, "game.chunks", "8", 64)));
-    loopdelay = atoi(getConfigVarStatic(config, "game.loop_delay", "2500", 64));
+    loopdelay = atoi(getConfigVarStatic(config, "game.loop_delay", "5000", 64));
     printf("Allocated chunks: [%d] [%d] [%d]\n", chunks.info.width, chunks.info.widthsq, chunks.info.size);
     rendinf.campos.y = 151.5;
     initInput();
@@ -266,7 +266,7 @@ bool doGame(char* addr, int port) {
     uint64_t dtime = fpsstarttime2;
     uint64_t ptime2 = fpsstarttime2;
     uint64_t dtime2 = fpsstarttime2;
-    uint64_t rendtime = 1000000 - loopdelay;
+    uint64_t rendtime = ((rendinf.vsync) ? 500000 : 900000) - loopdelay;
     uint64_t fpsstarttime = fpsstarttime2;
     int fpsct = 0;
     float yvel = 0.0;
@@ -293,6 +293,7 @@ bool doGame(char* addr, int port) {
     while (!quitRequest) {
         //uint64_t st1 = altutime();
         glfwSetTime(0);
+        if (rendinf.fps) microwait(loopdelay);
         float bps = 4; //blocks per second
         struct input_info input = getInput();
         bool crouch = false;
