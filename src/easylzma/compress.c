@@ -149,6 +149,7 @@ struct elzmaProgressStruct
 #include <stdio.h>
 static SRes elzmaProgress(void *p, UInt64 inSize, UInt64 outSize)
 {
+    (void)outSize;
     struct elzmaProgressStruct * ps = (struct elzmaProgressStruct *) p;
     if (ps->progressCallback) {
         ps->progressCallback(ps->progressContext, inSize,

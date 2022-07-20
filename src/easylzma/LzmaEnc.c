@@ -410,7 +410,7 @@ SRes LzmaEnc_SetProps(CLzmaEncHandle pp, const CLzmaEncProps *props2)
   LzmaEncProps_Normalize(&props);
 
   if (props.lc > LZMA_LC_MAX || props.lp > LZMA_LP_MAX || props.pb > LZMA_PB_MAX ||
-      props.dictSize > (1 << kDicLogSizeMaxCompress) || props.dictSize > (1 << 30))
+      props.dictSize > (UInt32)(1 << kDicLogSizeMaxCompress) || props.dictSize > (1 << 30))
     return SZ_ERROR_PARAM;
   p->dictSize = props.dictSize;
   p->matchFinderCycles = props.mc;
@@ -1913,11 +1913,11 @@ static SRes LzmaEnc_CodeOneBlock(CLzmaEnc *p, Bool useLimits, UInt32 maxPackSize
 static SRes LzmaEnc_Alloc(CLzmaEnc *p, UInt32 keepWindowSize, ISzAlloc *alloc, ISzAlloc *allocBig)
 {
   UInt32 beforeSize = kNumOpts;
-  Bool btMode;
   if (!RangeEnc_Alloc(&p->rc, alloc))
     return SZ_ERROR_MEM;
-  btMode = (p->matchFinderBase.btMode != 0);
   #ifdef COMPRESS_MF_MT
+  Bool btMode;
+  btMode = (p->matchFinderBase.btMode != 0);
   p->mtMode = (p->multiThread && !p->fastMode && btMode);
   #endif
 

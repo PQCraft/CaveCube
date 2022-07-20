@@ -1,4 +1,4 @@
-#include "main.h"
+#include <main.h>
 #include "game.h"
 #include <common.h>
 #include <resource.h>

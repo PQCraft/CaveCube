@@ -5,7 +5,9 @@
 !resources/**
 !src/
 !src/**
-!common.mk
+!gen.mk
 !LICENSE
 !Makefile
 !README.md
+!util.mk
+!.gitignore

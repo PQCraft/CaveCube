@@ -1,5 +1,5 @@
 #include "main.h"
-#include "game.h"
+#include <game.h>
 #include <common.h>
 #include <resource.h>
 #include <bmd.h>
