@@ -11,16 +11,10 @@ else
 OBJDIR ?= winobj
 endif
 
-SRCDIR := $(abspath $(SRCDIR))
-OBJDIR := $(abspath $(OBJDIR))
 SRCDIR := $(patsubst %/,%,$(SRCDIR))
 OBJDIR := $(patsubst %/,%,$(OBJDIR))
 SRCDIR := $(patsubst %\,%,$(SRCDIR))
 OBJDIR := $(patsubst %\,%,$(OBJDIR))
-
-CURDIR := $(abspath .)
-CURDIR := $(patsubst %/,%,$(CURDIR))
-CURDIR := $(patsubst %\,%,$(CURDIR))
 
 DIRS := $(sort $(dir $(wildcard $(SRCDIR)/*/.)))
 DIRS := $(patsubst %/,%,$(DIRS))
@@ -47,59 +41,86 @@ else
 BINFLAGS += -lglfw3 -lopengl32 -lgdi32 -lws2_32
 endif
 
-MKENV = NAME=$@ HEADDIR="$(CURDIR)" SRCDIR="$(SRCDIR)" OBJDIR="$(OBJDIR)" COMMONMK="$(CURDIR)/common.mk" CC="$(CC)" CFLAGS="$(CFLAGS) $(INCLUDEDIRS)"
-MKENV2 = CC="$(CC)" CFLAGS="$(CFLAGS)"
+MKENV = NAME="$@" SRCDIR="$(SRCDIR)" OBJDIR="$(OBJDIR)" UTILMK="util.mk" CC="$(CC)" CFLAGS="$(CFLAGS) $(INCLUDEDIRS)" INCLUDEDIRS="$(INCLUDEDIRS)" BASEDIRS="$(BASEDIRS)"
+MKENV2 = NAME="$@" CC="$(CC)" CFLAGS="$(CFLAGS) $(addprefix -I../../$(SRCDIR)/,$(BASEDIRS))" SRCDIR="../../$(SRCDIR)" OBJDIR="../../$(OBJDIR)" UTILMK="../../util.mk"
+MKENVSUB = CC="$(CC)" BINFLAGS="$(BINFLAGS)" OBJDIR="$(OBJDIR)"
+
+GENSENT = $(OBJDIR)/.mkgen
 
 ifndef OS
-define null
-	@echo > /dev/null
+define mkdir
+@[ ! -d "$@" ] && echo Creating $@... && mkdir "$@" && echo Created $@; true
 endef
 else
-define null
-	@echo > NUL
+define mkdir
+@if not exist "$@" echo Creating $@... & mkdir "$@" & echo Created $@
 endef
 endif
 
 build: bin
 
-clean.flags:
-	@$(eval FLAGS := clean)
+$(OBJDIR):
+	$(mkdir)
 
-clean: clean.flags files
-	@echo Removing $(OBJDIR) $(BIN)...
+mkfiles: $(OBJDIR) $(GENSENT)
+
+$(GENSENT): $(wildcard $(SRCDIR)/*/*.c $(SRCDIR)/*/*.h) $(SRCDIR) Makefile gen.mk util.mk
+	@echo Writing makefiles...
 ifndef OS
-	@rm -rf "$(OBJDIR)" "$(BIN)"
+	@rm -f $(wildcard $(OBJDIR)/*.mk $(OBJDIR)/.mkgen)
 else
-	@if exist "$(BIN)" del /Q "$(BIN)"
-	@if exist "$(OBJDIR)" rmdir /S /Q "$(OBJDIR)"
+	@if not "$(wildcard $(OBJDIR)/*.mk $(OBJDIR)/.mkgen)" == "" del /Q $(wildcard $(OBJDIR)/*.mk $(OBJDIR)/.mkgen)
 endif
-	@echo Removed $(OBJDIR) $(BIN)
+	@$(MAKE) --no-print-directory -f gen.mk ${MKENV}
+ifndef OS
+	@touch $@
+else
+	@type NUL > $@
+endif
+	@echo Wrote makefiles
 
-files: $(BASEDIRS)
+$(BASEDIRS):
+	@$(MAKE) --no-print-directory -C "$(SRCDIR)/$@" -f "../../$(OBJDIR)/$@.mk" ${MKENV2}
 
-$(BASEDIRS): FORCE
-	@$(MAKE) --no-print-directory -C $(SRCDIR)/$@ -f Makefile.inc ${MKENV} $(FLAGS)
+compile: $(BASEDIRS)
 
-bin: FORCE $(BIN)
+bin: mkfiles compile | $(BIN)
 
-ifdef MKSUB
+ifndef MKSUB
+.PHONY: $(BIN)
+$(BIN):
+	@$(MAKE) --no-print-directory -f $(lastword $(MAKEFILE_LIST)) ${MKENVSUB} MKSUB=y bin
+else
 $(BIN): $(wildcard $(OBJDIR)/*/*.o)
-	@echo Compiling $(BIN)...
-	@$(CC) $(wildcard $(OBJDIR)/*/*.o) $(BINFLAGS) -o $(BIN)
-	@echo Compiled $(BIN)
-else
-$(BIN): files
-	@$(MAKE) --silent --no-print-directory -f $(lastword $(MAKEFILE_LIST)) ${MKENV2} MKSUB=y $@
+	@echo Compiling $@...
+	@$(CC) $^ $(BINFLAGS) -o $@
+	@echo Compiled $@
 endif
 
-run: bin
+run: build
 ifndef OS
-	./$(BIN)
+	@./$(BIN)
 else
-	.\\$(BIN)
+	@.\\$(BIN)
 endif	
 
-FORCE:
+clean:
+	@echo Removing $(OBJDIR)...
+ifndef OS
+	@rm -rf $(OBJDIR)
+else
+	@if exist $(OBJDIR) rmdir /S /Q $(OBJDIR)
+endif
+	@echo Removed $(OBJDIR)
+	@echo Removing $(BIN)...
+ifndef OS
+	@rm -f $(BIN)
+else
+	@if exist $(BIN) del /Q $(BIN)
+endif
+	@echo Removed $(BIN)
 
-.PHONY: all clean clean.flags files bin bmsg run $(MKFILES)
+.NOTPARALLEL:
+
+.PHONY: build mkfiles $(BASEDIRS) compile bin
 
