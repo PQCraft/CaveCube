@@ -13,11 +13,9 @@ all: $(OFILES)
 endif
 
 ifndef MKSUB
-.PHONY: $(BASEDIRS)
-$(BASEDIRS): FORCE
+$(BASEDIRS):
 	@$(MAKE) --silent --no-print-directory -f gen.mk NAME="$@" ${MKENV2} MKSUB=y NAME="$@" $(MKOUT)
 else
-
 ifndef OS
 define MKSRC
 $(subst .mk,,$(subst $(OBJDIR)/,$(SRCDIR)/,$@))
@@ -27,7 +25,6 @@ define MKSRC
 $(subst .mk,,$(subst $(OBJDIR)/,$(SRCDIR)\,$@))
 endef
 endif
-
 $(OBJDIR)/%.mk: $(wildcard $(SRCDIR)/$(NAME)/*.c $(SRCDIR)/$(NAME)/*.h)
 	@echo Writing $@...
 	@echo include $$$(esc)(UTILMK$(esc)) > $@
@@ -45,5 +42,5 @@ $(OUTDIR)/%.o: FORCE
 
 FORCE:
 
-.PHONY: all
+.PHONY: all $(BASEDIRS)
 
