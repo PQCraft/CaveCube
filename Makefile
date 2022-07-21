@@ -38,7 +38,7 @@ BINFLAGS += -lm -lpthread
 ifndef OS
 BINFLAGS += -lglfw -lX11 -ldl
 else
-BINFLAGS += -lglfw3 -lopengl32 -lgdi32 -lws2_32
+BINFLAGS += -lglfw3 -lopengl32 -lgdi32 -lws2_32 -Wl,--subsystem,windows
 endif
 
 MKENV = NAME="$@" SRCDIR="$(SRCDIR)" OBJDIR="$(OBJDIR)" UTILMK="util.mk" CC="$(CC)" CFLAGS="$(CFLAGS) $(INCLUDEDIRS)" INCLUDEDIRS="$(INCLUDEDIRS)" BASEDIRS="$(BASEDIRS)"
@@ -46,6 +46,16 @@ MKENV2 = NAME="$@" CC="$(CC)" CFLAGS="$(CFLAGS) $(addprefix -I../../$(SRCDIR)/,$
 MKENVSUB = CC="$(CC)" BINFLAGS="$(BINFLAGS)" OBJDIR="$(OBJDIR)"
 
 GENSENT = $(OBJDIR)/.mkgen
+
+ifndef OS
+define null
+@echo > /dev/null
+endef
+else
+define null
+@echo. > NUL
+endef
+endif
 
 ifndef OS
 define mkdir
@@ -62,14 +72,19 @@ build: bin
 $(OBJDIR):
 	$(mkdir)
 
+ifdef MKSUB
+cleanmk: $(wildcard $(OBJDIR)/*.mk)
+else
 mkfiles: $(OBJDIR) $(GENSENT)
+	@$(MAKE) --no-print-directory -f $(lastword $(MAKEFILE_LIST)) MKSUB=y cleanmk
+endif
 
-$(GENSENT): $(wildcard $(SRCDIR)/*/*.c $(SRCDIR)/*/*.h) $(SRCDIR) Makefile gen.mk util.mk
+$(GENSENT): $(wildcard $(SRCDIR)/*/*.c $(SRCDIR)/*/*.h) $(SRCDIR)
 	@echo Writing makefiles...
 ifndef OS
-	@rm -f $(wildcard $(OBJDIR)/*.mk $(OBJDIR)/.mkgen)
+	@rm -f $(OBJDIR)/.mkgen
 else
-	@if not "$(wildcard $(OBJDIR)/*.mk $(OBJDIR)/.mkgen)" == "" del /Q $(wildcard $(OBJDIR)/*.mk $(OBJDIR)/.mkgen)
+	@if exist $(OBJDIR)\.mkgen del /Q $(OBJDIR)\.mkgen
 endif
 	@$(MAKE) --no-print-directory -f gen.mk ${MKENV}
 ifndef OS
@@ -79,12 +94,35 @@ else
 endif
 	@echo Wrote makefiles
 
-$(BASEDIRS):
+ifdef MKSUB
+ifndef OS
+define MKSRC
+$(subst .mk,,$(subst $(OBJDIR)/,$(SRCDIR)/,$@))
+endef
+else
+define MKSRC
+$(subst .mk,,$(subst $(OBJDIR)/,$(SRCDIR)\,$@))
+endef
+endif
+
+$(wildcard $(OBJDIR)/*.mk): FORCE
+ifndef OS
+	@[ ! -d $(MKSRC) ] && rm -f $@ || exit 0
+else
+	@if not exist $(MKSRC) del /Q $@
+endif
+endif
+
+ifndef MKSUB
+$(BASEDIRS): FORCE
 	@$(MAKE) --no-print-directory -C "$(SRCDIR)/$@" -f "../../$(OBJDIR)/$@.mk" ${MKENV2}
 
-compile: $(BASEDIRS)
+compile: FORCE
+	@$(MAKE) --no-print-directory -f $(lastword $(MAKEFILE_LIST)) $(BASEDIRS)
+endif
 
 bin: mkfiles compile | $(BIN)
+	$(null)
 
 ifndef MKSUB
 .PHONY: $(BIN)
@@ -92,9 +130,9 @@ $(BIN):
 	@$(MAKE) --no-print-directory -f $(lastword $(MAKEFILE_LIST)) ${MKENVSUB} MKSUB=y bin
 else
 $(BIN): $(wildcard $(OBJDIR)/*/*.o)
-	@echo Compiling $@...
+	@echo Building $@...
 	@$(CC) $^ $(BINFLAGS) -o $@
-	@echo Compiled $@
+	@echo Built $@
 endif
 
 run: build
@@ -102,7 +140,7 @@ ifndef OS
 	@./$(BIN)
 else
 	@.\\$(BIN)
-endif	
+endif
 
 clean:
 	@echo Removing $(OBJDIR)...
@@ -122,5 +160,7 @@ endif
 
 .NOTPARALLEL:
 
-.PHONY: build mkfiles $(BASEDIRS) compile bin
+FORCE:
+
+.PHONY: $(OBJDIR) build mkfiles cleanmk $(BASEDIRS) compile bin
 

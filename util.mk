@@ -33,10 +33,10 @@ OUTDIR := $(OBJDIR)/$(NAME)
 CFILES := $(wildcard $(SRCDIR)/$(NAME)/*.c)
 OFILES := $(addprefix $(OUTDIR)/,$(notdir $(CFILES:.c=.o)))
 
-NAME2 = $@
-OUTDIR2 = $(OBJDIR)/$(NAME2)
-CFILES2 = $(wildcard $(SRCDIR)/$(NAME2)/*.c)
-OFILES2 = $(addprefix $(OUTDIR2)/,$(notdir $(CFILES2:.c=.o)))
+#NAME2 = $@
+#OUTDIR2 = $(OBJDIR)/$(NAME2)
+#CFILES2 = $(wildcard $(SRCDIR)/$(NAME2)/*.c)
+#OFILES2 = $(addprefix $(OUTDIR2)/,$(notdir $(CFILES2:.c=.o)))
 
 ifndef OS
 TAB := "	"
