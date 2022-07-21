@@ -101,7 +101,7 @@ int main(int _argc, char** _argv) {
     printf("Start directory: {%s}\n", startdir);
     chdir(maindir);
     signal(SIGINT, sigh);
-    int cores = getCoreCt() - 4;
+    int cores = getCoreCt();
     if (cores < 1) cores = 1;
     if (argc > 1) {
         if (!strcmp(argv[1], "-server") || (winopt && !strcmp(argv[1], "/server"))) {
@@ -118,6 +118,8 @@ int main(int _argc, char** _argv) {
             }
             pause();
         } else if (!strcmp(argv[1], "-connect") || (winopt && !strcmp(argv[1], "/connect"))) {
+            cores -= 2;
+            if (cores < 1) cores = 1;
             MESHER_THREADS = cores;
             if (argc < 3) {fputs("Please provide address and port\n", stderr); return 1;}
             commonSetup();
@@ -131,6 +133,7 @@ int main(int _argc, char** _argv) {
             return 1;
         }
     } else {
+        cores -= 4;
         if (cores < 2) cores = 2;
         SERVER_THREADS = cores / 2;
         cores -= SERVER_THREADS;
