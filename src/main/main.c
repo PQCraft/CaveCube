@@ -53,12 +53,18 @@ static void commonSetup() {
     initBlocks();
 }
 
+#ifndef _WIN32
 int main(int _argc, char** _argv) {
-    #ifndef _WIN32
     bool winopt = false;
-    #else
+#else
+int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
+    (void)hInstance;
+    (void)hPrevInstance;
+    (void)nCmdShow;
     bool winopt = true;
-    #endif
+    int _argc = 0;
+    char** _argv = cmdlineToArgv(lpCmdLine, &_argc);
+#endif
     if (_argc > 1 && (!strcmp(_argv[1], "-help") || !strcmp(_argv[1], "--help") || (winopt && !strcmp(_argv[1], "/help")))) {
         printf("%s [ARGUMENTS]\n", _argv[0]);
         puts("    With no arguments, the client is connected to a server started for 1 person on 0.0.0.0.");

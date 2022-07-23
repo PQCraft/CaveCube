@@ -291,9 +291,8 @@ bool doGame(char* addr, int port) {
     coord_3d tmpcamrot = {0, 0, 0};
     resetInput();
     while (!quitRequest) {
-        //uint64_t st1 = altutime();
-        glfwSetTime(0);
-        if (rendinf.fps) microwait(loopdelay);
+        uint64_t st1 = altutime();
+        if (rendinf.fps && loopdelay) microwait(loopdelay);
         float bps = 4; //blocks per second
         struct input_info input = getInput();
         bool crouch = false;
@@ -512,7 +511,7 @@ bool doGame(char* addr, int port) {
             }
             fpsct = 0;
         }
-        fpsmult = glfwGetTime();
+        fpsmult = (double)((uint64_t)altutime() - (uint64_t)st1) / 1000000.0;
         pmult = posmult * fpsmult;
     }
     for (int i = 0; i < 16; ++i) {
