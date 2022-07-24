@@ -31,14 +31,14 @@ BINNAME := cavecube
 
 BIN := $(BINNAME)$(BINEXT)
 
-CFLAGS += -Wall -Wextra -I. -g -O2
+CFLAGS += -Wall -Wextra -I. -O2 -mtune=generic -march=x86-64
 
 BINFLAGS += -lm -lpthread
 
 ifndef OS
-BINFLAGS += -lglfw -lX11 -ldl
+BINFLAGS += -lglfw -lX11 -ldl -mtune=generic -march=x86-64
 else
-BINFLAGS += -lglfw3 -lopengl32 -lgdi32 -lws2_32 -Wl,--subsystem,windows
+BINFLAGS += -lglfw3 -lgdi32 -lws2_32 -mtune=generic -march=x86-64
 endif
 
 MKENV = NAME="$@" SRCDIR="$(SRCDIR)" OBJDIR="$(OBJDIR)" UTILMK="util.mk" CC="$(CC)" CFLAGS="$(CFLAGS) $(INCLUDEDIRS)" INCLUDEDIRS="$(INCLUDEDIRS)" BASEDIRS="$(BASEDIRS)"
@@ -59,15 +59,16 @@ endif
 
 ifndef OS
 define mkdir
-@[ ! -d "$@" ] && echo Creating $@... && mkdir "$@" && echo Created $@; true
+@[ ! -d "$@" ] && echo Creating $@... && mkdir "$@"; true
 endef
 else
 define mkdir
-@if not exist "$@" echo Creating $@... & mkdir "$@" & echo Created $@
+@if not exist "$@" echo Creating $@... & mkdir "$@"
 endef
 endif
 
-build: bin
+build: mkfiles compile $(BIN)
+	$(null)
 
 $(OBJDIR):
 	$(mkdir)
@@ -92,7 +93,7 @@ ifndef OS
 else
 	@type NUL > $@
 endif
-	@echo Wrote makefiles
+#	@echo Wrote makefiles
 
 ifdef MKSUB
 ifndef OS
@@ -121,18 +122,15 @@ compile: FORCE
 	@$(MAKE) --no-print-directory -f $(lastword $(MAKEFILE_LIST)) $(BASEDIRS)
 endif
 
-bin: mkfiles compile | $(BIN)
-	$(null)
-
 ifndef MKSUB
 .PHONY: $(BIN)
 $(BIN):
-	@$(MAKE) --no-print-directory -f $(lastword $(MAKEFILE_LIST)) ${MKENVSUB} MKSUB=y bin
+	@$(MAKE) --no-print-directory -f $(lastword $(MAKEFILE_LIST)) ${MKENVSUB} MKSUB=y build
 else
 $(BIN): $(wildcard $(OBJDIR)/*/*.o)
 	@echo Building $@...
 	@$(CC) $^ $(BINFLAGS) -o $@
-	@echo Built $@
+	@strip $@
 endif
 
 run: build
@@ -149,18 +147,16 @@ ifndef OS
 else
 	@if exist $(OBJDIR) rmdir /S /Q $(OBJDIR)
 endif
-	@echo Removed $(OBJDIR)
 	@echo Removing $(BIN)...
 ifndef OS
 	@rm -f $(BIN)
 else
 	@if exist $(BIN) del /Q $(BIN)
 endif
-	@echo Removed $(BIN)
 
 .NOTPARALLEL:
 
 FORCE:
 
-.PHONY: $(OBJDIR) build mkfiles cleanmk $(BASEDIRS) compile bin
+.PHONY: $(OBJDIR) build mkfiles cleanmk $(BASEDIRS) compile
 

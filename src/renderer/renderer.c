@@ -506,14 +506,38 @@ static void* meshthread(void* args) {
         if (!data->renddata[c].VBO) glGenBuffers(1, &data->renddata[c].VBO);
         if (!data->renddata[c].VBO2) glGenBuffers(1, &data->renddata[c].VBO2);
         if (!data->renddata[c].VBO3) glGenBuffers(1, &data->renddata[c].VBO3);
+        #ifndef RENDERER_UNSAFE
+        #ifndef RENDERER_LAZY
+        glfwMakeContextCurrent(NULL);
+        #endif
+        #endif
+        pthread_mutex_unlock(&gllock);
+        pthread_mutex_lock(&gllock);
+        glfwMakeContextCurrent(rendinf.window);
         if (tmpsize) {
             glBindBuffer(GL_ARRAY_BUFFER, data->renddata[c].VBO);
             glBufferData(GL_ARRAY_BUFFER, tmpsize, _vptr, GL_STATIC_DRAW);
         }
+        #ifndef RENDERER_UNSAFE
+        #ifndef RENDERER_LAZY
+        glfwMakeContextCurrent(NULL);
+        #endif
+        #endif
+        pthread_mutex_unlock(&gllock);
+        pthread_mutex_lock(&gllock);
+        glfwMakeContextCurrent(rendinf.window);
         if (tmpsize2) {
             glBindBuffer(GL_ARRAY_BUFFER, data->renddata[c].VBO2);
             glBufferData(GL_ARRAY_BUFFER, tmpsize2, _vptr2, GL_STATIC_DRAW);
         }
+        #ifndef RENDERER_UNSAFE
+        #ifndef RENDERER_LAZY
+        glfwMakeContextCurrent(NULL);
+        #endif
+        #endif
+        pthread_mutex_unlock(&gllock);
+        pthread_mutex_lock(&gllock);
+        glfwMakeContextCurrent(rendinf.window);
         if (tmpsize3) {
             glBindBuffer(GL_ARRAY_BUFFER, data->renddata[c].VBO3);
             glBufferData(GL_ARRAY_BUFFER, tmpsize3, _vptr3, GL_STATIC_DRAW);

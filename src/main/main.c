@@ -28,7 +28,7 @@ char** argv;
 char* maindir = NULL;
 char* startdir = NULL;
 
-void sigh(int sig) {
+static void sigh(int sig) {
     (void)sig;
     ++quitRequest;
     signal(sig, sigh);
@@ -42,29 +42,34 @@ void sigh(int sig) {
     #define OPTPREFIXSTR "/"
 #endif
 
+#ifdef _WIN32
+static bool showcon = false;
+#endif
+
 static void commonSetup() {
     while (!(config_filedata = getTextFile("config.cfg")).data) {
         FILE* fp = fopen("config.cfg", "w");
         fclose(fp);
     }
     config = (char*)config_filedata.data;
+    #ifdef _WIN32
+    showcon = getConfigValBool(getConfigVarStatic(config, "main.showcon", "false", 64));
+    #endif
     stbi_set_flip_vertically_on_load(true);
     initResource();
     initBlocks();
 }
 
-#ifndef _WIN32
 int main(int _argc, char** _argv) {
+    #ifndef _WIN32
     bool winopt = false;
-#else
-int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
-    (void)hInstance;
-    (void)hPrevInstance;
-    (void)nCmdShow;
+    #else
     bool winopt = true;
-    int _argc = 0;
-    char** _argv = cmdlineToArgv(lpCmdLine, &_argc);
-#endif
+    DWORD procs[2];
+    DWORD procct = GetConsoleProcessList((LPDWORD)procs, 2);
+    bool owncon = (procct < 2);
+    if (owncon) ShowWindow(GetConsoleWindow(), SW_HIDE);
+    #endif
     if (_argc > 1 && (!strcmp(_argv[1], "-help") || !strcmp(_argv[1], "--help") || (winopt && !strcmp(_argv[1], "/help")))) {
         printf("%s [ARGUMENTS]\n", _argv[0]);
         puts("    With no arguments, the client is connected to a server started for 1 person on 0.0.0.0.");
@@ -129,6 +134,9 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
             MESHER_THREADS = cores;
             if (argc < 3) {fputs("Please provide address and port\n", stderr); return 1;}
             commonSetup();
+            #ifdef _WIN32
+            if (owncon && showcon) ShowWindow(GetConsoleWindow(), SW_SHOW);
+            #endif
             if (!initRenderer()) return 1;
             bool game_ecode = doGame(argv[2], atoi(argv[3]));
             quitRenderer();
@@ -145,6 +153,9 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
         cores -= SERVER_THREADS;
         MESHER_THREADS = cores;
         commonSetup();
+        #ifdef _WIN32
+        if (owncon && showcon) ShowWindow(GetConsoleWindow(), SW_SHOW);
+        #endif
         if (!initServer()) return 1;
         if (!initRenderer()) return 1;
         bool game_ecode = doGame(NULL, -1);

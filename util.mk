@@ -18,11 +18,11 @@ endef
 
 ifndef OS
 define mkdir
-@[ ! -d "$@" ] && echo Creating $@... && mkdir "$@" && echo Created $@; true
+@[ ! -d "$@" ] && echo Creating $@... && mkdir "$@"; true
 endef
 else
 define mkdir
-@if not exist "$@" echo Creating $@... & mkdir "$@" & echo Created $@
+@if not exist "$@" echo Creating $@... & mkdir "$@"
 endef
 endif
 
@@ -62,7 +62,6 @@ endif
 define COMPC
 	@$(ccmsg)
 	@$(CC) $(CFLAGS) $< -Wuninitialized -c -o $@
-	@$(cdmsg)
 endef
 
 SNAME := $(NAME):
@@ -80,7 +79,6 @@ ifndef OS
 else
 	@if exist "$(OBJDIR)" rmdir /S /Q "$(OBJDIR)"
 endif
-	@echo Removed $(OBJDIR)...
 
 cleanoutdir: FORCE
 	@echo Removing $(OUTDIR)...
@@ -89,7 +87,6 @@ ifndef OS
 else
 	@if exist "$(OUTDIR)" rmdir /S /Q "$(OUTDIR)"
 endif
-	@echo Removed $(OUTDIR)...
 
 FORCE:
 

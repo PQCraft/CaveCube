@@ -32,7 +32,6 @@ $(OBJDIR)/%.mk: $(wildcard $(SRCDIR)/$(NAME)/*.c $(SRCDIR)/$(NAME)/*.h)
 	@echo all: $$$(esc)(OUTDIR$(esc)) $(addprefix ../../$(OUTDIR)/,$(notdir $(CFILES:.c=.o))) >> $@
 	@$(echoblank) >> $@
 	@$(MAKE) --silent --no-print-directory -C "$(MKSRC)" -f ../../gen.mk NAME="$(subst .mk,,$(subst $(OBJDIR)/,,$@))" ${MKENV} MKRULES=y
-	@echo Wrote $@
 endif
 
 $(OUTDIR)/%.o: FORCE
