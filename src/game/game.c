@@ -220,7 +220,7 @@ void* srthread(void* args) {
     return NULL;
 }
 
-static int loopdelay;
+static int loopdelay = 0;
 
 bool doGame(char* addr, int port) {
     char** tmpbuf = malloc(16 * sizeof(char*));
@@ -228,7 +228,7 @@ bool doGame(char* addr, int port) {
         tmpbuf[i] = malloc(4096);
     }
     chunks = allocChunks(atoi(getConfigVarStatic(config, "game.chunks", "8", 64)));
-    loopdelay = atoi(getConfigVarStatic(config, "game.loop_delay", "5000", 64));
+    loopdelay = atoi(getConfigVarStatic(config, "game.loopdelay", (rendinf.fps || rendinf.vsync) ? "5000" : "0", 64));
     printf("Allocated chunks: [%d] [%d] [%d]\n", chunks.info.width, chunks.info.widthsq, chunks.info.size);
     rendinf.campos.y = 151.5;
     initInput();
@@ -292,7 +292,7 @@ bool doGame(char* addr, int port) {
     resetInput();
     while (!quitRequest) {
         uint64_t st1 = altutime();
-        if (rendinf.fps && loopdelay) microwait(loopdelay);
+        if (loopdelay) microwait(loopdelay);
         float bps = 4; //blocks per second
         struct input_info input = getInput();
         bool crouch = false;
