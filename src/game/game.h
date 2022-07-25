@@ -1,3 +1,5 @@
+#ifndef SERVER
+
 #ifndef GAME_H
 #define GAME_H
 
@@ -10,5 +12,7 @@ extern int64_t pchunkx, pchunky, pchunkz;
 extern int pblockx, pblocky, pblockz;
 
 bool doGame(char*, int);
+
+#endif
 
 #endif

@@ -1,3 +1,5 @@
+#ifndef SERVER
+
 #include <main.h>
 #include <renderer.h>
 #include <common.h>
@@ -973,3 +975,5 @@ void quitRenderer() {
     }
     glfwTerminate();
 }
+
+#endif

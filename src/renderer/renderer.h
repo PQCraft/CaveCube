@@ -1,3 +1,5 @@
+#ifndef SERVER
+
 #ifndef RENDERER_H
 
 #ifndef RENDERER_H_STUB
@@ -130,6 +132,8 @@ extern struct renderer_info rendinf;
 
 // RENDERER_UNSAFE disables more safety measures to speed up rendering
 //#define RENDERER_UNSAFE
+
+#endif
 
 #endif
 

@@ -1,3 +1,5 @@
+#ifndef SERVER
+
 #include "chunk.h"
 #include <common.h>
 #include <renderer.h>
@@ -294,3 +296,5 @@ void genChunks(struct chunkdata* chunks, int64_t xo, int64_t zo) {
         }
     }
 }
+
+#endif
