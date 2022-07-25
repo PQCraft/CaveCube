@@ -2,8 +2,6 @@
 
 #include <math.h>
 #include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
 
 #define NMAGIC(x) (fmod(fabs(x), 256.0) / 128.0)
 
@@ -101,14 +99,11 @@ double nperlin2d(int t, double x, double y, double freq, int depth) {
 double mperlin2d(int t, double x, double y, double freq, int depth, int samples) {
     double s = 0.0;
     double div = (1 + samples * 2) + samples * samples * 2;
-    //printf("BEGIN: [%lf]\n", div);
     for (int i = -samples; i <= samples; ++i) {
         int s2 = samples - abs(i);
         for (int j = -s2; j <= s2; ++j) {
-            //printf("[%d] [%d]\n", i, j);
             s += perlin2d(t, x, y, freq, depth);
         }
     }
-    //puts("END");
     return s / div;
 }

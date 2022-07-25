@@ -1,10 +1,9 @@
 #include "worldgen.h"
-#include <noise.h>
-#include <blocks.h>
+#include "blocks.h"
+#include <common/noise.h>
 
 #include <math.h>
 #include <string.h>
-#include <stdlib.h>
 #include <inttypes.h>
 
 static uint8_t stone;

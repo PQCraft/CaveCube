@@ -1,11 +1,11 @@
 #ifndef RESOURCE_H
 #define RESOURCE_H
 
-#include "common.h"
+#include <common/common.h>
 #define RENDERER_H_STUB
-#include <renderer.h>
+#include <renderer/renderer.h>
 #undef RENDERER_H_STUB
-#include <bmd.h>
+#include <bmd/bmd.h>
 
 typedef file_data resdata_file;
 

@@ -1,13 +1,13 @@
 #ifndef SERVER
 
-#include <main.h>
+#include <main/main.h>
 #include "game.h"
-#include <common.h>
-#include <resource.h>
-#include <renderer.h>
-#include <input.h>
-#include <chunk.h>
-#include <server.h>
+#include "chunk.h"
+#include <common/common.h>
+#include <common/resource.h>
+#include <renderer/renderer.h>
+#include <input/input.h>
+#include <server/server.h>
 
 #include <stdio.h>
 #include <stdlib.h>

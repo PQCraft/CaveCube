@@ -1,8 +1,9 @@
 #ifndef CHUNK_H
 #define CHUNK_H
 
+#include <renderer/renderer.h>
+
 #include <inttypes.h>
-#include <renderer.h>
 
 struct blockdata {
     uint8_t id;

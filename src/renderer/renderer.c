@@ -1,23 +1,22 @@
 #ifndef SERVER
 
-#include <main.h>
-#include <renderer.h>
-#include <common.h>
-#include <resource.h>
-#include <input.h>
-#include <noise.h>
-#include <game.h>
-#include <chunk.h>
-#include <blocks.h>
+#include <main/main.h>
+#include "renderer.h"
+#include <common/common.h>
+#include <common/resource.h>
+#include <common/noise.h>
+#include <input/input.h>
+#include <game/game.h>
+#include <game/chunk.h>
+#include <game/blocks.h>
 
 #include <stdbool.h>
 #include <string.h>
 #include <pthread.h>
 
-//#include <glad.h>
-#include <glad_platform.h>
+#include "glad_platform.h"
 #include <GLFW/glfw3.h>
-#include <cglm/cglm.h>
+#include "cglm/cglm.h"
 
 #ifndef _WIN32
     #define GLTEAREXT GLX_EXT_swap_control_tear

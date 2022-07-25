@@ -1,9 +1,9 @@
-#include <main.h>
+#include <main/main.h>
 #include "server.h"
-#include <common.h>
-#include <game.h>
-#include <worldgen.h>
-#include <noise.h>
+#include <common/common.h>
+#include <common/noise.h>
+#include <game/game.h>
+#include <game/worldgen.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -12,7 +12,6 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
-
 #ifndef _WIN32
     #include <sys/fcntl.h>
     #include <arpa/inet.h>
@@ -31,7 +30,7 @@
 #endif
 
 #ifdef _WIN32
-bool startwsa() {
+static bool startwsa() {
     if (wsainit) return true;
     int wsaerror;
     if ((wsaerror = WSAStartup(wsaver, &wsadata))) {

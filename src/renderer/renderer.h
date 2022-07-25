@@ -6,12 +6,12 @@
 
 #define RENDERER_H
 
-//#include <glad.h>
-#include <glad_platform.h>
+#include <renderer/glad_platform.h>
+#include <common/resource.h>
+
 #include <GLFW/glfw3.h>
+
 #include <stdbool.h>
-#include <resource.h>
-//#include <game.h>
 #include <pthread.h>
 
 typedef struct {

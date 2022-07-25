@@ -1,10 +1,10 @@
 #ifndef BMD_H
 #define BMD_H
 
+#include <common/common.h>
+
 #include <inttypes.h>
 #include <stdbool.h>
-
-#include <common.h>
 
 typedef struct {
     uint32_t isize;

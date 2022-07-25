@@ -33,7 +33,7 @@
 #include <windows.h>
 #endif
 
-#include "glad.h"
+#include <renderer/glad.h>
 
 #ifndef __glad_wglext_h_
 

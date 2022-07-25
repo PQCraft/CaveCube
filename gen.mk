@@ -1,6 +1,6 @@
 include $(UTILMK)
 
-MKENV = SRCDIR="../../$(SRCDIR)" OBJDIR="../../$(OBJDIR)" UTILMK="../../$(UTILMK)" CC="$(CC)" CFLAGS="$(CFLAGS) $(addprefix -I../../$(SRCDIR)/,$(BASEDIRS))"
+MKENV = SRCDIR="../../$(SRCDIR)" OBJDIR="../../$(OBJDIR)" UTILMK="../../$(UTILMK)" CC="$(CC)" CFLAGS="$(CFLAGS) -I../../$(SRCDIR)"
 MKENV2 = RCDIR="$(SRCDIR)" OBJDIR="$(OBJDIR)" UTILMK="$(UTILMK)" CC="$(CC)" CFLAGS="$(CFLAGS)"
 
 ifndef MKRULES
