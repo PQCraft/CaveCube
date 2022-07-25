@@ -17,6 +17,7 @@ struct chunkinfo {
     uint32_t size;
 };
 
+#ifndef SERVER
 struct chunkdata {
     struct chunkinfo info;
     struct blockdata** data;
@@ -24,12 +25,12 @@ struct chunkdata {
 };
 
 struct chunkdata allocChunks(uint32_t);
-void sortChunks(struct chunkdata*, float);
 void genChunks(struct chunkdata*, int64_t, int64_t);
 void genChunks_cb(struct chunkdata*, void*);
 void genChunks_cb2(struct chunkdata*, void*);
 void moveChunks(struct chunkdata*, int, int);
 struct blockdata getBlock(struct chunkdata*, int, int, int, int, int, int);
 void setBlock(struct chunkdata*, int, int, int, int, int, int, struct blockdata);
+#endif
 
 #endif

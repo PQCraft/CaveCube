@@ -27,23 +27,41 @@ ifdef OS
 BINEXT := .exe
 endif
 
+ifndef SERVER
 BINNAME := cavecube
+else
+BINNAME := ccserver
+endif
 
 BIN := $(BINNAME)$(BINEXT)
 
-CFLAGS += -Wall -Wextra -I. -O2 -mtune=generic -march=x86-64
+CFLAGS += -Wall -Wextra -I. -O2
+ifdef DEBUG
+CFLAGS += -g -DDEBUG=$(DEBUG)
+endif
+ifdef SERVER
+CFLAGS += -DSERVER
+endif
 
 BINFLAGS += -lm -lpthread
 
+ifndef SERVER
 ifndef OS
-BINFLAGS += -lglfw -lX11 -ldl -mtune=generic -march=x86-64
+BINFLAGS += -lglfw -lX11 -ldl
 else
-BINFLAGS += -lglfw3 -lgdi32 -lws2_32 -mtune=generic -march=x86-64
+BINFLAGS += -lglfw3 -lgdi32 -lws2_32
+endif
 endif
 
 MKENV = NAME="$@" SRCDIR="$(SRCDIR)" OBJDIR="$(OBJDIR)" UTILMK="util.mk" CC="$(CC)" CFLAGS="$(CFLAGS) $(INCLUDEDIRS)" INCLUDEDIRS="$(INCLUDEDIRS)" BASEDIRS="$(BASEDIRS)"
 MKENV2 = NAME="$@" CC="$(CC)" CFLAGS="$(CFLAGS) $(addprefix -I../../$(SRCDIR)/,$(BASEDIRS))" SRCDIR="../../$(SRCDIR)" OBJDIR="../../$(OBJDIR)" UTILMK="../../util.mk"
 MKENVSUB = CC="$(CC)" BINFLAGS="$(BINFLAGS)" OBJDIR="$(OBJDIR)"
+ifdef DEBUG
+MKENVMOD += DEBUG=y
+endif
+ifdef SERVER
+MKENVMOD += SERVER=y
+endif
 
 GENSENT = $(OBJDIR)/.mkgen
 
@@ -77,7 +95,7 @@ ifdef MKSUB
 cleanmk: $(wildcard $(OBJDIR)/*.mk)
 else
 mkfiles: $(OBJDIR) $(GENSENT)
-	@$(MAKE) --no-print-directory -f $(lastword $(MAKEFILE_LIST)) MKSUB=y cleanmk
+	@$(MAKE) --no-print-directory -f $(lastword $(MAKEFILE_LIST)) ${MKENVMOD} MKSUB=y cleanmk
 endif
 
 $(GENSENT): $(wildcard $(SRCDIR)/*/*.c $(SRCDIR)/*/*.h) $(SRCDIR)
@@ -119,18 +137,24 @@ $(BASEDIRS): FORCE
 	@$(MAKE) --no-print-directory -C "$(SRCDIR)/$@" -f "../../$(OBJDIR)/$@.mk" ${MKENV2}
 
 compile: FORCE
-	@$(MAKE) --no-print-directory -f $(lastword $(MAKEFILE_LIST)) $(BASEDIRS)
+	@$(MAKE) --no-print-directory -f $(lastword $(MAKEFILE_LIST)) ${MKENVMOD} $(BASEDIRS)
 endif
+
+bin: $(BIN)
+	$(null)
 
 ifndef MKSUB
 .PHONY: $(BIN)
 $(BIN):
-	@$(MAKE) --no-print-directory -f $(lastword $(MAKEFILE_LIST)) ${MKENVSUB} MKSUB=y build
+	@$(MAKE) --no-print-directory -f $(lastword $(MAKEFILE_LIST)) ${MKENVMOD} ${MKENVSUB} MKSUB=y bin
 else
 $(BIN): $(wildcard $(OBJDIR)/*/*.o)
 	@echo Building $@...
 	@$(CC) $^ $(BINFLAGS) -o $@
+ifndef DEBUG
 	@strip $@
+	@objcopy -w --remove-section '.note*' $@
+endif
 endif
 
 run: build
@@ -158,5 +182,5 @@ endif
 
 FORCE:
 
-.PHONY: $(OBJDIR) build mkfiles cleanmk $(BASEDIRS) compile
+.PHONY: $(OBJDIR) build mkfiles cleanmk $(BASEDIRS) compile bin run clean
 

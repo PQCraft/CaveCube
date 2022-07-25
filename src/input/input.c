@@ -1,3 +1,5 @@
+#ifndef SERVER
+
 #include <common.h>
 #include <renderer.h>
 #include <main.h>
@@ -118,3 +120,5 @@ struct input_info getInput() {
     polltime = altutime();
     return inf;
 }
+
+#endif

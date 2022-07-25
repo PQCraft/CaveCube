@@ -1,5 +1,6 @@
 #include <main.h>
 #include "server.h"
+#include <common.h>
 #include <game.h>
 #include <worldgen.h>
 #include <noise.h>

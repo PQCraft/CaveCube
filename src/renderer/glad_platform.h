@@ -1,3 +1,5 @@
+#ifndef SERVER
+
 #ifndef GLAD_H
 #define GLAD_H
 
@@ -5,6 +7,8 @@
     #include "glad/glx/glad_glx.h"
 #else
     #include "glad/wgl/glad_wgl.h"
+#endif
+
 #endif
 
 #endif

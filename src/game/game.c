@@ -1,3 +1,5 @@
+#ifndef SERVER
+
 #include <main.h>
 #include "game.h"
 #include <common.h>
@@ -520,3 +522,5 @@ bool doGame(char* addr, int port) {
     free(tmpbuf);
     return true;
 }
+
+#endif

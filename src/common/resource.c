@@ -75,10 +75,12 @@ void* makeResource(int type, char* path) {
             imagedata->data = stbi_load(path, &imagedata->width, &imagedata->height, &imagedata->channels, STBI_rgb_alpha);
             break;
         case RESOURCE_TEXTURE:;
+            #ifndef SERVER
             resdata_texture* texturedata = data = calloc(1, sizeof(resdata_texture));
             unsigned char* idata = stbi_load(path, &texturedata->width, &texturedata->height, &texturedata->channels, STBI_rgb_alpha);
             createTexture(idata, texturedata);
             stbi_image_free(idata);
+            #endif
             break;
     }
     return data;
@@ -129,7 +131,9 @@ void freeResStub(resentry* ent) {
             stbi_image_free(((resdata_image*)ent->data)->data);
             break;
         case RESOURCE_TEXTURE:;
+            #ifndef SERVER
             destroyTexture((resdata_texture*)ent->data);
+            #endif
             break;
     }
     free(ent->data);

@@ -1,3 +1,5 @@
+#ifndef SERVER
+
 #ifndef INPUT_H
 #define INPUT_H
 
@@ -60,5 +62,7 @@ void resetInput(void);
 struct input_info getInput(void);
 
 #define INPUT_EMPTY_INFO (struct input_info){INPUT_ACTION_MULTI__NONE, INPUT_ACTION_SINGLE__NONE, 0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}
+
+#endif
 
 #endif
