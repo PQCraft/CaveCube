@@ -1,8 +1,9 @@
 #ifndef SERVER_H
 #define SERVER_H
 
+#include <game/chunk.h>
+
 #include <stdbool.h>
-#include <chunk.h>
 
 #ifndef MAX_CLIENTS
     #define MAX_CLIENTS 256

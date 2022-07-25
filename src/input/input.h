@@ -4,6 +4,7 @@
 #define INPUT_H
 
 #include <stdbool.h>
+#include <inttypes.h>
 
 enum {
     INPUT_MODE_GUI,

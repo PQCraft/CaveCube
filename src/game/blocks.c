@@ -1,6 +1,6 @@
 #include "blocks.h"
-#include <common.h>
-#include <resource.h>
+#include <common/common.h>
+#include <common/resource.h>
 
 #include <inttypes.h>
 #include <stdlib.h>

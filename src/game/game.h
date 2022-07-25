@@ -3,7 +3,7 @@
 #ifndef GAME_H
 #define GAME_H
 
-#include <renderer.h>
+#include <renderer/renderer.h>
 
 extern int fps;
 extern coord_3d_dbl pcoord;

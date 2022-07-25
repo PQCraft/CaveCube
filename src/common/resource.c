@@ -1,8 +1,8 @@
-#include "common.h"
 #include "resource.h"
+#include "common.h"
 #include "stb_image.h"
-#include <bmd.h>
-#include <renderer.h>
+#include <bmd/bmd.h>
+#include <renderer/renderer.h>
 
 #include <stdlib.h>
 #include <stdio.h>

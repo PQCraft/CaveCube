@@ -21,8 +21,6 @@ DIRS := $(patsubst %/,%,$(DIRS))
 DIRS := $(patsubst %\,%,$(DIRS))
 BASEDIRS := $(notdir $(DIRS))
 
-INCLUDEDIRS = $(addprefix -I$(SRCDIR)/,$(BASEDIRS))
-
 ifdef OS
 BINEXT := .exe
 endif
@@ -35,7 +33,7 @@ endif
 
 BIN := $(BINNAME)$(BINEXT)
 
-CFLAGS += -Wall -Wextra -I. -O2
+CFLAGS += -Wall -Wextra -O2
 ifdef DEBUG
 CFLAGS += -g -DDEBUG=$(DEBUG)
 endif
@@ -53,8 +51,8 @@ BINFLAGS += -lglfw3 -lgdi32 -lws2_32
 endif
 endif
 
-MKENV = NAME="$@" SRCDIR="$(SRCDIR)" OBJDIR="$(OBJDIR)" UTILMK="util.mk" CC="$(CC)" CFLAGS="$(CFLAGS) $(INCLUDEDIRS)" INCLUDEDIRS="$(INCLUDEDIRS)" BASEDIRS="$(BASEDIRS)"
-MKENV2 = NAME="$@" CC="$(CC)" CFLAGS="$(CFLAGS) $(addprefix -I../../$(SRCDIR)/,$(BASEDIRS))" SRCDIR="../../$(SRCDIR)" OBJDIR="../../$(OBJDIR)" UTILMK="../../util.mk"
+MKENV = NAME="$@" SRCDIR="$(SRCDIR)" OBJDIR="$(OBJDIR)" UTILMK="util.mk" CC="$(CC)" CFLAGS="$(CFLAGS)" BASEDIRS="$(BASEDIRS)"
+MKENV2 = NAME="$@" CC="$(CC)" CFLAGS="$(CFLAGS) -I../../$(SRCDIR)" SRCDIR="../../$(SRCDIR)" OBJDIR="../../$(OBJDIR)" UTILMK="../../util.mk"
 MKENVSUB = CC="$(CC)" BINFLAGS="$(BINFLAGS)" OBJDIR="$(OBJDIR)"
 ifdef DEBUG
 MKENVMOD += DEBUG=y

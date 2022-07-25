@@ -1,19 +1,18 @@
 #include "main.h"
-#include <game.h>
-#include <common.h>
-#include <resource.h>
-#include <bmd.h>
-#include <renderer.h>
-#include <server.h>
-#include <blocks.h>
-#include <stb_image.h>
+#include <game/game.h>
+#include <game/blocks.h>
+#include <common/common.h>
+#include <common/resource.h>
+#include <common/stb_image.h>
+#include <bmd/bmd.h>
+#include <renderer/renderer.h>
+#include <server/server.h>
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
 #include <unistd.h>
-
 #ifdef _WIN32
     #include <windows.h>
 #endif

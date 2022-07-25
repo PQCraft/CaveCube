@@ -1,9 +1,9 @@
 #ifndef SERVER
 
-#include <common.h>
-#include <renderer.h>
-#include <main.h>
+#include <main/main.h>
 #include "input.h" 
+#include <common/common.h>
+#include <renderer/renderer.h>
 
 #include <GLFW/glfw3.h>
 

@@ -1,9 +1,9 @@
 #ifndef SERVER
 
 #include "chunk.h"
-#include <common.h>
-#include <renderer.h>
-#include <server.h>
+#include <common/common.h>
+#include <renderer/renderer.h>
+#include <server/server.h>
 
 #include <inttypes.h>
 #include <stdlib.h>
