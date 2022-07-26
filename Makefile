@@ -1,22 +1,28 @@
 ifndef OS
-ifndef WIN32
-CC ?= gcc
+    ifndef WIN32
+        CC ?= gcc
+        STRIP ?= strip
+        OBJCOPY ?= objcopy
+    else
+        CC = x86_64-w64-mingw32-gcc
+        STRIP = x86_64-w64-mingw32-strip
+        OBJCOPY = x86_64-w64-mingw32-objcopy
+    endif
 else
-CC ?= x86_64-w64-mingw32-gcc
-endif
-else
-CC = gcc
+    CC = gcc
+    STRIP = strip
+    OBJCOPY = objcopy
 endif
 
 ifdef WIN32
-OS := Windows_NT
+    OS := Windows_NT
 endif
 
 SRCDIR ?= src
 ifndef OS
-OBJDIR ?= obj
+    OBJDIR ?= obj
 else
-OBJDIR ?= winobj
+    OBJDIR ?= winobj
 endif
 
 SRCDIR := $(patsubst %/,%,$(SRCDIR))
@@ -30,64 +36,67 @@ DIRS := $(patsubst %\,%,$(DIRS))
 BASEDIRS := $(notdir $(DIRS))
 
 ifdef OS
-BINEXT := .exe
+    BINEXT := .exe
 endif
 
 ifndef SERVER
-BINNAME := cavecube
+    BINNAME := cavecube
 else
-BINNAME := ccserver
+    BINNAME := ccserver
 endif
 
 BIN := $(BINNAME)$(BINEXT)
 
 CFLAGS += -Wall -Wextra -O2
 ifdef DEBUG
-CFLAGS += -g -DDEBUG=$(DEBUG)
+    CFLAGS += -g -DDEBUG=$(DEBUG)
 endif
 ifdef SERVER
-CFLAGS += -DSERVER
+    CFLAGS += -DSERVER
 endif
 
-BINFLAGS += -lm -lpthread
-
+BINFLAGS += -lm
+ifndef OS
+    BINFLAGS += -lpthread
+else
+    BINFLAGS += -l:libwinpthread.a
+endif
 ifdef USESDL2
-CFLAGS += -DUSESDL2
-BINFLAGS += -lSDL2
+    CFLAGS += -DUSESDL2
+    BINFLAGS += -lSDL2
 else
-ifndef OS
-BINFLAGS += -lglfw
-else
-BINFLAGS += -lglfw3
+    ifndef OS
+        BINFLAGS += -lglfw
+    else
+        BINFLAGS += -lglfw3
+    endif
 endif
-endif
-
 ifndef SERVER
-ifndef OS
-BINFLAGS += -lX11 -ldl
-else
-BINFLAGS += -lgdi32 -lws2_32
-endif
+    ifndef OS
+        BINFLAGS += -lX11 -ldl
+    else
+        BINFLAGS += -lgdi32 -lws2_32
+    endif
 endif
 
 ifdef WIN32
-undefine OS
+    undefine OS
 endif
 
 MKENV = NAME="$@" SRCDIR="$(SRCDIR)" OBJDIR="$(OBJDIR)" UTILMK="util.mk" CC="$(CC)" CFLAGS="$(CFLAGS)" BASEDIRS="$(BASEDIRS)"
 MKENV2 = NAME="$@" CC="$(CC)" CFLAGS="$(CFLAGS) -I../../$(SRCDIR)" SRCDIR="../../$(SRCDIR)" OBJDIR="../../$(OBJDIR)" UTILMK="../../util.mk"
 MKENVSUB = CC="$(CC)" BINFLAGS="$(BINFLAGS)" OBJDIR="$(OBJDIR)"
 ifdef DEBUG
-MKENVMOD += DEBUG=y
+    MKENVMOD += DEBUG=y
 endif
 ifdef SERVER
-MKENVMOD += SERVER=y
+    MKENVMOD += SERVER=y
 endif
 ifdef USESDL2
-MKENVMOD += USESDL2=y
+    MKENVMOD += USESDL2=y
 endif
 ifdef WIN32
-MKENVMOD += WIN32=y
+    MKENVMOD += WIN32=y
 endif
 
 GENSENT = $(OBJDIR)/.mkgen
@@ -179,8 +188,8 @@ $(BIN): $(wildcard $(OBJDIR)/*/*.o)
 	@echo Building $@...
 	@$(CC) $^ $(BINFLAGS) -o $@
 ifndef DEBUG
-	@strip $@
-	@objcopy -w --remove-section '.note*' $@
+	@$(STRIP) $@
+	@$(OBJCOPY) -w --remove-section '.note*' $@
 endif
 endif
 

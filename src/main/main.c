@@ -33,6 +33,14 @@ static void sigh(int sig) {
     signal(sig, sigh);
 }
 
+#ifdef _WIN32
+static void sigsegvh(int sig) {
+    (void)sig;
+    fprintf(stderr, "Segmentation fault\n");
+    exit(0xC0000005);
+}
+#endif
+
 #ifndef _WIN32
     #define OPTPREFIX '-'
     #define OPTPREFIXSTR "-"
@@ -125,6 +133,9 @@ int main(int _argc, char** _argv) {
     printf("Start directory: {%s}\n", startdir);
     chdir(maindir);
     signal(SIGINT, sigh);
+    #ifdef _WIN32
+    signal(SIGSEGV, sigsegvh);
+    #endif
     int cores = getCoreCt();
     if (cores < 1) cores = 1;
     #ifndef SERVER

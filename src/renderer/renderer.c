@@ -29,12 +29,21 @@
 #endif
 
 #if defined(USESDL2)
-    #define _GETCONTEXT_FUNC SDL_GL_MakeCurrent(rendinf.window, rendinf.context);
+    #define _GETCONTEXT_FUNC() {SDL_GL_MakeCurrent(rendinf.window, rendinf.context);}
 #else
-    #define _GETCONTEXT_FUNC glfwMakeContextCurrent(rendinf.window);
+    #define _GETCONTEXT_FUNC() {glfwMakeContextCurrent(rendinf.window);}
 #endif
-
-#define GETCONTEXT() {pthread_mutex_lock(&gllock); }
+#ifdef RENDERER_LAZY
+    #define _RELEASECONTEXT_FUNC()
+#else
+    #if defined(USESDL2)
+        #define _RELEASECONTEXT_FUNC() {SDL_GL_MakeCurrent(rendinf.window, NULL);}
+    #else
+        #define _RELEASECONTEXT_FUNC() {glfwMakeContextCurrent(NULL);}
+    #endif
+#endif
+#define GETCONTEXT() {pthread_mutex_lock(&gllock); _GETCONTEXT_FUNC()}
+#define RELEASECONTEXT() {pthread_mutex_unlock(&gllock); _RELEASECONTEXT_FUNC()}
 
 int MESHER_THREADS;
 
@@ -79,10 +88,7 @@ static int curspace = -1;
 void setSpace(int space) {
     if (space == curspace) return;
     curspace = space;
-    #ifndef RENDERER_UNSAFE
-    pthread_mutex_lock(&gllock);
-    glfwMakeContextCurrent(rendinf.window);
-    #endif
+    GETCONTEXT();
     switch (space) {
         default:;
             setSkyColor(0, 0.7, 0.9);
@@ -103,12 +109,7 @@ void setSpace(int space) {
             glUniform1i(glGetUniformLocation(rendinf.shaderprog, "vis"), -10);
             glUniform1f(glGetUniformLocation(rendinf.shaderprog, "vismul"), 0.8);
     }
-    #ifndef RENDERER_UNSAFE
-    #ifndef RENDERER_LAZY
-    glfwMakeContextCurrent(NULL);
-    #endif
-    pthread_mutex_unlock(&gllock);
-    #endif
+    RELEASECONTEXT();
 }
 
 static float uc_fov = -1.0, uc_asp = -1.0;
@@ -121,10 +122,7 @@ static vec3 uc_front __attribute__((aligned (32)));
 static bool uc_uproj = false;
 
 void updateCam() {
-    #ifndef RENDERER_UNSAFE
-    pthread_mutex_lock(&gllock);
-    glfwMakeContextCurrent(rendinf.window);
-    #endif
+    GETCONTEXT();
     if (rendinf.aspect != uc_asp) {uc_asp = rendinf.aspect; uc_uproj = true;}
     if (rendinf.camfov != uc_fov) {uc_fov = rendinf.camfov; uc_uproj = true;}
     if (uc_uproj) {
@@ -150,12 +148,7 @@ void updateCam() {
     glm_lookat((vec3){rendinf.campos.x, rendinf.campos.y, rendinf.campos.z},
         uc_direction, uc_up, uc_view);
     setMat4(rendinf.shaderprog, "view", uc_view);
-    #ifndef RENDERER_UNSAFE
-    #ifndef RENDERER_LAZY
-    glfwMakeContextCurrent(NULL);
-    #endif
-    pthread_mutex_unlock(&gllock);
-    #endif
+    RELEASECONTEXT();
 }
 
 void setFullscreen(bool fullscreen) {
@@ -335,16 +328,10 @@ void renderModel(struct model* m, bool advanced) {
 
 void updateScreen() {
     static int lv = -1;
-    pthread_mutex_lock(&gllock);
-    glfwMakeContextCurrent(rendinf.window);
+    GETCONTEXT();
     if (rendinf.vsync != lv) {glfwSwapInterval(rendinf.vsync * ((GLTEAREXT) ? -1 : 1)); lv = rendinf.vsync;}
     glfwSwapBuffers(rendinf.window);
-    #ifndef RENDERER_UNSAFE
-    #ifndef RENDERER_LAZY
-    glfwMakeContextCurrent(NULL);
-    #endif
-    #endif
-    pthread_mutex_unlock(&gllock);
+    RELEASECONTEXT();
 }
 
 static uint32_t maxblockid = 0;
@@ -514,53 +501,29 @@ static void* meshthread(void* args) {
         tmpsize *= sizeof(uint32_t) * 2;
         tmpsize2 *= sizeof(uint32_t) * 2;
         tmpsize3 *= sizeof(uint32_t) * 2;
-        pthread_mutex_lock(&gllock);
-        glfwMakeContextCurrent(rendinf.window);
+        GETCONTEXT();
         if (!data->renddata[c].VBO) glGenBuffers(1, &data->renddata[c].VBO);
         if (!data->renddata[c].VBO2) glGenBuffers(1, &data->renddata[c].VBO2);
         if (!data->renddata[c].VBO3) glGenBuffers(1, &data->renddata[c].VBO3);
-        #ifndef RENDERER_UNSAFE
-        #ifndef RENDERER_LAZY
-        glfwMakeContextCurrent(NULL);
-        #endif
-        #endif
-        pthread_mutex_unlock(&gllock);
-        pthread_mutex_lock(&gllock);
-        glfwMakeContextCurrent(rendinf.window);
+        RELEASECONTEXT();
+        GETCONTEXT();
         if (tmpsize) {
             glBindBuffer(GL_ARRAY_BUFFER, data->renddata[c].VBO);
             glBufferData(GL_ARRAY_BUFFER, tmpsize, _vptr, GL_STATIC_DRAW);
         }
-        #ifndef RENDERER_UNSAFE
-        #ifndef RENDERER_LAZY
-        glfwMakeContextCurrent(NULL);
-        #endif
-        #endif
-        pthread_mutex_unlock(&gllock);
-        pthread_mutex_lock(&gllock);
-        glfwMakeContextCurrent(rendinf.window);
+        RELEASECONTEXT();
+        GETCONTEXT();
         if (tmpsize2) {
             glBindBuffer(GL_ARRAY_BUFFER, data->renddata[c].VBO2);
             glBufferData(GL_ARRAY_BUFFER, tmpsize2, _vptr2, GL_STATIC_DRAW);
         }
-        #ifndef RENDERER_UNSAFE
-        #ifndef RENDERER_LAZY
-        glfwMakeContextCurrent(NULL);
-        #endif
-        #endif
-        pthread_mutex_unlock(&gllock);
-        pthread_mutex_lock(&gllock);
-        glfwMakeContextCurrent(rendinf.window);
+        RELEASECONTEXT();
+        GETCONTEXT();
         if (tmpsize3) {
             glBindBuffer(GL_ARRAY_BUFFER, data->renddata[c].VBO3);
             glBufferData(GL_ARRAY_BUFFER, tmpsize3, _vptr3, GL_STATIC_DRAW);
         }
-        #ifndef RENDERER_UNSAFE
-        #ifndef RENDERER_LAZY
-        glfwMakeContextCurrent(NULL);
-        #endif
-        #endif
-        pthread_mutex_unlock(&gllock);
+        RELEASECONTEXT();
         free(_vptr);
         free(_vptr2);
         free(_vptr3);
@@ -638,8 +601,7 @@ static uint32_t rendc;
 
 void renderChunks(void* vdata) {
     struct chunkdata* data = vdata;
-    pthread_mutex_lock(&gllock);
-    glfwMakeContextCurrent(rendinf.window);
+    GETCONTEXT();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "dist"), data->info.dist);
     setUniform3f(rendinf.shaderprog, "cam", (float[]){rendinf.campos.x, rendinf.campos.y, rendinf.campos.z});
@@ -725,12 +687,7 @@ void renderChunks(void* vdata) {
     setShaderProg(shader_block);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
-    #ifndef RENDERER_UNSAFE
-    #ifndef RENDERER_LAZY
-    glfwMakeContextCurrent(NULL);
-    #endif
-    #endif
-    pthread_mutex_unlock(&gllock);
+    RELEASECONTEXT();
 }
 
 int rendererQuitRequest() {
@@ -802,8 +759,7 @@ bool initRenderer() {
         fputs("initRenderer: Failed to create window\n", stderr);
         return false;
     }
-    pthread_mutex_lock(&gllock);
-    glfwMakeContextCurrent(rendinf.window);
+    GETCONTEXT();
     glfwSetInputMode(rendinf.window, GLFW_STICKY_KEYS, GLFW_TRUE);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
@@ -845,14 +801,10 @@ bool initRenderer() {
     printf("Renderer string: %s\n", glrend);
 
     setShaderProg(shader_block);
-    #ifndef RENDERER_LAZY
-    glfwMakeContextCurrent(NULL);
-    #endif
-    pthread_mutex_unlock(&gllock);
+    RELEASECONTEXT();
     glfwSetFramebufferSizeCallback(rendinf.window, fbsize);
     setFullscreen(rendinf.fullscr);
-    pthread_mutex_lock(&gllock);
-    glfwMakeContextCurrent(rendinf.window);
+    GETCONTEXT();
 
     glViewport(0, 0, rendinf.width, rendinf.height);
     glEnable(GL_DEPTH_TEST);
@@ -867,13 +819,9 @@ bool initRenderer() {
     glfwSwapBuffers(rendinf.window);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glfwSwapBuffers(rendinf.window);
-    #ifndef RENDERER_LAZY
-    glfwMakeContextCurrent(NULL);
-    #endif
-    pthread_mutex_unlock(&gllock);
+    RELEASECONTEXT();
     updateCam();
-    pthread_mutex_lock(&gllock);
-    glfwMakeContextCurrent(rendinf.window);
+    GETCONTEXT();
 
     glEnable(GL_CULL_FACE);
     glCullFace(GL_FRONT);
@@ -974,12 +922,7 @@ bool initRenderer() {
     water = blockNoFromID("water");
     blockinf[water].transparency = 1;
 
-    #ifndef RENDERER_UNSAFE
-    #ifndef RENDERER_LAZY
-    glfwMakeContextCurrent(NULL);
-    #endif
-    #endif
-    pthread_mutex_unlock(&gllock);
+    RELEASECONTEXT();
     free(tmpbuf);
     return true;
 }

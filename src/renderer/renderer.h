@@ -142,9 +142,6 @@ extern struct renderer_info rendinf;
     #define RENDERER_LAZY
 #endif
 
-// RENDERER_UNSAFE disables more safety measures to speed up rendering
-//#define RENDERER_UNSAFE
-
 #endif
 
 #endif
