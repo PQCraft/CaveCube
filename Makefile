@@ -1,7 +1,15 @@
 ifndef OS
+ifndef WIN32
 CC ?= gcc
 else
+CC ?= x86_64-w64-mingw32-gcc
+endif
+else
 CC = gcc
+endif
+
+ifdef WIN32
+OS := Windows_NT
 endif
 
 SRCDIR ?= src
@@ -43,12 +51,27 @@ endif
 
 BINFLAGS += -lm -lpthread
 
+ifdef USESDL2
+CFLAGS += -DUSESDL2
+BINFLAGS += -lSDL2
+else
+ifndef OS
+BINFLAGS += -lglfw
+else
+BINFLAGS += -lglfw3
+endif
+endif
+
 ifndef SERVER
 ifndef OS
-BINFLAGS += -lglfw -lX11 -ldl
+BINFLAGS += -lX11 -ldl
 else
-BINFLAGS += -lglfw3 -lgdi32 -lws2_32
+BINFLAGS += -lgdi32 -lws2_32
 endif
+endif
+
+ifdef WIN32
+undefine OS
 endif
 
 MKENV = NAME="$@" SRCDIR="$(SRCDIR)" OBJDIR="$(OBJDIR)" UTILMK="util.mk" CC="$(CC)" CFLAGS="$(CFLAGS)" BASEDIRS="$(BASEDIRS)"
@@ -59,6 +82,12 @@ MKENVMOD += DEBUG=y
 endif
 ifdef SERVER
 MKENVMOD += SERVER=y
+endif
+ifdef USESDL2
+MKENVMOD += USESDL2=y
+endif
+ifdef WIN32
+MKENVMOD += WIN32=y
 endif
 
 GENSENT = $(OBJDIR)/.mkgen

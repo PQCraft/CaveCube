@@ -9,7 +9,11 @@
 #include <renderer/glad_platform.h>
 #include <common/resource.h>
 
+#if defined(USESDL2)
+#include <SDL2/SDL.h>
+#else
 #include <GLFW/glfw3.h>
+#endif
 
 #include <stdbool.h>
 #include <pthread.h>
@@ -33,6 +37,9 @@ typedef struct {
 } color;
 
 struct renderer_info {
+    #if defined(USESDL2)
+    SDL_GLContext context;
+    #endif
     unsigned win_width;
     unsigned win_height;
     unsigned win_fps;
@@ -47,8 +54,13 @@ struct renderer_info {
     unsigned fps;
     bool vsync;
     bool fullscr;
+    #if defined(USESDL2)
+    SDL_DisplayMode monitor;
+    SDL_Window* window;
+    #else
     GLFWmonitor* monitor;
     GLFWwindow* window;
+    #endif
     coord_3d campos;
     coord_3d camrot;
     float camfov;
