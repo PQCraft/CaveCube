@@ -15,7 +15,11 @@
 #include <pthread.h>
 
 #include "glad_platform.h"
-#include <GLFW/glfw3.h>
+#if defined(USESDL2)
+    #include <SDL2/SDL.h>
+#else
+    #include <GLFW/glfw3.h>
+#endif
 #include "cglm/cglm.h"
 
 #ifndef _WIN32
@@ -23,6 +27,14 @@
 #else
     #define GLTEAREXT WGL_EXT_swap_control_tear
 #endif
+
+#if defined(USESDL2)
+    #define _GETCONTEXT_FUNC SDL_GL_MakeCurrent(rendinf.window, rendinf.context);
+#else
+    #define _GETCONTEXT_FUNC glfwMakeContextCurrent(rendinf.window);
+#endif
+
+#define GETCONTEXT() {pthread_mutex_lock(&gllock); }
 
 int MESHER_THREADS;
 
@@ -725,9 +737,15 @@ int rendererQuitRequest() {
     return (glfwWindowShouldClose(rendinf.window) != 0);
 }
 
-static void errorcb(int e, const char* m) {
-    printf("GLFW error [%d]: {%s}\n", e, m);
+#if defined(USESDL2)
+static void sdlerror(char* m) {
+    fprintf(stderr, "SDL2 error: {%s}\n", m);
 }
+#else
+static void errorcb(int e, const char* m) {
+    fprintf(stderr, "GLFW error [%d]: {%s}\n", e, m);
+}
+#endif
 
 static void fbsize(GLFWwindow* win, int w, int h) {
     (void)win;

@@ -5,24 +5,15 @@
  * Full license can be found in the LICENSE file
  */
 
-#ifndef cglm_project_h
-#define cglm_project_h
+#ifndef cglms_projects_h
+#define cglms_projects_h
 
-#include "common.h"
+#include "../common.h"
+#include "../types-struct.h"
+#include "../project.h"
 #include "vec3.h"
 #include "vec4.h"
 #include "mat4.h"
-
-#ifndef CGLM_CLIPSPACE_INCLUDE_ALL
-#  if CGLM_CONFIG_CLIP_CONTROL & CGLM_CLIP_CONTROL_ZO_BIT
-#    include "clipspace/project_zo.h"
-#  elif CGLM_CONFIG_CLIP_CONTROL & CGLM_CLIP_CONTROL_NO_BIT
-#    include "clipspace/project_no.h"
-#  endif
-#else
-#  include "clipspace/project_zo.h"
-#  include "clipspace/project_no.h"
-#endif
 
 /*!
  * @brief maps the specified viewport coordinates into specified space [1]
@@ -48,16 +39,14 @@
  * @param[in]  pos      point/position in viewport coordinates
  * @param[in]  invMat   matrix (see brief)
  * @param[in]  vp       viewport as [x, y, width, height]
- * @param[out] dest     unprojected coordinates
+ * @returns             unprojected coordinates
  */
 CGLM_INLINE
-void
-glm_unprojecti(vec3 pos, mat4 invMat, vec4 vp, vec3 dest) {
-#if CGLM_CONFIG_CLIP_CONTROL & CGLM_CLIP_CONTROL_ZO_BIT
-  glm_unprojecti_zo(pos, invMat, vp, dest);
-#elif CGLM_CONFIG_CLIP_CONTROL & CGLM_CLIP_CONTROL_NO_BIT
-  glm_unprojecti_no(pos, invMat, vp, dest);
-#endif
+vec3s
+glms_unprojecti(vec3s pos, mat4s invMat, vec4s vp) {
+  vec3s r;
+  glm_unprojecti(pos.raw, invMat.raw, vp.raw, r.raw);
+  return r;
 }
 
 /*!
@@ -82,14 +71,14 @@ glm_unprojecti(vec3 pos, mat4 invMat, vec4 vp, vec3 dest) {
  * @param[in]  pos      point/position in viewport coordinates
  * @param[in]  m        matrix (see brief)
  * @param[in]  vp       viewport as [x, y, width, height]
- * @param[out] dest     unprojected coordinates
+ * @returns             unprojected coordinates
  */
 CGLM_INLINE
-void
-glm_unproject(vec3 pos, mat4 m, vec4 vp, vec3 dest) {
-  mat4 inv;
-  glm_mat4_inv(m, inv);
-  glm_unprojecti(pos, inv, vp, dest);
+vec3s
+glms_unproject(vec3s pos, mat4s m, vec4s vp) {
+  vec3s r;
+  glm_unproject(pos.raw, m.raw, vp.raw, r.raw);
+  return r;
 }
 
 /*!
@@ -102,16 +91,14 @@ glm_unproject(vec3 pos, mat4 m, vec4 vp, vec3 dest) {
  * @param[in]  pos      object coordinates
  * @param[in]  m        MVP matrix
  * @param[in]  vp       viewport as [x, y, width, height]
- * @param[out] dest     projected coordinates
+ * @returns projected coordinates
  */
 CGLM_INLINE
-void
-glm_project(vec3 pos, mat4 m, vec4 vp, vec3 dest) {
-#if CGLM_CONFIG_CLIP_CONTROL & CGLM_CLIP_CONTROL_ZO_BIT
-  glm_project_zo(pos, m, vp, dest);
-#elif CGLM_CONFIG_CLIP_CONTROL & CGLM_CLIP_CONTROL_NO_BIT
-  glm_project_no(pos, m, vp, dest);
-#endif
+vec3s
+glms_project(vec3s pos, mat4s m, vec4s vp) {
+  vec3s r;
+  glm_project(pos.raw, m.raw, vp.raw, r.raw);
+  return r;
 }
 
 /*!
@@ -120,31 +107,14 @@ glm_project(vec3 pos, mat4 m, vec4 vp, vec3 dest) {
  * @param[in]  center   center [x, y] of a picking region in window coordinates
  * @param[in]  size     size [width, height] of the picking region in window coordinates
  * @param[in]  vp       viewport as [x, y, width, height]
- * @param[out] dest     projected coordinates
+ * @returns projected coordinates
  */
 CGLM_INLINE
-void
-glm_pickmatrix(vec2 center, vec2 size, vec4 vp, mat4 dest) {
-  mat4 res;
-  vec3 v;
-
-  if (size[0] <= 0.0f || size[1] <= 0.0f)
-    return;
-  
-  /* Translate and scale the picked region to the entire window */
-  v[0] = (vp[2] - 2.0f * (center[0] - vp[0])) / size[0];
-  v[1] = (vp[3] - 2.0f * (center[1] - vp[1])) / size[1];
-  v[2] = 0.0f;
-
-  glm_translate_make(res, v);
-  
-  v[0] = vp[2] / size[0];
-  v[1] = vp[3] / size[1];
-  v[2] = 1.0f;
-
-  glm_scale(res, v);
-
-  glm_mat4_copy(res, dest);
+mat4s
+glms_pickmatrix(vec2s center, vec2s size, vec4s vp) {
+  mat4s res;
+  glm_pickmatrix(center.raw, size.raw, vp.raw, res.raw);
+  return res;
 }
 
-#endif /* cglm_project_h */
+#endif /* cglms_projects_h */
