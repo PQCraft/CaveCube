@@ -292,6 +292,7 @@ bool doGame(char* addr, int port) {
     setRandSeed(8, altutime());
     coord_3d tmpcamrot = {0, 0, 0};
     resetInput();
+    setInputMode(INPUT_MODE_GAME);
     while (!quitRequest) {
         uint64_t st1 = altutime();
         if (loopdelay) microwait(loopdelay);

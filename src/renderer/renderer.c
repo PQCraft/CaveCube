@@ -158,8 +158,13 @@ void setFullscreen(bool fullscreen) {
         rendinf.width = rendinf.full_width;
         rendinf.height = rendinf.full_height;
         rendinf.fps = rendinf.full_fps;
+        #if defined(USESDL2)
+        SDL_GetWindowPosition(rendinf.window, &winox, &winoy);
+        SDL_SetWindowFullscreen(rendinf.window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+        #else
         glfwGetWindowPos(rendinf.window, &winox, &winoy);
         glfwSetWindowMonitor(rendinf.window, rendinf.monitor, 0, 0, rendinf.full_width, rendinf.full_height, rendinf.full_fps);
+        #endif
         rendinf.fullscr = true;
     } else {
         rendinf.aspect = (float)rendinf.win_width / (float)rendinf.win_height;
@@ -168,12 +173,17 @@ void setFullscreen(bool fullscreen) {
         rendinf.fps = rendinf.win_fps;
         int twinx, twiny;
         if (rendinf.fullscr) {
+            #if defined(USESDL2)
+            SDL_SetWindowFullscreen(rendinf.window, 0);
+            SDL_SetWindowPosition(rendinf.window, winox, winoy);
+            #else
             uint64_t offset = altutime();
             glfwSetWindowMonitor(rendinf.window, NULL, 0, 0, rendinf.win_width, rendinf.win_height, rendinf.win_fps);
             do {
                 glfwSetWindowPos(rendinf.window, winox, winoy);
                 glfwGetWindowPos(rendinf.window, &twinx, &twiny);
             } while (altutime() - offset < 3000000 && (twinx != winox || twiny != winoy));
+            #endif
         }
         rendinf.fullscr = false;
     }
@@ -329,8 +339,19 @@ void renderModel(struct model* m, bool advanced) {
 void updateScreen() {
     static int lv = -1;
     GETCONTEXT();
-    if (rendinf.vsync != lv) {glfwSwapInterval(rendinf.vsync * ((GLTEAREXT) ? -1 : 1)); lv = rendinf.vsync;}
+    if (rendinf.vsync != lv) {
+        #if defined(USESDL2)
+        SDL_GL_SetSwapInterval(rendinf.vsync * ((GLTEAREXT) ? -1 : 1));
+        #else
+        glfwSwapInterval(rendinf.vsync * ((GLTEAREXT) ? -1 : 1));
+        #endif
+        lv = rendinf.vsync;
+    }
+    #if defined(USESDL2)
+    SDL_GL_SwapWindow(rendinf.window);
+    #else
     glfwSwapBuffers(rendinf.window);
+    #endif
     RELEASECONTEXT();
 }
 
@@ -690,10 +711,6 @@ void renderChunks(void* vdata) {
     RELEASECONTEXT();
 }
 
-int rendererQuitRequest() {
-    return (glfwWindowShouldClose(rendinf.window) != 0);
-}
-
 #if defined(USESDL2)
 static void sdlerror(char* m) {
     fprintf(stderr, "SDL2 error: {%s}\n", m);
@@ -704,8 +721,7 @@ static void errorcb(int e, const char* m) {
 }
 #endif
 
-static void fbsize(GLFWwindow* win, int w, int h) {
-    (void)win;
+static void winch(int w, int h) {
     rendinf.win_width = w;
     rendinf.win_height = h;
     setFullscreen(rendinf.fullscr);
@@ -713,6 +729,17 @@ static void fbsize(GLFWwindow* win, int w, int h) {
     glViewport(0, 0, rendinf.width, rendinf.height);
     pthread_mutex_unlock(&gllock);
 }
+
+#if defined(USESDL2)
+void sdlreszevent(int w, int h) {
+    winch(w, h);
+}
+#else
+static void fbsize(GLFWwindow* win, int w, int h) {
+    (void)win;
+    winch(w, h);
+}
+#endif
 
 bool initRenderer() {
     pthread_mutex_init(&uclock, NULL);
