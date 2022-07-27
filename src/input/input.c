@@ -58,7 +58,7 @@ input_keys input_ma[INPUT_ACTION_MULTI__MAX] = {
 input_keys input_sa[INPUT_ACTION_SINGLE__MAX] = {
     #if defined(USESDL2)
     KEY('k', SDL_SCANCODE_ESCAPE, 0, SDL_SCANCODE_UNKNOWN),
-    KEY('m', SDL_BUTTON(1), 0, SDL_SCANCODE_KEY_UNKNOWN),
+    KEY('m', SDL_BUTTON(1), 0, SDL_SCANCODE_UNKNOWN),
     KEY('m', SDL_BUTTON(3), 0, SDL_SCANCODE_UNKNOWN),
     KEY('k', SDL_SCANCODE_0, 0, SDL_SCANCODE_UNKNOWN),
     KEY('k', SDL_SCANCODE_1, 0, SDL_SCANCODE_UNKNOWN),
@@ -98,9 +98,9 @@ static float rotsen;
 
 bool initInput() {
     rotsen = atof(getConfigVarStatic(config, "input.rotsen", "1", 64));
-    bool rawmouse = getConfigValBool(getConfigVarStatic(config, "input.rawmouse", "1", 64));
+    bool rawmouse = getConfigValBool(getConfigVarStatic(config, "input.rawmouse", "true", 64));
     #if defined(USESDL2)
-    if (rawmouse) SDL_SetHint(SDL_HINT_MOUSE_RELATIVE_MODE_WARP, "1");
+    if (rawmouse) SDL_SetHintWithPriority(SDL_HINT_MOUSE_RELATIVE_MODE_WARP, "1", SDL_HINT_OVERRIDE);
     #else
     if (rawmouse && glfwRawMouseMotionSupported()) glfwSetInputMode(rendinf.window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
     #endif
@@ -114,14 +114,14 @@ void setInputMode(int mode) {
     switch (mode) {
         case INPUT_MODE_GAME:;
             #if defined(USESDL2)
-            SDL_CaptureMouse(SDL_TRUE);
+            SDL_SetRelativeMouseMode(SDL_TRUE);
             #else
             glfwSetInputMode(rendinf.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
             #endif
             break;
         default:;
             #if defined(USESDL2)
-            SDL_CaptureMouse(SDL_FALSE);
+            SDL_SetRelativeMouseMode(SDL_FALSE);
             #else
             glfwSetInputMode(rendinf.window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
             #endif
@@ -130,7 +130,18 @@ void setInputMode(int mode) {
 }
 
 #if defined(USESDL2)
-static uint8_t* sdlkeymap;
+void sdlgetmouse(double* mx, double* my) {
+    static double mmx = 0, mmy = 0;
+    int imx, imy;
+    SDL_GetRelativeMouseState(&imx, &imy);
+    mmx += imx;
+    mmy += imy;
+    *mx = mmx;
+    *my = mmy;
+    SDL_WarpMouseInWindow(rendinf.window, rendinf.width / 2, rendinf.height / 2);
+}
+
+static const uint8_t* sdlkeymap;
 #endif
 
 static bool _keyDown(int type, int key) {
@@ -156,12 +167,13 @@ static bool _keyDown(int type, int key) {
 #define keyDown(x) (_keyDown(x.kt1, x.key1) || _keyDown(x.kt2, x.key2))
 
 static uint64_t polltime;
+
 static double mxpos, mypos;
 
 void resetInput() {
     polltime = altutime();
     #if defined(USESDL2)
-    SDL_GetRelativeMouseState(&mxpos, &mypos);
+    sdlgetmouse(&mxpos, &mypos);
     #else
     glfwGetCursorPos(rendinf.window, &mxpos, &mypos);
     #endif
@@ -169,6 +181,7 @@ void resetInput() {
 
 struct input_info getInput() {
     #if defined(USESDL2)
+    SDL_PumpEvents();
     SDL_Event event;
     SDL_PollEvent(&event);
     quitRequest += (event.type == SDL_QUIT);
@@ -179,7 +192,7 @@ struct input_info getInput() {
     struct input_info inf = INPUT_EMPTY_INFO;
     if (quitRequest) return inf;
     #if defined(USESDL2)
-    if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) sdlreszevent(event->window.data1, event->window.data2);
+    if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) sdlreszevent(event.window.data1, event.window.data2);
     #endif
     inf.rot_mult = rotsen * 0.15;
     static double nmxpos, nmypos;
@@ -190,7 +203,7 @@ struct input_info getInput() {
     #endif
     if (inf.focus) {
         #if defined(USESDL2)
-        SDL_GetRelativeMouseState(&nmxpos, &nmypos);
+        sdlgetmouse(&nmxpos, &nmypos);
         #else
         glfwGetCursorPos(rendinf.window, &nmxpos, &nmypos);
         #endif
