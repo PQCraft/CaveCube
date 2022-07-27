@@ -761,11 +761,13 @@ bool initRenderer() {
     rendinf.camrot = GFX_DEFAULT_ROT;
     //rendinf.camrot.y = 180;
 
+    bool compositing = getConfigValBool(getConfigVarStatic(config, "renderer.compositing", "false", 64));
     #if defined(USESDL2)
     SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    if (!compositing) SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0");
     #else
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -778,13 +780,13 @@ bool initRenderer() {
 
     #if defined(USESDL2)
     rendinf.window = SDL_CreateWindow("CaveCube", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 480, SDL_WINDOW_OPENGL);
-    if (SDL_GetCurrentDisplayMode(SDL_GetWindowDisplayIndex(rendinf.window), rendinf.monitor) < 0) {
+    if (SDL_GetCurrentDisplayMode(SDL_GetWindowDisplayIndex(rendinf.window), &rendinf.monitor) < 0) {
         sdlerror("initRenderer: Failed to fetch display info");
         return false;
     }
-    rendinf.full_width = rendinf.monitor->w;
-    rendinf.full_height = rendinf.monitor->h;
-    rendinf.disphz = rendinf.monitor->refresh_rate;
+    rendinf.full_width = rendinf.monitor.w;
+    rendinf.full_height = rendinf.monitor.h;
+    rendinf.disphz = rendinf.monitor.refresh_rate;
     rendinf.win_fps = rendinf.disphz;
     SDL_DestroyWindow(rendinf.window);
     #else
@@ -810,9 +812,12 @@ bool initRenderer() {
     rendinf.fullscr = getConfigValBool(getConfigVarStatic(config, "renderer.fullscreen", "false", 64));
 
     #if defined(USESDL2)
-    if (!(rendinf.window = SDL_CreateWindow("CaveCube", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, rendinf.win_width, rendinf.win_height, SDL_WINDOW_OPENGL);
+    if (!(rendinf.window = SDL_CreateWindow("CaveCube", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, rendinf.win_width, rendinf.win_height, SDL_WINDOW_OPENGL))) {
+        sdlerror("initRenderer: Failed to create window");
+        return false;
+    }
     rendinf.context = SDL_GL_CreateContext(rendinf.window);
-    if (rendinf.context) {
+    if (!rendinf.context) {
         sdlerror("initRenderer: Failed to create OpenGL context");
         return false;
     }
