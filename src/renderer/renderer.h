@@ -118,7 +118,6 @@ extern int MESHER_THREADS;
 
 bool initRenderer(void);
 void quitRenderer(void);
-int rendererQuitRequest(void);
 void createTexture(unsigned char*, resdata_texture*);
 void destroyTexture(resdata_texture*);
 struct model* loadModel(char*, char**);
@@ -129,6 +128,9 @@ void renderChunks(void*);
 void setSkyColor(float, float, float);
 void setScreenMult(float, float, float);
 void setSpace(int);
+#if defined(USESDL2)
+void sdlreszevent(int, int);
+#endif
 
 extern struct renderer_info rendinf;
 

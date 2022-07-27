@@ -46,6 +46,7 @@ enum {
 };
 
 struct input_info {
+    bool focus;
     uint32_t multi_actions;
     uint16_t single_action;
     uint16_t modifiers;
@@ -62,7 +63,7 @@ bool initInput(void);
 void resetInput(void);
 struct input_info getInput(void);
 
-#define INPUT_EMPTY_INFO (struct input_info){INPUT_ACTION_MULTI__NONE, INPUT_ACTION_SINGLE__NONE, 0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}
+#define INPUT_EMPTY_INFO (struct input_info){false, INPUT_ACTION_MULTI__NONE, INPUT_ACTION_SINGLE__NONE, 0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}
 
 #endif
 
