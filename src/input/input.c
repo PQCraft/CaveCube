@@ -178,6 +178,9 @@ struct input_info getInput() {
     #endif
     struct input_info inf = INPUT_EMPTY_INFO;
     if (quitRequest) return inf;
+    #if defined(USESDL2)
+    if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) sdlreszevent(event->window.data1, event->window.data2);
+    #endif
     inf.rot_mult = rotsen * 0.15;
     static double nmxpos, nmypos;
     #if defined(USESDL2)
