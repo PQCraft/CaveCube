@@ -1,3 +1,5 @@
+#define SDL_MAIN_HANDLED
+
 #include "main.h"
 #include <game/game.h>
 #include <game/blocks.h>

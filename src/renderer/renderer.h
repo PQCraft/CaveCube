@@ -39,6 +39,8 @@ typedef struct {
 struct renderer_info {
     #if defined(USESDL2)
     SDL_GLContext context;
+    SDL_GLContext mainctx;
+    SDL_GLContext threadctx;
     #endif
     unsigned win_width;
     unsigned win_height;
@@ -121,6 +123,7 @@ void destroyTexture(resdata_texture*);
 struct model* loadModel(char*, char**);
 void updateCam(void);
 void updateScreen(void);
+void updateChunks(void*);
 void startMesher(void*);
 void renderChunks(void*);
 void setSkyColor(float, float, float);
@@ -138,8 +141,12 @@ extern struct renderer_info rendinf;
 #define GFX_DEFAULT_MAT4 {{1.0, 0.0, 0.0, 0.0}, {0.0, 1.0, 0.0, 0.0}, {0.0, 0.0, -1.0, 0.0}, {0.0, 0.0, 0.0, 1.0}}
 
 // RENDERER_LAZY disables some safety measures to speed up rendering
-#ifndef _WIN32 // Windows doesn't seem to like RENDERER_LAZY (only tested under WINE)
+#ifndef _WIN32 // Windows doesn't seem to like RENDERER_LAZY
     #define RENDERER_LAZY
+#endif
+// RENDERER_SINGLECORE makes the mesher create VBOs on the main thread
+#if defined(_WIN32) && defined(USESDL2) // Windows + SDL doesn't seem to like context sharing
+    #define RENDERER_SINGLECORE
 #endif
 
 #endif

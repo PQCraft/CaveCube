@@ -28,22 +28,27 @@
     #define GLTEAREXT WGL_EXT_swap_control_tear
 #endif
 
-#if defined(USESDL2)
-    #define _GETCONTEXT_FUNC() {SDL_GL_MakeCurrent(rendinf.window, rendinf.context);}
-#else
-    #define _GETCONTEXT_FUNC() {glfwMakeContextCurrent(rendinf.window);}
-#endif
-#ifdef RENDERER_LAZY
-    #define _RELEASECONTEXT_FUNC()
+#ifdef RENDERER_SINGLECORE
+    #define GETCONTEXT()
+    #define RELEASECONTEXT()
 #else
     #if defined(USESDL2)
-        #define _RELEASECONTEXT_FUNC() {SDL_GL_MakeCurrent(rendinf.window, NULL);}
+        #define _GETCONTEXT_FUNC() {SDL_GL_MakeCurrent(rendinf.window, rendinf.context);}
     #else
-        #define _RELEASECONTEXT_FUNC() {glfwMakeContextCurrent(NULL);}
+        #define _GETCONTEXT_FUNC() {glfwMakeContextCurrent(rendinf.window);}
     #endif
+    #ifdef RENDERER_LAZY
+        #define _RELEASECONTEXT_FUNC()
+    #else
+        #if defined(USESDL2)
+            #define _RELEASECONTEXT_FUNC() {SDL_GL_MakeCurrent(rendinf.window, NULL);}
+        #else
+            #define _RELEASECONTEXT_FUNC() {glfwMakeContextCurrent(NULL);}
+        #endif
+    #endif
+    #define GETCONTEXT() {pthread_mutex_lock(&gllock); _GETCONTEXT_FUNC();}
+    #define RELEASECONTEXT() {pthread_mutex_unlock(&gllock); _RELEASECONTEXT_FUNC();}
 #endif
-#define GETCONTEXT() {pthread_mutex_lock(&gllock); _GETCONTEXT_FUNC()}
-#define RELEASECONTEXT() {pthread_mutex_unlock(&gllock); _RELEASECONTEXT_FUNC()}
 
 int MESHER_THREADS;
 
@@ -171,7 +176,10 @@ void setFullscreen(bool fullscreen) {
         rendinf.width = rendinf.win_width;
         rendinf.height = rendinf.win_height;
         rendinf.fps = rendinf.win_fps;
+        #if defined(USESDL2)
+        #else
         int twinx, twiny;
+        #endif
         if (rendinf.fullscr) {
             #if defined(USESDL2)
             SDL_SetWindowFullscreen(rendinf.window, 0);
@@ -438,7 +446,7 @@ static void* meshthread(void* args) {
             activity = false;
         }
         pthread_mutex_lock(&uclock);
-        bool cond = !data->renddata[c].generated || data->renddata[c].updated || data->renddata[c].busy;
+        bool cond = !data->renddata[c].generated || data->renddata[c].updated || data->renddata[c].busy || data->renddata[c].ready;
         //if (data->renddata[c].busy) printf("BUSY [%d]\n", c);
         if (!cond) {
             data->renddata[c].busy = true;
@@ -519,6 +527,11 @@ static void* meshthread(void* args) {
         data->renddata[c].vcount = tmpsize;
         data->renddata[c].vcount2 = tmpsize2;
         data->renddata[c].vcount3 = tmpsize3;
+        data->renddata[c].vertices = _vptr;
+        data->renddata[c].vertices2 = _vptr2;
+        data->renddata[c].vertices3 = _vptr3;
+        data->renddata[c].ready = true;
+        #ifndef RENDERER_SINGLECORE
         tmpsize *= sizeof(uint32_t) * 2;
         tmpsize2 *= sizeof(uint32_t) * 2;
         tmpsize3 *= sizeof(uint32_t) * 2;
@@ -526,20 +539,14 @@ static void* meshthread(void* args) {
         if (!data->renddata[c].VBO) glGenBuffers(1, &data->renddata[c].VBO);
         if (!data->renddata[c].VBO2) glGenBuffers(1, &data->renddata[c].VBO2);
         if (!data->renddata[c].VBO3) glGenBuffers(1, &data->renddata[c].VBO3);
-        RELEASECONTEXT();
-        GETCONTEXT();
         if (tmpsize) {
             glBindBuffer(GL_ARRAY_BUFFER, data->renddata[c].VBO);
             glBufferData(GL_ARRAY_BUFFER, tmpsize, _vptr, GL_STATIC_DRAW);
         }
-        RELEASECONTEXT();
-        GETCONTEXT();
         if (tmpsize2) {
             glBindBuffer(GL_ARRAY_BUFFER, data->renddata[c].VBO2);
             glBufferData(GL_ARRAY_BUFFER, tmpsize2, _vptr2, GL_STATIC_DRAW);
         }
-        RELEASECONTEXT();
-        GETCONTEXT();
         if (tmpsize3) {
             glBindBuffer(GL_ARRAY_BUFFER, data->renddata[c].VBO3);
             glBufferData(GL_ARRAY_BUFFER, tmpsize3, _vptr3, GL_STATIC_DRAW);
@@ -551,10 +558,52 @@ static void* meshthread(void* args) {
         data->renddata[c].updated = true;
         data->renddata[c].ready = false;
         data->renddata[c].buffered = true;
+        #endif
         data->renddata[c].busy = false;
         pthread_mutex_unlock(&uclock);
     }
     return NULL;
+}
+
+void updateChunks(void* vdata) {
+    #ifndef RENDERER_SINGLECORE
+    (void)vdata;
+    #else
+    struct chunkdata* data = (struct chunkdata*)vdata;
+    uint32_t c2 = 0;
+    pthread_mutex_lock(&uclock);
+    for (uint32_t c = 0; !quitRequest && c < data->info.size; ++c) {
+        if (!data->renddata[c].ready) continue;
+        if (c2 >= data->info.size) break;
+        ++c2;
+        uint32_t tmpsize = data->renddata[c].vcount * sizeof(uint32_t) * 2;
+        uint32_t tmpsize2 = data->renddata[c].vcount2 * sizeof(uint32_t) * 2;
+        uint32_t tmpsize3 = data->renddata[c].vcount3 * sizeof(uint32_t) * 2;
+        if (!data->renddata[c].VBO) glGenBuffers(1, &data->renddata[c].VBO);
+        if (!data->renddata[c].VBO2) glGenBuffers(1, &data->renddata[c].VBO2);
+        if (!data->renddata[c].VBO3) glGenBuffers(1, &data->renddata[c].VBO3);
+        if (tmpsize) {
+            glBindBuffer(GL_ARRAY_BUFFER, data->renddata[c].VBO);
+            glBufferData(GL_ARRAY_BUFFER, tmpsize, data->renddata[c].vertices, GL_STATIC_DRAW);
+        }
+        if (tmpsize2) {
+            glBindBuffer(GL_ARRAY_BUFFER, data->renddata[c].VBO2);
+            glBufferData(GL_ARRAY_BUFFER, tmpsize2, data->renddata[c].vertices2, GL_STATIC_DRAW);
+        }
+        if (tmpsize3) {
+            glBindBuffer(GL_ARRAY_BUFFER, data->renddata[c].VBO3);
+            glBufferData(GL_ARRAY_BUFFER, tmpsize3, data->renddata[c].vertices3, GL_STATIC_DRAW);
+        }
+        free(data->renddata[c].vertices);
+        free(data->renddata[c].vertices2);
+        free(data->renddata[c].vertices3);
+        data->renddata[c].updated = true;
+        data->renddata[c].ready = false;
+        data->renddata[c].buffered = true;
+        data->renddata[c].busy = false;
+    }
+    pthread_mutex_unlock(&uclock);
+    #endif
 }
 
 static bool setchunks = false;
@@ -583,6 +632,7 @@ void startMesher(void* vdata) {
 }
 
 void renderText(float x, float y, float scale, unsigned end, char* text, void* extinfo) {
+    //puts("rendtext");
     glUniform1f(glGetUniformLocation(rendinf.shaderprog, "xratio"), 8.0 / (float)rendinf.width);
     glUniform1f(glGetUniformLocation(rendinf.shaderprog, "yratio"), 16.0 / (float)rendinf.height);
     glUniform1f(glGetUniformLocation(rendinf.shaderprog, "scale"), scale);
@@ -599,6 +649,8 @@ void renderText(float x, float y, float scale, unsigned end, char* text, void* e
         }
         ++text;
     }
+    //puts("rendtext check");
+    //puts("rendtext exit");
 }
 
 static char tbuf[1][32768];
@@ -623,6 +675,7 @@ static uint32_t rendc;
 void renderChunks(void* vdata) {
     struct chunkdata* data = vdata;
     GETCONTEXT();
+    //puts("rend");
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "dist"), data->info.dist);
     setUniform3f(rendinf.shaderprog, "cam", (float[]){rendinf.campos.x, rendinf.campos.y, rendinf.campos.z});
@@ -704,10 +757,12 @@ void renderChunks(void* vdata) {
         pchunkx, pchunky, pchunkz
     );
     renderText(0, 0, 1, rendinf.width, tbuf[0], NULL);
+    //puts("rend check");
 
     setShaderProg(shader_block);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
+    //puts("rend exit");
     RELEASECONTEXT();
 }
 
@@ -747,6 +802,7 @@ bool initRenderer() {
     pthread_mutex_init(&gllock, NULL);
 
     #if defined(USESDL2)
+    SDL_SetHint(SDL_HINT_NO_SIGNAL_HANDLERS, "1");
     if (SDL_Init(SDL_INIT_VIDEO)) {
         sdlerror("initRenderer: Failed to init video");
         return false;
@@ -761,8 +817,8 @@ bool initRenderer() {
     rendinf.camrot = GFX_DEFAULT_ROT;
     //rendinf.camrot.y = 180;
 
-    bool compositing = getConfigValBool(getConfigVarStatic(config, "renderer.compositing", "false", 64));
     #if defined(USESDL2)
+    bool compositing = getConfigValBool(getConfigVarStatic(config, "renderer.compositing", "false", 64));
     SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
@@ -816,6 +872,7 @@ bool initRenderer() {
         sdlerror("initRenderer: Failed to create window");
         return false;
     }
+    SDL_GL_SetAttribute(SDL_GL_SHARE_WITH_CURRENT_CONTEXT, 1);
     rendinf.context = SDL_GL_CreateContext(rendinf.window);
     if (!rendinf.context) {
         sdlerror("initRenderer: Failed to create OpenGL context");
@@ -827,19 +884,27 @@ bool initRenderer() {
         return false;
     }
     #endif
-    GETCONTEXT();
+    #ifdef RENDERER_SINGLECORE
+        #if defined(USESDL2)
+            SDL_GL_MakeCurrent(rendinf.window, rendinf.context);
+        #else
+            glfwMakeContextCurrent(rendinf.window);
+        #endif
+    #else
+        GETCONTEXT();
+    #endif
     #if defined(USESDL2)
     #else
     glfwSetInputMode(rendinf.window, GLFW_STICKY_KEYS, GLFW_TRUE);
     #endif
 
-    GLADloadproc ctx;
+    GLADloadproc glproc;
     #if defined(USESDL2)
-    ctx = (GLADloadproc)SDL_GL_GetProcAddress;
+    glproc = (GLADloadproc)SDL_GL_GetProcAddress;
     #else
-    ctx = (GLADloadproc)glfwGetProcAddress;
+    glproc = (GLADloadproc)glfwGetProcAddress;
     #endif
-    if (!gladLoadGLLoader(ctx)) {
+    if (!gladLoadGLLoader(glproc)) {
         fputs("initRenderer: Failed to initialize GLAD\n", stderr);
         return false;
     }

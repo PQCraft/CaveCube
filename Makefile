@@ -147,7 +147,6 @@ ifndef OS
 else
 	@type NUL > $@
 endif
-#	@echo Wrote makefiles
 
 ifdef MKSUB
 ifndef OS
