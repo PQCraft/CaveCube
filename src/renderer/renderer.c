@@ -711,16 +711,6 @@ void renderChunks(void* vdata) {
     RELEASECONTEXT();
 }
 
-#if defined(USESDL2)
-static void sdlerror(char* m) {
-    fprintf(stderr, "SDL2 error: {%s}\n", m);
-}
-#else
-static void errorcb(int e, const char* m) {
-    fprintf(stderr, "GLFW error [%d]: {%s}\n", e, m);
-}
-#endif
-
 static void winch(int w, int h) {
     rendinf.win_width = w;
     rendinf.win_height = h;
@@ -741,18 +731,42 @@ static void fbsize(GLFWwindow* win, int w, int h) {
 }
 #endif
 
+#if defined(USESDL2)
+static void sdlerror(char* m) {
+    fprintf(stderr, "SDL2 error: {%s}: {%s}\n", m, SDL_GetError());
+    SDL_ClearError();
+}
+#else
+static void errorcb(int e, const char* m) {
+    fprintf(stderr, "GLFW error [%d]: {%s}\n", e, m);
+}
+#endif
+
 bool initRenderer() {
     pthread_mutex_init(&uclock, NULL);
     pthread_mutex_init(&gllock, NULL);
 
+    #if defined(USESDL2)
+    if (SDL_Init(SDL_INIT_VIDEO)) {
+        sdlerror("initRenderer: Failed to init video");
+        return false;
+    }
+    #else
     glfwSetErrorCallback(errorcb);
-    glfwInit();
+    if (!glfwInit()) return false;
+    #endif
 
     rendinf.camfov = 85;
     rendinf.campos = GFX_DEFAULT_POS;
     rendinf.camrot = GFX_DEFAULT_ROT;
     //rendinf.camrot.y = 180;
 
+    #if defined(USESDL2)
+    SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    #else
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
@@ -760,18 +774,31 @@ bool initRenderer() {
     glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_TRUE);
     //glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_FALSE);
+    #endif
 
+    #if defined(USESDL2)
+    rendinf.window = SDL_CreateWindow("CaveCube", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 480, SDL_WINDOW_OPENGL);
+    if (SDL_GetCurrentDisplayMode(SDL_GetWindowDisplayIndex(rendinf.window), rendinf.monitor) < 0) {
+        sdlerror("initRenderer: Failed to fetch display info");
+        return false;
+    }
+    rendinf.full_width = rendinf.monitor->w;
+    rendinf.full_height = rendinf.monitor->h;
+    rendinf.disphz = rendinf.monitor->refresh_rate;
+    rendinf.win_fps = rendinf.disphz;
+    SDL_DestroyWindow(rendinf.window);
+    #else
     if (!(rendinf.monitor = glfwGetPrimaryMonitor())) {
         fputs("initRenderer: Failed to fetch primary monitor handle\n", stderr);
         return false;
     }
     const GLFWvidmode* vmode = glfwGetVideoMode(rendinf.monitor);
-    glfwGetMonitorPos(rendinf.monitor, &rendinf.mon_x, &rendinf.mon_y);
-
     rendinf.full_width = vmode->width;
     rendinf.full_height = vmode->height;
     rendinf.disphz = vmode->refreshRate;
     rendinf.win_fps = rendinf.disphz;
+    #endif
+
     sscanf(getConfigVarStatic(config, "renderer.resolution", "", 256), "%ux%u@%u",
         &rendinf.win_width, &rendinf.win_height, &rendinf.win_fps);
     if (!rendinf.win_width || rendinf.win_width > 32767) rendinf.win_width = 1024;
@@ -782,14 +809,32 @@ bool initRenderer() {
     rendinf.vsync = getConfigValBool(getConfigVarStatic(config, "renderer.vsync", "false", 64));
     rendinf.fullscr = getConfigValBool(getConfigVarStatic(config, "renderer.fullscreen", "false", 64));
 
+    #if defined(USESDL2)
+    if (!(rendinf.window = SDL_CreateWindow("CaveCube", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, rendinf.win_width, rendinf.win_height, SDL_WINDOW_OPENGL);
+    rendinf.context = SDL_GL_CreateContext(rendinf.window);
+    if (rendinf.context) {
+        sdlerror("initRenderer: Failed to create OpenGL context");
+        return false;
+    }
+    #else
     if (!(rendinf.window = glfwCreateWindow(rendinf.win_width, rendinf.win_height, "CaveCube", NULL, NULL))) {
         fputs("initRenderer: Failed to create window\n", stderr);
         return false;
     }
+    #endif
     GETCONTEXT();
+    #if defined(USESDL2)
+    #else
     glfwSetInputMode(rendinf.window, GLFW_STICKY_KEYS, GLFW_TRUE);
+    #endif
 
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+    GLADloadproc ctx;
+    #if defined(USESDL2)
+    ctx = (GLADloadproc)SDL_GL_GetProcAddress;
+    #else
+    ctx = (GLADloadproc)glfwGetProcAddress;
+    #endif
+    if (!gladLoadGLLoader(ctx)) {
         fputs("initRenderer: Failed to initialize GLAD\n", stderr);
         return false;
     }
@@ -829,7 +874,10 @@ bool initRenderer() {
 
     setShaderProg(shader_block);
     RELEASECONTEXT();
+    #if defined(USESDL2)
+    #else
     glfwSetFramebufferSizeCallback(rendinf.window, fbsize);
+    #endif
     setFullscreen(rendinf.fullscr);
     GETCONTEXT();
 
@@ -841,11 +889,12 @@ bool initRenderer() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glClearColor(0, 0, 0, 1);
-    glfwSwapInterval(rendinf.vsync);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    #if defined(USESDL2)
+    SDL_GL_SwapWindow(rendinf.window);
+    #else
     glfwSwapBuffers(rendinf.window);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glfwSwapBuffers(rendinf.window);
+    #endif
     RELEASECONTEXT();
     updateCam();
     GETCONTEXT();
@@ -960,7 +1009,11 @@ void quitRenderer() {
             pthread_join(pthreads[i], NULL);
         }
     }
+    #if defined(USESDL2)
+    SDL_Quit();
+    #else
     glfwTerminate();
+    #endif
 }
 
 #endif
