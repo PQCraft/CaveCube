@@ -80,28 +80,30 @@ buildrel() {
     pkgrel || _exit
     make ${@:3} clean 1> /dev/null || _exit
 }
-pkgrel() { _tar "cavecube-linux.tar.gz" "cavecube"; }
+pkgrel() { _tar "cavecube-linux.tar.gz" cavecube; }
 buildrel "game" "Linux"
-pkgrel() { _zip "cavecube-windows.zip" "cavecube.exe"; }
+pkgrel() { _zip "cavecube-windows.zip" cavecube.exe; }
 buildrel "game" "Windows" WIN32=y
-pkgrel() { _tar "cavecube-server-linux.tar.gz" "ccserver"; }
+pkgrel() { _tar "cavecube-server-linux.tar.gz" ccserver; }
 buildrel "server" "Linux" SERVER=y
-pkgrel() { _zip "cavecube-server-windows.zip" "ccserver.exe"; }
+pkgrel() { _zip "cavecube-server-windows.zip" ccserver.exe; }
 buildrel "server" "Windows" SERVER=y WIN32=y
+inf "Making cavecube-data.zip..."
+_zip "cavecube-data.zip" docs/ resources/
 pause
 
 tsk "Pushing..."
 git add . || _exit
 git commit -S -m "${VER}" -m "${RELTEXT}" || _exit
 git push || _exit
-git checkout master || _exit
-git merge dev || _exit
-git push || _exit
 
 tsk "Making release..."
 git tag -s "${VER}" -m "${RELTEXT}" || _exit
 git push --tags || _exit
 gh release create "${VER}" --title "${VER}" --notes "${RELTEXT}" cavecube*.tar.gz cavecube*.zip || _exit
+git checkout master || _exit
+git merge dev || _exit
+git push || _exit
 git checkout dev || _exit
 
 tsk "Updating AUR..."
