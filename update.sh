@@ -100,6 +100,7 @@ git push || _exit
 
 tsk "Making release..."
 git tag -s "${VER}" -m "${RELTEXT}" || _exit
+git push --tags || _exit
 gh release create "${VER}" --title "${VER}" --notes "${RELTEXT}" cavecube*.tar.gz cavecube*.zip || _exit
 git checkout dev || _exit
 
