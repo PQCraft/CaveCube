@@ -15,16 +15,18 @@ typedef struct {
 
 #define GCBUFSIZE 32768
 
+int isFile(char*);
 file_data getFile(char*, char*);
 file_data getBinFile(char*);
 file_data getTextFile(char*);
+file_data catFiles(file_data, bool, file_data, bool);
+file_data catTextFiles(file_data, bool, file_data, bool);
 void freeFile(file_data);
 void setRandSeed(int, uint64_t);
 uint8_t getRandByte(int);
 uint16_t getRandWord(int);
 uint32_t getRandDWord(int);
 uint64_t getRandQWord(int);
-int isFile(char*);
 void getConfigVar(char*, char*, char*, long, char*);
 char* getConfigVarAlloc(char*, char*, char*, long);
 char* getConfigVarStatic(char*, char*, char*, long);

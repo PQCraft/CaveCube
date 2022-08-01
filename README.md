@@ -7,7 +7,7 @@
 ---
 ### Prerequisites
 GLFW or SDL2, GNU Make, and a C compiler with POSIX thread support are needed to build CaveCube.<br>
-For Windows, the GLFW and SDL2 development binaries must be installed from their respective websites: [GLFW](https://www.glfw.org/download), [SDL2](https://www.libsdl.org/download-2.0.php).<br>
+For Windows, the GLFW or SDL2 development binaries must be installed from their respective websites: [GLFW](https://www.glfw.org/download), [SDL2](https://www.libsdl.org/download-2.0.php).<br>
 For outdated/stable Linux distributions (such as Debian or Ubuntu), GLFW must be built from source due to the package being out of date.<br>
 
 ---

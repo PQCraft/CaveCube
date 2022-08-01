@@ -43,7 +43,7 @@ unsigned char* createBMD(bmd_data* data, uint32_t* size) {
         fclose(fp);
     }
     unsigned char* cdata = 0;//compressData(outbuf, *size, &outsize);
-    memcpy(outbuf, cdata, *size);
+    //memcpy(outbuf, cdata, *size);
     outbuf -= sizeof(uint32_t);
     outsize += sizeof(uint32_t);
     outbuf = realloc(outbuf, outsize);

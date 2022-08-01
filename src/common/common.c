@@ -151,21 +151,22 @@ file_data getFile(char* name, char* mode) {
     struct stat fnst;
     memset(&fnst, 0, sizeof(struct stat));
     if (stat(name, &fnst)) {
-        fprintf(stderr, "getFile error: failed to open {%s} for {%s}\n", name, mode);
+        fprintf(stderr, "getFile: failed to open {%s} for {%s}\n", name, mode);
         return FILEDATA_ERROR;
     }
     if (!S_ISREG(fnst.st_mode)) {
-        fprintf(stderr, "getFile error: {%s} is not a file\n", name);
+        fprintf(stderr, "getFile: {%s} is not a file\n", name);
         return FILEDATA_ERROR;
     }
     FILE* file = fopen(name, mode);
     if (!file) {
-        fprintf(stderr, "getFile error: failed to open {%s} for {%s}\n", name, mode);
+        fprintf(stderr, "getFile: failed to open {%s} for {%s}\n", name, mode);
         return FILEDATA_ERROR;
     }
     fseek(file, 0, SEEK_END);
     long size = ftell(file);
-    unsigned char* data = calloc(size + 1, 1);
+    if (size < 0) size = 0;
+    unsigned char* data = malloc(size);
     fseek(file, 0, SEEK_SET);
     long i = 0;
     while (i < size && !feof(file)) {
@@ -183,15 +184,40 @@ file_data getBinFile(char* name) {
 
 file_data getTextFile(char* name) {
     file_data file = getFile(name, "r");
-    if ((file.size > 0 && file.data[file.size - 1]) || file.size > -1) {
-        file.data = realloc(file.data, file.size + 1);
-        file.data[file.size++] = 0;
+    if ((file.size > 0 && file.data[file.size - 1]) || file.size == 0) {
+        ++file.size;
+        file.data = realloc(file.data, file.size);
+        file.data[file.size - 1] = 0;
     }
     return file;
 }
 
+file_data catFiles(file_data file1, bool freefile1, file_data file2, bool freefile2) {
+    file_data file;
+    file.size = ((file1.size > 0) ? file1.size : 0) + ((file2.size > 0) ? file2.size : 0);
+    file.data = malloc(file.size);
+    if (file1.size > 0) memcpy(file.data, file1.data, file1.size);
+    if (file2.size > 0) memcpy(file.data + ((file1.size > 0) ? file1.size : 0), file2.data, file2.size);
+    if (freefile1) freeFile(file1);
+    if (freefile2) freeFile(file2);
+    return file;
+}
+
+file_data catTextFiles(file_data file1, bool freefile1, file_data file2, bool freefile2) {
+    file_data file;
+    file.size = ((file1.size > 1) ? file1.size : 1) + ((file2.size > 1) ? file2.size : 1) - 1;
+    if (file.size < 1) file.size = 1;
+    file.data = malloc(file.size);
+    if (file1.size > 1) memcpy(file.data, file1.data, file1.size - 1);
+    if (file2.size > 1) memcpy(file.data + ((file1.size > 1) ? file1.size - 1 : 0), file2.data, file2.size - 1);
+    file.data[file.size - 1] = 0;
+    if (freefile1) freeFile(file1);
+    if (freefile2) freeFile(file2);
+    return file;
+}
+
 void freeFile(file_data file) {
-    free(file.data);
+    if (file.data) free(file.data);
 }
 
 #define GCVWOUT(x) {++len; *out++ = (x);}

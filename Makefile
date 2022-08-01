@@ -59,7 +59,7 @@ BINFLAGS += -lm
 ifndef OS
     BINFLAGS += -lpthread
 else
-    BINFLAGS += -l:libwinpthread.a
+    BINFLAGS += -l:libwinpthread.a -lws2_32
 endif
 ifdef USESDL2
     CFLAGS += -DUSESDL2
@@ -75,7 +75,7 @@ ifndef SERVER
     ifndef OS
         BINFLAGS += -lX11 -ldl
     else
-        BINFLAGS += -lgdi32 -lws2_32
+        BINFLAGS += -lgdi32
     endif
 endif
 

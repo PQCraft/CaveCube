@@ -208,7 +208,7 @@ void moveChunks(struct chunkdata* chunks, int cx, int cz) {
 
 static uint16_t cid = 0;
 static int64_t cxo = 0, czo = 0;
-static pthread_mutex_t cidlock;
+//static pthread_mutex_t cidlock;
 
 void genChunks_cb(struct chunkdata* chunks, void* ptr) {
     struct server_ret_chunk* srvchunk = ptr;

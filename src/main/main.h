@@ -1,6 +1,10 @@
 #ifndef MAIN_H
 #define MAIN_H
 
+#define VER_MAJOR 0
+#define VER_MINOR 0
+#define VER_PATCH 0
+
 //#define NAME_THREADS
 
 #ifdef NAME_THREADS
@@ -43,5 +47,6 @@ extern int argc;
 extern char** argv;
 extern char* maindir;
 extern char* startdir;
+extern char* localdir;
 
 #endif

@@ -36,10 +36,12 @@ void initResource() {
 }
 
 bool addResourcePack(char* dir, int pos) {
+    (void)dir; (void)pos;
     return true;
 }
 
 bool removeResourcePack(char* dir) {
+    (void)dir;
     return true;
 }
 

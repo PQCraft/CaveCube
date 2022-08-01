@@ -353,7 +353,8 @@ static int zip_archive_extract(mz_zip_archive *zip_archive, const char *dir,
     strncpy_s(&path[dirlen], MAX_PATH - dirlen, info.m_filename,
               MAX_PATH - dirlen);
 #else
-    strncpy(&path[dirlen], info.m_filename, MAX_PATH - dirlen);
+    memcpy(&path[dirlen], info.m_filename, MAX_PATH - dirlen);
+    if (MAX_PATH - dirlen > 0) path[MAX_PATH - dirlen - 1] = 0;
 #endif
     err = zip_mkpath(path);
     if (err < 0) {
