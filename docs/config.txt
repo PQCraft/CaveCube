@@ -1,0 +1,73 @@
+############################################################
+#                     CAVECUBE CONFIG                      #
+############################################################
+
+# SYNTAX:
+#
+# Configuration options are written as key=val:
+# COMPONENT.VARIABLE = VALUE
+
+
+# MAIN
+
+# Show the console on Windows (true|false)
+#main.showcon
+
+
+# GAME
+
+# Render distance in chunks (1...)
+#game.chunks = 8
+
+# Amount of time to wait each gameloop in microseconds
+# (only millisecond precision is available under Windows
+# and this value is divided by 1000)
+#game.loopdelay
+
+
+# RENDERER
+
+# Allow compositing while the windows is open under SDL2
+# (true|false)
+#renderer.compositing = true
+
+# Windowed resolution (WxH[@Hz]) (Hz of 0 means unlimited# FPS) (default Hz is the same as the primary display)
+#renderer.resolution = 1024x768
+
+# Fullscreen resolution (WxH[@Hz]) (Hz defaults to Hz of
+# renderer.resolution) (W and H default to the width and
+# height of the primary display)
+#renderer.fullresolution
+
+# Enable vsync
+#renderer.vsync = false
+
+# Start in fullscreen
+#renderer.fullscreen = false
+
+
+# INPUT
+
+# Rotation sensitivity
+#input.rotsen = 1.0
+
+# Raw mouse input
+#input.rawmouse = true
+
+
+# SERVER
+
+# Server loop delay in microseconds
+#server.serverdelay = 1000
+
+# Amount of time to wait in microseconds before checking for
+# new activity after activity dropped
+#server.serveridledelay = 5000
+
+# Client loop delay in microseconds
+#server.clientdelay = 1000
+
+# Maximum amount of characters (including null) a username
+# can contain
+#server.unamemax = 32
+

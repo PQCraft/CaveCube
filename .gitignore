@@ -9,5 +9,6 @@
 !LICENSE
 !Makefile
 !README.md
+!update.sh
 !util.mk
 !.gitignore

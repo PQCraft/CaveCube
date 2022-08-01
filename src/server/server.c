@@ -154,6 +154,7 @@ static bool getPlayer(uint64_t uid, struct player* p) {
     return true;
 }
 
+/*
 static bool setPlayer(uint64_t uid, struct player* p) {
     pthread_mutex_lock(&pinfolock);
     struct player* tmp = getPlayerPtr(uid);
@@ -165,6 +166,7 @@ static bool setPlayer(uint64_t uid, struct player* p) {
     pthread_mutex_unlock(&pinfolock);
     return true;
 }
+*/
 
 static struct bufinf* allocbuf(int max) {
     struct bufinf* inf = malloc(sizeof(struct bufinf));
@@ -584,12 +586,13 @@ static void* servnetthread(void* args) {
 }
 
 int startServer(char* addr, int port, char* world, int mcli) {
+    (void)world;
     #ifdef _WIN32
     if (!startwsa()) return -1;
     #endif
     if (mcli > 0) maxclients = mcli;
-    cfgvar.server_delay = atoi(getConfigVarStatic(config, "server.server_delay", "1000", 64));
-    cfgvar.server_idledelay = atoi(getConfigVarStatic(config, "server.server_idledelay", "5000", 64));
+    cfgvar.server_delay = atoi(getConfigVarStatic(config, "server.serverdelay", "1000", 64));
+    cfgvar.server_idledelay = atoi(getConfigVarStatic(config, "server.serveridledelay", "5000", 64));
     cfgvar.unamemax =  atoi(getConfigVarStatic(config, "server.unamemax", "32", 64));
     setRandSeed(0, 32464);
     initNoiseTable(0);
@@ -875,7 +878,7 @@ bool servConnect(char* addr, int port) {
         #endif
     }
     //fcntl(socketfd, F_SETFL, fcntl(socketfd, F_GETFL) | O_NONBLOCK);
-    cfgvar.client_delay = atoi(getConfigVarStatic(config, "server.client_delay", "1000", 64));
+    cfgvar.client_delay = atoi(getConfigVarStatic(config, "server.clientdelay", "1000", 64));
     //client_ackdelay = atoi(getConfigVarStatic(config, "server.client_ackdelay", "0", 64));
     //client_senddelay = atoi(getConfigVarStatic(config, "server.client_senddelay", "0", 64));
     struct servnetinf* inf = calloc(1, sizeof(struct servnetinf));

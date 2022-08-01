@@ -1,4 +1,6 @@
-#define SDL_MAIN_HANDLED
+#if defined(USESDL2)
+    #define SDL_MAIN_HANDLED
+#endif
 
 #include "main.h"
 #include <game/game.h>
@@ -15,12 +17,12 @@
 #include <string.h>
 #include <signal.h>
 #include <unistd.h>
+#include <sys/stat.h>
 #ifdef _WIN32
     #include <windows.h>
 #endif
 
-char* config;
-file_data config_filedata;
+char* config = NULL;
 int quitRequest = 0;
 
 int argc;
@@ -28,6 +30,7 @@ char** argv;
 
 char* maindir = NULL;
 char* startdir = NULL;
+char* localdir = NULL;
 
 static void sigh(int sig) {
     (void)sig;
@@ -62,11 +65,17 @@ static bool showcon;
 #endif
 
 static void commonSetup() {
-    while (!(config_filedata = getTextFile("config.cfg")).data) {
-        FILE* fp = fopen("config.cfg", "w");
-        fclose(fp);
+    file_data tmpfile = getTextFile("cavecube.cfg");
+    chdir(localdir);
+    tmpfile = catTextFiles(tmpfile, true, getTextFile("cavecube.cfg"), true);
+    if (strcmp(startdir, maindir)) {
+        chdir(startdir);
+        tmpfile = catTextFiles(tmpfile, true, getTextFile("cavecube.cfg"), true);
     }
-    config = (char*)config_filedata.data;
+    chdir(maindir);
+    config = strdup((char*)tmpfile.data);
+    freeFile(tmpfile);
+    //printf("Config:\n%s\nEOF\n", config);
     #ifdef _WIN32
     showcon = getConfigValBool(getConfigVarStatic(config, "main.showcon", SC_VAL, 64));
     #endif
@@ -79,12 +88,13 @@ int main(int _argc, char** _argv) {
     #ifndef _WIN32
     bool winopt = false;
     #else
-    bool winopt = true;
     DWORD procs[2];
     DWORD procct = GetConsoleProcessList((LPDWORD)procs, 2);
     bool owncon = (procct < 2);
     if (owncon) ShowWindow(GetConsoleWindow(), SW_HIDE);
+    bool winopt = true;
     #endif
+    printf("CaveCube version %d.%d.%d\n", VER_MAJOR, VER_MINOR, VER_PATCH);
     if (_argc > 1 && (!strcmp(_argv[1], "-help") || !strcmp(_argv[1], "--help") || (winopt && !strcmp(_argv[1], "/help")))) {
         #ifndef SERVER
         printf("%s [ARGUMENTS]\n", _argv[0]);
@@ -131,8 +141,49 @@ int main(int _argc, char** _argv) {
             startdir[tmplen + 1] = 0;
         }
     }
+    {
+        #ifndef _WIN32
+        char* tmpdir = getenv("HOME");
+        char* tmpdn = ".cavecube";
+        #else
+        char* tmpdir = getenv("AppData");
+        char* tmpdn = "cavecube";
+        #endif
+        chdir(tmpdir);
+        bool new = false;
+        if (isFile(tmpdn) == -1) {
+            #ifndef _WIN32
+            mkdir(tmpdn, (S_IRWXU) | (S_IRGRP | S_IXGRP) | (S_IROTH | S_IXOTH));
+            #else
+            mkdir(tmpdn);
+            #endif
+            new = true;
+        }
+        chdir(tmpdn);
+        #ifndef _WIN32
+        localdir = realpath(".", NULL);
+        #else
+        localdir = _fullpath(NULL, ".", MAX_PATH);
+        #endif
+        uint32_t tmplen = strlen(localdir);
+        #ifndef _WIN32
+        char echar = '/';
+        #else
+        char echar = '\\';
+        #endif
+        if (localdir[tmplen] != echar) {
+            localdir = realloc(localdir, tmplen + 2);
+            localdir[tmplen] = echar;
+            localdir[tmplen + 1] = 0;
+        }
+        if (new) {
+            FILE* tmpcfg = fopen("cavecube.cfg", "w");
+            fclose(tmpcfg);
+        }
+    }
     printf("Main directory: {%s}\n", maindir);
     printf("Start directory: {%s}\n", startdir);
+    printf("Local directory: {%s}\n", localdir);
     chdir(maindir);
     signal(SIGINT, sigh);
     #ifdef _WIN32
@@ -167,7 +218,6 @@ int main(int _argc, char** _argv) {
             if (!initRenderer()) return 1;
             bool game_ecode = doGame(argv[2], atoi(argv[3]));
             quitRenderer();
-            freeFile(config_filedata);
             return !game_ecode;
         } else {
             fprintf(stderr, "Invalid argument: %s\n", argv[1]);
@@ -187,7 +237,6 @@ int main(int _argc, char** _argv) {
         if (!initRenderer()) return 1;
         bool game_ecode = doGame(NULL, -1);
         quitRenderer();
-        freeFile(config_filedata);
         return !game_ecode;
     }
     #else
@@ -204,5 +253,6 @@ int main(int _argc, char** _argv) {
     }
     pause();
     #endif
+    if (config) free(config);
     return 0;
 }

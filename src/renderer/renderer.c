@@ -632,7 +632,7 @@ void startMesher(void* vdata) {
 }
 
 void renderText(float x, float y, float scale, unsigned end, char* text, void* extinfo) {
-    //puts("rendtext");
+    (void)extinfo;
     glUniform1f(glGetUniformLocation(rendinf.shaderprog, "xratio"), 8.0 / (float)rendinf.width);
     glUniform1f(glGetUniformLocation(rendinf.shaderprog, "yratio"), 16.0 / (float)rendinf.height);
     glUniform1f(glGetUniformLocation(rendinf.shaderprog, "scale"), scale);
@@ -649,8 +649,6 @@ void renderText(float x, float y, float scale, unsigned end, char* text, void* e
         }
         ++text;
     }
-    //puts("rendtext check");
-    //puts("rendtext exit");
 }
 
 static char tbuf[1][32768];
@@ -675,7 +673,6 @@ static uint32_t rendc;
 void renderChunks(void* vdata) {
     struct chunkdata* data = vdata;
     GETCONTEXT();
-    //puts("rend");
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "dist"), data->info.dist);
     setUniform3f(rendinf.shaderprog, "cam", (float[]){rendinf.campos.x, rendinf.campos.y, rendinf.campos.z});
@@ -757,12 +754,10 @@ void renderChunks(void* vdata) {
         pchunkx, pchunky, pchunkz
     );
     renderText(0, 0, 1, rendinf.width, tbuf[0], NULL);
-    //puts("rend check");
 
     setShaderProg(shader_block);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
-    //puts("rend exit");
     RELEASECONTEXT();
 }
 
@@ -818,12 +813,12 @@ bool initRenderer() {
     //rendinf.camrot.y = 180;
 
     #if defined(USESDL2)
-    bool compositing = getConfigValBool(getConfigVarStatic(config, "renderer.compositing", "false", 64));
+    bool compositing = getConfigValBool(getConfigVarStatic(config, "renderer.compositing", "true", 64));
     SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-    if (!compositing) SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0");
+    if (compositing) SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0");
     #else
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -835,7 +830,10 @@ bool initRenderer() {
     #endif
 
     #if defined(USESDL2)
-    rendinf.window = SDL_CreateWindow("CaveCube", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 480, SDL_WINDOW_OPENGL);
+    if (!(rendinf.window = SDL_CreateWindow("CaveCube", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 480, SDL_WINDOW_OPENGL))) {
+        sdlerror("initRenderer: Failed to create window");
+        return false;
+    }
     if (SDL_GetCurrentDisplayMode(SDL_GetWindowDisplayIndex(rendinf.window), &rendinf.monitor) < 0) {
         sdlerror("initRenderer: Failed to fetch display info");
         return false;

@@ -91,8 +91,8 @@ input_keys input_sa[INPUT_ACTION_SINGLE__MAX] = {
     #endif
 };
 
-static uint16_t tmpmods = 0;
-static int tmpkey = -1;
+//static uint16_t tmpmods = 0;
+//static int tmpkey = -1;
 
 static float rotsen;
 
