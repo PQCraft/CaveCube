@@ -1,7 +1,7 @@
 include $(UTILMK)
 
 MKENV = SRCDIR="../../$(SRCDIR)" OBJDIR="../../$(OBJDIR)" UTILMK="../../$(UTILMK)" CC="$(CC)" CFLAGS="$(CFLAGS) -I../../$(SRCDIR)"
-MKENV2 = RCDIR="$(SRCDIR)" OBJDIR="$(OBJDIR)" UTILMK="$(UTILMK)" CC="$(CC)" CFLAGS="$(CFLAGS)"
+MKENV2 = SRCDIR="$(SRCDIR)" OBJDIR="$(OBJDIR)" UTILMK="$(UTILMK)" CC="$(CC)" CFLAGS="$(CFLAGS)"
 
 ifndef MKRULES
 MKOUT = $(OBJDIR)/$@.mk
@@ -25,13 +25,27 @@ define MKSRC
 $(subst .mk,,$(subst $(OBJDIR)/,$(SRCDIR)\,$@))
 endef
 endif
+ifndef OS
+define MKND
+$(OBJDIR)/$(subst .mk,,$(subst $(OBJDIR)/,,$@))
+endef
+else
+define MKND
+$(OBJDIR)/$(subst .mk,,$(subst $(OBJDIR)\,,$@))
+endef
+endif
 $(OBJDIR)/%.mk: $(wildcard $(SRCDIR)/$(NAME)/*.c $(SRCDIR)/$(NAME)/*.h)
 	@echo Writing $@...
 	@echo include $$$(esc)(UTILMK$(esc)) > $@
 	@$(echoblank) >> $@
-	@echo all: $$$(esc)(OUTDIR$(esc)) $(addprefix ../../$(OUTDIR)/,$(notdir $(CFILES:.c=.o))) >> $@
+	@echo all: $(addprefix ../../$(OUTDIR)/,$(notdir $(CFILES:.c=.o))) >> $@
 	@$(echoblank) >> $@
 	@$(MAKE) --silent --no-print-directory -C "$(MKSRC)" -f ../../gen.mk NAME="$(subst .mk,,$(subst $(OBJDIR)/,,$@))" ${MKENV} MKRULES=y
+ifndef OS
+	@[ ! -d "$(MKND)" ] && echo Creating $(MKND)... && mkdir "$(MKND)"; true
+else
+	@if not exist "$(MKND)" echo Creating $(MKND)... & mkdir "$(MKND)"
+endif
 endif
 
 $(OUTDIR)/%.o: FORCE
