@@ -18,19 +18,15 @@
 #endif
 
 enum {
-    SERVER_MODE_SP,
-    SERVER_MODE_MP,
-    SERVER_MODE_BRIDGE,
+    SERVER_MSG_ACK,
+    SERVER_MSG_DATA,
 };
 
 enum {
-    SERVER_MSG_PING,
-    SERVER_MSG_GETCHUNK,
-    SERVER_MSG_GETCHUNKCOL,
-};
-
-enum {
-    SERVER_CMD_SETCHUNK = 128,
+    SERVER_DATA_PING,
+    SERVER_DATA_GETCHUNK,
+    SERVER_DATA_GETCHUNKCOL,
+    SERVER_DATA_SETCHUNKPOS,
 };
 
 enum {
@@ -40,7 +36,7 @@ enum {
     SERVER_RET_UPDATECHUNKCOL,
 };
 
-struct server_msg_chunk {
+struct server_data_getchunk {
     struct chunkinfo info;
     uint16_t id;
     int x;
@@ -50,7 +46,7 @@ struct server_msg_chunk {
     int64_t zo;
 };
 
-struct server_msg_chunkcol {
+struct server_data_getchunkcol {
     struct chunkinfo info;
     uint16_t id;
     int x;
@@ -59,7 +55,12 @@ struct server_msg_chunkcol {
     int64_t zo;
 };
 
-struct server_ret_chunk {
+struct server_data_setchunkpos {
+    int64_t x;
+    int64_t z;
+};
+
+struct server_ret_updatechunk {
     uint16_t id;
     int x;
     int y;
@@ -69,18 +70,13 @@ struct server_ret_chunk {
     struct blockdata data[4096];
 };
 
-struct server_ret_chunkcol {
+struct server_ret_updatechunkcol {
     uint16_t id;
     int x;
     int z;
     int64_t xo;
     int64_t zo;
     struct blockdata data[16][4096];
-};
-
-struct server_msg_chunkpos {
-    int64_t x;
-    int64_t z;
 };
 
 struct server_ret {
@@ -94,8 +90,8 @@ bool initServer(void);
 int startServer(char*, int, char*, int);
 void stopServer(void);
 
-bool servConnect(char*, int);
-void servSend(int, void*, bool);
-void servRecv(void (*)(int, void*), int);
+bool cliConnect(char*, int);
+void cliSend(int, void*, bool);
+void cliRecv(void (*)(int, void*), int);
 
 #endif

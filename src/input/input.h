@@ -1,7 +1,7 @@
 #ifndef SERVER
 
-#ifndef INPUT_H
-#define INPUT_H
+#ifndef INPUT_INPUT_H
+#define INPUT_INPUT_H
 
 #include <stdbool.h>
 #include <inttypes.h>

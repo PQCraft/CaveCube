@@ -1,9 +1,9 @@
-#ifndef MAIN_H
-#define MAIN_H
+#ifndef MAIN_MAIN_H
+#define MAIN_MAIN_H
 
 #define VER_MAJOR 0
-#define VER_MINOR 0
-#define VER_PATCH 4
+#define VER_MINOR 1
+#define VER_PATCH 0
 
 //#define NAME_THREADS
 

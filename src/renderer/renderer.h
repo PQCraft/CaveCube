@@ -1,10 +1,10 @@
 #ifndef SERVER
 
-#ifndef RENDERER_H
+#ifndef RENDERER_RENDERER_H
 
 #ifndef RENDERER_H_STUB
 
-#define RENDERER_H
+#define RENDERER_RENDERER_H
 
 #include <renderer/glad_platform.h>
 #include <common/resource.h>

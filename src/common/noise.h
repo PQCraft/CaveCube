@@ -1,5 +1,5 @@
-#ifndef NOISE_H
-#define NOISE_H
+#ifndef COMMON_NOISE_H
+#define COMMON_NOISE_H
 
 void initNoiseTable(int);
 double noise2d(int, double, double);

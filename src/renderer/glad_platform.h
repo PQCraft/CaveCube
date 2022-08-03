@@ -1,7 +1,7 @@
 #ifndef SERVER
 
-#ifndef GLAD_H
-#define GLAD_H
+#ifndef RENDERER_GLAD_PLATFORM_H
+#define RENDERER_GLAD_PLATFORM_H
 
 #ifndef _WIN32
     #include "glad/glx/glad_glx.h"

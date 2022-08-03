@@ -1,5 +1,5 @@
-#ifndef BLOCKS_H
-#define BLOCKS_H
+#ifndef GAME_BLOCKS_H
+#define GAME_BLOCKS_H
 
 #include <inttypes.h>
 
