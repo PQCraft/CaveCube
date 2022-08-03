@@ -1,5 +1,5 @@
-#ifndef RESOURCE_H
-#define RESOURCE_H
+#ifndef COMMON_RESOURCE_H
+#define COMMON_RESOURCE_H
 
 #include <common/common.h>
 #define RENDERER_H_STUB

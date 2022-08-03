@@ -20,4 +20,8 @@ For outdated/stable Linux distributions (such as Debian or Ubuntu), GLFW must be
 - To compile with using SDL2 instead of GLFW, add `USESDL2=y` after `make` (eg. `make USESDL2=y -j`).<br>
 
 These variables can be combined.<br>
-For example, `make USESDL2=y WIN32=y -j run` will build CaveCube for Windows with SDL2 and run when compilation finishes.
+For example, `make USESDL2=y WIN32=y -j run` will build CaveCube for Windows with SDL2 and run when compilation finishes.<br>
+
+---
+### Notes
+CaveCube can be installed on Arch Linux using the [cavecube](https://aur.archlinux.org/packages/cavecube) or [cavecube-bin](https://aur.archlinux.org/packages/cavecube-bin) package.<br>

@@ -250,7 +250,7 @@ bool doGame(char* addr, int port) {
         return false;
     }
     puts("Sending ping...");
-    servSend(SERVER_MSG_PING, NULL, false);
+    servSend(SERVER_DATA_PING, NULL, false);
     servRecv(handleServer, 1);
     while (!ping && !quitRequest) {
         getInput();

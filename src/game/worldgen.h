@@ -1,5 +1,5 @@
-#ifndef WORLDGEN_H
-#define WORLDGEN_H
+#ifndef GAME_WORLDGEN_H
+#define GAME_WORLDGEN_H
 
 #include <game/chunk.h>
 

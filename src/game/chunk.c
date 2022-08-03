@@ -211,7 +211,7 @@ static int64_t cxo = 0, czo = 0;
 //static pthread_mutex_t cidlock;
 
 void genChunks_cb(struct chunkdata* chunks, void* ptr) {
-    struct server_ret_chunk* srvchunk = ptr;
+    struct server_ret_updatechunk* srvchunk = ptr;
     pthread_mutex_lock(&uclock);
     if (srvchunk->id != cid || srvchunk->xo != cxo || srvchunk->zo != czo) {
         //printf("Dropping chunk ([s:%d] != [c:%d])\n", srvchunk->id, cid);
@@ -227,7 +227,7 @@ void genChunks_cb(struct chunkdata* chunks, void* ptr) {
 }
 
 void genChunks_cb2(struct chunkdata* chunks, void* ptr) {
-    struct server_ret_chunkcol* srvchunk = ptr;
+    struct server_ret_updatechunkcol* srvchunk = ptr;
     pthread_mutex_lock(&uclock);
     if (srvchunk->id != cid || srvchunk->xo != cxo || srvchunk->zo != czo) {
         //printf("Dropping chunk ([s:%ld,%ld] != [c:%ld,%ld])\n", srvchunk->xo, srvchunk->zo, curxo, curzo);
@@ -261,9 +261,9 @@ void genChunks(struct chunkdata* chunks, int64_t xo, int64_t zo) {
     ++cid;
     //printf("set [%u]\n", cid);
     pthread_mutex_unlock(&uclock);
-    struct server_msg_chunkpos* chunkpos = malloc(sizeof(struct server_msg_chunkpos));
-    *chunkpos = (struct server_msg_chunkpos){xo, zo};
-    servSend(SERVER_CMD_SETCHUNK, chunkpos, true);
+    struct server_data_setchunkpos* chunkpos = malloc(sizeof(struct server_data_setchunkpos));
+    *chunkpos = (struct server_data_setchunkpos){xo, zo};
+    servSend(SERVER_DATA_SETCHUNKPOS, chunkpos, true);
     for (int i = 0; i <= (int)chunks->info.dist; ++i) {
         for (int z = -i; z <= i; ++z) {
             for (int x = -i; x <= i; ++x) {
@@ -277,16 +277,16 @@ void genChunks(struct chunkdata* chunks, int64_t xo, int64_t zo) {
                     }
                     if (!gen) {
                         //printf("REQ [%d][%d]\n", x, z);
-                        struct server_msg_chunkcol* srvchunk = malloc(sizeof(struct server_msg_chunkcol));
-                        *srvchunk = (struct server_msg_chunkcol){.id = cid, .info = chunks->info, .x = x, .z = z, .xo = xo, .zo = zo};
-                        servSend(SERVER_MSG_GETCHUNKCOL, srvchunk, true);
+                        struct server_data_getchunkcol* srvchunk = malloc(sizeof(struct server_data_getchunkcol));
+                        *srvchunk = (struct server_data_getchunkcol){.id = cid, .info = chunks->info, .x = x, .z = z, .xo = xo, .zo = zo};
+                        servSend(SERVER_DATA_GETCHUNKCOL, srvchunk, true);
                     } else if (gen < 16) {
                         coff2 = coff;
                         for (int y = 0; y < 16; ++y) {
                             if (chunks->renddata[coff2].generated) {
-                                struct server_msg_chunk* srvchunk2 = malloc(sizeof(struct server_msg_chunk));
-                                *srvchunk2 = (struct server_msg_chunk){.id = cid, .info = chunks->info, .x = x, .y = y, .z = z, .xo = xo, .zo = zo};
-                                servSend(SERVER_MSG_GETCHUNK, srvchunk2, true);
+                                struct server_data_getchunk* srvchunk2 = malloc(sizeof(struct server_data_getchunk));
+                                *srvchunk2 = (struct server_data_getchunk){.id = cid, .info = chunks->info, .x = x, .y = y, .z = z, .xo = xo, .zo = zo};
+                                servSend(SERVER_DATA_GETCHUNK, srvchunk2, true);
                             }
                             coff2 += chunks->info.widthsq;
                         }

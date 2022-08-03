@@ -194,6 +194,8 @@ int main(int _argc, char** _argv) {
     #ifndef SERVER
     if (argc > 1) {
         if (!strcmp(argv[1], "-server") || (winopt && !strcmp(argv[1], "/server"))) {
+            cores -= 1;
+            if (cores < 1) cores = 1;
             SERVER_THREADS = cores;
             commonSetup();
             if (!initServer()) return 1;
@@ -207,7 +209,7 @@ int main(int _argc, char** _argv) {
             }
             pause();
         } else if (!strcmp(argv[1], "-connect") || (winopt && !strcmp(argv[1], "/connect"))) {
-            cores -= 2;
+            cores -= 3;
             if (cores < 1) cores = 1;
             MESHER_THREADS = cores;
             if (argc < 3) {fputs("Please provide address and port\n", stderr); return 1;}
@@ -240,6 +242,8 @@ int main(int _argc, char** _argv) {
         return !game_ecode;
     }
     #else
+    cores -= 1;
+    if (cores < 1) cores = 1;
     SERVER_THREADS = cores;
     commonSetup();
     if (!initServer()) return 1;

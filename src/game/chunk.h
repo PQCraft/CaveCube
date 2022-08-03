@@ -1,5 +1,5 @@
-#ifndef CHUNK_H
-#define CHUNK_H
+#ifndef GAME_CHUNK_H
+#define GAME_CHUNK_H
 
 #include <renderer/renderer.h>
 

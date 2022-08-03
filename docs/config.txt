@@ -31,7 +31,8 @@
 # (true|false)
 #renderer.compositing = true
 
-# Windowed resolution (WxH[@Hz]) (Hz of 0 means unlimited# FPS) (default Hz is the same as the primary display)
+# Windowed resolution (WxH[@Hz]) (Hz of 0 means unlimited
+# FPS) (default Hz is the same as the primary display)
 #renderer.resolution = 1024x768
 
 # Fullscreen resolution (WxH[@Hz]) (Hz defaults to Hz of

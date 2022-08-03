@@ -2,6 +2,7 @@
 
 #include <main/main.h>
 #include "renderer.h"
+#include "glad_platform.h"
 #include <common/common.h>
 #include <common/resource.h>
 #include <common/noise.h>
@@ -14,7 +15,6 @@
 #include <string.h>
 #include <pthread.h>
 
-#include "glad_platform.h"
 #if defined(USESDL2)
     #include <SDL2/SDL.h>
 #else
