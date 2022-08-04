@@ -67,11 +67,36 @@ static void* servnetthread(void* args) {
     while (1) {
         microwait(1000);
         struct netcxn* newcxn;
-        if ((newcxn = acceptCxn(servcxn))) {
+        if ((newcxn = acceptCxn(servcxn, CLIENT_OUTBUF_SIZE, SERVER_OUTBUF_SIZE))) {
             printf("New connection from %s\n", getCxnAddrStr(newcxn));
-            pthread_mutex_lock(pdatalock);
-            
-            pthread_mutex_unlock(pdatalock);
+            bool added = false;
+            pthread_mutex_lock(&pdatalock);
+            for (int i = 0; i < maxclients; ++i) {
+                if (!pdata[i].valid) {
+                    pdata[i].valid = true;
+                    pdata[i].cxn = newcxn;
+                    added = true;
+                    break;
+                }
+            }
+            if (!added) {
+                printf("Connection to %s dropped due to client limit\n", getCxnAddrStr(newcxn));
+                closeCxn(newcxn);
+            }
+            pthread_mutex_unlock(&pdatalock);
+        }
+        for (int i = 0; i < maxclients; ++i) {
+            pthread_mutex_lock(&pdatalock);
+            if (pdata[i].valid) {
+                if (recvCxn(pdata[i].cxn) < 0) {
+                    printf("Connection to %s dropped due to disconnect\n", getCxnAddrStr(pdata[i].cxn));
+                    closeCxn(pdata[i].cxn);
+                    pdata[i].valid = false;
+                } else {
+                    // read buffer
+                }
+            }
+            pthread_mutex_unlock(&pdatalock);
         }
     }
     return NULL;
@@ -83,11 +108,11 @@ int startServer(char* addr, int port, char* world, int mcli) {
     if (port < 0 || port > 0xFFFF) port = 46000 + (getRandWord(1) % 1000);
     if (mcli > 0) maxclients = mcli;
     printf("Starting server on %s:%d with a max of %d %s...\n", (addr) ? addr : "0.0.0.0", port, maxclients, (maxclients == 1) ? "player" : "players");
-    if (!(servcxn = newCxn(addr, port, CXN_SERVER))) {
+    if (!(servcxn = newCxn(addr, port, CXN_SERVER, -1, -1))) {
         fputs("servStart: Failed to create connection\n", stderr);
         return -1;
     }
-    setCxnBufSize(servcxn, -1, SERVER_BUF_SIZE);
+    setCxnBufSize(servcxn, SERVER_SNDBUF_SIZE, CLIENT_SNDBUF_SIZE);
     pdata = calloc(maxclients, sizeof(*pdata));
     setRandSeed(0, 32464);
     initNoiseTable(0);

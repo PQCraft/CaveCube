@@ -27,9 +27,11 @@ enum {
 };
 
 struct netbuf {
-    unsigned char* data;
     int size;
-    int bufsize;
+    unsigned char* data;
+    int dlen;
+    int rptr;
+    int wptr;
 };
 
 struct netinfo {
@@ -39,17 +41,19 @@ struct netinfo {
 
 struct netcxn {
     sock_t socket;
-    struct netbuf* buffer;
+    struct netbuf* inbuf;
+    struct netbuf* outbuf;
     struct sockaddr_in* address;
     struct netinfo info;
 };
 
 bool initNet(void);
-struct netcxn* newCxn(char*, int, int);
+struct netcxn* newCxn(char*, int, int, int, int);
 void closeCxn(struct netcxn*);
-struct netcxn* acceptCxn(struct netcxn*);
-bool pollCxn(struct netcxn*);
+struct netcxn* acceptCxn(struct netcxn*, int, int);
+int recvCxn(struct netcxn*);
 void setCxnBufSize(struct netcxn*, int, int);
 char* getCxnAddrStr(struct netcxn*);
+bool addToNetBuf(struct netbuf*, unsigned char*, int);
 
 #endif
