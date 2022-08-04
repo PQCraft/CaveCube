@@ -7,18 +7,23 @@
 #include <string.h>
 #include <sys/ioctl.h>
 #include <stdbool.h>
+#include <errno.h>
 
 #ifndef _WIN32
     #include <sys/fcntl.h>
     #include <arpa/inet.h>
     #define PRIsock "d"
     #define SOCKINVAL(s) ((s) < 0)
+    #define SOCKERR(x) ((x) < 0)
+    #define SOCKET_ERROR -1
+    #define ioctlsocket ioctl
 #else
     #include <winsock2.h>
     #include <ws2tcpip.h>
     #include <windows.h>
     #define PRIsock PRIu64
     #define SOCKINVAL(s) ((s) == INVALID_SOCKET)
+    #define SOCKERR(x) ((x) == SOCKET_ERROR)
     static WSADATA wsadata;
     static WORD wsaver = MAKEWORD(2, 2);
     static bool wsainit = false;
@@ -39,25 +44,46 @@ static bool startwsa() {
 
 static int rsock(sock_t sock, void* buf, int len) {
     int ret = recv(sock, buf, len, 0);
-    #ifdef _WIN32
-    if (ret == SOCKET_ERROR) return -1;
-    #endif
+    if (SOCKERR(ret)) {
+        bool cond;
+        #ifndef _WIN32
+        cond = (errno == EAGAIN || errno == EWOULDBLOCK);
+        #else
+        cond = (WSAGetLastError() == WSAEWOULDBLOCK);
+        #endif
+        if (cond) {
+            return 0;
+        } else {
+            return -1;
+        }
+    } else if (!ret) {
+        return -1;
+    }
     return ret;
 }
 
-static void wsock(sock_t sock, void* buf, int len) {
-    #ifndef _WIN32
-    write(sock, buf, len);
-    #else
-    send(sock, buf, len, 0);
-    #endif
+static int wsock(sock_t sock, void* buf, int len) {
+    int ret = send(sock, buf, len, 0);
+    if (SOCKERR(ret)) {
+        bool cond;
+        #ifndef _WIN32
+        cond = (errno == EAGAIN || errno == EWOULDBLOCK);
+        #else
+        cond = (WSAGetLastError() == WSAEWOULDBLOCK);
+        #endif
+        if (cond) {
+            return 0;
+        } else {
+            return -1;
+        }
+    }
+    return ret;
 }
 
-static struct netbuf* allocBuf() {
-    struct netbuf* buf = malloc(sizeof(struct netbuf));
-    buf->size = 0;
-    buf->bufsize = 256;
-    buf->data = malloc(buf->bufsize);
+static struct netbuf* allocBuf(int size) {
+    struct netbuf* buf = calloc(1, sizeof(struct netbuf));
+    buf->size = size;
+    buf->data = malloc(size);
     return buf;
 }
 
@@ -66,35 +92,32 @@ static void freeBuf(struct netbuf* buf) {
     free(buf);
 }
 
-static void addToBuf(struct netbuf* buf, unsigned char* data, int size) {
-    if (size < 1 || !data) return;
-    bool ch = false;
-    while (buf->size + size > buf->bufsize) {
-        buf->bufsize *= 2;
+bool addToNetBuf(struct netbuf* buf, unsigned char* data, int size) {
+    if (size < 1) return true;
+    if (buf->dlen + size > buf->size) return false;
+    buf->dlen += size;
+    for (int i = 0; i < size; ++i) {
+        buf->data[buf->wptr] = data[i];
+        buf->wptr = (buf->wptr + 1) % buf->size;
     }
-    if (ch) buf->data = realloc(buf->data, buf->bufsize);
-    memmove(&buf->data[buf->size], data, size);
-    buf->size += size;
+    return true;
 }
 
 static int addSockToBuf(struct netbuf* buf, sock_t sock, int size) {
-    if (size < 0 || SOCKINVAL(sock)) return 0;
-    bool ch = false;
-    while (buf->size + size > buf->bufsize) {
-        buf->bufsize *= 2;
+    if (size < 0) return 0;
+    if (buf->dlen + size > buf->size) return 0;
+    unsigned char* data = malloc(size);
+    int ret = rsock(sock, data, size);
+    buf->dlen += size;
+    for (int i = 0; i < size; ++i) {
+        buf->data[buf->wptr] = data[i];
+        buf->wptr = (buf->wptr + 1) % buf->size;
     }
-    if (ch) buf->data = realloc(buf->data, buf->bufsize);
-    int ret = rsock(sock, &buf->data[buf->size], size);
-    /*
-    for (int i = 0; i < ret; ++i) {
-        printf("[%d]: [%d]{%c}\n", i, buf->data[buf->size + i], buf->data[buf->size + i]);
-    }
-    */
-    buf->size += size;
+    free(data);
     return ret;
 }
 
-struct netcxn* newCxn(char* addr, int port, int type) {
+struct netcxn* newCxn(char* addr, int port, int type, int obs, int ibs) {
     sock_t newsock = INVALID_SOCKET;
     if (SOCKINVAL(newsock = socket(AF_INET, SOCK_STREAM, 0))) return NULL;
     if (type == CXN_SERVER) {
@@ -133,19 +156,34 @@ struct netcxn* newCxn(char* addr, int port, int type) {
     #else
     {unsigned long o = 1; ioctlsocket(newsock, FIONBIO, &o);}
     #endif
-    struct netcxn* newinf = malloc(sizeof(*newinf));
-    *newinf = (struct netcxn){.socket = newsock, .buffer = allocBuf(), .address = address};
+    struct netcxn* newinf = calloc(1, sizeof(*newinf));
+    *newinf = (struct netcxn){
+        .socket = newsock,
+        .address = address,
+        .info = (struct netinfo){
+            .addr[0] = (address->sin_addr.s_addr) & 0xFF,
+            .addr[1] = (address->sin_addr.s_addr >> 8) & 0xFF,
+            .addr[2] = (address->sin_addr.s_addr >> 16) & 0xFF,
+            .addr[3] = (address->sin_addr.s_addr >> 24) & 0xFF,
+            .port = address->sin_port
+        }
+    };
+    if (type != CXN_SERVER) {
+        newinf->inbuf = allocBuf(ibs);
+        newinf->outbuf = allocBuf(obs);
+    }
     return newinf;
 }
 
 void closeCxn(struct netcxn* inf) {
     close(inf->socket);
-    freeBuf(inf->buffer);
+    freeBuf(inf->inbuf);
+    freeBuf(inf->outbuf);
     free(inf->address);
     free(inf);
 }
 
-struct netcxn* acceptCxn(struct netcxn* inf) {
+struct netcxn* acceptCxn(struct netcxn* inf, int obs, int ibs) {
     sock_t newsock = INVALID_SOCKET;
     struct sockaddr_in* address = calloc(1, sizeof(*address));
     socklen_t socklen = sizeof(*address);
@@ -158,7 +196,8 @@ struct netcxn* acceptCxn(struct netcxn* inf) {
     struct netcxn* newinf = malloc(sizeof(*newinf));
     *newinf = (struct netcxn){
         .socket = newsock,
-        .buffer = allocBuf(),
+        .inbuf = allocBuf(ibs),
+        .outbuf = allocBuf(obs),
         .address = address,
         .info = (struct netinfo){
             .addr[0] = (address->sin_addr.s_addr) & 0xFF,
@@ -171,22 +210,16 @@ struct netcxn* acceptCxn(struct netcxn* inf) {
     return newinf;
 }
 
-bool pollCxn(struct netcxn* inf) {
+int recvCxn(struct netcxn* inf) {
     int bytes = 0;
-    #ifndef _WIN32
-    ioctl(inf->socket, FIONREAD, &bytes);
-    #else
-    ioctlsocket(inf->socket, FIONREAD, &bytes);
-    #endif
-    if (bytes < 0) return false;
-    int ret = addSockToBuf(inf->buffer, inf->socket, bytes);
-    if (!ret) return false;
-    return true;
+    if (SOCKERR(ioctlsocket(inf->socket, FIONREAD, &bytes))) return -1;
+    if (bytes < 0) return -1;
+    return addSockToBuf(inf->inbuf, inf->socket, bytes);
 }
 
-void setCxnBufSize(struct netcxn* inf, int rx, int tx) {
-    if (rx > 0) setsockopt(inf->socket, SOL_SOCKET, SO_RCVBUF, (void*)&rx, sizeof(rx));
+void setCxnBufSize(struct netcxn* inf, int tx, int rx) {
     if (tx > 0) setsockopt(inf->socket, SOL_SOCKET, SO_SNDBUF, (void*)&tx, sizeof(tx));
+    if (rx > 0) setsockopt(inf->socket, SOL_SOCKET, SO_RCVBUF, (void*)&rx, sizeof(rx));
 }
 
 char* getCxnAddrStr(struct netcxn* inf) {
