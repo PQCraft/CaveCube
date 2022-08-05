@@ -14,6 +14,8 @@ int SERVER_THREADS;
 
 static int maxclients = MAX_CLIENTS;
 
+static bool serveralive = false;
+
 static int unamemax;
 static int server_delay;
 static int server_idledelay;
@@ -64,7 +66,7 @@ struct netcxn* servcxn;
 static pthread_t servnetthreadh;
 
 static void* servnetthread(void* args) {
-    while (1) {
+    while (serveralive) {
         microwait(1000);
         struct netcxn* newcxn;
         if ((newcxn = acceptCxn(servcxn, CLIENT_OUTBUF_SIZE, SERVER_OUTBUF_SIZE))) {
@@ -108,7 +110,7 @@ int startServer(char* addr, int port, char* world, int mcli) {
     if (port < 0 || port > 0xFFFF) port = 46000 + (getRandWord(1) % 1000);
     if (mcli > 0) maxclients = mcli;
     printf("Starting server on %s:%d with a max of %d %s...\n", (addr) ? addr : "0.0.0.0", port, maxclients, (maxclients == 1) ? "player" : "players");
-    if (!(servcxn = newCxn(addr, port, CXN_SERVER, -1, -1))) {
+    if (!(servcxn = newCxn(CXN_MULTI, addr, port, -1, -1))) {
         fputs("servStart: Failed to create connection\n", stderr);
         return -1;
     }
@@ -116,12 +118,20 @@ int startServer(char* addr, int port, char* world, int mcli) {
     pdata = calloc(maxclients, sizeof(*pdata));
     setRandSeed(0, 32464);
     initNoiseTable(0);
+    serveralive = true;
     pthread_create(&servnetthreadh, NULL, &servnetthread, (void*)NULL);
     return port;
 }
 
 void stopServer() {
-    //TODO: add code to stop and join server threads
+    puts("Stopping server...");
+    serveralive = false;
+    pthread_join(servnetthreadh, NULL);
+    for (int i = 0; i < maxclients; ++i) {
+        if (pdata[i].valid) {
+            closeCxn(pdata[i].cxn);
+        }
+    }
     closeCxn(servcxn);
     free(pdata);
 }

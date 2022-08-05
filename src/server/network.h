@@ -22,8 +22,8 @@
 #endif
 
 enum {
-    CXN_SERVER,
-    CXN_CLIENT,
+    CXN_MULTI,
+    CXN_SINGLE,
 };
 
 struct netbuf {
@@ -40,6 +40,7 @@ struct netinfo {
 };
 
 struct netcxn {
+    int type;
     sock_t socket;
     struct netbuf* inbuf;
     struct netbuf* outbuf;
@@ -48,12 +49,11 @@ struct netcxn {
 };
 
 bool initNet(void);
-struct netcxn* newCxn(char*, int, int, int, int);
+struct netcxn* newCxn(int, char*, int, int, int);
 void closeCxn(struct netcxn*);
 struct netcxn* acceptCxn(struct netcxn*, int, int);
 int recvCxn(struct netcxn*);
 void setCxnBufSize(struct netcxn*, int, int);
 char* getCxnAddrStr(struct netcxn*);
-bool addToNetBuf(struct netbuf*, unsigned char*, int);
 
 #endif

@@ -418,135 +418,50 @@ uint64_t getRandQWord(int s) {
            (uint64_t)getRandByte(s);;
 }
 
-#ifdef _WIN32
-char** cmdlineToArgv(char* lpCmdline, int* numargs) {
-    unsigned argc;
-    char** argv;
-    char* s;
-    char* d;
-    int qcount, bcount;
-    if (!numargs) {
-        SetLastError(ERROR_INVALID_PARAMETER);
-        return NULL;
-    }
-    if (!*lpCmdline) {
-        argc = 1;
+char* spCharToStr(char c) {
+    static char str[8];
+    if (c >= 32 && c <= 126) {
+        str[0] = c;
+        str[1] = 0;
     } else {
-        argc = 2;
-    }
-    s = lpCmdline;
-    if (*s == '"') {
-        ++s;
-        while (*s) {
-            if (*s++ == '"') break;
-        }
-    } else {
-        while (*s && *s != ' ' && *s != '\t') ++s;
-    }
-    while (*s == ' ' || *s == '\t') ++s;
-    if (*s) ++argc;
-    qcount = 0;
-    bcount = 0;
-    while (*s) {
-        if ((*s == ' ' || *s == '\t') && !qcount) {
-            while (*s == ' ' || *s == '\t') ++s;
-            if (*s) ++argc;
-            bcount = 0;
-        } else if (*s == '\\') {
-            ++bcount;
-            ++s;
-        } else if (*s == '"') {
-            if (!(bcount & 1)) ++qcount;
-            ++s;
-            bcount = 0;
-            while (*s == '"') {
-                ++qcount;
-                ++s;
-            }
-            qcount = qcount % 3;
-            if (qcount == 2) qcount = 0;
-        } else {
-            bcount = 0;
-            ++s;
-        }
-    }
-    argv = LocalAlloc(LMEM_FIXED, (argc + 1) * sizeof(char*) + (MAX_PATH + 1) * sizeof(char) + (strlen(lpCmdline) + 1) * sizeof(char));
-    if (!argv) return NULL;
-    d = (char*)(argv + argc + 1);
-    *d = 0;
-    GetModuleFileName(NULL, d, MAX_PATH);
-    argv[0] = d;
-    argv[0] += strlen(argv[0]);
-    while (argv[0] > d + 1 && *(argv[0] - 1) != '\\') --argv[0];
-    d += MAX_PATH + 1;
-    strcpy(d, lpCmdline);
-    argv[1] = d;
-    if (!*lpCmdline) {
-        argc = 1;
-    } else {
-        argc = 2;
-    }
-    if (*d == '"') {
-        s = d + 1;
-        while (*s) {
-            if (*s == '"') {
-                ++s;
+        bool d = false;
+        switch (c) {
+            case 0:;
+                str[1] = '0';
                 break;
-            }
-            *d++ = *s++;
+            case '\a':;
+                str[1] = 'a';
+                break;
+            case '\b':;
+                str[1] = 'b';
+                break;
+            case '\e':;
+                str[1] = 'e';
+                break;
+            case '\f':;
+                str[1] = 'f';
+                break;
+            case '\n':;
+                str[1] = 'n';
+                break;
+            case '\r':;
+                str[1] = 'r';
+                break;
+            case '\t':;
+                str[1] = 't';
+                break;
+            case '\v':;
+                str[1] = 'v';
+                break;
+            default:;
+                d = true;
+                sprintf(str, "\\x%02u", (unsigned char)c);
+                break;
         }
-    } else {
-        while (*d && *d != ' ' && *d != '\t') ++d;
-        s = d;
-        if (*s) ++s;
-    }
-    *d++ = 0;
-    while (*s == ' ' || *s == '\t') ++s;
-    if (!*s) {
-        argv[argc] = NULL;
-        *numargs = argc;
-        return argv;
-    }
-    argv[argc++] = d;
-    qcount = 0;
-    bcount = 0;
-    while (*s) {
-        if ((*s == ' ' || *s == '\t') && !qcount) {
-            *d++ = 0;
-            bcount = 0;
-            do {
-                ++s;
-            } while (*s == ' ' || *s == '\t');
-            if (*s) argv[argc++] = d;
-        } else if (*s=='\\') {
-            *d++ = *s++;
-            ++bcount;
-        } else if (*s == '"') {
-            if (!(bcount & 1)) {
-                d -= bcount / 2;
-                ++qcount;
-            } else {
-                d = d - bcount / 2 - 1;
-                *d++ = '"';
-            }
-            ++s;
-            bcount = 0;
-            while (*s == '"') {
-                if (++qcount == 3) {
-                    *d++ = '"';
-                    qcount = 0;
-                }
-                ++s;
-            }
-            if (qcount == 2) qcount = 0;
-        } else {
-            *d++ = *s++;
-            bcount = 0;
+        if (!d) {
+            str[0] = '\\';
+            str[2] = 0;
         }
     }
-    *d = '\0';
-    argv[argc] = NULL;
-    *numargs = argc;
-    return argv;
+    return str;
 }
-#endif

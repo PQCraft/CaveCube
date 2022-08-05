@@ -37,8 +37,6 @@ char* basefilename(char*);
 char* pathfilename(char*);
 char* execpath(void);
 int getCoreCt(void);
-#ifdef _WIN32
-char** cmdlineToArgv(char*, int*);
-#endif
+char* spCharToStr(char);
 
 #endif
