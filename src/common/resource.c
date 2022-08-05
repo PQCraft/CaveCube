@@ -1,3 +1,4 @@
+#include <main/main.h>
 #include "resource.h"
 #include "common.h"
 #include "stb_image.h"
@@ -47,7 +48,7 @@ bool removeResourcePack(char* dir) {
 
 char* getResourcePath(char* path) {
     static char* npath = NULL;
-    if (!npath) npath = malloc(32768);
+    if (!npath) npath = malloc(MAX_PATH + 1);
     for (int i = packct - 1; i >= 0; --i) {
         if (!packs[i].dir) continue;
         sprintf(npath, "resources/%s/%s", packs[i].dir, path);
@@ -151,7 +152,8 @@ void freeResource(void* data) {
         }
     }
     if (!ent) return;
-    if (!(ent->uses)) freeResStub(ent);
+    --ent->uses;
+    if (ent->uses < 1) freeResStub(ent);
 }
 
 void freeAllResources() {

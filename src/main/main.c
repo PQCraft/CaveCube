@@ -256,7 +256,11 @@ int main(int _argc, char** _argv) {
         return 1;
     }
     pause();
+    stopServer();
     #endif
+    free(maindir);
+    free(startdir);
+    free(localdir);
     if (config) free(config);
     return 0;
 }
