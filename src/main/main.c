@@ -208,6 +208,7 @@ int main(int _argc, char** _argv) {
                 return 1;
             }
             pause();
+            stopServer();
         } else if (!strcmp(argv[1], "-connect") || (winopt && !strcmp(argv[1], "/connect"))) {
             cores -= 3;
             if (cores < 1) cores = 1;

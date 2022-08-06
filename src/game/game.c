@@ -524,6 +524,7 @@ bool doGame(char* addr, int port) {
         free(tmpbuf[i]);
     }
     free(tmpbuf);
+    stopServer();
     return true;
 }
 

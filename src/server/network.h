@@ -22,8 +22,13 @@
 #endif
 
 enum {
-    CXN_MULTI,
-    CXN_SINGLE,
+    CXN__MIN = 0,
+    CXN_INVAL = 0,
+    CXN_ACTIVE,
+    CXN_PASSIVE,
+    CXN_ACTIVE_MULTICAST,
+    CXN_PASSIVE_MULTICAST,
+    CXN__MAX,
 };
 
 struct netbuf {
@@ -53,6 +58,7 @@ struct netcxn* newCxn(int, char*, int, int, int);
 void closeCxn(struct netcxn*);
 struct netcxn* acceptCxn(struct netcxn*, int, int);
 int recvCxn(struct netcxn*);
+int sendCxn(struct netcxn*);
 void setCxnBufSize(struct netcxn*, int, int);
 char* getCxnAddrStr(struct netcxn*);
 

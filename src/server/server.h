@@ -26,49 +26,21 @@
 #endif
 
 enum {
-    SERVER_MSG_ACK,
-    SERVER_MSG_DATA,
+    SERVER_DATA_PONG,
+    SERVER_DATA_COMPATINFO,
+    SERVER_DATA_UPDATECHUNK,
+    SERVER_DATA_UPDATECHUNKCOL,
 };
 
-enum {
-    SERVER_DATA_PING,
-    SERVER_DATA_GETCHUNK,
-    SERVER_DATA_GETCHUNKCOL,
-    SERVER_DATA_SETCHUNKPOS,
+struct server_data_compatinfo {
+    uint16_t ver_major;
+    uint16_t ver_minor;
+    uint16_t ver_patch;
+    uint16_t flags;
+    char server_str[256];
 };
 
-enum {
-    SERVER_RET_NONE,
-    SERVER_RET_PONG,
-    SERVER_RET_UPDATECHUNK,
-    SERVER_RET_UPDATECHUNKCOL,
-};
-
-struct server_data_getchunk {
-    struct chunkinfo info;
-    uint16_t id;
-    int x;
-    int y;
-    int z;
-    int64_t xo;
-    int64_t zo;
-};
-
-struct server_data_getchunkcol {
-    struct chunkinfo info;
-    uint16_t id;
-    int x;
-    int z;
-    int64_t xo;
-    int64_t zo;
-};
-
-struct server_data_setchunkpos {
-    int64_t x;
-    int64_t z;
-};
-
-struct server_ret_updatechunk {
+struct server_data_updatechunk {
     uint16_t id;
     int x;
     int y;
@@ -78,7 +50,7 @@ struct server_ret_updatechunk {
     struct blockdata data[4096];
 };
 
-struct server_ret_updatechunkcol {
+struct server_data_updatechunkcol {
     uint16_t id;
     int x;
     int z;
@@ -87,9 +59,49 @@ struct server_ret_updatechunkcol {
     struct blockdata data[16][4096];
 };
 
-struct server_ret {
+struct server_data {
     int msg;
     void* data;
+};
+
+enum {
+    CLIENT_DATA_PING,
+    CLIENT_DATA_COMPATINFO,
+    CLIENT_DATA_GETCHUNK,
+    CLIENT_DATA_GETCHUNKCOL,
+    CLIENT_DATA_SETCHUNKPOS,
+};
+
+struct client_data_compatinfo {
+    uint16_t ver_major;
+    uint16_t ver_minor;
+    uint16_t ver_patch;
+    uint16_t flags;
+    char client_str[256];
+};
+
+struct client_data_getchunk {
+    struct chunkinfo info;
+    uint16_t id;
+    int x;
+    int y;
+    int z;
+    int64_t xo;
+    int64_t zo;
+};
+
+struct client_data_getchunkcol {
+    struct chunkinfo info;
+    uint16_t id;
+    int x;
+    int z;
+    int64_t xo;
+    int64_t zo;
+};
+
+struct client_data_setchunkpos {
+    int64_t x;
+    int64_t z;
 };
 
 extern int SERVER_THREADS;
