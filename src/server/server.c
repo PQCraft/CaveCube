@@ -16,6 +16,11 @@ static int maxclients = MAX_CLIENTS;
 
 static bool serveralive = false;
 
+enum {
+    MSG_ACK,
+    MSG_DATA,
+};
+
 static int unamemax;
 static int server_delay;
 static int server_idledelay;
@@ -96,6 +101,7 @@ static void* servnetthread(void* args) {
                     pdata[i].valid = false;
                 } else {
                     // read buffer
+                    sendCxn(pdata[i].cxn);
                 }
             }
             pthread_mutex_unlock(&pdatalock);
@@ -110,7 +116,7 @@ int startServer(char* addr, int port, char* world, int mcli) {
     if (port < 0 || port > 0xFFFF) port = 46000 + (getRandWord(1) % 1000);
     if (mcli > 0) maxclients = mcli;
     printf("Starting server on %s:%d with a max of %d %s...\n", (addr) ? addr : "0.0.0.0", port, maxclients, (maxclients == 1) ? "player" : "players");
-    if (!(servcxn = newCxn(CXN_MULTI, addr, port, -1, -1))) {
+    if (!(servcxn = newCxn(CXN_PASSIVE, addr, port, -1, -1))) {
         fputs("servStart: Failed to create connection\n", stderr);
         return -1;
     }
