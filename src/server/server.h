@@ -4,6 +4,7 @@
 #include <game/chunk.h>
 
 #include <stdbool.h>
+#include <stdarg.h>
 
 #ifndef MAX_CLIENTS
     #define MAX_CLIENTS 256
@@ -31,11 +32,11 @@ enum {
 };
 
 enum {
-    SERVER_DATA_PONG,
-    SERVER_DATA_COMPATINFO,
-    SERVER_DATA_LOGININFO,
-    SERVER_DATA_UPDATECHUNK,
-    SERVER_DATA_UPDATECHUNKCOL,
+    SERVER_PONG,
+    SERVER_COMPATINFO,
+    SERVER_LOGININFO,
+    SERVER_UPDATECHUNK,
+    SERVER_UPDATECHUNKCOL,
 };
 
 struct server_data_compatinfo {
@@ -47,26 +48,24 @@ struct server_data_compatinfo {
 };
 
 struct server_data_logininfo {
-    bool failed;
+    uint8_t failed;
     char* reason;
+    uint64_t uid;
+    uint64_t password;
 };
 
 struct server_data_updatechunk {
     uint16_t id;
-    int x;
-    int y;
-    int z;
-    int64_t xo;
-    int64_t zo;
+    int64_t x;
+    int8_t y;
+    int64_t z;
     struct blockdata data[4096];
 };
 
 struct server_data_updatechunkcol {
     uint16_t id;
-    int x;
-    int z;
-    int64_t xo;
-    int64_t zo;
+    int64_t x;
+    int64_t z;
     struct blockdata data[16][4096];
 };
 
@@ -76,12 +75,12 @@ struct server_data {
 };
 
 enum {
-    CLIENT_DATA_PING,
-    CLIENT_DATA_COMPATINFO,
-    CLIENT_DATA_LOGININFO,
-    CLIENT_DATA_GETCHUNK,
-    CLIENT_DATA_GETCHUNKCOL,
-    CLIENT_DATA_SETCHUNKPOS,
+    CLIENT_PING,
+    CLIENT_COMPATINFO,
+    CLIENT_LOGININFO,
+    CLIENT_GETCHUNK,
+    CLIENT_GETCHUNKCOL,
+    CLIENT_SETCHUNKPOS,
 };
 
 struct client_data_compatinfo {
@@ -100,20 +99,15 @@ struct client_data_logininfo {
 struct client_data_getchunk {
     struct chunkinfo info;
     uint16_t id;
-    int x;
-    int y;
-    int z;
-    int64_t xo;
-    int64_t zo;
+    int64_t x;
+    int8_t y;
+    int64_t z;
 };
 
 struct client_data_getchunkcol {
-    struct chunkinfo info;
     uint16_t id;
-    int x;
-    int z;
-    int64_t xo;
-    int64_t zo;
+    int64_t x;
+    int64_t z;
 };
 
 struct client_data_setchunkpos {
@@ -127,8 +121,8 @@ bool initServer(void);
 int startServer(char*, int, char*, int);
 void stopServer(void);
 
-bool cliConnect(char*, int);
-void cliSend(int, void*, bool);
-void cliRecv(void (*)(int, void*), int);
+bool cliConnect(char*, int, void (*)(int, ...));
+void cliDisconnect(void);
+void cliSend(int, ...);
 
 #endif

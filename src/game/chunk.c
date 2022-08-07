@@ -210,44 +210,44 @@ static uint16_t cid = 0;
 static int64_t cxo = 0, czo = 0;
 //static pthread_mutex_t cidlock;
 
-void genChunks_cb(struct chunkdata* chunks, void* ptr) {
-    struct server_ret_updatechunk* srvchunk = ptr;
+void writeChunk(struct chunkdata* chunks, int id, int64_t x, int y, int64_t z, struct blockdata* data) {
+    if (y < 0 || y > 15) return;
     pthread_mutex_lock(&uclock);
-    if (srvchunk->id != cid || srvchunk->xo != cxo || srvchunk->zo != czo) {
-        //printf("Dropping chunk ([s:%d] != [c:%d])\n", srvchunk->id, cid);
+    if ((uint16_t)id != cid) {
         pthread_mutex_unlock(&uclock);
         return;
     }
-    uint32_t coff = (srvchunk->z + chunks->info.dist) * chunks->info.width + srvchunk->y * chunks->info.widthsq + (srvchunk->x + chunks->info.dist);
-    memcpy(chunks->data[coff], srvchunk->data, 4096 * sizeof(struct blockdata));
+    int64_t nx = x - cxo + chunks->info.dist;
+    int64_t nz = z - czo + chunks->info.dist;
+    uint32_t coff = nx + nz * chunks->info.width + y * chunks->info.widthsq;
+    memcpy(chunks->data[coff], data, 4096 * sizeof(struct blockdata));
     chunks->renddata[coff].updated = false;
     chunkUpdate(chunks, coff);
-    if (srvchunk->id == cid && srvchunk->xo == cxo && srvchunk->zo == czo) chunks->renddata[coff].generated = true;
+    if ((uint16_t)id == cid) chunks->renddata[coff].generated = true;
     pthread_mutex_unlock(&uclock);
 }
 
-void genChunks_cb2(struct chunkdata* chunks, void* ptr) {
-    struct server_ret_updatechunkcol* srvchunk = ptr;
+void writeChunkCol(struct chunkdata* chunks, int id, int64_t x, int64_t z, struct blockdata** data) {
     pthread_mutex_lock(&uclock);
-    if (srvchunk->id != cid || srvchunk->xo != cxo || srvchunk->zo != czo) {
-        //printf("Dropping chunk ([s:%ld,%ld] != [c:%ld,%ld])\n", srvchunk->xo, srvchunk->zo, curxo, curzo);
+    if ((uint16_t)id != cid) {
         pthread_mutex_unlock(&uclock);
         return;
     }
-    uint32_t coff = (srvchunk->z + chunks->info.dist) * chunks->info.width + (srvchunk->x + chunks->info.dist);
-    uint32_t coff2 = coff;
+    int64_t nx = x - cxo + chunks->info.dist;
+    int64_t nz = z - czo + chunks->info.dist;
+    uint32_t coff = nx + nz * chunks->info.width;
     for (int i = 0; i < 16; ++i) {
-        memcpy(chunks->data[coff2], srvchunk->data[i], 4096 * sizeof(struct blockdata));
-        chunks->renddata[coff2].updated = false;
-        chunkUpdate(chunks, coff2);
-        if (srvchunk->id == cid && srvchunk->xo == cxo && srvchunk->zo == czo) chunks->renddata[coff2].generated = true;
+        memcpy(chunks->data[coff], data[i], 4096 * sizeof(struct blockdata));
+        chunks->renddata[coff].updated = false;
+        chunkUpdate(chunks, coff);
+        if ((uint16_t)id == cid) chunks->renddata[coff].generated = true;
         else break;
-        coff2 += chunks->info.widthsq;
+        coff += chunks->info.widthsq;
     }
     pthread_mutex_unlock(&uclock);
 }
 
-void genChunks(struct chunkdata* chunks, int64_t xo, int64_t zo) {
+void reqChunks(struct chunkdata* chunks, int64_t xo, int64_t zo) {
     /*
     static bool init = false;
     if (!init) {
@@ -261,9 +261,7 @@ void genChunks(struct chunkdata* chunks, int64_t xo, int64_t zo) {
     ++cid;
     //printf("set [%u]\n", cid);
     pthread_mutex_unlock(&uclock);
-    struct server_data_setchunkpos* chunkpos = malloc(sizeof(struct server_data_setchunkpos));
-    *chunkpos = (struct server_data_setchunkpos){xo, zo};
-    servSend(SERVER_DATA_SETCHUNKPOS, chunkpos, true);
+    cliSend(CLIENT_SETCHUNKPOS, xo, zo);
     for (int i = 0; i <= (int)chunks->info.dist; ++i) {
         for (int z = -i; z <= i; ++z) {
             for (int x = -i; x <= i; ++x) {
@@ -277,16 +275,12 @@ void genChunks(struct chunkdata* chunks, int64_t xo, int64_t zo) {
                     }
                     if (!gen) {
                         //printf("REQ [%d][%d]\n", x, z);
-                        struct server_data_getchunkcol* srvchunk = malloc(sizeof(struct server_data_getchunkcol));
-                        *srvchunk = (struct server_data_getchunkcol){.id = cid, .info = chunks->info, .x = x, .z = z, .xo = xo, .zo = zo};
-                        servSend(SERVER_DATA_GETCHUNKCOL, srvchunk, true);
+                        cliSend(CLIENT_GETCHUNKCOL, cid, (int64_t)((int64_t)(x) + xo), (int64_t)((int64_t)(z) + zo));
                     } else if (gen < 16) {
                         coff2 = coff;
                         for (int y = 0; y < 16; ++y) {
                             if (chunks->renddata[coff2].generated) {
-                                struct server_data_getchunk* srvchunk2 = malloc(sizeof(struct server_data_getchunk));
-                                *srvchunk2 = (struct server_data_getchunk){.id = cid, .info = chunks->info, .x = x, .y = y, .z = z, .xo = xo, .zo = zo};
-                                servSend(SERVER_DATA_GETCHUNK, srvchunk2, true);
+                                cliSend(CLIENT_GETCHUNK, (int64_t)((int64_t)(x) + xo), y, (int64_t)((int64_t)(z) + zo));
                             }
                             coff2 += chunks->info.widthsq;
                         }

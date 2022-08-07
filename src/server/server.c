@@ -70,6 +70,17 @@ bool initServer() {
     return true;
 }
 
+static pthread_t servpthreads[MAX_THREADS];
+
+static void* servthread(void* args) {
+    int id = (intptr_t)args;
+    printf("Server: Started thread [%d]\n", id);
+    while (serveralive) {
+        microwait(1000);
+    }
+    return NULL;
+}
+
 struct netcxn* servcxn;
 
 static pthread_t servnetthreadh;
@@ -78,7 +89,7 @@ static void* servnetthread(void* args) {
     while (serveralive) {
         microwait(1000);
         struct netcxn* newcxn;
-        if ((newcxn = acceptCxn(servcxn, CLIENT_OUTBUF_SIZE, SERVER_OUTBUF_SIZE))) {
+        if ((newcxn = acceptCxn(servcxn, SERVER_OUTBUF_SIZE, CLIENT_OUTBUF_SIZE))) {
             printf("New connection from %s\n", getCxnAddrStr(newcxn));
             bool added = false;
             pthread_mutex_lock(&pdatalock);
@@ -129,7 +140,30 @@ int startServer(char* addr, int port, char* world, int mcli) {
     setRandSeed(0, 32464);
     initNoiseTable(0);
     serveralive = true;
-    pthread_create(&servnetthreadh, NULL, &servnetthread, (void*)NULL);
+    #ifdef NAME_THREADS
+    char name[256];
+    char name2[256];
+    name[0] = 0;
+    name2[0] = 0;
+    #endif
+    pthread_create(&servnetthreadh, NULL, &servnetthread, NULL);
+    #ifdef NAME_THREADS
+    pthread_getname_np(servnetthreadh, name2, 256);
+    sprintf(name, "%s:st", name2);
+    pthread_setname_np(servnetthreadh, name);
+    #endif
+    for (int i = 0; i < SERVER_THREADS && i < MAX_THREADS; ++i) {
+        #ifdef NAME_THREADS
+        name[0] = 0;
+        name2[0] = 0;
+        #endif
+        pthread_create(&servpthreads[i], NULL, &servthread, (void*)(intptr_t)i);
+        #ifdef NAME_THREADS
+        pthread_getname_np(servpthreads[i], name2, 256);
+        sprintf(name, "%s:srv%d", name2, i);
+        pthread_setname_np(servpthreads[i], name);
+        #endif
+    }
     return port;
 }
 
@@ -148,13 +182,45 @@ void stopServer() {
 
 #ifndef SERVER
 
+#include <stdarg.h>
+
 #ifndef CLIENT_STRING
     #define CLIENT_STRING "CaveCube"
 #endif
 
 static int client_delay;
 
-bool cliConnect(char* addr, int port) {
+struct netcxn* clicxn;
+
+static void (*handler)(int, ...);
+
+static void* clinetthread(void* args) {
+    while (serveralive) {
+        microwait(1000);
+    }
+    return NULL;
+}
+
+bool cliConnect(char* addr, int port, void (*callback)(int, ...)) {
+    if (!(clicxn = newCxn(CXN_ACTIVE, addr, port, CLIENT_OUTBUF_SIZE, SERVER_OUTBUF_SIZE))) {
+        fputs("cliConnect: Failed to create connection\n", stderr);
+        return false;
+    }
+    #ifdef NAME_THREADS
+    char name[256];
+    char name2[256];
+    name[0] = 0;
+    name2[0] = 0;
+    #endif
+    pthread_create(&clinetthreadh, NULL, &clinetthread, NULL);
+    #ifdef NAME_THREADS
+    pthread_getname_np(clinetthreadh, name2, 256);
+    sprintf(name, "%s:ct", name2);
+    pthread_setname_np(clinetthreadh, name);
+    #endif
+}
+
+void cliSend(int msg, ...) {
     
 }
 

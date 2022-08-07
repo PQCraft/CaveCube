@@ -13,7 +13,18 @@ static uint8_t gravel;
 static uint8_t sand;
 static uint8_t water;
 static uint8_t bedrock;
-    
+
+bool initWorldgen() {
+    stone = blockNoFromID("stone");
+    dirt = blockNoFromID("dirt");
+    grass_block = blockNoFromID("grass_block");
+    gravel = blockNoFromID("gravel");
+    sand = blockNoFromID("sand");
+    water = blockNoFromID("water");
+    bedrock = blockNoFromID("bedrock");
+    return true;
+}
+
 static inline void genSliver(int type, double cx, double cz, int top, int btm, uint8_t* data) {
     switch (type) {
         default:; {
@@ -70,33 +81,19 @@ static inline void genSliver(int type, double cx, double cz, int top, int btm, u
     }
 }
 
-bool genChunk(struct chunkinfo* chunks, int cx, int cy, int cz, int64_t xo, int64_t zo, struct blockdata* data, int type) {
-    static bool init = false;
-    if (!init) {
-        stone = blockNoFromID("stone");
-        dirt = blockNoFromID("dirt");
-        grass_block = blockNoFromID("grass_block");
-        gravel = blockNoFromID("gravel");
-        sand = blockNoFromID("sand");
-        water = blockNoFromID("water");
-        bedrock = blockNoFromID("bedrock");
-        init = true;
-    }
-    int64_t nx = ((int64_t)cx + xo) * 16;
-    int64_t nz = ((int64_t)cz * -1 + zo) * 16;
-    cx += chunks->dist;
-    cz += chunks->dist;
-    bool ct = 0;
-    int btm = cy * 16;
-    int top = (cy + 1) * 16 - 1;
-    for (int z = 0; z < 16; ++z) {
-        for (int x = 0; x < 16; ++x) {
-            int xzoff = z * 16 + x;
-            double cx = (double)(nx + x);
-            double cz = (double)(nz + z);
+void genChunk(int64_t x, int y, int64_t z, struct blockdata* data, int type) {
+    int64_t nx = x * 16;
+    int64_t nz = z * 16;
+    int btm = y * 16;
+    int top = (y + 1) * 16 - 1;
+    for (int bz = 0; bz < 16; ++bz) {
+        for (int bx = 0; bx < 16; ++bx) {
+            int xzoff = bz * 16 + bx;
+            double nbx = (double)(nx + x);
+            double nbz = (double)(nz + z);
             uint8_t sliver[16];
             memset(&sliver, 0, 16);
-            genSliver(type, cx, cz, top, btm, sliver);
+            genSliver(type, nbx, nbz, top, btm, sliver);
             for (int i = 0; i < 16; ++i) {
                 struct blockdata* tdata = &data[256 * i + xzoff];
                 memset(tdata, 0, sizeof(struct blockdata));
@@ -104,6 +101,4 @@ bool genChunk(struct chunkinfo* chunks, int cx, int cy, int cz, int64_t xo, int6
             }
         }
     }
-    ct = true;
-    return ct;
 }
