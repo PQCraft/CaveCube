@@ -254,7 +254,7 @@ bool doGame(char* addr, int port) {
         return false;
     }
     puts("Sending ping...");
-    cliSend(CLIENT_PING, NULL, false);
+    cliSend(CLIENT_PING);
     while (!ping && !quitRequest) {
         getInput();
         microwait(100000);

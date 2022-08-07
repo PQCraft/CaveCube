@@ -25,9 +25,9 @@ enum {
     MSG_DATA,
 };
 
-static int unamemax;
-static int server_delay;
-static int server_idledelay;
+//static int unamemax;
+//static int server_delay;
+//static int server_idledelay;
 
 enum {
     PERM_ADMIN = 1 << 0,
@@ -69,6 +69,41 @@ bool initServer() {
     pthread_mutex_init(&pdatalock, NULL);
     return true;
 }
+
+struct server_data_compatinfo {
+    uint16_t ver_major;
+    uint16_t ver_minor;
+    uint16_t ver_patch;
+    uint8_t flags;
+    char* server_str;
+};
+
+struct server_data_logininfo {
+    uint8_t failed;
+    char* reason;
+    uint64_t uid;
+    uint64_t password;
+};
+
+struct server_data_updatechunk {
+    uint16_t id;
+    int64_t x;
+    int8_t y;
+    int64_t z;
+    struct blockdata data[4096];
+};
+
+struct server_data_updatechunkcol {
+    uint16_t id;
+    int64_t x;
+    int64_t z;
+    struct blockdata data[16][4096];
+};
+
+struct server_data {
+    int msg;
+    void* data;
+};
 
 static pthread_t servpthreads[MAX_THREADS];
 
@@ -188,14 +223,50 @@ void stopServer() {
     #define CLIENT_STRING "CaveCube"
 #endif
 
-static int client_delay;
+//static int client_delay;
 
 struct netcxn* clicxn;
 
 static void (*handler)(int, ...);
 
+struct client_data_compatinfo {
+    uint16_t ver_major;
+    uint16_t ver_minor;
+    uint16_t ver_patch;
+    char* client_str;
+};
+
+struct client_data_logininfo {
+    uint64_t uid;
+    uint64_t password;
+    char* username;
+};
+
+struct client_data_getchunk {
+    struct chunkinfo info;
+    uint16_t id;
+    int64_t x;
+    int8_t y;
+    int64_t z;
+};
+
+struct client_data_getchunkcol {
+    uint16_t id;
+    int64_t x;
+    int64_t z;
+};
+
+struct client_data_setchunkpos {
+    int64_t x;
+    int64_t z;
+};
+
+static pthread_t clinetthreadh;
+
 static void* clinetthread(void* args) {
-    while (serveralive) {
+    bool active = true;
+    bool ack = true;
+    while (active) {
         microwait(1000);
     }
     return NULL;
@@ -206,6 +277,7 @@ bool cliConnect(char* addr, int port, void (*callback)(int, ...)) {
         fputs("cliConnect: Failed to create connection\n", stderr);
         return false;
     }
+    handler = callback;
     #ifdef NAME_THREADS
     char name[256];
     char name2[256];
@@ -218,6 +290,7 @@ bool cliConnect(char* addr, int port, void (*callback)(int, ...)) {
     sprintf(name, "%s:ct", name2);
     pthread_setname_np(clinetthreadh, name);
     #endif
+    return true;
 }
 
 void cliSend(int msg, ...) {
