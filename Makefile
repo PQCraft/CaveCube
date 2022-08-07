@@ -18,6 +18,10 @@ ifdef WIN32
     OS := Windows_NT
 endif
 
+ifndef DEBUG
+    CC := $(CC) -flto=auto
+endif
+
 SRCDIR ?= src
 ifndef OS
     OBJDIR ?= obj
@@ -187,7 +191,7 @@ $(BIN): $(wildcard $(OBJDIR)/*/*.o)
 	@echo Building $@...
 	@$(CC) $^ $(BINFLAGS) -o $@
 ifndef DEBUG
-	@$(STRIP) $@
+	@$(STRIP) --strip-all $@
 	@$(OBJCOPY) -w --remove-section '.note*' $@
 endif
 endif

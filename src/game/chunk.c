@@ -219,6 +219,10 @@ void writeChunk(struct chunkdata* chunks, int id, int64_t x, int y, int64_t z, s
     }
     int64_t nx = x - cxo + chunks->info.dist;
     int64_t nz = z - czo + chunks->info.dist;
+    if (nx < 0 || nz < 0 || nx >= chunks->info.width || nz >= chunks->info.width) {
+        pthread_mutex_unlock(&uclock);
+        return;
+    }
     uint32_t coff = nx + nz * chunks->info.width + y * chunks->info.widthsq;
     memcpy(chunks->data[coff], data, 4096 * sizeof(struct blockdata));
     chunks->renddata[coff].updated = false;
@@ -235,6 +239,10 @@ void writeChunkCol(struct chunkdata* chunks, int id, int64_t x, int64_t z, struc
     }
     int64_t nx = x - cxo + chunks->info.dist;
     int64_t nz = z - czo + chunks->info.dist;
+    if (nx < 0 || nz < 0 || nx >= chunks->info.width || nz >= chunks->info.width) {
+        pthread_mutex_unlock(&uclock);
+        return;
+    }
     uint32_t coff = nx + nz * chunks->info.width;
     for (int i = 0; i < 16; ++i) {
         memcpy(chunks->data[coff], data[i], 4096 * sizeof(struct blockdata));

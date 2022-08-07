@@ -123,4 +123,7 @@ updatepkg() {
 updatepkg cavecube
 updatepkg cavecube-bin
 
+tsk "Cleaning up..."
+rm -rf cavecube*.tar.gz cavecube*.zip
+
 tsk "Done"
