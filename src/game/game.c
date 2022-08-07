@@ -195,31 +195,35 @@ static inline coord_3d_dbl icoord2wcoord(coord_3d cam, int64_t cx, int64_t cz) {
 
 static bool ping = false;
 
-static void handleServer(int msg, void* data) {
+static void handleServer(int msg, ...) {
     //printf("Recieved [%d] from server\n", msg);
+    va_list args;
+    va_start(args, msg);
     switch (msg) {
-        case SERVER_RET_PONG:;
+        case SERVER_PONG:; {
             printf("Server ponged\n");
             ping = true;
             break;
-        case SERVER_RET_UPDATECHUNK:;
-            genChunks_cb(&chunks, data);
+        }
+        case SERVER_UPDATECHUNK:; {
+            int id = va_arg(args, int);
+            int64_t x = va_arg(args, int64_t);
+            int y = va_arg(args, int);
+            int64_t z = va_arg(args, int64_t);
+            struct blockdata* data = va_arg(args, struct blockdata*);
+            writeChunk(&chunks, id, x, y, z, data);
             break;
-        case SERVER_RET_UPDATECHUNKCOL:;
-            genChunks_cb2(&chunks, data);
+        }
+        case SERVER_UPDATECHUNKCOL:; {
+            int id = va_arg(args, int);
+            int64_t x = va_arg(args, int64_t);
+            int64_t z = va_arg(args, int64_t);
+            struct blockdata** data = va_arg(args, struct blockdata**);
+            writeChunkCol(&chunks, id, x, z, data);
             break;
+        }
     }
-}
-
-static pthread_t srthreadh;
-
-void* srthread(void* args) {
-    (void)args;
-    while (1) {
-        microwait(25000);
-        servRecv(handleServer, 16);
-    }
-    return NULL;
+    va_end(args);
 }
 
 static int loopdelay = 0;
@@ -245,17 +249,15 @@ bool doGame(char* addr, int port) {
         printf("Started server on port [%d]\n", servport);
     }
     puts("Connecting to server...");
-    if (!servConnect((addr) ? addr : "127.0.0.1", servport)) {
+    if (!cliConnect((addr) ? addr : "127.0.0.1", servport, handleServer)) {
         fputs("Failed to connect to server\n", stderr);
         return false;
     }
     puts("Sending ping...");
-    servSend(SERVER_DATA_PING, NULL, false);
-    servRecv(handleServer, 1);
+    cliSend(CLIENT_PING, NULL, false);
     while (!ping && !quitRequest) {
         getInput();
         microwait(100000);
-        servRecv(handleServer, 1);
     }
     if (quitRequest) return false;
     puts("Server responded to ping");
@@ -274,20 +276,6 @@ bool doGame(char* addr, int port) {
     float yvel = 0.0;
     float xcm = 0.0;
     float zcm = 0.0;
-    #ifdef NAME_THREADS
-    {
-        char name[256];
-        char name2[256];
-        name[0] = 0;
-        name2[0] = 0;
-    #endif
-        pthread_create(&srthreadh, NULL, &srthread, NULL);
-    #ifdef NAME_THREADS
-        pthread_getname_np(srthreadh, name2, 256);
-        sprintf(name, "%s:cmsg", name2);
-        pthread_setname_np(srthreadh, name);
-    }
-    #endif
     startMesher(&chunks);
     setRandSeed(8, altutime());
     coord_3d tmpcamrot = {0, 0, 0};
@@ -296,7 +284,7 @@ bool doGame(char* addr, int port) {
     while (!quitRequest) {
         uint64_t st1 = altutime();
         if (loopdelay) microwait(loopdelay);
-        float bps = 4; //blocks per second
+        float bps = 4;
         struct input_info input = getInput();
         bool crouch = false;
         if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_CROUCH)) {
@@ -366,7 +354,7 @@ bool doGame(char* addr, int port) {
         if (cmx || cmz || first) {
             first = false;
             moveChunks(&chunks, cmx, cmz);
-            genChunks(&chunks, cx, cz);
+            reqChunks(&chunks, cx, cz);
             pchunkx = cx;
             pchunkz = cz;
             //microwait(1000000);

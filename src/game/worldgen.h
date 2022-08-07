@@ -5,6 +5,7 @@
 
 #include <stdbool.h>
 
-bool genChunk(struct chunkinfo*, int, int, int, int64_t, int64_t, struct blockdata*, int);
+bool initWorldgen(void);
+void genChunk(int64_t, int, int64_t, struct blockdata*, int);
 
 #endif
