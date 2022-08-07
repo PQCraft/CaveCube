@@ -1,5 +1,5 @@
-#ifndef SERVER_H
-#define SERVER_H
+#ifndef SERVER_SERVER_H
+#define SERVER_SERVER_H
 
 #include <game/chunk.h>
 
@@ -26,8 +26,14 @@
 #endif
 
 enum {
+    SERVER_FLAG_NOAUTH = 1 << 0,
+    SERVER_FLAG_PASSWD = 1 << 1,
+};
+
+enum {
     SERVER_DATA_PONG,
     SERVER_DATA_COMPATINFO,
+    SERVER_DATA_LOGININFO,
     SERVER_DATA_UPDATECHUNK,
     SERVER_DATA_UPDATECHUNKCOL,
 };
@@ -36,8 +42,13 @@ struct server_data_compatinfo {
     uint16_t ver_major;
     uint16_t ver_minor;
     uint16_t ver_patch;
-    uint16_t flags;
-    char server_str[256];
+    uint8_t flags;
+    char* server_str;
+};
+
+struct server_data_logininfo {
+    bool failed;
+    char* reason;
 };
 
 struct server_data_updatechunk {
@@ -67,6 +78,7 @@ struct server_data {
 enum {
     CLIENT_DATA_PING,
     CLIENT_DATA_COMPATINFO,
+    CLIENT_DATA_LOGININFO,
     CLIENT_DATA_GETCHUNK,
     CLIENT_DATA_GETCHUNKCOL,
     CLIENT_DATA_SETCHUNKPOS,
@@ -76,8 +88,13 @@ struct client_data_compatinfo {
     uint16_t ver_major;
     uint16_t ver_minor;
     uint16_t ver_patch;
-    uint16_t flags;
-    char client_str[256];
+    char* client_str;
+};
+
+struct client_data_logininfo {
+    uint64_t uid;
+    uint64_t password;
+    char* username;
 };
 
 struct client_data_getchunk {

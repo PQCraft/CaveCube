@@ -10,6 +10,10 @@
 #include <stdlib.h>
 #include <pthread.h>
 
+#ifndef SERVER_STRING
+    #define SERVER_STRING "CaveCube"
+#endif
+
 int SERVER_THREADS;
 
 static int maxclients = MAX_CLIENTS;
@@ -143,6 +147,10 @@ void stopServer() {
 }
 
 #ifndef SERVER
+
+#ifndef CLIENT_STRING
+    #define CLIENT_STRING "CaveCube"
+#endif
 
 static int client_delay;
 
