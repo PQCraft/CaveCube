@@ -1,5 +1,5 @@
-#ifndef NETWORK_H
-#define NETWORK_H
+#ifndef SERVER_NETWORK_H
+#define SERVER_NETWORK_H
 
 #include <stdbool.h>
 

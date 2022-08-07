@@ -106,6 +106,17 @@ static int writeDataToBuf(struct netbuf* buf, unsigned char* data, int size) {
     return size;
 }
 
+static int writeBufToData(struct netbuf* buf, unsigned char* data, int size) {
+    if (size > buf->dlen) size = buf->dlen;
+    if (size < 1) return 0;
+    for (int i = 0; i < size; ++i) {
+        data[i] = buf->data[buf->rptr];
+        buf->rptr = (buf->rptr + 1) % buf->size;
+    }
+    buf->dlen -= size;
+    return size;
+}
+
 static int writeSockToBuf(struct netbuf* buf, sock_t sock, int size) {
     if (size < 0) return 0;
     if (buf->dlen + size > buf->size) {
@@ -140,6 +151,7 @@ static int writeBufToSock(struct netbuf* buf, sock_t sock) {
     free(data);
     size = ret;
     if (size < 0) size = 0;
+    buf->dlen -= size;
     buf->rptr = (oldrptr + size) % buf->size;
     return ret;
 }
@@ -267,10 +279,19 @@ int sendCxn(struct netcxn* cxn) {
     return 0;
 }
 
-int readFromCxn(struct netcxn* cxn, void* data, int size) {
+int readFromCxnBuf(struct netcxn* cxn, void* data, int size) {
     switch (cxn->type) {
         case CXN_ACTIVE:;
-            return writeBufToData(cxn->inbuf, data, soze);
+            return writeBufToData(cxn->inbuf, data, size);
+            break;
+    }
+    return 0;
+}
+
+int writeToCxnBuf(struct netcxn* cxn, void* data, int size) {
+    switch (cxn->type) {
+        case CXN_ACTIVE:;
+            return writeDataToBuf(cxn->outbuf, data, size);
             break;
     }
     return 0;
