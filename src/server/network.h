@@ -59,6 +59,8 @@ void closeCxn(struct netcxn*);
 struct netcxn* acceptCxn(struct netcxn*, int, int);
 int recvCxn(struct netcxn*);
 int sendCxn(struct netcxn*);
+int readFromCxnBuf(struct netcxn*, void*, int);
+int writeToCxnBuf(struct netcxn*, void*, int);
 void setCxnBufSize(struct netcxn*, int, int);
 char* getCxnAddrStr(struct netcxn*);
 

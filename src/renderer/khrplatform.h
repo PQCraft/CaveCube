@@ -1,5 +1,3 @@
-#ifndef SERVER
-
 #ifndef __khrplatform_h_
 #define __khrplatform_h_
 
@@ -311,5 +309,3 @@ typedef enum {
 } khronos_boolean_enum_t;
 
 #endif /* __khrplatform_h_ */
-
-#endif

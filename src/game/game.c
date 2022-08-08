@@ -205,6 +205,14 @@ static void handleServer(int msg, ...) {
             ping = true;
             break;
         }
+        case SERVER_COMPATINFO:; {
+            int major = va_arg(args, int);
+            int minor = va_arg(args, int);
+            int patch = va_arg(args, int);
+            char* str = va_arg(args, char*);
+            printf("Server version is %s %d.%d.%d", str, major, minor, patch);
+            break;
+        }
         case SERVER_UPDATECHUNK:; {
             int id = va_arg(args, int);
             int64_t x = va_arg(args, int64_t);

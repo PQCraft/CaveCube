@@ -61,23 +61,27 @@ void* makeResource(int type, char* path) {
     if (isFile(path) != 1) {fprintf(stderr, "makeResource: Cannot load %s\n", path); return NULL;}
     void* data = NULL;
     switch (type) {
-        case RESOURCE_TEXTFILE:;
+        case RESOURCE_TEXTFILE:; {
             data = malloc(sizeof(resdata_file));
             *(file_data*)data = getTextFile(path);
             break;
-        case RESOURCE_BINFILE:;
+        }
+        case RESOURCE_BINFILE:; {
             data = malloc(sizeof(resdata_file));
             *(file_data*)data = getBinFile(path);
             break;
-        case RESOURCE_BMD:;
+        }
+        case RESOURCE_BMD:; {
             resdata_bmd* bmddata = data = calloc(1, sizeof(resdata_bmd));
             temploadBMD(getBinFile(path), bmddata);
             break;
-        case RESOURCE_IMAGE:;
+        }
+        case RESOURCE_IMAGE:; {
             resdata_image* imagedata = data = calloc(1, sizeof(resdata_image));
             imagedata->data = stbi_load(path, &imagedata->width, &imagedata->height, &imagedata->channels, STBI_rgb_alpha);
             break;
-        case RESOURCE_TEXTURE:;
+        }
+        case RESOURCE_TEXTURE:; {
             #ifndef SERVER
             resdata_texture* texturedata = data = calloc(1, sizeof(resdata_texture));
             unsigned char* idata = stbi_load(path, &texturedata->width, &texturedata->height, &texturedata->channels, STBI_rgb_alpha);
@@ -85,6 +89,7 @@ void* makeResource(int type, char* path) {
             stbi_image_free(idata);
             #endif
             break;
+        }	
     }
     return data;
 }
@@ -124,20 +129,24 @@ int resourceExists(char* path) {
 void freeResStub(resentry* ent) {
     switch (ent->type) {
         case RESOURCE_TEXTFILE:;
-        case RESOURCE_BINFILE:;
+        case RESOURCE_BINFILE:; {
             freeFile(*(file_data*)ent->data);
             break;
-        case RESOURCE_BMD:;
+        }
+        case RESOURCE_BMD:; {
             freeBMD((bmd_data*)ent->data);
             break;
-        case RESOURCE_IMAGE:;
+        }
+        case RESOURCE_IMAGE:; {
             stbi_image_free(((resdata_image*)ent->data)->data);
             break;
-        case RESOURCE_TEXTURE:;
+        }
+        case RESOURCE_TEXTURE:; {
             #ifndef SERVER
             destroyTexture((resdata_texture*)ent->data);
             #endif
             break;
+        }
     }
     free(ent->data);
     ent->data = NULL;

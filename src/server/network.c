@@ -1,5 +1,6 @@
 #include "network.h"
 #include <common/endian.h>
+#include <common/common.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -129,7 +130,7 @@ static int writeSockToBuf(struct netbuf* buf, sock_t sock, int size) {
     if (size < 0) size = 0;
     buf->dlen += size;
     for (int i = 0; i < size; ++i) {
-        //printf("[%d] [%d]: [%d]{%s}\n", buf->wptr, i, data[i], spCharToStr(data[i]));
+        printf("[%d] [%d]: [%d]{%s}\n", buf->wptr, i, data[i], spCharToStr(data[i]));
         //putchar(data[i]);
         buf->data[buf->wptr] = data[i];
         buf->wptr = (buf->wptr + 1) % buf->size;
