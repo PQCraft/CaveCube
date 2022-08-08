@@ -2,7 +2,7 @@
 
 #include <main/main.h>
 #include "renderer.h"
-#include "glad_platform.h"
+#include "glad.h"
 #include <common/common.h>
 #include <common/resource.h>
 #include <common/noise.h>
@@ -22,12 +22,6 @@
 #endif
 #include "cglm/cglm.h"
 
-#ifndef _WIN32
-    #define GLTEAREXT GLX_EXT_swap_control_tear
-#else
-    #define GLTEAREXT WGL_EXT_swap_control_tear
-#endif
-
 #ifdef RENDERER_SINGLECORE
     #define GETCONTEXT()
     #define RELEASECONTEXT()
@@ -37,14 +31,10 @@
     #else
         #define _GETCONTEXT_FUNC() {glfwMakeContextCurrent(rendinf.window);}
     #endif
-    #ifdef RENDERER_LAZY
-        #define _RELEASECONTEXT_FUNC()
+    #if defined(USESDL2)
+        #define _RELEASECONTEXT_FUNC() {SDL_GL_MakeCurrent(rendinf.window, NULL);}
     #else
-        #if defined(USESDL2)
-            #define _RELEASECONTEXT_FUNC() {SDL_GL_MakeCurrent(rendinf.window, NULL);}
-        #else
-            #define _RELEASECONTEXT_FUNC() {glfwMakeContextCurrent(NULL);}
-        #endif
+        #define _RELEASECONTEXT_FUNC() {glfwMakeContextCurrent(NULL);}
     #endif
     #define GETCONTEXT() {pthread_mutex_lock(&gllock); _GETCONTEXT_FUNC();}
     #define RELEASECONTEXT() {pthread_mutex_unlock(&gllock); _RELEASECONTEXT_FUNC();}
@@ -349,9 +339,9 @@ void updateScreen() {
     GETCONTEXT();
     if (rendinf.vsync != lv) {
         #if defined(USESDL2)
-        SDL_GL_SetSwapInterval(rendinf.vsync * ((GLTEAREXT) ? -1 : 1));
+        SDL_GL_SetSwapInterval(rendinf.vsync * -1);
         #else
-        glfwSwapInterval(rendinf.vsync * ((GLTEAREXT) ? -1 : 1));
+        glfwSwapInterval(rendinf.vsync * -1);
         #endif
         lv = rendinf.vsync;
     }
@@ -909,6 +899,7 @@ bool initRenderer() {
     file_data* vs = loadResource(RESOURCE_TEXTFILE, "engine/renderer/shaders/OpenGL/default/block/vertex.glsl");
     file_data* fs = loadResource(RESOURCE_TEXTFILE, "engine/renderer/shaders/OpenGL/default/block/fragment.glsl");
     if (!vs || !fs || !makeShaderProg((char*)vs->data, (char*)fs->data, &shader_block)) {
+        fputs("initRenderer: Failed to compile block shader\n", stderr);
         return false;
     }
     freeResource(vs);
@@ -916,6 +907,7 @@ bool initRenderer() {
     vs = loadResource(RESOURCE_TEXTFILE, "engine/renderer/shaders/OpenGL/default/2D/vertex.glsl");
     fs = loadResource(RESOURCE_TEXTFILE, "engine/renderer/shaders/OpenGL/default/2D/fragment.glsl");
     if (!vs || !fs || !makeShaderProg((char*)vs->data, (char*)fs->data, &shader_2d)) {
+        fputs("initRenderer: Failed to compile block shader\n", stderr);
         return false;
     }
     freeResource(vs);
@@ -923,6 +915,7 @@ bool initRenderer() {
     vs = loadResource(RESOURCE_TEXTFILE, "engine/renderer/shaders/OpenGL/default/text/vertex.glsl");
     fs = loadResource(RESOURCE_TEXTFILE, "engine/renderer/shaders/OpenGL/default/text/fragment.glsl");
     if (!vs || !fs || !makeShaderProg((char*)vs->data, (char*)fs->data, &shader_text)) {
+        fputs("initRenderer: Failed to compile block shader\n", stderr);
         return false;
     }
     freeResource(vs);
@@ -975,13 +968,18 @@ bool initRenderer() {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, rendinf.width, rendinf.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    //TODO: load and render splash
+    #if defined(USESDL2)
+    SDL_GL_SwapWindow(rendinf.window);
+    #else
+    glfwSwapBuffers(rendinf.window);
+    #endif
 
     glActiveTexture(GL_TEXTURE1);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, rendinf.width, rendinf.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     unsigned char* texmap;
     texture_t texmaph;

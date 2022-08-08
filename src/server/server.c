@@ -2,12 +2,14 @@
 #include "server.h"
 #include "network.h"
 #include <common/common.h>
+#include <common/endian.h>
 #include <common/noise.h>
 #include <game/game.h>
 #include <game/worldgen.h>
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <pthread.h>
 
 #ifndef SERVER_STRING
@@ -16,14 +18,135 @@
 
 int SERVER_THREADS;
 
+struct msgdata_msg {
+    int id;
+    void* data;
+};
+
+struct msgdata {
+    int size;
+    struct msgdata_msg* msg;
+    pthread_mutex_t lock;
+};
+
+static void initMsgData(struct msgdata* mdata) {
+    mdata->size = 0;
+    mdata->msg = malloc(0);
+    pthread_mutex_init(&mdata->lock, NULL);
+}
+
+static void deinitMsgData(struct msgdata* mdata) {
+    free(mdata->msg);
+    pthread_mutex_destroy(&mdata->lock);
+}
+
+static void addMsg(struct msgdata* mdata, int id, void* data) {
+    pthread_mutex_lock(&mdata->lock);
+    int index = -1;
+    for (int i = 0; i < mdata->size; ++i) {
+        if (mdata->msg[i].id < 0) {
+            index = i;
+            break;
+        }
+    }
+    if (index == -1) {
+        index = mdata->size++;
+        mdata->msg = realloc(mdata->msg, mdata->size * sizeof(*mdata->msg));
+    }
+    mdata->msg[index].id = id;
+    mdata->msg[index].data = data;
+    pthread_mutex_unlock(&mdata->lock);
+}
+
+static bool getNextMsg(struct msgdata* mdata, struct msgdata_msg* msg) {
+    pthread_mutex_lock(&mdata->lock);
+    for (int i = 0; i < mdata->size; ++i) {
+        if (mdata->msg[i].id >= 0) {
+            msg->id = mdata->msg[i].id;
+            msg->data = mdata->msg[i].data;
+            mdata->msg[i].id = -1;
+            pthread_mutex_unlock(&mdata->lock);
+            return true;
+        }
+    }
+    pthread_mutex_unlock(&mdata->lock);
+    return false;
+}
+
+struct server_data_compatinfo {
+    uint16_t ver_major;
+    uint16_t ver_minor;
+    uint16_t ver_patch;
+    uint8_t flags;
+    char* server_str;
+};
+
+struct server_data_logininfo {
+    uint8_t failed;
+    char* reason;
+    uint64_t uid;
+    uint64_t password;
+};
+
+struct server_data_updatechunk {
+    uint16_t id;
+    int64_t x;
+    int8_t y;
+    int64_t z;
+    struct blockdata data[4096];
+};
+
+struct server_data_updatechunkcol {
+    uint16_t id;
+    int64_t x;
+    int64_t z;
+    struct blockdata data[16][4096];
+};
+
+struct client_data_compatinfo {
+    uint16_t ver_major;
+    uint16_t ver_minor;
+    uint16_t ver_patch;
+    char* client_str;
+};
+
+struct client_data_logininfo {
+    uint64_t uid;
+    uint64_t password;
+    char* username;
+};
+
+struct client_data_getchunk {
+    struct chunkinfo info;
+    uint16_t id;
+    int64_t x;
+    int8_t y;
+    int64_t z;
+};
+
+struct client_data_getchunkcol {
+    uint16_t id;
+    int64_t x;
+    int64_t z;
+};
+
+struct client_data_setchunkpos {
+    int64_t x;
+    int64_t z;
+};
+
+enum {
+    MSGTYPE_ACK,
+    MSGTYPE_DATA,
+};
+
+static int getInbufSize(struct netcxn* cxn) {
+    return cxn->inbuf->dlen;
+}
+
 static int maxclients = MAX_CLIENTS;
 
 static bool serveralive = false;
-
-enum {
-    MSG_ACK,
-    MSG_DATA,
-};
 
 //static int unamemax;
 //static int server_delay;
@@ -63,47 +186,6 @@ struct playerdata {
 
 static struct playerdata* pdata;
 static pthread_mutex_t pdatalock;
-
-bool initServer() {
-    if (!initNet()) return false;
-    pthread_mutex_init(&pdatalock, NULL);
-    return true;
-}
-
-struct server_data_compatinfo {
-    uint16_t ver_major;
-    uint16_t ver_minor;
-    uint16_t ver_patch;
-    uint8_t flags;
-    char* server_str;
-};
-
-struct server_data_logininfo {
-    uint8_t failed;
-    char* reason;
-    uint64_t uid;
-    uint64_t password;
-};
-
-struct server_data_updatechunk {
-    uint16_t id;
-    int64_t x;
-    int8_t y;
-    int64_t z;
-    struct blockdata data[4096];
-};
-
-struct server_data_updatechunkcol {
-    uint16_t id;
-    int64_t x;
-    int64_t z;
-    struct blockdata data[16][4096];
-};
-
-struct server_data {
-    int msg;
-    void* data;
-};
 
 static pthread_t servpthreads[MAX_THREADS];
 
@@ -227,57 +309,129 @@ void stopServer() {
 
 struct netcxn* clicxn;
 
-static void (*handler)(int, ...);
+static void (*callback)(int, ...);
 
-struct client_data_compatinfo {
-    uint16_t ver_major;
-    uint16_t ver_minor;
-    uint16_t ver_patch;
-    char* client_str;
-};
+static struct msgdata climsgout;
 
-struct client_data_logininfo {
-    uint64_t uid;
-    uint64_t password;
-    char* username;
-};
-
-struct client_data_getchunk {
-    struct chunkinfo info;
-    uint16_t id;
-    int64_t x;
-    int8_t y;
-    int64_t z;
-};
-
-struct client_data_getchunkcol {
-    uint16_t id;
-    int64_t x;
-    int64_t z;
-};
-
-struct client_data_setchunkpos {
-    int64_t x;
-    int64_t z;
-};
+#define pSML_nbyte() ({int byte; if (ptr < buf->rptr) {byte = buf->data[ptr]; ptr = (ptr + 1) % buf->size;} else {byte = -1;}; byte;})
+static int peekServMsgLen(struct netcxn* cxn) {
+    struct netbuf* buf = cxn->inbuf;
+    if (buf->dlen < 1) return 0;
+    int ptr = (buf->rptr + (buf->size - buf->dlen)) % buf->size;
+    int tmp = pSML_nbyte();
+    switch (tmp) {
+        case MSGTYPE_ACK:; {
+            return 1;
+        }
+        case MSGTYPE_DATA:; {
+            tmp = pSML_nbyte();
+            if (tmp < 0) return 0;
+            switch (tmp) {
+                case SERVER_PONG:; {
+                    return 2;
+                }
+                case SERVER_COMPATINFO:; {
+                    for (int i = 0; i < 7; ++i) {
+                        pSML_nbyte();
+                    }
+                    tmp = pSML_nbyte();
+                    if (tmp < 0) return 0;
+                    uint16_t tmp2 = (tmp << 8) & 0xFF00;
+                    tmp = pSML_nbyte();
+                    if (tmp < 0) return 0;
+                    tmp2 |= tmp & 0xFF;
+                    tmp2 = net2host16(tmp2);
+                    return 7 + tmp2;
+                }
+                case SERVER_UPDATECHUNK:; {
+                    return 8211;
+                }
+                case SERVER_UPDATECHUNKCOL:; {
+                    return 131090;
+                }
+            }
+        }
+    }
+}
 
 static pthread_t clinetthreadh;
 
 static void* clinetthread(void* args) {
-    bool active = true;
+    (void)args;
     bool ack = true;
-    while (active) {
+    int tmpsize = 0;
+    while (true) {
         microwait(1000);
+        recvCxn(clicxn);
+        {
+            if (tmpsize < 1) {
+                tmpsize = peekServMsgLen(clicxn);
+            } else {
+                if (getInbufSize(clicxn) >= tmpsize) {
+                    unsigned char* buf = malloc(tmpsize);
+                    readFromCxnBuf(clicxn, buf, tmpsize);
+                    int ptr = 0;
+                    uint8_t tmpbyte = buf[ptr++];
+                    switch (tmpbyte) {
+                        case MSGTYPE_ACK:; {
+                            ack = true;
+                            break;
+                        }
+                        case MSGTYPE_DATA:; {
+                            tmpbyte = buf[ptr++];
+                            switch (tmpbyte) {
+                                case SERVER_PONG:; {
+                                    callback(SERVER_PONG);
+                                    break;
+                                }
+                                case SERVER_COMPATINFO:; {
+                                    
+                                    break;
+                                }
+                            }
+                            tmpbyte = MSGTYPE_ACK;
+                            writeToCxnBuf(clicxn, &tmpbyte, 1);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        if (ack) {
+            struct msgdata_msg msg;
+            if (getNextMsg(&climsgout, &msg)) {
+                uint8_t tmpbyte[2] = {MSGTYPE_DATA, msg.id};
+                writeToCxnBuf(clicxn, tmpbyte, 2);
+                switch (msg.id) {
+                    case CLIENT_COMPATINFO:; {
+                        struct client_data_compatinfo* tmpdata = msg.data;
+                        uint16_t tmpword = host2net16(tmpdata->ver_major);
+                        writeToCxnBuf(clicxn, &tmpword, 2);
+                        tmpword = host2net16(tmpdata->ver_minor);
+                        writeToCxnBuf(clicxn, &tmpword, 2);
+                        tmpword = host2net16(tmpdata->ver_patch);
+                        writeToCxnBuf(clicxn, &tmpword, 2);
+                        tmpword = host2net16(strlen(tmpdata->client_str));
+                        writeToCxnBuf(clicxn, tmpdata->client_str, net2host16(tmpword));
+                        free(tmpdata->client_str);
+                        free(tmpdata);
+                        break;
+                    }
+                }
+                ack = false;
+            }
+        }
+        sendCxn(clicxn);
     }
     return NULL;
 }
 
-bool cliConnect(char* addr, int port, void (*callback)(int, ...)) {
+bool cliConnect(char* addr, int port, void (*cb)(int, ...)) {
     if (!(clicxn = newCxn(CXN_ACTIVE, addr, port, CLIENT_OUTBUF_SIZE, SERVER_OUTBUF_SIZE))) {
         fputs("cliConnect: Failed to create connection\n", stderr);
         return false;
     }
-    handler = callback;
+    callback = cb;
     #ifdef NAME_THREADS
     char name[256];
     char name2[256];
@@ -293,8 +447,31 @@ bool cliConnect(char* addr, int port, void (*callback)(int, ...)) {
     return true;
 }
 
-void cliSend(int msg, ...) {
-    
+void cliSend(int id, ...) {
+    if (id <= CLIENT__MIN || id >= CLIENT__MAX) return;
+    void* data = NULL;
+    switch (id) {
+        case CLIENT_COMPATINFO:; {
+            struct client_data_compatinfo* tmpdata = malloc(sizeof(*tmpdata));
+            *tmpdata = (struct client_data_compatinfo){
+                .ver_major = VER_MAJOR,
+                .ver_minor = VER_MINOR,
+                .ver_patch = VER_PATCH,
+                .client_str = strdup(CLIENT_STRING)
+            };
+            break;
+        }
+    }
+    addMsg(&climsgout, id, data);
 }
 
 #endif
+
+bool initServer() {
+    if (!initNet()) return false;
+    pthread_mutex_init(&pdatalock, NULL);
+    #ifndef SERVER
+    initMsgData(&climsgout);
+    #endif
+    return true;
+}

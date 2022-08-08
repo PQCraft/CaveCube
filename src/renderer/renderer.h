@@ -6,7 +6,7 @@
 
 #define RENDERER_RENDERER_H
 
-#include <renderer/glad_platform.h>
+#include "glad.h"
 #include <common/resource.h>
 
 #if defined(USESDL2)
@@ -140,10 +140,6 @@ extern struct renderer_info rendinf;
 #define GFX_DEFAULT_SCALE (coord_3d){1.0, 1.0, 1.0}
 #define GFX_DEFAULT_MAT4 {{1.0, 0.0, 0.0, 0.0}, {0.0, 1.0, 0.0, 0.0}, {0.0, 0.0, -1.0, 0.0}, {0.0, 0.0, 0.0, 1.0}}
 
-// RENDERER_LAZY disables some safety measures to speed up rendering
-#ifndef _WIN32 // Windows doesn't seem to like RENDERER_LAZY
-    #define RENDERER_LAZY
-#endif
 // RENDERER_SINGLECORE makes the mesher create VBOs on the main thread
 #if defined(_WIN32) && defined(USESDL2) // Windows + SDL doesn't seem to like context sharing
     #define RENDERER_SINGLECORE
