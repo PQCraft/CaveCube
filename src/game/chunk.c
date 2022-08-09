@@ -231,7 +231,7 @@ void writeChunk(struct chunkdata* chunks, int id, int64_t x, int y, int64_t z, s
     pthread_mutex_unlock(&uclock);
 }
 
-void writeChunkCol(struct chunkdata* chunks, int id, int64_t x, int64_t z, struct blockdata** data) {
+void writeChunkCol(struct chunkdata* chunks, int id, int64_t x, int64_t z, struct blockdata (*data)[4096]) {
     pthread_mutex_lock(&uclock);
     if ((uint16_t)id != cid) {
         pthread_mutex_unlock(&uclock);
@@ -283,12 +283,12 @@ void reqChunks(struct chunkdata* chunks, int64_t xo, int64_t zo) {
                     }
                     if (!gen) {
                         //printf("REQ [%d][%d]\n", x, z);
-                        cliSend(CLIENT_GETCHUNKCOL, cid, (int64_t)((int64_t)(x) + xo), (int64_t)((int64_t)(z) + zo));
+                        cliSend(CLIENT_GETCHUNKCOL, (int)cid, (int64_t)((int64_t)(x) + xo), (int64_t)((int64_t)(z) + zo));
                     } else if (gen < 16) {
                         coff2 = coff;
                         for (int y = 0; y < 16; ++y) {
                             if (chunks->renddata[coff2].generated) {
-                                cliSend(CLIENT_GETCHUNK, (int64_t)((int64_t)(x) + xo), y, (int64_t)((int64_t)(z) + zo));
+                                cliSend(CLIENT_GETCHUNK, (int)cid, (int64_t)((int64_t)(x) + xo), y, (int64_t)((int64_t)(z) + zo));
                             }
                             coff2 += chunks->info.widthsq;
                         }

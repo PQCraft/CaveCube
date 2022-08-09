@@ -21,6 +21,8 @@ int SERVER_THREADS;
 struct msgdata_msg {
     int id;
     void* data;
+    uint64_t uid;
+    int uind;
 };
 
 struct msgdata {
@@ -40,7 +42,7 @@ static void deinitMsgData(struct msgdata* mdata) {
     pthread_mutex_destroy(&mdata->lock);
 }
 
-static void addMsg(struct msgdata* mdata, int id, void* data) {
+static void addMsg(struct msgdata* mdata, int id, void* data, uint64_t uid, int uind) {
     pthread_mutex_lock(&mdata->lock);
     int index = -1;
     for (int i = 0; i < mdata->size; ++i) {
@@ -55,6 +57,8 @@ static void addMsg(struct msgdata* mdata, int id, void* data) {
     }
     mdata->msg[index].id = id;
     mdata->msg[index].data = data;
+    mdata->msg[index].uid = uid;
+    mdata->msg[index].uind = uind;
     pthread_mutex_unlock(&mdata->lock);
 }
 
@@ -64,6 +68,8 @@ static bool getNextMsg(struct msgdata* mdata, struct msgdata_msg* msg) {
         if (mdata->msg[i].id >= 0) {
             msg->id = mdata->msg[i].id;
             msg->data = mdata->msg[i].data;
+            msg->uid = mdata->msg[i].uid;
+            msg->uind = mdata->msg[i].uind;
             mdata->msg[i].id = -1;
             pthread_mutex_unlock(&mdata->lock);
             return true;
@@ -72,68 +78,6 @@ static bool getNextMsg(struct msgdata* mdata, struct msgdata_msg* msg) {
     pthread_mutex_unlock(&mdata->lock);
     return false;
 }
-
-struct server_data_compatinfo {
-    uint16_t ver_major;
-    uint16_t ver_minor;
-    uint16_t ver_patch;
-    uint8_t flags;
-    char* server_str;
-};
-
-struct server_data_logininfo {
-    uint8_t failed;
-    char* reason;
-    uint64_t uid;
-    uint64_t password;
-};
-
-struct server_data_updatechunk {
-    uint16_t id;
-    int64_t x;
-    int8_t y;
-    int64_t z;
-    struct blockdata data[4096];
-};
-
-struct server_data_updatechunkcol {
-    uint16_t id;
-    int64_t x;
-    int64_t z;
-    struct blockdata data[16][4096];
-};
-
-struct client_data_compatinfo {
-    uint16_t ver_major;
-    uint16_t ver_minor;
-    uint16_t ver_patch;
-    char* client_str;
-};
-
-struct client_data_logininfo {
-    uint64_t uid;
-    uint64_t password;
-    char* username;
-};
-
-struct client_data_getchunk {
-    struct chunkinfo info;
-    uint16_t id;
-    int64_t x;
-    int8_t y;
-    int64_t z;
-};
-
-struct client_data_getchunkcol {
-    uint16_t id;
-    int64_t x;
-    int64_t z;
-};
-
-struct client_data_setchunkpos {
-    int64_t x;
-    int64_t z;
-};
 
 enum {
     MSGTYPE_ACK,
@@ -187,6 +131,9 @@ struct playerdata {
 static struct playerdata* pdata;
 static pthread_mutex_t pdatalock;
 
+static struct msgdata servmsgin;
+static struct msgdata servmsgout;
+
 static pthread_t servpthreads[MAX_THREADS];
 
 static void* servthread(void* args) {
@@ -203,6 +150,7 @@ struct netcxn* servcxn;
 static pthread_t servnetthreadh;
 
 static void* servnetthread(void* args) {
+    (void)args;
     while (serveralive) {
         microwait(1000);
         struct netcxn* newcxn;
@@ -254,6 +202,8 @@ int startServer(char* addr, int port, char* world, int mcli) {
     }
     setCxnBufSize(servcxn, SERVER_SNDBUF_SIZE, CLIENT_SNDBUF_SIZE);
     pdata = calloc(maxclients, sizeof(*pdata));
+    initMsgData(&servmsgin);
+    initMsgData(&servmsgout);
     setRandSeed(0, 32464);
     initNoiseTable(0);
     serveralive = true;
@@ -295,21 +245,19 @@ void stopServer() {
     }
     closeCxn(servcxn);
     free(pdata);
+    deinitMsgData(&servmsgin);
+    deinitMsgData(&servmsgout);
 }
 
 #ifndef SERVER
 
 #include <stdarg.h>
 
-#ifndef CLIENT_STRING
-    #define CLIENT_STRING "CaveCube"
-#endif
-
 //static int client_delay;
 
 struct netcxn* clicxn;
 
-static void (*callback)(int, ...);
+static void (*callback)(int, void*);
 
 static struct msgdata climsgout;
 
@@ -344,14 +292,15 @@ static int peekServMsgLen(struct netcxn* cxn) {
                     return 7 + tmp2;
                 }
                 case SERVER_UPDATECHUNK:; {
-                    return 8211;
+                    return 19 + 4096 * sizeof(struct blockdata);
                 }
                 case SERVER_UPDATECHUNKCOL:; {
-                    return 131090;
+                    return 18 + 16 * 4096 * sizeof(struct blockdata);
                 }
             }
         }
     }
+    return 0;
 }
 
 static pthread_t clinetthreadh;
@@ -381,11 +330,61 @@ static void* clinetthread(void* args) {
                             tmpbyte = buf[ptr++];
                             switch (tmpbyte) {
                                 case SERVER_PONG:; {
-                                    callback(SERVER_PONG);
+                                    callback(SERVER_PONG, NULL);
                                     break;
                                 }
                                 case SERVER_COMPATINFO:; {
-                                    
+                                    struct server_data_compatinfo data;
+                                    memcpy(&data.ver_major, &buf[ptr], 2);
+                                    ptr += 2;
+                                    data.ver_major = net2host16(data.ver_major);
+                                    memcpy(&data.ver_minor, &buf[ptr], 2);
+                                    ptr += 2;
+                                    data.ver_major = net2host16(data.ver_minor);
+                                    memcpy(&data.ver_patch, &buf[ptr], 2);
+                                    ptr += 2;
+                                    data.ver_major = net2host16(data.ver_patch);
+                                    data.flags = buf[ptr++];
+                                    uint16_t tmpword = 0;
+                                    memcpy(&tmpword, &buf[ptr], 2);
+                                    ptr += 2;
+                                    tmpword = net2host16(tmpword);
+                                    data.server_str = malloc((int)tmpword + 1);
+                                    memcpy(&data.server_str, &buf[ptr], tmpword);
+                                    data.server_str[tmpword] = 0;
+                                    callback(SERVER_PONG, &data);
+                                    free(data.server_str);
+                                    break;
+                                }
+                                case SERVER_UPDATECHUNK:; {
+                                    struct server_data_updatechunk data;
+                                    memcpy(&data.id, &buf[ptr], 2);
+                                    ptr += 2;
+                                    data.id = net2host16(data.id);
+                                    memcpy(&data.x, &buf[ptr], 8);
+                                    ptr += 8;
+                                    data.x = net2host64(data.x);
+                                    data.y = buf[ptr++];
+                                    memcpy(&data.z, &buf[ptr], 8);
+                                    ptr += 8;
+                                    data.z = net2host64(data.z);
+                                    memcpy(data.data, &buf[ptr], 4096 * sizeof(struct blockdata));
+                                    callback(SERVER_UPDATECHUNK, &data);
+                                    break;
+                                }
+                                case SERVER_UPDATECHUNKCOL:; {
+                                    struct server_data_updatechunkcol data;
+                                    memcpy(&data.id, &buf[ptr], 2);
+                                    ptr += 2;
+                                    data.id = net2host16(data.id);
+                                    memcpy(&data.x, &buf[ptr], 8);
+                                    ptr += 8;
+                                    data.x = net2host64(data.x);
+                                    memcpy(&data.z, &buf[ptr], 8);
+                                    ptr += 8;
+                                    data.z = net2host64(data.z);
+                                    memcpy(data.data, &buf[ptr], 16 * 4096 * sizeof(struct blockdata));
+                                    callback(SERVER_UPDATECHUNK, &data);
                                     break;
                                 }
                             }
@@ -394,6 +393,8 @@ static void* clinetthread(void* args) {
                             break;
                         }
                     }
+                    free(buf);
+                    tmpsize = 0;
                 }
             }
         }
@@ -417,6 +418,35 @@ static void* clinetthread(void* args) {
                         free(tmpdata);
                         break;
                     }
+                    case CLIENT_GETCHUNK:; {
+                        struct client_data_getchunk* tmpdata = msg.data;
+                        uint16_t tmpword = host2net16(tmpdata->id);
+                        writeToCxnBuf(clicxn, &tmpword, 2);
+                        uint64_t tmpqword = host2net64(tmpdata->x);
+                        writeToCxnBuf(clicxn, &tmpqword, 8);
+                        writeToCxnBuf(clicxn, &tmpdata->y, 1);
+                        tmpqword = host2net64(tmpdata->z);
+                        writeToCxnBuf(clicxn, &tmpqword, 8);
+                        break;
+                    }
+                    case CLIENT_GETCHUNKCOL:; {
+                        struct client_data_getchunkcol* tmpdata = msg.data;
+                        uint16_t tmpword = host2net16(tmpdata->id);
+                        writeToCxnBuf(clicxn, &tmpword, 2);
+                        uint64_t tmpqword = host2net64(tmpdata->x);
+                        writeToCxnBuf(clicxn, &tmpqword, 8);
+                        tmpqword = host2net64(tmpdata->z);
+                        writeToCxnBuf(clicxn, &tmpqword, 8);
+                        break;
+                    }
+                    case CLIENT_SETCHUNKPOS:; {
+                        struct client_data_setchunkpos* tmpdata = msg.data;
+                        uint64_t tmpqword = host2net64(tmpdata->x);
+                        writeToCxnBuf(clicxn, &tmpqword, 8);
+                        tmpqword = host2net64(tmpdata->z);
+                        writeToCxnBuf(clicxn, &tmpqword, 8);
+                        break;
+                    }
                 }
                 ack = false;
             }
@@ -426,7 +456,7 @@ static void* clinetthread(void* args) {
     return NULL;
 }
 
-bool cliConnect(char* addr, int port, void (*cb)(int, ...)) {
+bool cliConnect(char* addr, int port, void (*cb)(int, void*)) {
     if (!(clicxn = newCxn(CXN_ACTIVE, addr, port, CLIENT_OUTBUF_SIZE, SERVER_OUTBUF_SIZE))) {
         fputs("cliConnect: Failed to create connection\n", stderr);
         return false;
@@ -449,20 +479,45 @@ bool cliConnect(char* addr, int port, void (*cb)(int, ...)) {
 
 void cliSend(int id, ...) {
     if (id <= CLIENT__MIN || id >= CLIENT__MAX) return;
+    va_list args;
+    va_start(args, id);
     void* data = NULL;
     switch (id) {
         case CLIENT_COMPATINFO:; {
             struct client_data_compatinfo* tmpdata = malloc(sizeof(*tmpdata));
-            *tmpdata = (struct client_data_compatinfo){
-                .ver_major = VER_MAJOR,
-                .ver_minor = VER_MINOR,
-                .ver_patch = VER_PATCH,
-                .client_str = strdup(CLIENT_STRING)
-            };
+            tmpdata->ver_major = va_arg(args, int);
+            tmpdata->ver_minor = va_arg(args, int);
+            tmpdata->ver_patch = va_arg(args, int);
+            tmpdata->client_str = va_arg(args, char*);
+            data = tmpdata;
+            break;
+        }
+        case CLIENT_GETCHUNK:; {
+            struct client_data_getchunk* tmpdata = malloc(sizeof(*tmpdata));
+            tmpdata->id = va_arg(args, int);
+            tmpdata->x = va_arg(args, int64_t);
+            tmpdata->y = va_arg(args, int);
+            tmpdata->z = va_arg(args, int64_t);
+            data = tmpdata;
+            break;
+        }
+        case CLIENT_GETCHUNKCOL:; {
+            struct client_data_getchunkcol* tmpdata = malloc(sizeof(*tmpdata));
+            tmpdata->id = va_arg(args, int);
+            tmpdata->x = va_arg(args, int64_t);
+            tmpdata->z = va_arg(args, int64_t);
+            data = tmpdata;
+            break;
+        }
+        case CLIENT_SETCHUNKPOS:; {
+            struct client_data_setchunkpos* tmpdata = malloc(sizeof(*tmpdata));
+            tmpdata->x = va_arg(args, int64_t);
+            tmpdata->z = va_arg(args, int64_t);
             break;
         }
     }
-    addMsg(&climsgout, id, data);
+    addMsg(&climsgout, id, data, 0, 0);
+    va_end(args);
 }
 
 #endif
