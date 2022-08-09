@@ -195,10 +195,8 @@ static inline coord_3d_dbl icoord2wcoord(coord_3d cam, int64_t cx, int64_t cz) {
 
 static bool ping = false;
 
-static void handleServer(int msg, ...) {
+static void handleServer(int msg, void* _data) {
     //printf("Recieved [%d] from server\n", msg);
-    va_list args;
-    va_start(args, msg);
     switch (msg) {
         case SERVER_PONG:; {
             printf("Server ponged\n");
@@ -206,32 +204,23 @@ static void handleServer(int msg, ...) {
             break;
         }
         case SERVER_COMPATINFO:; {
-            int major = va_arg(args, int);
-            int minor = va_arg(args, int);
-            int patch = va_arg(args, int);
-            char* str = va_arg(args, char*);
-            printf("Server version is %s %d.%d.%d", str, major, minor, patch);
+            struct server_data_compatinfo* data = _data;
+            printf("Server version is %s %d.%d.%d", data->server_str, data->ver_major, data->ver_minor, data->ver_patch);
+            if (data->flags & SERVER_FLAG_NOAUTH) puts("- No authentication required");
+            if (data->flags & SERVER_FLAG_PASSWD) puts("- Password protected");
             break;
         }
         case SERVER_UPDATECHUNK:; {
-            int id = va_arg(args, int);
-            int64_t x = va_arg(args, int64_t);
-            int y = va_arg(args, int);
-            int64_t z = va_arg(args, int64_t);
-            struct blockdata* data = va_arg(args, struct blockdata*);
-            writeChunk(&chunks, id, x, y, z, data);
+            struct server_data_updatechunk* data = _data;
+            writeChunk(&chunks, data->id, data->x, data->y, data->z, data->data);
             break;
         }
         case SERVER_UPDATECHUNKCOL:; {
-            int id = va_arg(args, int);
-            int64_t x = va_arg(args, int64_t);
-            int64_t z = va_arg(args, int64_t);
-            struct blockdata** data = va_arg(args, struct blockdata**);
-            writeChunkCol(&chunks, id, x, z, data);
+            struct server_data_updatechunkcol* data = _data;
+            writeChunkCol(&chunks, data->id, data->x, data->z, data->data);
             break;
         }
     }
-    va_end(args);
 }
 
 static int loopdelay = 0;
