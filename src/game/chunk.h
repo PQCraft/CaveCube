@@ -5,7 +5,7 @@
 
 #include <inttypes.h>
 
-struct __attribute__ ((packed)) blockdata {
+struct __attribute__((packed)) blockdata {
     uint8_t id;
     uint8_t light:4;
     uint8_t rot:4;
