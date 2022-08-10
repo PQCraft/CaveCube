@@ -217,6 +217,7 @@ static void handleServer(int msg, void* _data) {
         }
         case SERVER_UPDATECHUNKCOL:; {
             struct server_data_updatechunkcol* data = _data;
+            //printf("writing chunk col to [%"PRId64", %"PRId64"]\n", data->x, data->z);
             writeChunkCol(&chunks, data->id, data->x, data->z, data->data);
             break;
         }

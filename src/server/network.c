@@ -6,11 +6,11 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <sys/ioctl.h>
 #include <stdbool.h>
 #include <errno.h>
 
 #ifndef _WIN32
+    #include <sys/ioctl.h>
     #include <sys/fcntl.h>
     #include <arpa/inet.h>
     #define PRIsock "d"

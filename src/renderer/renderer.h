@@ -141,9 +141,8 @@ extern struct renderer_info rendinf;
 #define GFX_DEFAULT_MAT4 {{1.0, 0.0, 0.0, 0.0}, {0.0, 1.0, 0.0, 0.0}, {0.0, 0.0, -1.0, 0.0}, {0.0, 0.0, 0.0, 1.0}}
 
 // RENDERER_SINGLECORE makes the mesher create VBOs on the main thread
-#if defined(_WIN32) && defined(USESDL2) // Windows + SDL doesn't seem to like context sharing
-    #define RENDERER_SINGLECORE
-#endif
+#define RENDERER_SINGLECORE // Enabled by default now since context sharing broke somehow
+// TODO: remove context sharing
 
 #endif
 
