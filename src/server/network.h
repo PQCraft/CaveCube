@@ -2,6 +2,7 @@
 #define SERVER_NETWORK_H
 
 #include <stdbool.h>
+#include <inttypes.h>
 
 #ifndef _WIN32
     #include <sys/fcntl.h>

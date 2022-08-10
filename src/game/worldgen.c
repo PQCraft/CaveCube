@@ -83,7 +83,7 @@ static inline void genSliver(int type, double cx, double cz, int top, int btm, u
 
 void genChunk(int64_t cx, int cy, int64_t cz, struct blockdata* data, int type) {
     int64_t nx = cx * 16;
-    int64_t nz = cz * -16;
+    int64_t nz = cz * 16;
     int btm = cy * 16;
     int top = (cy + 1) * 16 - 1;
     for (int z = 0; z < 16; ++z) {

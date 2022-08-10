@@ -223,6 +223,7 @@ void writeChunk(struct chunkdata* chunks, int id, int64_t x, int y, int64_t z, s
         pthread_mutex_unlock(&uclock);
         return;
     }
+    //nz = chunks->info.width - nz - 1;
     uint32_t coff = nx + nz * chunks->info.width + y * chunks->info.widthsq;
     //printf("writing chunk to [%"PRId64", %d, %"PRId64"] ([%"PRId64", %"PRId64"])\n", nx, y, nz, x, z);
     memcpy(chunks->data[coff], data, 4096 * sizeof(struct blockdata));
@@ -238,14 +239,15 @@ void writeChunkCol(struct chunkdata* chunks, int id, int64_t x, int64_t z, struc
         pthread_mutex_unlock(&uclock);
         return;
     }
-    int64_t nx = x - cxo + chunks->info.dist;
-    int64_t nz = z - czo + chunks->info.dist;
-    //printf("writing chunk col to [%"PRId64", %"PRId64"] ([%"PRId64", %"PRId64"])\n", nx, nz, x, z);
+    int64_t nx = (x - cxo) + chunks->info.dist;
+    int64_t nz = chunks->info.width - ((z - czo) + chunks->info.dist) - 1;
     if (nx < 0 || nz < 0 || nx >= chunks->info.width || nz >= chunks->info.width) {
         pthread_mutex_unlock(&uclock);
         return;
     }
+    //nz = chunks->info.width - nz - 1;
     uint32_t coff = nx + nz * chunks->info.width;
+    //printf("writing chunk col to [%"PRId64", %"PRId64"] ([%"PRId64", %"PRId64"])\n", nx, nz, x, z);
     for (int i = 0; i < 16; ++i) {
         memcpy(chunks->data[coff], data[i], 4096 * sizeof(struct blockdata));
         chunks->renddata[coff].updated = false;
@@ -271,7 +273,7 @@ void reqChunks(struct chunkdata* chunks, int64_t xo, int64_t zo) {
     ++cid;
     //printf("set [%u]\n", cid);
     pthread_mutex_unlock(&uclock);
-    cliSend(CLIENT_SETCHUNKPOS, xo, zo);
+    //cliSend(CLIENT_SETCHUNKPOS, xo, zo);
     for (int i = 0; i <= (int)chunks->info.dist; ++i) {
         for (int z = -i; z <= i; ++z) {
             for (int x = -i; x <= i; ++x) {
@@ -284,14 +286,13 @@ void reqChunks(struct chunkdata* chunks, int64_t xo, int64_t zo) {
                         coff2 += chunks->info.widthsq;
                     }
                     if (!gen) {
-                        //printf("REQ [%d][%d]\n", x, z);
-                        cliSend(CLIENT_GETCHUNKCOL, (int)cid, (int64_t)((int64_t)(x) + xo), (int64_t)((int64_t)(z) + zo));
+                        //printf("REQ [%d, %d] ([%"PRId64", %"PRId64"]) -> [%"PRId64", %"PRId64"]\n", x, -z, xo, zo, (int64_t)((int64_t)(x) + xo), (int64_t)((int64_t)(-z) + zo));
+                        cliSend(CLIENT_GETCHUNKCOL, (int)cid, (int64_t)((int64_t)(x) + xo), (int64_t)((int64_t)(-z) + zo));
                     } else if (gen < 16) {
                         coff2 = coff;
                         for (int y = 0; y < 16; ++y) {
                             if (!chunks->renddata[coff2].generated) {
-                                //printf("bruh: [%d]\n", y);
-                                cliSend(CLIENT_GETCHUNK, (int)cid, (int64_t)((int64_t)(x) + xo), y, (int64_t)((int64_t)(z) + zo));
+                                cliSend(CLIENT_GETCHUNK, (int)cid, (int64_t)((int64_t)(x) + xo), y, (int64_t)((int64_t)(-z) + zo));
                             }
                             coff2 += chunks->info.widthsq;
                         }
