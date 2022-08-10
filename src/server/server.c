@@ -88,6 +88,25 @@ static bool getNextMsg(struct msgdata* mdata, struct msgdata_msg* msg) {
     return false;
 }
 
+static bool getNextMsgForUUID(struct msgdata* mdata, struct msgdata_msg* msg, uint64_t uuid) {
+    pthread_mutex_lock(&mdata->lock);
+    if (mdata->valid) {
+        for (int i = 0; i < mdata->size; ++i) {
+            if (mdata->msg[i].id >= 0 && mdata->msg[i].uuid == uuid) {
+                msg->id = mdata->msg[i].id;
+                msg->data = mdata->msg[i].data;
+                msg->uuid = mdata->msg[i].uuid;
+                msg->uind = mdata->msg[i].uind;
+                mdata->msg[i].id = -1;
+                pthread_mutex_unlock(&mdata->lock);
+                return true;
+            }
+        }
+    }
+    pthread_mutex_unlock(&mdata->lock);
+    return false;
+}
+
 enum {
     MSGTYPE_ACK,
     MSGTYPE_DATA,
@@ -145,6 +164,8 @@ static pthread_mutex_t pdatalock;
 static struct msgdata servmsgin;
 static struct msgdata servmsgout;
 
+static int worldtype = 1;
+
 static pthread_t servpthreads[MAX_THREADS];
 
 static void* servthread(void* args) {
@@ -154,22 +175,45 @@ static void* servthread(void* args) {
         microwait(1000);
         struct msgdata_msg msg;
         if (getNextMsg(&servmsgin, &msg)) {
-            printf("Received message [%d] for player handle [%d]\n", msg.id, msg.uind);
+            //printf("Received message [%d] for player handle [%d]\n", msg.id, msg.uind);
             pthread_mutex_lock(&pdatalock);
             bool cond = (pdata[msg.uind].valid && pdata[msg.uind].uuid == msg.uuid);
             pthread_mutex_unlock(&pdatalock);
             if (cond) {
-                puts("Processing message...");
+                //puts("Processing message...");
                 switch (msg.id) {
                     case CLIENT_PING:; {
                         addMsg(&servmsgout, SERVER_PONG, NULL, msg.uuid, msg.uind);
                         break;
                     }
+                    case CLIENT_GETCHUNK:; {
+                        struct client_data_getchunk* data = msg.data;
+                        struct server_data_updatechunk* outdata = malloc(sizeof(*outdata));
+                        outdata->id = data->id;
+                        outdata->x = data->x;
+                        outdata->y = data->y;
+                        outdata->z = data->z;
+                        genChunk(data->x, data->y, data->z, outdata->data, worldtype);
+                        addMsg(&servmsgout, SERVER_UPDATECHUNK, outdata, msg.uuid, msg.uind);
+                        break;
+                    }
+                    case CLIENT_GETCHUNKCOL:; {
+                        struct client_data_getchunkcol* data = msg.data;
+                        struct server_data_updatechunkcol* outdata = malloc(sizeof(*outdata));
+                        outdata->id = data->id;
+                        outdata->x = data->x;
+                        outdata->z = data->z;
+                        for (int y = 0; y < 16; ++y) {
+                            genChunk(data->x, y, data->z, outdata->data[y], worldtype);
+                        }
+                        addMsg(&servmsgout, SERVER_UPDATECHUNKCOL, outdata, msg.uuid, msg.uind);
+                        break;
+                    }
                 }
                 if (msg.data) free(msg.data);
-                puts("Done");
+                //puts("Done");
             } else {
-                puts("Message dropped (player handle is not valid)");
+                //puts("Message dropped (player handle is not valid)");
             }
         }
     }
@@ -335,9 +379,50 @@ static void* servnetthread(void* args) {
                     }
                     if (pdata[i].ack) {
                         struct msgdata_msg msg;
-                        if (getNextMsg(&servmsgout, &msg)) {
+                        if (getNextMsgForUUID(&servmsgout, &msg, pdata[i].uuid) && msg.uind == i) {
                             uint8_t tmpbyte[2] = {MSGTYPE_DATA, msg.id};
                             writeToCxnBuf(pdata[i].cxn, tmpbyte, 2);
+                            switch (msg.id) {
+                                case SERVER_COMPATINFO:; {
+                                    struct server_data_compatinfo* tmpdata = msg.data;
+                                    uint16_t tmpword = host2net16(tmpdata->ver_major);
+                                    writeToCxnBuf(pdata[i].cxn, &tmpword, 2);
+                                    tmpword = host2net16(tmpdata->ver_minor);
+                                    writeToCxnBuf(pdata[i].cxn, &tmpword, 2);
+                                    tmpword = host2net16(tmpdata->ver_patch);
+                                    writeToCxnBuf(pdata[i].cxn, &tmpword, 2);
+                                    writeToCxnBuf(pdata[i].cxn, &tmpdata->flags, 1);
+                                    tmpword = host2net16(strlen(tmpdata->server_str));
+                                    writeToCxnBuf(pdata[i].cxn, &tmpword, 2);
+                                    writeToCxnBuf(pdata[i].cxn, tmpdata->server_str, net2host16(tmpword));
+                                    free(tmpdata->server_str);
+                                    break;
+                                }
+                                case SERVER_UPDATECHUNK:; {
+                                    struct server_data_updatechunk* tmpdata = msg.data;
+                                    uint16_t tmpword = host2net16(tmpdata->id);
+                                    writeToCxnBuf(pdata[i].cxn, &tmpword, 2);
+                                    uint64_t tmpqword = host2net64(tmpdata->x);
+                                    writeToCxnBuf(pdata[i].cxn, &tmpqword, 8);
+                                    writeToCxnBuf(pdata[i].cxn, &tmpdata->y, 1);
+                                    tmpqword = host2net64(tmpdata->z);
+                                    writeToCxnBuf(pdata[i].cxn, &tmpqword, 8);
+                                    writeToCxnBuf(pdata[i].cxn, &tmpdata->data, 4096 * sizeof(struct blockdata));
+                                    break;
+                                }
+                                case SERVER_UPDATECHUNKCOL:; {
+                                    struct server_data_updatechunkcol* tmpdata = msg.data;
+                                    uint16_t tmpword = host2net16(tmpdata->id);
+                                    writeToCxnBuf(pdata[i].cxn, &tmpword, 2);
+                                    uint64_t tmpqword = host2net64(tmpdata->x);
+                                    writeToCxnBuf(pdata[i].cxn, &tmpqword, 8);
+                                    tmpqword = host2net64(tmpdata->z);
+                                    writeToCxnBuf(pdata[i].cxn, &tmpqword, 8);
+                                    writeToCxnBuf(pdata[i].cxn, &tmpdata->data, 16 * 4096 * sizeof(struct blockdata));
+                                    break;
+                                }
+                            }
+                            if (msg.data) free(msg.data);
                             pdata[i].ack = false;
                         }
                     }
@@ -543,7 +628,7 @@ static void* clinetthread(void* args) {
                             ptr += 8;
                             data.z = net2host64(data.z);
                             memcpy(data.data, &buf[ptr], 16 * 4096 * sizeof(struct blockdata));
-                            callback(SERVER_UPDATECHUNK, &data);
+                            callback(SERVER_UPDATECHUNKCOL, &data);
                             break;
                         }
                     }
@@ -573,7 +658,6 @@ static void* clinetthread(void* args) {
                         writeToCxnBuf(clicxn, &tmpword, 2);
                         writeToCxnBuf(clicxn, tmpdata->client_str, net2host16(tmpword));
                         free(tmpdata->client_str);
-                        free(tmpdata);
                         break;
                     }
                     case CLIENT_GETCHUNK:; {
@@ -585,18 +669,17 @@ static void* clinetthread(void* args) {
                         writeToCxnBuf(clicxn, &tmpdata->y, 1);
                         tmpqword = host2net64(tmpdata->z);
                         writeToCxnBuf(clicxn, &tmpqword, 8);
-                        free(tmpdata);
                         break;
                     }
                     case CLIENT_GETCHUNKCOL:; {
                         struct client_data_getchunkcol* tmpdata = msg.data;
+                        //printf("CLI REQ: [%016"PRIX64", %016"PRIX64"]\n", tmpdata->x, host2net64(tmpdata->x));
                         uint16_t tmpword = host2net16(tmpdata->id);
                         writeToCxnBuf(clicxn, &tmpword, 2);
                         uint64_t tmpqword = host2net64(tmpdata->x);
                         writeToCxnBuf(clicxn, &tmpqword, 8);
                         tmpqword = host2net64(tmpdata->z);
                         writeToCxnBuf(clicxn, &tmpqword, 8);
-                        free(tmpdata);
                         break;
                     }
                     case CLIENT_SETCHUNKPOS:; {
@@ -605,10 +688,10 @@ static void* clinetthread(void* args) {
                         writeToCxnBuf(clicxn, &tmpqword, 8);
                         tmpqword = host2net64(tmpdata->z);
                         writeToCxnBuf(clicxn, &tmpqword, 8);
-                        free(tmpdata);
                         break;
                     }
                 }
+                free(msg.data);
                 ack = false;
             }
         }

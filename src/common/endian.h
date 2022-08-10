@@ -14,10 +14,10 @@
     #endif
 #endif
 
-#define SWAPEDN16(x) ((uint16_t)(((x << 8) & 0xFF00U) | ((x >> 8) & 0xFFU)))
-#define SWAPEDN32(x) ((uint32_t)(((x << 16) & 0xFF000000LU) | ((x << 8) & 0xFF0000LU) | ((x >> 8) & 0xFF00LU) | ((x >> 16) & 0xFFLU)))
-#define SWAPEDN64(x) ((uint64_t)(((x << 32) & 0xFF00000000000000LLU) | ((x << 24) & 0xFF000000000000LLU) | ((x << 16) & 0xFF0000000000LLU) | ((x << 8) & 0xFF00000000LLU) |\
-                     ((x >> 8) & 0xFF000000LLU) | ((x >> 16) & 0xFF0000LLU) | ((x >> 24) & 0xFF00LLU) | ((x >> 32) & 0xFFLLU)))
+#define SWAPEDN16(x) ((uint16_t)((((x) << 8) & 0xFF00U) | (((x) >> 8) & 0xFFU)))
+#define SWAPEDN32(x) ((uint32_t)((((x) << 24) & 0xFF000000LU) | (((x) << 8) & 0xFF0000LU) | (((x) >> 8) & 0xFF00LU) | (((x) >> 24) & 0xFFLU)))
+#define SWAPEDN64(x) ((uint64_t)((((x) << 56) & 0xFF00000000000000LLU) | (((x) << 40) & 0xFF000000000000LLU) | (((x) << 24) & 0xFF0000000000LLU) | (((x) << 8) & 0xFF00000000LLU) |\
+                     (((x) >> 8) & 0xFF000000LLU) | (((x) >> 24) & 0xFF0000LLU) | (((x) >> 40) & 0xFF00LLU) | (((x) >> 56) & 0xFFLLU)))
 
 #ifdef B_EDN
     #define host2net16(x) ((uint16_t)(x))
