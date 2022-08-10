@@ -451,6 +451,7 @@ int startServer(char* addr, int port, char* world, int mcli) {
     initMsgData(&servmsgout);
     setRandSeed(0, 32464);
     initNoiseTable(0);
+    initWorldgen();
     serveralive = true;
     #ifdef NAME_THREADS
     char name[256];
@@ -673,7 +674,6 @@ static void* clinetthread(void* args) {
                     }
                     case CLIENT_GETCHUNKCOL:; {
                         struct client_data_getchunkcol* tmpdata = msg.data;
-                        //printf("CLI REQ: [%016"PRIX64", %016"PRIX64"]\n", tmpdata->x, host2net64(tmpdata->x));
                         uint16_t tmpword = host2net16(tmpdata->id);
                         writeToCxnBuf(clicxn, &tmpword, 2);
                         uint64_t tmpqword = host2net64(tmpdata->x);

@@ -81,19 +81,19 @@ static inline void genSliver(int type, double cx, double cz, int top, int btm, u
     }
 }
 
-void genChunk(int64_t x, int y, int64_t z, struct blockdata* data, int type) {
-    int64_t nx = x * 16;
-    int64_t nz = z * 16;
-    int btm = y * 16;
-    int top = (y + 1) * 16 - 1;
-    for (int bz = 0; bz < 16; ++bz) {
-        for (int bx = 0; bx < 16; ++bx) {
-            int xzoff = bz * 16 + bx;
-            double nbx = (double)(nx + x);
-            double nbz = (double)(nz + z);
+void genChunk(int64_t cx, int cy, int64_t cz, struct blockdata* data, int type) {
+    int64_t nx = cx * 16;
+    int64_t nz = cz * -16;
+    int btm = cy * 16;
+    int top = (cy + 1) * 16 - 1;
+    for (int z = 0; z < 16; ++z) {
+        for (int x = 0; x < 16; ++x) {
+            int xzoff = z * 16 + x;
+            double cx = (double)(nx + x);
+            double cz = (double)(nz + z);
             uint8_t sliver[16];
             memset(&sliver, 0, 16);
-            genSliver(type, nbx, nbz, top, btm, sliver);
+            genSliver(type, cx, cz, top, btm, sliver);
             for (int i = 0; i < 16; ++i) {
                 struct blockdata* tdata = &data[256 * i + xzoff];
                 memset(tdata, 0, sizeof(struct blockdata));

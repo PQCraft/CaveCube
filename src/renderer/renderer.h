@@ -144,7 +144,6 @@ extern struct renderer_info rendinf;
 #if defined(_WIN32) && defined(USESDL2) // Windows + SDL doesn't seem to like context sharing
     #define RENDERER_SINGLECORE
 #endif
-#define RENDERER_SINGLECORE
 
 #endif
 
