@@ -239,6 +239,7 @@ void writeChunkCol(struct chunkdata* chunks, int id, int64_t x, int64_t z, struc
     }
     int64_t nx = x - cxo + chunks->info.dist;
     int64_t nz = z - czo + chunks->info.dist;
+    printf("writing chunk col to [%"PRId64", %"PRId64"] ([%"PRId64", %"PRId64"])\n", nx, nz, x, z);
     if (nx < 0 || nz < 0 || nx >= chunks->info.width || nz >= chunks->info.width) {
         pthread_mutex_unlock(&uclock);
         return;
