@@ -1,5 +1,5 @@
-# CaveCube 
-**An in-development Minecraft/Infiniminer clone**
+# CaveCube
+**An in-development Minecraft/Infiniminer clone**<br>
 
 ---
 [![image](https://raw.githubusercontent.com/PQCraft/PQCraft/master/Screenshot_20220709_023207.png)](#?)
@@ -23,5 +23,5 @@ These variables can be combined.<br>
 For example, `make USESDL2=y WIN32=y -j run` will build CaveCube for Windows with SDL2 and run when compilation finishes.<br>
 
 ---
-### Notes
+### Notes <img src="https://repology.org/badge/vertical-allrepos/cavecube.svg" alt="Packaging status" align="right"><br>
 CaveCube can be installed on Arch Linux using the [cavecube](https://aur.archlinux.org/packages/cavecube) or [cavecube-bin](https://aur.archlinux.org/packages/cavecube-bin) package.<br>
