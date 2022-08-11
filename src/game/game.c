@@ -194,6 +194,7 @@ static inline coord_3d_dbl icoord2wcoord(coord_3d cam, int64_t cx, int64_t cz) {
 }
 
 static bool ping = false;
+static int compat = 0;
 
 static void handleServer(int msg, void* _data) {
     //printf("Recieved [%d] from server\n", msg);
@@ -205,20 +206,21 @@ static void handleServer(int msg, void* _data) {
         }
         case SERVER_COMPATINFO:; {
             struct server_data_compatinfo* data = _data;
-            printf("Server version is %s %d.%d.%d", data->server_str, data->ver_major, data->ver_minor, data->ver_patch);
+            printf("Server version is %s %d.%d.%d\n", data->server_str, data->ver_major, data->ver_minor, data->ver_patch);
             if (data->flags & SERVER_FLAG_NOAUTH) puts("- No authentication required");
             if (data->flags & SERVER_FLAG_PASSWD) puts("- Password protected");
+            compat = (data->ver_major == VER_MAJOR && data->ver_minor == VER_MINOR && data->ver_patch == VER_PATCH) ? 1 : -1;
             break;
         }
         case SERVER_UPDATECHUNK:; {
             struct server_data_updatechunk* data = _data;
-            writeChunk(&chunks, data->id, data->x, data->y, data->z, data->data);
+            writeChunk(&chunks, data->x, data->y, data->z, data->data);
             break;
         }
         case SERVER_UPDATECHUNKCOL:; {
             struct server_data_updatechunkcol* data = _data;
             //printf("writing chunk col to [%"PRId64", %"PRId64"]\n", data->x, data->z);
-            writeChunkCol(&chunks, data->id, data->x, data->z, data->data);
+            writeChunkCol(&chunks, data->x, data->z, data->data);
             break;
         }
     }
@@ -241,7 +243,7 @@ bool doGame(char* addr, int port) {
     if (!addr) {
         puts("Starting server...");
         if ((servport = startServer(NULL, servport, NULL, 1)) == -1) {
-            puts("Server failed to start");
+            fputs("Server failed to start\n", stderr);
             return false;
         }
         printf("Started server on port [%d]\n", servport);
@@ -259,6 +261,17 @@ bool doGame(char* addr, int port) {
     }
     if (quitRequest) return false;
     puts("Server responded to ping");
+    puts("Exchanging compatibility info...");
+    cliSend(CLIENT_COMPATINFO, VER_MAJOR, VER_MINOR, VER_PATCH, "CaveCube");
+    while (!compat && !quitRequest) {
+        getInput();
+        microwait(100000);
+    }
+    if (compat < 0) {
+        fputs("Server version mismatch\n", stderr);
+        return false;
+    }
+    if (quitRequest) return false;
     //int64_t farlands = -((int64_t)1 << 55);
     int64_t cx = 0;
     int64_t cz = 0;

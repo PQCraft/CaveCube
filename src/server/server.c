@@ -12,10 +12,6 @@
 #include <string.h>
 #include <pthread.h>
 
-#ifndef SERVER_STRING
-    #define SERVER_STRING "CaveCube"
-#endif
-
 int SERVER_THREADS;
 
 struct msgdata_msg {
@@ -172,7 +168,7 @@ static void* servthread(void* args) {
     int id = (intptr_t)args;
     printf("Server: Started thread [%d]\n", id);
     while (serveralive) {
-        microwait(1000);
+        //microwait(1000);
         struct msgdata_msg msg;
         if (getNextMsg(&servmsgin, &msg)) {
             //printf("Received message [%d] for player handle [%d]\n", msg.id, msg.uind);
@@ -186,10 +182,20 @@ static void* servthread(void* args) {
                         addMsg(&servmsgout, SERVER_PONG, NULL, msg.uuid, msg.uind);
                         break;
                     }
+                    case CLIENT_COMPATINFO:; {
+                        //struct client_data_compatinfo* data = msg.data;
+                        struct server_data_compatinfo* outdata = malloc(sizeof(*outdata));
+                        outdata->ver_major = VER_MAJOR;
+                        outdata->ver_minor = VER_MINOR;
+                        outdata->ver_patch = VER_PATCH;
+                        outdata->flags = SERVER_FLAG_NOAUTH;
+                        outdata->server_str = strdup("CaveCube");
+                        addMsg(&servmsgout, SERVER_COMPATINFO, outdata, msg.uuid, msg.uind);
+                        break;
+                    }
                     case CLIENT_GETCHUNK:; {
                         struct client_data_getchunk* data = msg.data;
                         struct server_data_updatechunk* outdata = malloc(sizeof(*outdata));
-                        outdata->id = data->id;
                         outdata->x = data->x;
                         outdata->y = data->y;
                         outdata->z = data->z;
@@ -200,7 +206,6 @@ static void* servthread(void* args) {
                     case CLIENT_GETCHUNKCOL:; {
                         struct client_data_getchunkcol* data = msg.data;
                         struct server_data_updatechunkcol* outdata = malloc(sizeof(*outdata));
-                        outdata->id = data->id;
                         outdata->x = data->x;
                         outdata->z = data->z;
                         for (int y = 0; y < 16; ++y) {
@@ -247,14 +252,14 @@ static int peekCliMsgLen(struct netcxn* cxn) {
                     tmp = pCML_nbyte();
                     if (tmp < 0) return 0;
                     tmp2 |= tmp & 0xFF;
-                    tmp2 = net2host16(tmp2);
+                    //tmp2 = net2host16(tmp2);
                     return 2 + 8 + tmp2;
                 }
                 case CLIENT_GETCHUNK:; {
-                    return 2 + 19;
+                    return 2 + 17;
                 }
                 case CLIENT_GETCHUNKCOL:; {
-                    return 2 + 18;
+                    return 2 + 16;
                 }
                 default:; /*has CLIENT_PING*/ {
                     return 2;
@@ -270,7 +275,7 @@ static pthread_t servnetthreadh;
 static void* servnetthread(void* args) {
     (void)args;
     while (serveralive) {
-        microwait(1000);
+        //microwait(1000);
         struct netcxn* newcxn;
         if ((newcxn = acceptCxn(servcxn, SERVER_OUTBUF_SIZE, CLIENT_OUTBUF_SIZE))) {
             printf("New connection from %s\n", getCxnAddrStr(newcxn));
@@ -326,10 +331,10 @@ static void* servnetthread(void* args) {
                                         data->ver_major = net2host16(data->ver_major);
                                         memcpy(&data->ver_minor, &buf[ptr], 2);
                                         ptr += 2;
-                                        data->ver_major = net2host16(data->ver_minor);
+                                        data->ver_minor = net2host16(data->ver_minor);
                                         memcpy(&data->ver_patch, &buf[ptr], 2);
                                         ptr += 2;
-                                        data->ver_major = net2host16(data->ver_patch);
+                                        data->ver_patch = net2host16(data->ver_patch);
                                         uint16_t tmpword = 0;
                                         memcpy(&tmpword, &buf[ptr], 2);
                                         ptr += 2;
@@ -342,9 +347,6 @@ static void* servnetthread(void* args) {
                                     }
                                     case CLIENT_GETCHUNK:; {
                                         struct server_data_updatechunk* data = malloc(sizeof(*data));
-                                        memcpy(&data->id, &buf[ptr], 2);
-                                        ptr += 2;
-                                        data->id = net2host16(data->id);
                                         memcpy(&data->x, &buf[ptr], 8);
                                         ptr += 8;
                                         data->x = net2host64(data->x);
@@ -356,9 +358,6 @@ static void* servnetthread(void* args) {
                                     }
                                     case CLIENT_GETCHUNKCOL:; {
                                         struct server_data_updatechunkcol* data = malloc(sizeof(*data));
-                                        memcpy(&data->id, &buf[ptr], 2);
-                                        ptr += 2;
-                                        data->id = net2host16(data->id);
                                         memcpy(&data->x, &buf[ptr], 8);
                                         ptr += 8;
                                         data->x = net2host64(data->x);
@@ -400,8 +399,6 @@ static void* servnetthread(void* args) {
                                 }
                                 case SERVER_UPDATECHUNK:; {
                                     struct server_data_updatechunk* tmpdata = msg.data;
-                                    uint16_t tmpword = host2net16(tmpdata->id);
-                                    writeToCxnBuf(pdata[i].cxn, &tmpword, 2);
                                     uint64_t tmpqword = host2net64(tmpdata->x);
                                     writeToCxnBuf(pdata[i].cxn, &tmpqword, 8);
                                     writeToCxnBuf(pdata[i].cxn, &tmpdata->y, 1);
@@ -412,8 +409,6 @@ static void* servnetthread(void* args) {
                                 }
                                 case SERVER_UPDATECHUNKCOL:; {
                                     struct server_data_updatechunkcol* tmpdata = msg.data;
-                                    uint16_t tmpword = host2net16(tmpdata->id);
-                                    writeToCxnBuf(pdata[i].cxn, &tmpword, 2);
                                     uint64_t tmpqword = host2net64(tmpdata->x);
                                     writeToCxnBuf(pdata[i].cxn, &tmpqword, 8);
                                     tmpqword = host2net64(tmpdata->z);
@@ -499,8 +494,6 @@ void stopServer() {
 
 #include <stdarg.h>
 
-//static int client_delay;
-
 struct netcxn* clicxn;
 
 static void (*callback)(int, void*);
@@ -532,14 +525,14 @@ static int peekServMsgLen(struct netcxn* cxn) {
                     tmp = pSML_nbyte();
                     if (tmp < 0) return 0;
                     tmp2 |= tmp & 0xFF;
-                    tmp2 = net2host16(tmp2);
+                    //tmp2 = net2host16(tmp2);
                     return 2 + 9 + tmp2;
                 }
                 case SERVER_UPDATECHUNK:; {
-                    return 2 + 19 + 4096 * sizeof(struct blockdata);
+                    return 2 + 17 + 4096 * sizeof(struct blockdata);
                 }
                 case SERVER_UPDATECHUNKCOL:; {
-                    return 2 + 18 + 16 * 4096 * sizeof(struct blockdata);
+                    return 2 + 16 + 16 * 4096 * sizeof(struct blockdata);
                 }
                 default:; /*has SERVER_PONG*/ {
                     return 2;
@@ -557,7 +550,7 @@ static void* clinetthread(void* args) {
     bool ack = true;
     int tmpsize = 0;
     while (true) {
-        microwait(1000);
+        //microwait(1000);
         recvCxn(clicxn);
         if (tmpsize < 1) {
             tmpsize = peekServMsgLen(clicxn);
@@ -585,10 +578,10 @@ static void* clinetthread(void* args) {
                             data.ver_major = net2host16(data.ver_major);
                             memcpy(&data.ver_minor, &buf[ptr], 2);
                             ptr += 2;
-                            data.ver_major = net2host16(data.ver_minor);
+                            data.ver_minor = net2host16(data.ver_minor);
                             memcpy(&data.ver_patch, &buf[ptr], 2);
                             ptr += 2;
-                            data.ver_major = net2host16(data.ver_patch);
+                            data.ver_patch = net2host16(data.ver_patch);
                             data.flags = buf[ptr++];
                             uint16_t tmpword = 0;
                             memcpy(&tmpword, &buf[ptr], 2);
@@ -597,15 +590,12 @@ static void* clinetthread(void* args) {
                             data.server_str = malloc((int)tmpword + 1);
                             memcpy(data.server_str, &buf[ptr], tmpword);
                             data.server_str[tmpword] = 0;
-                            callback(SERVER_PONG, &data);
+                            callback(SERVER_COMPATINFO, &data);
                             free(data.server_str);
                             break;
                         }
                         case SERVER_UPDATECHUNK:; {
                             struct server_data_updatechunk data;
-                            memcpy(&data.id, &buf[ptr], 2);
-                            ptr += 2;
-                            data.id = net2host16(data.id);
                             memcpy(&data.x, &buf[ptr], 8);
                             ptr += 8;
                             data.x = net2host64(data.x);
@@ -619,9 +609,6 @@ static void* clinetthread(void* args) {
                         }
                         case SERVER_UPDATECHUNKCOL:; {
                             struct server_data_updatechunkcol data;
-                            memcpy(&data.id, &buf[ptr], 2);
-                            ptr += 2;
-                            data.id = net2host16(data.id);
                             memcpy(&data.x, &buf[ptr], 8);
                             ptr += 8;
                             data.x = net2host64(data.x);
@@ -663,8 +650,6 @@ static void* clinetthread(void* args) {
                     }
                     case CLIENT_GETCHUNK:; {
                         struct client_data_getchunk* tmpdata = msg.data;
-                        uint16_t tmpword = host2net16(tmpdata->id);
-                        writeToCxnBuf(clicxn, &tmpword, 2);
                         uint64_t tmpqword = host2net64(tmpdata->x);
                         writeToCxnBuf(clicxn, &tmpqword, 8);
                         writeToCxnBuf(clicxn, &tmpdata->y, 1);
@@ -674,16 +659,6 @@ static void* clinetthread(void* args) {
                     }
                     case CLIENT_GETCHUNKCOL:; {
                         struct client_data_getchunkcol* tmpdata = msg.data;
-                        uint16_t tmpword = host2net16(tmpdata->id);
-                        writeToCxnBuf(clicxn, &tmpword, 2);
-                        uint64_t tmpqword = host2net64(tmpdata->x);
-                        writeToCxnBuf(clicxn, &tmpqword, 8);
-                        tmpqword = host2net64(tmpdata->z);
-                        writeToCxnBuf(clicxn, &tmpqword, 8);
-                        break;
-                    }
-                    case CLIENT_SETCHUNKPOS:; {
-                        struct client_data_setchunkpos* tmpdata = msg.data;
                         uint64_t tmpqword = host2net64(tmpdata->x);
                         writeToCxnBuf(clicxn, &tmpqword, 8);
                         tmpqword = host2net64(tmpdata->z);
@@ -732,13 +707,12 @@ void cliSend(int id, ...) {
             tmpdata->ver_major = va_arg(args, int);
             tmpdata->ver_minor = va_arg(args, int);
             tmpdata->ver_patch = va_arg(args, int);
-            tmpdata->client_str = va_arg(args, char*);
+            tmpdata->client_str = strdup(va_arg(args, char*));
             data = tmpdata;
             break;
         }
         case CLIENT_GETCHUNK:; {
             struct client_data_getchunk* tmpdata = malloc(sizeof(*tmpdata));
-            tmpdata->id = va_arg(args, int);
             tmpdata->x = va_arg(args, int64_t);
             tmpdata->y = va_arg(args, int);
             tmpdata->z = va_arg(args, int64_t);
@@ -747,14 +721,6 @@ void cliSend(int id, ...) {
         }
         case CLIENT_GETCHUNKCOL:; {
             struct client_data_getchunkcol* tmpdata = malloc(sizeof(*tmpdata));
-            tmpdata->id = va_arg(args, int);
-            tmpdata->x = va_arg(args, int64_t);
-            tmpdata->z = va_arg(args, int64_t);
-            data = tmpdata;
-            break;
-        }
-        case CLIENT_SETCHUNKPOS:; {
-            struct client_data_setchunkpos* tmpdata = malloc(sizeof(*tmpdata));
             tmpdata->x = va_arg(args, int64_t);
             tmpdata->z = va_arg(args, int64_t);
             data = tmpdata;

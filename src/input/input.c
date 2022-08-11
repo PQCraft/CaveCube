@@ -177,6 +177,7 @@ void resetInput() {
     #else
     glfwGetCursorPos(rendinf.window, &mxpos, &mypos);
     #endif
+    getInput();
 }
 
 struct input_info getInput() {
