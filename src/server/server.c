@@ -167,10 +167,12 @@ static pthread_t servpthreads[MAX_THREADS];
 static void* servthread(void* args) {
     int id = (intptr_t)args;
     printf("Server: Started thread [%d]\n", id);
+    uint64_t acttime = altutime();
     while (serveralive) {
-        //microwait(1000);
+        bool activity = false;
         struct msgdata_msg msg;
         if (getNextMsg(&servmsgin, &msg)) {
+            activity = true;
             //printf("Received message [%d] for player handle [%d]\n", msg.id, msg.uind);
             pthread_mutex_lock(&pdatalock);
             bool cond = (pdata[msg.uind].valid && pdata[msg.uind].uuid == msg.uuid);
@@ -220,6 +222,11 @@ static void* servthread(void* args) {
             } else {
                 //puts("Message dropped (player handle is not valid)");
             }
+        }
+        if (activity) {
+            acttime = altutime();
+        } else if (altutime() - acttime > 1000000) {
+            microwait(500000);
         }
     }
     return NULL;
@@ -274,10 +281,12 @@ static pthread_t servnetthreadh;
 
 static void* servnetthread(void* args) {
     (void)args;
+    uint64_t acttime = altutime();
     while (serveralive) {
-        //microwait(1000);
+        bool activity = false;
         struct netcxn* newcxn;
         if ((newcxn = acceptCxn(servcxn, SERVER_OUTBUF_SIZE, CLIENT_OUTBUF_SIZE))) {
+            activity = true;
             printf("New connection from %s\n", getCxnAddrStr(newcxn));
             bool added = false;
             pthread_mutex_lock(&pdatalock);
@@ -304,13 +313,16 @@ static void* servnetthread(void* args) {
             pthread_mutex_lock(&pdatalock);
             if (pdata[i].valid) {
                 if (recvCxn(pdata[i].cxn) < 0) {
+                    activity = true;
                     printf("Connection to %s dropped due to disconnect\n", getCxnAddrStr(pdata[i].cxn));
                     closeCxn(pdata[i].cxn);
                     pdata[i].valid = false;
                 } else {
                     if (pdata[i].tmpsize < 1) {
                         pdata[i].tmpsize = peekCliMsgLen(pdata[i].cxn);
+                        if (pdata[i].tmpsize > 0) activity = true;
                     } else if (getInbufSize(pdata[i].cxn) >= pdata[i].tmpsize) {
+                        activity = true;
                         unsigned char* buf = malloc(pdata[i].tmpsize);
                         readFromCxnBuf(pdata[i].cxn, buf, pdata[i].tmpsize);
                         int ptr = 0;
@@ -379,6 +391,7 @@ static void* servnetthread(void* args) {
                     if (pdata[i].ack) {
                         struct msgdata_msg msg;
                         if (getNextMsgForUUID(&servmsgout, &msg, pdata[i].uuid) && msg.uind == i) {
+                            activity = true;
                             uint8_t tmpbyte[2] = {MSGTYPE_DATA, msg.id};
                             writeToCxnBuf(pdata[i].cxn, tmpbyte, 2);
                             switch (msg.id) {
@@ -425,6 +438,11 @@ static void* servnetthread(void* args) {
                 }
             }
             pthread_mutex_unlock(&pdatalock);
+        }
+        if (activity) {
+            acttime = altutime();
+        } else if (altutime() - acttime > 1000000) {
+            microwait(500000);
         }
     }
     return NULL;
@@ -549,12 +567,15 @@ static void* clinetthread(void* args) {
     (void)args;
     bool ack = true;
     int tmpsize = 0;
+    uint64_t acttime = altutime();
     while (true) {
-        //microwait(1000);
+        bool activity = false;
         recvCxn(clicxn);
         if (tmpsize < 1) {
             tmpsize = peekServMsgLen(clicxn);
+            if (tmpsize > 0) activity = true;
         } else if (getInbufSize(clicxn) >= tmpsize) {
+            activity = true;
             unsigned char* buf = malloc(tmpsize);
             readFromCxnBuf(clicxn, buf, tmpsize);
             int ptr = 0;
@@ -631,6 +652,7 @@ static void* clinetthread(void* args) {
         if (ack) {
             struct msgdata_msg msg;
             if (getNextMsg(&climsgout, &msg)) {
+                activity = true;
                 uint8_t tmpbyte[2] = {MSGTYPE_DATA, msg.id};
                 writeToCxnBuf(clicxn, tmpbyte, 2);
                 switch (msg.id) {
@@ -671,6 +693,11 @@ static void* clinetthread(void* args) {
             }
         }
         sendCxn(clicxn);
+        if (activity) {
+            acttime = altutime();
+        } else if (altutime() - acttime > 1000000) {
+            microwait(500000);
+        }
     }
     return NULL;
 }
