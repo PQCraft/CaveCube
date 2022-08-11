@@ -717,10 +717,12 @@ void renderChunks(void* vdata) {
     if (!tbuf[0][0]) {
         sprintf(
             tbuf[0],
+            "CaveCube %d.%d.%d\n"
             "OpenGL version: %s\n"
             "GLSL version: %s\n"
             "Vendor string: %s\n"
             "Renderer string: %s\n",
+            VER_MAJOR, VER_MINOR, VER_PATCH,
             glver,
             glslver,
             glvend,
