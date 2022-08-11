@@ -20,8 +20,8 @@
 #game.chunks = 8
 
 # Amount of time to wait each gameloop in microseconds
-# (only millisecond precision is available under Windows
-# and this value is divided by 1000)
+# (only millisecond precision is available under Windows and
+# this value is divided by 1000)
 #game.loopdelay
 
 
@@ -54,21 +54,4 @@
 
 # Raw mouse input
 #input.rawmouse = true
-
-
-# SERVER
-
-# Server loop delay in microseconds
-#server.serverdelay = 1000
-
-# Amount of time to wait in microseconds before checking for
-# new activity after activity dropped
-#server.serveridledelay = 5000
-
-# Client loop delay in microseconds
-#server.clientdelay = 1000
-
-# Maximum amount of characters (including null) a username
-# can contain
-#server.unamemax = 32
 

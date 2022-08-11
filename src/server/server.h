@@ -43,7 +43,6 @@ enum {
     CLIENT_LOGININFO,
     CLIENT_GETCHUNK,
     CLIENT_GETCHUNKCOL,
-    CLIENT_SETCHUNKPOS,
     CLIENT__MAX,
 };
 
@@ -63,7 +62,6 @@ struct server_data_logininfo {
 };
 
 struct server_data_updatechunk {
-    uint16_t id;
     int64_t x;
     int8_t y;
     int64_t z;
@@ -71,7 +69,6 @@ struct server_data_updatechunk {
 };
 
 struct server_data_updatechunkcol {
-    uint16_t id;
     int64_t x;
     int64_t z;
     struct blockdata data[16][4096];
@@ -91,19 +88,12 @@ struct client_data_logininfo {
 };
 
 struct client_data_getchunk {
-    uint16_t id;
     int64_t x;
     int8_t y;
     int64_t z;
 };
 
 struct client_data_getchunkcol {
-    uint16_t id;
-    int64_t x;
-    int64_t z;
-};
-
-struct client_data_setchunkpos {
     int64_t x;
     int64_t z;
 };

@@ -2,10 +2,12 @@
 #define MAIN_MAIN_H
 
 #define VER_MAJOR 0
-#define VER_MINOR 1
+#define VER_MINOR 2
 #define VER_PATCH 0
 
-//#define NAME_THREADS
+#ifdef DEBUG
+    #define NAME_THREADS
+#endif
 
 #ifdef NAME_THREADS
     #define _GNU_SOURCE

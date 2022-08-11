@@ -94,10 +94,10 @@ void genChunk(int64_t cx, int cy, int64_t cz, struct blockdata* data, int type) 
             uint8_t sliver[16];
             memset(&sliver, 0, 16);
             genSliver(type, cx, cz, top, btm, sliver);
-            for (int i = 0; i < 16; ++i) {
+            for (int i = 15; i >= 0; --i) {
                 struct blockdata* tdata = &data[256 * i + xzoff];
                 memset(tdata, 0, sizeof(struct blockdata));
-                *tdata = (struct blockdata){.id = sliver[i], .light = 14};
+                *tdata = (struct blockdata){.id = sliver[i], .light = 15};
             }
         }
     }
