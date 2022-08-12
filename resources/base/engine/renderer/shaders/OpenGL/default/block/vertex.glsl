@@ -2,36 +2,31 @@
 #pragma optimize(on)
 
 layout (location = 0) in uint data1;
-// [8 bits: x ([0...255]/16)][8 bits: y ([0...255]/16)][8 bits: z ([0...255]/16)][1 bit: x + 1/16][1 bit: y + 1/16][1 bit: z + 1/16][3 bits: tex map][2 bits: tex coords]
+// [8 bits: X][12 bits: Y][8 bits: Z][1 bit: reserved][1 bit: X + 1][1 bit: Y + 1][1 bit: Z + 1]
 layout (location = 1) in uint data2;
-// [8 bits: block id][4 bits: lighting][20 bits: reserved]
-
-out vec2 TexCoord;
-out vec3 FragPos;
-out float TexOff;
-out float light;
-
+// [4 bits: R][4 bits: G][4 bits: B][4 bits: texture X][4 bits: texture Y][2 bits: reserved][1 bit: texture X + 1][1 bit: texture Y + 1][8 bits: reserved]
+layout (location = 2) in uint data3;
+// [16 bits: texture offset][16 bits: animation offset]
 uniform mat4 view;
 uniform mat4 projection;
-uniform vec3 ccoord;
-uniform uint TexAni;
-uniform int isAni;
+uniform vec2 ccoord;
+uniform uint aniMult;
+
+out vec2 texCoord;
+out vec3 fragPos;
+out float texOffset;
+out vec3 light;
 
 void main() {
-    TexCoord.x = float((data1 >> 1) & uint(1));
-    TexCoord.y = float((data1) & uint(1));
-    uint TexOff2;
-    uint TexID = (data2 >> 24) & uint(255);
-    light = (float((data2 >> 20) & uint(15)) + 2.5) / 17.5;
-    if (isAni != 0) {
-        TexOff2 = TexAni;
-    } else {
-        TexOff2 = (data1 >> 2) & uint(7);
-    }
-    TexOff = (float(TexID) * 6.0 + float(TexOff2)) / 1535.0;
-    FragPos.x = (float(((data1 >> 24) & uint(255)) + ((data1 >> 7) & uint(1)))) / 16.0 - 8;
-    FragPos.y = (float(((data1 >> 16) & uint(255)) + ((data1 >> 6) & uint(1)))) / 16.0;
-    FragPos.z = ((float(((data1 >> 8) & uint(255)) + ((data1 >> 5) & uint(1)))) / 16.0 - 8) * -1;
-    FragPos += ccoord * 16;
-    gl_Position = projection * view * vec4(FragPos, 1);
+    fragPos.x = (float(((data1 >> 24) & uint(255)) + ((data1 >> 2) & uint(1)))) / 16.0 - 8;
+    fragPos.y = (float(((data1 >> 12) & uint(4095)) + ((data1 >> 1) & uint(1)))) / 16.0;
+    fragPos.z = ((float(((data1 >> 4) & uint(255)) + ((data1 >> 0) & uint(1)))) / 16.0 - 8) * -1;
+    texCoord.x = (float(((data2 >> 16) & uint(15)) + ((data2 >> 9) & uint(1)))) / 16.0;
+    texCoord.y = (float(((data2 >> 12) & uint(15)) + ((data2 >> 8) & uint(1)))) / 16.0;
+    fragPos += vec3(ccoord.x, 0, ccoord.y) * 16;
+    texOffset = float((data3 >> 16) & uint(65535)) / 1535.0;
+    light.r = float((data2 >> 28) & uint(15)) / 15.0;
+    light.g = float((data2 >> 24) & uint(15)) / 15.0;
+    light.b = float((data2 >> 20) & uint(15)) / 15.0;
+    gl_Position = projection * view * vec4(fragPos, 1.0);
 }

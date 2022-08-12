@@ -15,7 +15,6 @@ struct chunkinfo {
     uint32_t dist;
     uint32_t width;
     uint32_t widthsq;
-    uint32_t size;
 };
 
 #ifndef SERVER
@@ -27,11 +26,10 @@ struct chunkdata {
 
 struct chunkdata allocChunks(uint32_t);
 void reqChunks(struct chunkdata*, int64_t, int64_t);
-void writeChunk(struct chunkdata*, int64_t, int, int64_t, struct blockdata*);
-void writeChunkCol(struct chunkdata*, int64_t, int64_t, struct blockdata (*)[4096]);
+void writeChunk(struct chunkdata*, int64_t, int64_t, struct blockdata*);
 void moveChunks(struct chunkdata*, int, int);
-struct blockdata getBlock(struct chunkdata*, int, int, int, int, int, int);
-void setBlock(struct chunkdata*, int, int, int, int, int, int, struct blockdata);
+struct blockdata getBlock(struct chunkdata*, int, int, int, int, int);
+void setBlock(struct chunkdata*, int, int, int, int, int, struct blockdata);
 #endif
 
 #endif

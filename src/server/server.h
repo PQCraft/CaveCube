@@ -32,7 +32,6 @@ enum {
     SERVER_COMPATINFO,
     SERVER_LOGININFO,
     SERVER_UPDATECHUNK,
-    SERVER_UPDATECHUNKCOL,
     SERVER__MAX,
 };
 
@@ -42,7 +41,6 @@ enum {
     CLIENT_COMPATINFO,
     CLIENT_LOGININFO,
     CLIENT_GETCHUNK,
-    CLIENT_GETCHUNKCOL,
     CLIENT__MAX,
 };
 
@@ -63,15 +61,8 @@ struct server_data_logininfo {
 
 struct server_data_updatechunk {
     int64_t x;
-    int8_t y;
     int64_t z;
-    struct blockdata data[4096];
-};
-
-struct server_data_updatechunkcol {
-    int64_t x;
-    int64_t z;
-    struct blockdata data[16][4096];
+    struct blockdata data[65536];
 };
 
 struct client_data_compatinfo {
@@ -88,12 +79,6 @@ struct client_data_logininfo {
 };
 
 struct client_data_getchunk {
-    int64_t x;
-    int8_t y;
-    int64_t z;
-};
-
-struct client_data_getchunkcol {
     int64_t x;
     int64_t z;
 };
