@@ -33,7 +33,7 @@ static inline struct blockdata getBlockF(struct chunkdata* chunks, float x, floa
     x -= (x < 0) ? 1.0 : 0.0;
     y -= (y < 0) ? 1.0 : 0.0;
     z += (z > 0) ? 1.0 : 0.0;
-    return getBlock(chunks, 0, 0, 0, x, y, z);
+    return getBlock(chunks, 0, 0, x, y, z);
 }
 
 static inline coord_3d intCoord(coord_3d in) {
@@ -119,14 +119,14 @@ static inline uint8_t pcollide(struct chunkdata* chunks, coord_3d* pos) {
     uint8_t ret = 0;
     //printf("collide check from: [%f][%f][%f] -> [%f][%f][%f]\n", pos.x, pos.y, pos.z, new.x, new.y, new.z);
     struct blockdata tmpbd[8] = {
-        getBlock(chunks, 0, 0, 0, new.x, new.y, new.z + 1),
-        getBlock(chunks, 0, 0, 0, new.x, new.y, new.z - 1),
-        getBlock(chunks, 0, 0, 0, new.x + 1, new.y, new.z),
-        getBlock(chunks, 0, 0, 0, new.x - 1, new.y, new.z),
-        getBlock(chunks, 0, 0, 0, new.x + 1, new.y, new.z + 1),
-        getBlock(chunks, 0, 0, 0, new.x + 1, new.y, new.z - 1),
-        getBlock(chunks, 0, 0, 0, new.x - 1, new.y, new.z + 1),
-        getBlock(chunks, 0, 0, 0, new.x - 1, new.y, new.z - 1),
+        getBlock(chunks, 0, 0, new.x, new.y, new.z + 1),
+        getBlock(chunks, 0, 0, new.x, new.y, new.z - 1),
+        getBlock(chunks, 0, 0, new.x + 1, new.y, new.z),
+        getBlock(chunks, 0, 0, new.x - 1, new.y, new.z),
+        getBlock(chunks, 0, 0, new.x + 1, new.y, new.z + 1),
+        getBlock(chunks, 0, 0, new.x + 1, new.y, new.z - 1),
+        getBlock(chunks, 0, 0, new.x - 1, new.y, new.z + 1),
+        getBlock(chunks, 0, 0, new.x - 1, new.y, new.z - 1),
     };
     if (tmpbd[0].id && tmpbd[0].id != 7) {
         //puts("back");
@@ -214,13 +214,7 @@ static void handleServer(int msg, void* _data) {
         }
         case SERVER_UPDATECHUNK:; {
             struct server_data_updatechunk* data = _data;
-            writeChunk(&chunks, data->x, data->y, data->z, data->data);
-            break;
-        }
-        case SERVER_UPDATECHUNKCOL:; {
-            struct server_data_updatechunkcol* data = _data;
-            //printf("writing chunk col to [%"PRId64", %"PRId64"]\n", data->x, data->z);
-            writeChunkCol(&chunks, data->x, data->z, data->data);
+            writeChunk(&chunks, data->x, data->z, data->data);
             break;
         }
     }
@@ -235,7 +229,7 @@ bool doGame(char* addr, int port) {
     }
     chunks = allocChunks(atoi(getConfigVarStatic(config, "game.chunks", "8", 64)));
     loopdelay = atoi(getConfigVarStatic(config, "game.loopdelay", (rendinf.fps || rendinf.vsync) ? "5000" : "0", 64));
-    printf("Allocated chunks: [%d] [%d] [%d]\n", chunks.info.width, chunks.info.widthsq, chunks.info.size);
+    printf("Allocated chunks: [%d] [%d]\n", chunks.info.width, chunks.info.widthsq);
     rendinf.campos.y = 151.5;
     initInput();
     float pmult = posmult;
@@ -443,7 +437,7 @@ bool doGame(char* addr, int port) {
             blocky -= (blocky < 0) ? 1.0 : 0.0;
             blockz = lookatz * depth + rendinf.campos.z;
             blockz += (blockz > 0) ? 1.0 : 0.0;
-            struct blockdata bdata = getBlock(&chunks, 0, 0, 0, blockx, blocky, blockz);
+            struct blockdata bdata = getBlock(&chunks, 0, 0, blockx, blocky, blockz);
             blockid = bdata.id;
             if (bdata.id && bdata.id != 7) break;
         }
@@ -457,7 +451,7 @@ bool doGame(char* addr, int port) {
             if (!placehold || (altutime() - ptime) >= 500000)
                 if ((altutime() - ptime2) >= 125000 && blockid && blockid != 7 && (!blockid2 || blockid2 == 7)) {
                     ptime2 = altutime();
-                    setBlock(&chunks, 0, 0, 0, lastblockx, lastblocky, lastblockz, (struct blockdata){(getRandWord(8) % 10) + 1, 0, 0});
+                    setBlock(&chunks, 0, 0, lastblockx, lastblocky, lastblockz, (struct blockdata){(getRandWord(8) % 10) + 1, 0, 0});
                 }
             placehold = true;
         } else {
@@ -468,7 +462,7 @@ bool doGame(char* addr, int port) {
             if (!destroyhold || (altutime() - dtime) >= 500000)
                 if ((altutime() - dtime2) >= 125000 && blockid && blockid != 7 && (!blockid2 || blockid2 == 7)) {
                     dtime2 = altutime();
-                    setBlock(&chunks, 0, 0, 0, blockx, blocky, blockz, (struct blockdata){0, 0, 0});
+                    setBlock(&chunks, 0, 0, blockx, blocky, blockz, (struct blockdata){0, 0, 0});
                 }
             destroyhold = true;
         } else {

@@ -3,10 +3,10 @@
 
 layout (location = 0) in vec4 data;
 
-out vec2 TexCoord;
+out vec2 texCoord;
 
 void main() {
-    TexCoord.x = data[2];
-    TexCoord.y = data[3];
+    texCoord.x = data[2];
+    texCoord.y = data[3];
     gl_Position = vec4(data[0], data[1], 0, 1);
 }

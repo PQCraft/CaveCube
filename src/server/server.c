@@ -199,21 +199,9 @@ static void* servthread(void* args) {
                         struct client_data_getchunk* data = msg.data;
                         struct server_data_updatechunk* outdata = malloc(sizeof(*outdata));
                         outdata->x = data->x;
-                        outdata->y = data->y;
                         outdata->z = data->z;
-                        genChunk(data->x, data->y, data->z, outdata->data, worldtype);
+                        genChunk(data->x, data->z, outdata->data, worldtype);
                         addMsg(&servmsgout, SERVER_UPDATECHUNK, outdata, msg.uuid, msg.uind);
-                        break;
-                    }
-                    case CLIENT_GETCHUNKCOL:; {
-                        struct client_data_getchunkcol* data = msg.data;
-                        struct server_data_updatechunkcol* outdata = malloc(sizeof(*outdata));
-                        outdata->x = data->x;
-                        outdata->z = data->z;
-                        for (int y = 0; y < 16; ++y) {
-                            genChunk(data->x, y, data->z, outdata->data[y], worldtype);
-                        }
-                        addMsg(&servmsgout, SERVER_UPDATECHUNKCOL, outdata, msg.uuid, msg.uind);
                         break;
                     }
                 }
@@ -263,9 +251,6 @@ static int peekCliMsgLen(struct netcxn* cxn) {
                     return 2 + 8 + tmp2;
                 }
                 case CLIENT_GETCHUNK:; {
-                    return 2 + 17;
-                }
-                case CLIENT_GETCHUNKCOL:; {
                     return 2 + 16;
                 }
                 default:; /*has CLIENT_PING*/ {
@@ -362,17 +347,6 @@ static void* servnetthread(void* args) {
                                         memcpy(&data->x, &buf[ptr], 8);
                                         ptr += 8;
                                         data->x = net2host64(data->x);
-                                        data->y = buf[ptr++];
-                                        memcpy(&data->z, &buf[ptr], 8);
-                                        data->z = net2host64(data->z);
-                                        _data = data;
-                                        break;
-                                    }
-                                    case CLIENT_GETCHUNKCOL:; {
-                                        struct server_data_updatechunkcol* data = malloc(sizeof(*data));
-                                        memcpy(&data->x, &buf[ptr], 8);
-                                        ptr += 8;
-                                        data->x = net2host64(data->x);
                                         memcpy(&data->z, &buf[ptr], 8);
                                         data->z = net2host64(data->z);
                                         _data = data;
@@ -414,19 +388,9 @@ static void* servnetthread(void* args) {
                                     struct server_data_updatechunk* tmpdata = msg.data;
                                     uint64_t tmpqword = host2net64(tmpdata->x);
                                     writeToCxnBuf(pdata[i].cxn, &tmpqword, 8);
-                                    writeToCxnBuf(pdata[i].cxn, &tmpdata->y, 1);
                                     tmpqword = host2net64(tmpdata->z);
                                     writeToCxnBuf(pdata[i].cxn, &tmpqword, 8);
-                                    writeToCxnBuf(pdata[i].cxn, &tmpdata->data, 4096 * sizeof(struct blockdata));
-                                    break;
-                                }
-                                case SERVER_UPDATECHUNKCOL:; {
-                                    struct server_data_updatechunkcol* tmpdata = msg.data;
-                                    uint64_t tmpqword = host2net64(tmpdata->x);
-                                    writeToCxnBuf(pdata[i].cxn, &tmpqword, 8);
-                                    tmpqword = host2net64(tmpdata->z);
-                                    writeToCxnBuf(pdata[i].cxn, &tmpqword, 8);
-                                    writeToCxnBuf(pdata[i].cxn, &tmpdata->data, 16 * 4096 * sizeof(struct blockdata));
+                                    writeToCxnBuf(pdata[i].cxn, &tmpdata->data, 65536 * sizeof(struct blockdata));
                                     break;
                                 }
                             }
@@ -547,10 +511,7 @@ static int peekServMsgLen(struct netcxn* cxn) {
                     return 2 + 9 + tmp2;
                 }
                 case SERVER_UPDATECHUNK:; {
-                    return 2 + 17 + 4096 * sizeof(struct blockdata);
-                }
-                case SERVER_UPDATECHUNKCOL:; {
-                    return 2 + 16 + 16 * 4096 * sizeof(struct blockdata);
+                    return 2 + 16 + 65536 * sizeof(struct blockdata);
                 }
                 default:; /*has SERVER_PONG*/ {
                     return 2;
@@ -620,24 +581,11 @@ static void* clinetthread(void* args) {
                             memcpy(&data.x, &buf[ptr], 8);
                             ptr += 8;
                             data.x = net2host64(data.x);
-                            data.y = buf[ptr++];
                             memcpy(&data.z, &buf[ptr], 8);
                             ptr += 8;
                             data.z = net2host64(data.z);
-                            memcpy(data.data, &buf[ptr], 4096 * sizeof(struct blockdata));
+                            memcpy(data.data, &buf[ptr], 65536 * sizeof(struct blockdata));
                             callback(SERVER_UPDATECHUNK, &data);
-                            break;
-                        }
-                        case SERVER_UPDATECHUNKCOL:; {
-                            struct server_data_updatechunkcol data;
-                            memcpy(&data.x, &buf[ptr], 8);
-                            ptr += 8;
-                            data.x = net2host64(data.x);
-                            memcpy(&data.z, &buf[ptr], 8);
-                            ptr += 8;
-                            data.z = net2host64(data.z);
-                            memcpy(data.data, &buf[ptr], 16 * 4096 * sizeof(struct blockdata));
-                            callback(SERVER_UPDATECHUNKCOL, &data);
                             break;
                         }
                     }
@@ -672,15 +620,6 @@ static void* clinetthread(void* args) {
                     }
                     case CLIENT_GETCHUNK:; {
                         struct client_data_getchunk* tmpdata = msg.data;
-                        uint64_t tmpqword = host2net64(tmpdata->x);
-                        writeToCxnBuf(clicxn, &tmpqword, 8);
-                        writeToCxnBuf(clicxn, &tmpdata->y, 1);
-                        tmpqword = host2net64(tmpdata->z);
-                        writeToCxnBuf(clicxn, &tmpqword, 8);
-                        break;
-                    }
-                    case CLIENT_GETCHUNKCOL:; {
-                        struct client_data_getchunkcol* tmpdata = msg.data;
                         uint64_t tmpqword = host2net64(tmpdata->x);
                         writeToCxnBuf(clicxn, &tmpqword, 8);
                         tmpqword = host2net64(tmpdata->z);
@@ -740,14 +679,6 @@ void cliSend(int id, ...) {
         }
         case CLIENT_GETCHUNK:; {
             struct client_data_getchunk* tmpdata = malloc(sizeof(*tmpdata));
-            tmpdata->x = va_arg(args, int64_t);
-            tmpdata->y = va_arg(args, int);
-            tmpdata->z = va_arg(args, int64_t);
-            data = tmpdata;
-            break;
-        }
-        case CLIENT_GETCHUNKCOL:; {
-            struct client_data_getchunkcol* tmpdata = malloc(sizeof(*tmpdata));
             tmpdata->x = va_arg(args, int64_t);
             tmpdata->z = va_arg(args, int64_t);
             data = tmpdata;

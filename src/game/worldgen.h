@@ -6,6 +6,6 @@
 #include <stdbool.h>
 
 bool initWorldgen(void);
-void genChunk(int64_t, int, int64_t, struct blockdata*, int);
+void genChunk(int64_t, int64_t, struct blockdata*, int);
 
 #endif

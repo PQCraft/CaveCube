@@ -1,13 +1,13 @@
 #version 330
 #pragma optimize(on)
 
-out vec4 FragColor;
+out vec4 fragColor;
 
-in vec2 TexCoord;
+in vec2 texCoord;
 
-uniform sampler2D TexData;
+uniform sampler2D texData;
 uniform vec4 mcolor;
 
 void main() {
-    FragColor = mcolor * texture(TexData, TexCoord);
+    fragColor = mcolor * texture(texData, texCoord);
 }
