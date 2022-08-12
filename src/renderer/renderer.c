@@ -379,7 +379,7 @@ static uint32_t constBlockVert1[6][6] = {
     {0x0000F0F3, 0x0000F002, 0x00000000, 0x00000000, 0x000000F1, 0x0000F0F3},
     {0x0F00F006, 0x0F00F0F7, 0x0F0000F5, 0x0F0000F5, 0x0F000004, 0x0F00F006},
     {0x0000F0F3, 0x0F00F0F7, 0x0F00F006, 0x0F00F006, 0x0000F002, 0x0000F0F3},
-    {0x00000000, 0x0F000008, 0x0F0000F5, 0x0F0000F5, 0x000000F1, 0x00000000},
+    {0x00000000, 0x0F000004, 0x0F0000F5, 0x0F0000F5, 0x000000F1, 0x00000000},
 };
 
 static uint32_t constBlockVert2[6][6] = {
@@ -456,17 +456,18 @@ static void* meshthread(void* args) {
                         uint32_t baseVert2 = ((bdata2[i].light << 28) | (bdata2[i].light << 24) | (bdata2[i].light << 20)) & 0xFFF00000;
                         uint32_t baseVert3 = (((bdata.id * 6 + i) << 16) & 0xFFFF0000) | ((0) & 0x0000FFFF);
                         if (bdata.id == water) {
+                            baseVert3 = (((bdata.id * 6) << 16) & 0xFFFF0000) | ((6) & 0x0000FFFF); //TODO: add anict var to block info
                             if (!bdata2[i].id) {
-                                for (int j = 0; j < 6; ++j) {
-                                    mtsetvert(&_vptr3, &vpsize3, &vplen3, &vptr3, constBlockVert1[i][j] | baseVert1);
-                                    mtsetvert(&_vptr3, &vpsize3, &vplen3, &vptr3, constBlockVert2[i][j] | baseVert2);
-                                    mtsetvert(&_vptr3, &vpsize3, &vplen3, &vptr3, baseVert3);
-                                }
-                            } else {
                                 for (int j = 0; j < 6; ++j) {
                                     mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, constBlockVert1[i][j] | baseVert1);
                                     mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, constBlockVert2[i][j] | baseVert2);
                                     mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert3);
+                                }
+                            } else {
+                                for (int j = 0; j < 6; ++j) {
+                                    mtsetvert(&_vptr3, &vpsize3, &vplen3, &vptr3, constBlockVert1[i][j] | baseVert1);
+                                    mtsetvert(&_vptr3, &vpsize3, &vplen3, &vptr3, constBlockVert2[i][j] | baseVert2);
+                                    mtsetvert(&_vptr3, &vpsize3, &vplen3, &vptr3, baseVert3);
                                 }
                             }
                             //printf("added [%d][%d %d %d][%d]: [%u]: [%08X]...\n", c, x, y, z, i, (uint8_t)bdata.id, baseVert1);
@@ -610,7 +611,7 @@ void renderChunks(void* vdata) {
         glVertexAttribIPointer(2, 1, GL_UNSIGNED_INT, 3 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * 2));
         glDrawArrays(GL_TRIANGLES, 0, data->renddata[rendc].vcount);
     }
-    glUniform1f(glGetUniformLocation(rendinf.shaderprog, "aniMult"), (altutime() / 200000));
+    glUniform1ui(glGetUniformLocation(rendinf.shaderprog, "aniMult"), (altutime() / 16) % 65536);
     glDisable(GL_CULL_FACE);
     glDepthMask(false);
     for (rendc = 0; rendc < data->info.widthsq; ++rendc) {
@@ -909,6 +910,7 @@ bool initRenderer() {
     texture_t charseth;
 
     //puts("creating texture map...");
+    //TODO: change map format and add mapoffset var to block info
     texmap = malloc(1572864);
     memset(texmap, 255, 1572864);
 
