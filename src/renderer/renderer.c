@@ -170,8 +170,15 @@ void setFullscreen(bool fullscreen) {
     updateCam();
 }
 
-static inline bool makeShaderProg(char* vstext, char* fstext, GLuint* p) {
-    if (!vstext || !fstext) return false;
+static inline bool makeShaderProg(char* hdrtext, char* _vstext, char* _fstext, GLuint* p) {
+    if (!_vstext || !_fstext) return false;
+    bool retval = true;
+    char* vstext = malloc(strlen(hdrtext) + strlen(_vstext) + 1);
+    char* fstext = malloc(strlen(hdrtext) + strlen(_fstext) + 1);
+    strcpy(vstext, hdrtext);
+    strcpy(fstext, hdrtext);
+    strcat(vstext, _vstext);
+    strcat(fstext, _fstext);
     GLuint vertexHandle = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexHandle, 1, (const GLchar * const*)&vstext, NULL);
     glCompileShader(vertexHandle);
@@ -180,13 +187,16 @@ static inline bool makeShaderProg(char* vstext, char* fstext, GLuint* p) {
     if (!ret) {
         GLint logSize = 0;
         glGetShaderiv(vertexHandle, GL_INFO_LOG_LENGTH, &logSize);
-        GLchar* log = malloc((logSize + 1) * sizeof(GLchar));
-        glGetShaderInfoLog(vertexHandle, logSize, &logSize, log);
-        log[logSize - 1] = 0;
-        fprintf(stderr, "Vertex shader compile error: %s\n", (char*)log);
-        free(log);
+        fprintf(stderr, "Vertex shader compile error%s\n", (logSize > 0) ? ":" : "");
+        if (logSize > 0) {
+            GLchar* log = malloc(logSize * sizeof(GLchar));
+            glGetShaderInfoLog(vertexHandle, logSize, &logSize, log);
+            fputs((char*)log, stderr);
+            free(log);
+        }
         glDeleteShader(vertexHandle);
-        goto retfalse;
+        retval = false;
+        goto goret;
     }
     GLuint fragHandle = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragHandle, 1, (const GLchar * const*)&fstext, NULL);
@@ -195,14 +205,17 @@ static inline bool makeShaderProg(char* vstext, char* fstext, GLuint* p) {
     if (!ret) {
         GLint logSize = 0;
         glGetShaderiv(fragHandle, GL_INFO_LOG_LENGTH, &logSize);
-        GLchar* log = malloc((logSize + 1) * sizeof(GLchar));
-        glGetShaderInfoLog(fragHandle, logSize, &logSize, log);
-        log[logSize - 1] = 0;
-        fprintf(stderr, "Fragment shader compile error: %s\n", (char*)log);
-        free(log);
+        fprintf(stderr, "Fragment shader compile error%s\n", (logSize > 0) ? ":" : "");
+        if (logSize > 0) {
+            GLchar* log = malloc(logSize * sizeof(GLchar));
+            glGetShaderInfoLog(fragHandle, logSize, &logSize, log);
+            fputs((char*)log, stderr);
+            free(log);
+        }
         glDeleteShader(vertexHandle);
         glDeleteShader(fragHandle);
-        goto retfalse;
+        retval = false;
+        goto goret;
     }
     *p = glCreateProgram();
     glAttachShader(*p, vertexHandle);
@@ -214,16 +227,20 @@ static inline bool makeShaderProg(char* vstext, char* fstext, GLuint* p) {
     if (!ret) {
         GLint logSize = 0;
         glGetProgramiv(*p, GL_INFO_LOG_LENGTH, &logSize);
-        GLchar* log = malloc((logSize + 1) * sizeof(GLchar));
-        glGetProgramInfoLog(*p, logSize, &logSize, log);
-        log[logSize - 1] = 0;
-        fprintf(stderr, "Shader program link error: %s\n", (char*)log);
-        free(log);
-        goto retfalse;
+        fprintf(stderr, "Shader program link error%s\n", (logSize > 0) ? ":" : "");
+        if (logSize > 0) {
+            GLchar* log = malloc(logSize * sizeof(GLchar));
+            glGetProgramInfoLog(*p, logSize, &logSize, log);
+            fputs((char*)log, stderr);
+            free(log);
+        }
+        retval = false;
+        goto goret;
     }
-    return true;
-    retfalse:;
-    return false;
+    goret:;
+    free(vstext);
+    free(fstext);
+    return retval;
 }
 
 //extern float vertices[];
@@ -374,21 +391,21 @@ pthread_mutex_t uclock;
 static uint8_t water;
 
 static uint32_t constBlockVert1[6][6] = {
-    {0x0F00F0F7, 0x0000F0F3, 0x000000F1, 0x000000F1, 0x0F0000F5, 0x0F00F0F7},
-    {0x0000F002, 0x0F00F006, 0x0F000004, 0x0F000004, 0x00000000, 0x0000F002},
-    {0x0000F0F3, 0x0000F002, 0x00000000, 0x00000000, 0x000000F1, 0x0000F0F3},
-    {0x0F00F006, 0x0F00F0F7, 0x0F0000F5, 0x0F0000F5, 0x0F000004, 0x0F00F006},
-    {0x0000F0F3, 0x0F00F0F7, 0x0F00F006, 0x0F00F006, 0x0000F002, 0x0000F0F3},
-    {0x00000000, 0x0F000004, 0x0F0000F5, 0x0F0000F5, 0x000000F1, 0x00000000},
+    {0x0000F0F3, 0x0F00F0F7, 0x0F00F006, 0x0F00F006, 0x0000F002, 0x0000F0F3}, // U
+    {0x0F00F006, 0x0F00F0F7, 0x0F0000F5, 0x0F0000F5, 0x0F000004, 0x0F00F006}, // R
+    {0x0F00F0F7, 0x0000F0F3, 0x000000F1, 0x000000F1, 0x0F0000F5, 0x0F00F0F7}, // F
+    {0x00000000, 0x0F000004, 0x0F0000F5, 0x0F0000F5, 0x000000F1, 0x00000000}, // D
+    {0x0000F0F3, 0x0000F002, 0x00000000, 0x00000000, 0x000000F1, 0x0000F0F3}, // L
+    {0x0000F002, 0x0F00F006, 0x0F000004, 0x0F000004, 0x00000000, 0x0000F002}, // B
 };
 
 static uint32_t constBlockVert2[6][6] = {
-    {0x0000F100, 0x000FF300, 0x000F0200, 0x000F0200, 0x00000000, 0x0000F100},
-    {0x0000F100, 0x000FF300, 0x000F0200, 0x000F0200, 0x00000000, 0x0000F100},
-    {0x0000F100, 0x000FF300, 0x000F0200, 0x000F0200, 0x00000000, 0x0000F100},
-    {0x0000F100, 0x000FF300, 0x000F0200, 0x000F0200, 0x00000000, 0x0000F100},
-    {0x0000F100, 0x000FF300, 0x000F0200, 0x000F0200, 0x00000000, 0x0000F100},
-    {0x0000F100, 0x000FF300, 0x000F0200, 0x000F0200, 0x00000000, 0x0000F100},
+    {0x0000F100, 0x000FF300, 0x000F0200, 0x000F0200, 0x00000000, 0x0000F100}, // U
+    {0x0000F100, 0x000FF300, 0x000F0200, 0x000F0200, 0x00000000, 0x0000F100}, // R
+    {0x0000F100, 0x000FF300, 0x000F0200, 0x000F0200, 0x00000000, 0x0000F100}, // F
+    {0x0000F100, 0x000FF300, 0x000F0200, 0x000F0200, 0x00000000, 0x0000F100}, // D
+    {0x0000F100, 0x000FF300, 0x000F0200, 0x000F0200, 0x00000000, 0x0000F100}, // L
+    {0x0000F100, 0x000FF300, 0x000F0200, 0x000F0200, 0x00000000, 0x0000F100}, // B
 };
 
 static void mtsetvert(uint32_t** _v, int* s, int* l, uint32_t** v, uint32_t bv) {
@@ -440,12 +457,12 @@ static void* meshthread(void* args) {
                 for (int x = 0; x < 16; ++x) {
                     bdata = rendGetBlock(data, c, x, y, z);
                     if (!bdata.id || bdata.id > maxblockid) continue;
-                    bdata2[0] = rendGetBlock(data, c, x, y, z + 1);
-                    bdata2[1] = rendGetBlock(data, c, x, y, z - 1);
-                    bdata2[2] = rendGetBlock(data, c, x - 1, y, z);
-                    bdata2[3] = rendGetBlock(data, c, x + 1, y, z);
-                    bdata2[4] = rendGetBlock(data, c, x, y + 1, z);
-                    bdata2[5] = rendGetBlock(data, c, x, y - 1, z);
+                    bdata2[0] = rendGetBlock(data, c, x, y + 1, z);
+                    bdata2[1] = rendGetBlock(data, c, x + 1, y, z);
+                    bdata2[2] = rendGetBlock(data, c, x, y, z + 1);
+                    bdata2[3] = rendGetBlock(data, c, x, y - 1, z);
+                    bdata2[4] = rendGetBlock(data, c, x - 1, y, z);
+                    bdata2[5] = rendGetBlock(data, c, x, y, z - 1);
                     for (int i = 0; i < 6; ++i) {
                         if (bdata2[i].id && bdata2[i].id <= maxblockid) {
                             if (!blockinf[bdata2[i].id].transparency) continue;
@@ -563,6 +580,7 @@ void renderText(float x, float y, float scale, unsigned end, char* text, void* e
     glUniform1f(glGetUniformLocation(rendinf.shaderprog, "xratio"), 8.0 / (float)rendinf.width);
     glUniform1f(glGetUniformLocation(rendinf.shaderprog, "yratio"), 16.0 / (float)rendinf.height);
     glUniform1f(glGetUniformLocation(rendinf.shaderprog, "scale"), scale);
+    glUniform4f(glGetUniformLocation(rendinf.shaderprog, "bmcolor"), 0, 0, 0, 0.35);
     for (int i = 0; *text; ++i) {
         if (*text == '\n') {
             x = 0;
@@ -668,13 +686,13 @@ void renderChunks(void* vdata) {
         "Velocity: (%f, %f, %f)\n"
         "Rotation: (%f, %f, %f)\n"
         "Block: (%d, %d, %d)\n"
-        "Chunk: (%"PRId64", %"PRId64", %"PRId64")\n",
+        "Chunk: (%"PRId64", %"PRId64")\n",
         fps,
         pcoord.x, pcoord.y, pcoord.z,
         pvelocity.x, pvelocity.y, pvelocity.z,
         rendinf.camrot.x, rendinf.camrot.y, rendinf.camrot.z,
         pblockx, pblocky, pblockz,
-        pchunkx, pchunky, pchunkz
+        pchunkx, pchunkz
     );
     renderText(0, 0, 1, rendinf.width, tbuf[0], NULL);
 
@@ -737,14 +755,25 @@ bool initRenderer() {
     #if defined(USESDL2)
     bool compositing = getConfigValBool(getConfigVarStatic(config, "renderer.compositing", "true", 64));
     SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
+    #if defined(USEGLES)
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+    #else
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+    #endif
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     if (compositing) SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0");
+    #else
+    #if defined(USEGLES)
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
     #else
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
+    #endif
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_TRUE);
     //glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
@@ -824,26 +853,37 @@ bool initRenderer() {
         fputs("initRenderer: Failed to initialize GLAD\n", stderr);
         return false;
     }
-    file_data* vs = loadResource(RESOURCE_TEXTFILE, "engine/renderer/shaders/OpenGL/default/block/vertex.glsl");
-    file_data* fs = loadResource(RESOURCE_TEXTFILE, "engine/renderer/shaders/OpenGL/default/block/fragment.glsl");
-    if (!vs || !fs || !makeShaderProg((char*)vs->data, (char*)fs->data, &shader_block)) {
+
+    #if defined(USEGLES)
+    char* hdrpath = "engine/shaders/headers/OpenGL ES/header.glsl";
+    #else
+    char* hdrpath = "engine/shaders/headers/OpenGL/header.glsl";
+    #endif
+    file_data* hdr = loadResource(RESOURCE_TEXTFILE, hdrpath);
+    if (!hdr) {
+        fputs("initRenderer: Failed to load shader header\n", stderr);
+        return false;
+    }
+    file_data* vs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/block/vertex.glsl");
+    file_data* fs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/block/fragment.glsl");
+    if (!vs || !fs || !makeShaderProg((char*)hdr->data, (char*)vs->data, (char*)fs->data, &shader_block)) {
         fputs("initRenderer: Failed to compile block shader\n", stderr);
         return false;
     }
     freeResource(vs);
     freeResource(fs);
-    vs = loadResource(RESOURCE_TEXTFILE, "engine/renderer/shaders/OpenGL/default/2D/vertex.glsl");
-    fs = loadResource(RESOURCE_TEXTFILE, "engine/renderer/shaders/OpenGL/default/2D/fragment.glsl");
-    if (!vs || !fs || !makeShaderProg((char*)vs->data, (char*)fs->data, &shader_2d)) {
-        fputs("initRenderer: Failed to compile block shader\n", stderr);
+    vs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/2D/vertex.glsl");
+    fs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/2D/fragment.glsl");
+    if (!vs || !fs || !makeShaderProg((char*)hdr->data, (char*)vs->data, (char*)fs->data, &shader_2d)) {
+        fputs("initRenderer: Failed to compile 2D shader\n", stderr);
         return false;
     }
     freeResource(vs);
     freeResource(fs);
-    vs = loadResource(RESOURCE_TEXTFILE, "engine/renderer/shaders/OpenGL/default/text/vertex.glsl");
-    fs = loadResource(RESOURCE_TEXTFILE, "engine/renderer/shaders/OpenGL/default/text/fragment.glsl");
-    if (!vs || !fs || !makeShaderProg((char*)vs->data, (char*)fs->data, &shader_text)) {
-        fputs("initRenderer: Failed to compile block shader\n", stderr);
+    vs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/text/vertex.glsl");
+    fs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/text/fragment.glsl");
+    if (!vs || !fs || !makeShaderProg((char*)hdr->data, (char*)vs->data, (char*)fs->data, &shader_text)) {
+        fputs("initRenderer: Failed to compile text shader\n", stderr);
         return false;
     }
     freeResource(vs);

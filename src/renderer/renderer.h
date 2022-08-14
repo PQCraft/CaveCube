@@ -140,10 +140,6 @@ extern struct renderer_info rendinf;
 #define GFX_DEFAULT_SCALE (coord_3d){1.0, 1.0, 1.0}
 #define GFX_DEFAULT_MAT4 {{1.0, 0.0, 0.0, 0.0}, {0.0, 1.0, 0.0, 0.0}, {0.0, 0.0, -1.0, 0.0}, {0.0, 0.0, 0.0, 1.0}}
 
-// RENDERER_SINGLECORE makes the mesher create VBOs on the main thread
-#define RENDERER_SINGLECORE // Enabled by default now since context sharing broke somehow
-// TODO: remove context sharing
-
 #endif
 
 #endif

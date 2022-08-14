@@ -1,6 +1,3 @@
-#version 330
-#pragma optimize(on)
-
 layout (location = 0) in uint data1;
 // [8 bits: X][12 bits: Y][8 bits: Z][1 bit: reserved][1 bit: X + 1][1 bit: Y + 1][1 bit: Z + 1]
 layout (location = 1) in uint data2;
@@ -18,14 +15,15 @@ out float texOffset;
 out vec3 light;
 
 void main() {
-    fragPos.x = (float(((data1 >> 24) & uint(255)) + ((data1 >> 2) & uint(1)))) / 16.0 - 8;
+    fragPos.x = (float(((data1 >> 24) & uint(255)) + ((data1 >> 2) & uint(1)))) / 16.0 - 8.0;
     fragPos.y = (float(((data1 >> 12) & uint(4095)) + ((data1 >> 1) & uint(1)))) / 16.0;
-    fragPos.z = ((float(((data1 >> 4) & uint(255)) + ((data1 >> 0) & uint(1)))) / 16.0 - 8) * -1;
+    fragPos.z = ((float(((data1 >> 4) & uint(255)) + ((data1 >> 0) & uint(1)))) / 16.0 - 8.0) * -1.0;
     texCoord.x = (float(((data2 >> 16) & uint(15)) + ((data2 >> 9) & uint(1)))) / 16.0;
     texCoord.y = (float(((data2 >> 12) & uint(15)) + ((data2 >> 8) & uint(1)))) / 16.0;
-    fragPos += vec3(ccoord.x, 0, ccoord.y) * 16;
+    fragPos += vec3(ccoord.x, 0.0, ccoord.y) * 16.0;
     uint texOff2 = (data3 & uint(65535)) * aniMult / uint(65535);
-    texOffset = (float((data3 >> 16) & uint(65535)) + texOff2) / 1535.0;
+    uint texOff = ((data3 >> 16) & uint(65535)) + texOff2;
+    texOffset = float(texOff) / 1535.0;
     light.r = float((data2 >> 28) & uint(15)) / 15.0;
     light.g = float((data2 >> 24) & uint(15)) / 15.0;
     light.b = float((data2 >> 20) & uint(15)) / 15.0;

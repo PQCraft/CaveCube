@@ -366,9 +366,6 @@ bool doGame(char* addr, int port) {
         }
         //genChunks(&chunks, cx, cz);
         //printf("old x [%f] y [%f]\n", rendinf.campos.x, rendinf.campos.z);
-        #ifdef RENDERER_SINGLECORE
-        updateChunks(&chunks);
-        #endif
         struct blockdata curbdata = getBlockF(&chunks, rendinf.campos.x, rendinf.campos.y, rendinf.campos.z);
         //struct blockdata curbdata2 = getBlockF(&chunks, rendinf.campos.x, rendinf.campos.y - 1, rendinf.campos.z);
         //struct blockdata underbdata = getBlockF(&chunks, rendinf.campos.x, rendinf.campos.y - 1.51, rendinf.campos.z);
@@ -482,6 +479,7 @@ bool doGame(char* addr, int port) {
             if (crouch) rendinf.campos.y -= 0.375;
             updateCam();
             if (crouch) rendinf.campos.y += 0.375;
+            updateChunks(&chunks);
             renderChunks(&chunks);
             updateScreen();
             fpsstarttime2 = altutime();
