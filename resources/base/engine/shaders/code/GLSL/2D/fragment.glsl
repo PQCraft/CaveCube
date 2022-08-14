@@ -1,6 +1,3 @@
-#version 330
-#pragma optimize(on)
-
 out vec4 fragColor;
 
 in vec2 texCoord;

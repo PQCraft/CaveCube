@@ -13,7 +13,7 @@ void initBlocks() {
     char buf[32];
     for (int i = 0; i < 256; ++i) {
         sprintf(buf, "game/data/blocks/%d.inf", i);
-        if (resourceExists(buf) == -1) break;
+        if (resourceExists(buf) == -1) continue;
         resdata_file* blockcfg = loadResource(RESOURCE_TEXTFILE, buf);
         blockinf[i].name = getConfigVarAlloc((char*)blockcfg->data, "name", "Unknown", 256);
         blockinf[i].id = getConfigVarAlloc((char*)blockcfg->data, "id", "", 256);

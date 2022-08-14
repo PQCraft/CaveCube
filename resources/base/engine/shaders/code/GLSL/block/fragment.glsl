@@ -1,6 +1,3 @@
-#version 330
-#pragma optimize(on)
-
 in vec2 texCoord;
 in vec3 fragPos;
 in float texOffset;
@@ -22,7 +19,7 @@ void main() {
     } else {
         discard;
     }
-    float mixv = clamp((distance(vec3(fragPos.x, fragPos.y, fragPos.z), vec3(cam.x, cam.y, cam.z)) - float(dist) * vismul * vis * 2) / (16 * float(dist) * vismul - float(dist) * vismul * vis * 2), 0, 1);
+    float mixv = clamp((distance(vec3(fragPos.x, fragPos.y, fragPos.z), vec3(cam.x, cam.y, cam.z)) - float(dist) * vismul * float(vis) * 2.0) / (16.0 * float(dist) * vismul - float(dist) * vismul * float(vis) * 2.0), 0.0, 1.0);
     fragColor.rgb *= light;
     fragColor.rgb *= mcolor;
     fragColor = mix(fragColor, vec4(skycolor, fragColor.a), mixv);

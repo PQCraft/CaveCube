@@ -1,6 +1,3 @@
-#version 330
-#pragma optimize(on)
-
 layout (location = 0) in vec4 data;
 
 out vec2 texCoord;
