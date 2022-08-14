@@ -2,7 +2,7 @@ in vec2 texCoord;
 in vec3 fragPos;
 in float texOffset;
 in vec3 light;
-uniform sampler3D texData;
+uniform sampler2DArray texData;
 uniform int dist;
 uniform int vis;
 uniform float vismul;

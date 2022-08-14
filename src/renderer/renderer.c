@@ -350,8 +350,6 @@ void updateScreen() {
     #endif
 }
 
-static uint32_t maxblockid = 0;
-
 static unsigned VAO;
 static unsigned VBO2D;
 
@@ -378,12 +376,12 @@ static struct blockdata rendGetBlock(struct chunkdata* data, int32_t c, int x, i
 }
 
 static float vert2D[] = {
-    -1.0,  1.0,  0.0,  1.0,
-     1.0,  1.0,  1.0,  1.0,
-     1.0, -1.0,  1.0,  0.0,
-     1.0, -1.0,  1.0,  0.0,
-    -1.0, -1.0,  0.0,  0.0,
-    -1.0,  1.0,  0.0,  1.0,
+    -1.0,  1.0,  0.0,  0.0,
+     1.0,  1.0,  1.0,  0.0,
+     1.0, -1.0,  1.0,  1.0,
+     1.0, -1.0,  1.0,  1.0,
+    -1.0, -1.0,  0.0,  1.0,
+    -1.0,  1.0,  0.0,  0.0,
 };
 
 static pthread_t pthreads[MAX_THREADS];
@@ -400,12 +398,12 @@ static uint32_t constBlockVert1[6][6] = {
 };
 
 static uint32_t constBlockVert2[6][6] = {
-    {0x0000F100, 0x000FF300, 0x000F0200, 0x000F0200, 0x00000000, 0x0000F100}, // U
-    {0x0000F100, 0x000FF300, 0x000F0200, 0x000F0200, 0x00000000, 0x0000F100}, // R
-    {0x0000F100, 0x000FF300, 0x000F0200, 0x000F0200, 0x00000000, 0x0000F100}, // F
-    {0x0000F100, 0x000FF300, 0x000F0200, 0x000F0200, 0x00000000, 0x0000F100}, // D
-    {0x0000F100, 0x000FF300, 0x000F0200, 0x000F0200, 0x00000000, 0x0000F100}, // L
-    {0x0000F100, 0x000FF300, 0x000F0200, 0x000F0200, 0x00000000, 0x0000F100}, // B
+    {0x00000000, 0x000F0200, 0x000FF300, 0x000FF300, 0x0000F100, 0x00000000}, // U
+    {0x00000000, 0x000F0200, 0x000FF300, 0x000FF300, 0x0000F100, 0x00000000}, // R
+    {0x00000000, 0x000F0200, 0x000FF300, 0x000FF300, 0x0000F100, 0x00000000}, // F
+    {0x00000000, 0x000F0200, 0x000FF300, 0x000FF300, 0x0000F100, 0x00000000}, // D
+    {0x00000000, 0x000F0200, 0x000FF300, 0x000FF300, 0x0000F100, 0x00000000}, // L
+    {0x00000000, 0x000F0200, 0x000FF300, 0x000FF300, 0x0000F100, 0x00000000}, // B
 };
 
 static void mtsetvert(uint32_t** _v, int* s, int* l, uint32_t** v, uint32_t bv) {
@@ -456,7 +454,7 @@ static void* meshthread(void* args) {
             for (int z = 0; z < 16; ++z) {
                 for (int x = 0; x < 16; ++x) {
                     bdata = rendGetBlock(data, c, x, y, z);
-                    if (!bdata.id || bdata.id > maxblockid) continue;
+                    if (!bdata.id || !blockinf[bdata.id].id) continue;
                     bdata2[0] = rendGetBlock(data, c, x, y + 1, z);
                     bdata2[1] = rendGetBlock(data, c, x + 1, y, z);
                     bdata2[2] = rendGetBlock(data, c, x, y, z + 1);
@@ -464,16 +462,15 @@ static void* meshthread(void* args) {
                     bdata2[4] = rendGetBlock(data, c, x - 1, y, z);
                     bdata2[5] = rendGetBlock(data, c, x, y, z - 1);
                     for (int i = 0; i < 6; ++i) {
-                        if (bdata2[i].id && bdata2[i].id <= maxblockid) {
+                        if (bdata2[i].id && blockinf[bdata2[i].id].id) {
                             if (!blockinf[bdata2[i].id].transparency) continue;
                             if (blockinf[bdata.id].transparency && (bdata.id == bdata2[i].id)) continue;
                         }
                         if (bdata2[i].id == 255) continue;
                         uint32_t baseVert1 = ((x << 28) | (y << 16) | (z << 8)) & 0xF0FF0F00;
                         uint32_t baseVert2 = ((bdata2[i].light << 28) | (bdata2[i].light << 24) | (bdata2[i].light << 20)) & 0xFFF00000;
-                        uint32_t baseVert3 = (((bdata.id * 6 + i) << 16) & 0xFFFF0000) | ((0) & 0x0000FFFF);
+                        uint32_t baseVert3 = ((blockinf[bdata.id].texoff[i] << 16) & 0xFFFF0000) | (blockinf[bdata.id].anict[i] & 0x0000FFFF);
                         if (bdata.id == water) {
-                            baseVert3 = (((bdata.id * 6) << 16) & 0xFFFF0000) | ((6) & 0x0000FFFF); //TODO: add anict var to block info
                             if (!bdata2[i].id) {
                                 for (int j = 0; j < 6; ++j) {
                                     mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, constBlockVert1[i][j] | baseVert1);
@@ -951,49 +948,60 @@ bool initRenderer() {
 
     //puts("creating texture map...");
     //TODO: change map format and add mapoffset var to block info
-    texmap = malloc(1572864);
-    memset(texmap, 255, 1572864);
-
+    int texmapsize = 0;
+    texmap = malloc(texmapsize * 1024);
     char* tmpbuf = malloc(4096);
-    for (int i = 1; i < 256; ++i) {
+    for (int i = 1; i < 255; ++i) {
         sprintf(tmpbuf, "game/textures/blocks/%d/", i);
         if (resourceExists(tmpbuf) == -1) {
-            maxblockid = i - 1;
             break;
         }
         //printf("loading block [%d]...\n", i);
-        bool st = false;
-        int o = 0;
         for (int j = 0; j < 6; ++j) {
-            if (st) o = j;
-            sprintf(tmpbuf, "game/textures/blocks/%d/%d.png", i, j - o);
+            sprintf(tmpbuf, "game/textures/blocks/%d/%d.png", i, j);
             if (resourceExists(tmpbuf) == -1) {
-                if (j == 1) st = true;
-                else if (j == 3) o = 3;
-                else break;
-                --j;
-                continue;
+                if (j == 1) {
+                    for (int k = 0; k < 5; ++k) {
+                        blockinf[i].texoff[1 + k] = blockinf[i].texoff[0];
+                    }
+                } else if (j == 3) {
+                    for (int k = 0; k < 3; ++k) {
+                        blockinf[i].texoff[3 + k] = blockinf[i].texoff[0 + k];
+                    }
+                }
+                break;
+            }
+            if (j > 0 && blockinf[i].singletexoff) {
+                blockinf[i].texoff[j] = blockinf[i].texoff[0];
+            } else {
+                blockinf[i].texoff[j] = texmapsize;
             }
             resdata_image* img = loadResource(RESOURCE_IMAGE, tmpbuf);
             for (int j = 3; j < 1024; j += 4) {
                 if (img->data[j] < 255) {
                     blockinf[i].transparency = 1;
                     //printf("! [%d]: [%u]\n", i, (uint8_t)img->data[j]);
+                    break;
                 }
             }
-            int mapoff = i * 6144 + j * 1024;
             //printf("adding texture {%s} at offset [%u] of map [%d]...\n", tmpbuf, mapoff, i);
-            memcpy(&texmap[mapoff], img->data, 1024);
+            texmap = realloc(texmap, (texmapsize + 1) * 1024);
+            memcpy(texmap + texmapsize * 1024, img->data, 1024);
+            ++texmapsize;
             freeResource(img);
         }
     }
+    FILE* texmapf = fopen("texmap.raw", "wb");
+    fwrite(texmap, 1024, texmapsize, texmapf);
+    fclose(texmapf);
     glGenTextures(1, &texmaph);
     glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_3D, texmaph);
-    glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA, 16, 16, 1536, 0, GL_RGBA, GL_UNSIGNED_BYTE, texmap);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, texmaph);
+    glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, 16, 16, texmapsize, 0, GL_RGBA, GL_UNSIGNED_BYTE, texmap);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), 2);
+    glUniform1f(glGetUniformLocation(rendinf.shaderprog, "texmapdiv"), texmapsize - 1);
 
     glGenBuffers(1, &VBO2D);
     glBindBuffer(GL_ARRAY_BUFFER, VBO2D);
@@ -1010,10 +1018,10 @@ bool initRenderer() {
     glGenTextures(1, &charseth);
     glActiveTexture(GL_TEXTURE4);
     resdata_image* charset = loadResource(RESOURCE_IMAGE, "game/textures/ui/charset.png");
-    glBindTexture(GL_TEXTURE_3D, charseth);
-    glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA, 8, 16, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, charset->data);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, charseth);
+    glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, 8, 16, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, charset->data);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), 4);
     setUniform4f(rendinf.shaderprog, "mcolor", (float[]){1.0, 1.0, 1.0, 1.0});
 

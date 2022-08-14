@@ -8,6 +8,7 @@ uniform mat4 view;
 uniform mat4 projection;
 uniform vec2 ccoord;
 uniform uint aniMult;
+uniform float texmapdiv;
 
 out vec2 texCoord;
 out vec3 fragPos;
@@ -21,9 +22,9 @@ void main() {
     texCoord.x = (float(((data2 >> 16) & uint(15)) + ((data2 >> 9) & uint(1)))) / 16.0;
     texCoord.y = (float(((data2 >> 12) & uint(15)) + ((data2 >> 8) & uint(1)))) / 16.0;
     fragPos += vec3(ccoord.x, 0.0, ccoord.y) * 16.0;
-    uint texOff2 = (data3 & uint(65535)) * aniMult / uint(65535);
-    uint texOff = ((data3 >> 16) & uint(65535)) + texOff2;
-    texOffset = float(texOff) / 1535.0;
+    uint texOff2 = (data3 & uint(65535)) * aniMult / uint(65536);
+    uint texOff = ((data3 >> 16) & uint(65535)) + uint(mod(float(texOff2), float(data3 & uint(65535))));
+    texOffset = float(texOff);
     light.r = float((data2 >> 28) & uint(15)) / 15.0;
     light.g = float((data2 >> 24) & uint(15)) / 15.0;
     light.b = float((data2 >> 20) & uint(15)) / 15.0;

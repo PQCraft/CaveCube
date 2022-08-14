@@ -65,6 +65,9 @@ ifndef OS
 else
     BINFLAGS += -l:libwinpthread.a -lws2_32
 endif
+ifdef USEGLES
+    CFLAGS += -DUSEGLES
+endif
 ifdef USESDL2
     CFLAGS += -DUSESDL2
     BINFLAGS += -lSDL2
