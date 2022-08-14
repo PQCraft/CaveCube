@@ -7,7 +7,6 @@
 #include <game/blocks.h>
 #include <common/common.h>
 #include <common/resource.h>
-#include <common/stb_image.h>
 #include <bmd/bmd.h>
 #include <renderer/renderer.h>
 #include <server/server.h>
@@ -79,7 +78,6 @@ static void commonSetup() {
     #ifdef _WIN32
     showcon = getConfigValBool(getConfigVarStatic(config, "main.showcon", SC_VAL, 64));
     #endif
-    stbi_set_flip_vertically_on_load(true);
     initResource();
     initBlocks();
 }

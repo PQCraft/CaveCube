@@ -15,9 +15,10 @@ For outdated/stable Linux distributions (such as Debian or Ubuntu), GLFW must be
 - To build, run `make -j`.<br>
 - To build and run once done compiling, run `make -j run`.<br>
 - To build for debugging, add `DEBUG=[level]` after `make` (eg. `make DEBUG=0 -j run`). This will build the executable with debug symbols, disable symbol and section stripping, and define the internal `DEBUG` macro with the level specified.<br>
-- To change the target to the standalone server, add `SERVER=y` after `make` (eg. `make SERVER=y -j`). You must also apply this to clean (`make SERVER=y clean`) to remove the server binary.<br>
-- To cross compile to Windows on a non-Windows OS, add `WIN32=y` after `make` (eg. `make WIN32=y -j`). You must also use this when running the clean rule (`make WIN32=y clean`) to remove the correct files.<br>
-- To compile with using SDL2 instead of GLFW, add `USESDL2=y` after `make` (eg. `make USESDL2=y -j`).<br>
+- To change the target to the standalone server, add `SERVER=y` after `make`. You must also apply this to clean to remove the server binary.<br>
+- To cross compile to Windows on a non-Windows OS, add `WIN32=y` after `make`. You must also use this when running the clean rule to remove the correct files.<br>
+- To compile with using SDL2 instead of GLFW, add `USESDL2=y` after `make`.<br>
+- To compile using OpenGL ES instead of OpenGL, add `USEGLES=y` after `make`.<br>
 
 These variables can be combined.<br>
 For example, `make USESDL2=y WIN32=y -j run` will build CaveCube for Windows with SDL2 and run when compilation finishes.<br>
