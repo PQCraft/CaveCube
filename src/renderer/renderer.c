@@ -991,9 +991,6 @@ bool initRenderer() {
             freeResource(img);
         }
     }
-    FILE* texmapf = fopen("texmap.raw", "wb");
-    fwrite(texmap, 1024, texmapsize, texmapf);
-    fclose(texmapf);
     glGenTextures(1, &texmaph);
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D_ARRAY, texmaph);
