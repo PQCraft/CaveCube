@@ -71,8 +71,8 @@ input_keys input_sa[INPUT_ACTION_SINGLE__MAX] = {
     KEY('k', SDL_SCANCODE_8, 0, 0),
     KEY('k', SDL_SCANCODE_9, 0, 0),
     KEY('k', SDL_SCANCODE_0, 0, 0),
-    KEY('k', SDL_SCANCODE_MINUS, 0, 0),
-    KEY('k', SDL_SCANCODE_EQUAL, 0, 0),
+    KEY('k', SDL_SCANCODE_RIGHTBRACKET, 0, 0),
+    KEY('k', SDL_SCANCODE_LEFTBRACKET, 0, 0),
     #else
     KEY('k', GLFW_KEY_ESCAPE, 0, 0),
     KEY('m', GLFW_MOUSE_BUTTON_LEFT, 0, 0),
@@ -88,13 +88,10 @@ input_keys input_sa[INPUT_ACTION_SINGLE__MAX] = {
     KEY('k', GLFW_KEY_8, 0, 0),
     KEY('k', GLFW_KEY_9, 0, 0),
     KEY('k', GLFW_KEY_0, 0, 0),
-    KEY('k', GLFW_KEY_MINUS, 0, 0),
-    KEY('k', GLFW_KEY_EQUAL, 0, 0),
+    KEY('k', GLFW_KEY_RIGHT_BRACKET, 0, 0),
+    KEY('k', GLFW_KEY_LEFT_BRACKET, 0, 0),
     #endif
 };
-
-//static uint16_t tmpmods = 0;
-//static int tmpkey = -1;
 
 static float rotsen;
 
@@ -182,6 +179,8 @@ void resetInput() {
     getInput();
 }
 
+static int lastsa = INPUT_ACTION_SINGLE__NONE;
+
 struct input_info getInput() {
     #if defined(USESDL2)
     SDL_PumpEvents();
@@ -197,41 +196,51 @@ struct input_info getInput() {
     #if defined(USESDL2)
     if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) sdlreszevent(event.window.data1, event.window.data2);
     #endif
-    inf.rot_mult = rotsen * 0.15;
-    static double nmxpos, nmypos;
     #if defined(USESDL2)
     inf.focus = ((SDL_GetWindowFlags(rendinf.window) & SDL_WINDOW_INPUT_FOCUS) != 0);
     #else
     inf.focus = glfwGetWindowAttrib(rendinf.window, GLFW_FOCUSED);
     #endif
-    if (inf.focus) {
-        #if defined(USESDL2)
-        sdlgetmouse(&nmxpos, &nmypos);
-        #else
-        glfwGetCursorPos(rendinf.window, &nmxpos, &nmypos);
-        #endif
-        inf.rot_right += mxpos - nmxpos;
-        inf.rot_up += mypos - nmypos;
-        mxpos = nmxpos;
-        mypos = nmypos;
-    }
-    inf.mov_mult = ((double)((uint64_t)altutime() - (uint64_t)polltime) / (double)1000000);
+    inf.rot_mult = rotsen * 0.15;
+    static double nmxpos, nmypos;
     #if defined(USESDL2)
     sdlkeymap = SDL_GetKeyboardState(NULL);
+    sdlgetmouse(&nmxpos, &nmypos);
+    #else
+    glfwGetCursorPos(rendinf.window, &nmxpos, &nmypos);
     #endif
-    if (inputMode == INPUT_MODE_GAME) {
-        if (keyDown(input_mov[0])) inf.mov_up += 1.0;
-        if (keyDown(input_mov[1])) inf.mov_up -= 1.0;
-        if (keyDown(input_mov[2])) inf.mov_right -= 1.0;
-        if (keyDown(input_mov[3])) inf.mov_right += 1.0;
-        float mul = atan2(fabs(inf.mov_right), fabs(inf.mov_up));
-        mul = fabs(1 / (cos(mul) + sin(mul)));
-        inf.mov_up *= mul;
-        inf.mov_right *= mul;
-        for (int i = 0; i < INPUT_ACTION_MULTI__MAX; ++i) {
-            if (keyDown(input_ma[i])) {
-                inf.multi_actions |= 1 << i;
+    switch (inputMode) {
+        case INPUT_MODE_GAME:; {
+            if (inf.focus) {
+                inf.rot_right += mxpos - nmxpos;
+                inf.rot_up += mypos - nmypos;
+                mxpos = nmxpos;
+                mypos = nmypos;
             }
+            inf.mov_mult = ((double)((uint64_t)altutime() - (uint64_t)polltime) / (double)1000000);
+            if (keyDown(input_mov[0])) inf.mov_up += 1.0;
+            if (keyDown(input_mov[1])) inf.mov_up -= 1.0;
+            if (keyDown(input_mov[2])) inf.mov_right -= 1.0;
+            if (keyDown(input_mov[3])) inf.mov_right += 1.0;
+            float mul = atan2(fabs(inf.mov_right), fabs(inf.mov_up));
+            mul = fabs(1 / (cos(mul) + sin(mul)));
+            inf.mov_up *= mul;
+            inf.mov_right *= mul;
+            for (int i = 0; i < INPUT_ACTION_MULTI__MAX; ++i) {
+                if (keyDown(input_ma[i])) {
+                    inf.multi_actions |= 1 << i;
+                }
+            }
+            if (lastsa == INPUT_ACTION_SINGLE__NONE) {
+                for (int i = 0; i < INPUT_ACTION_SINGLE__MAX; ++i) {
+                    if (keyDown(input_sa[i])) {
+                        lastsa = inf.single_action = i;
+                    }
+                }
+            } else {
+                if (!keyDown(input_sa[lastsa])) lastsa = INPUT_ACTION_SINGLE__NONE;
+            }
+            break;
         }
     }
     polltime = altutime();

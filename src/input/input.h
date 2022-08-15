@@ -26,7 +26,7 @@ enum {
 #define INPUT_GETMAFLAG(x) (1 << ((x) - 1))
 
 enum {
-    INPUT_ACTION_SINGLE__NONE,
+    INPUT_ACTION_SINGLE__NONE = -1,
     INPUT_ACTION_SINGLE_ESC,
     INPUT_ACTION_SINGLE_LCLICK,
     INPUT_ACTION_SINGLE_RCLICK,
@@ -48,9 +48,8 @@ enum {
 
 struct input_info {
     bool focus;
-    uint32_t multi_actions;
-    uint16_t single_action;
-    uint16_t modifiers;
+    unsigned multi_actions;
+    int single_action;
     float mov_mult;
     float mov_up;
     float mov_right;
@@ -64,7 +63,7 @@ bool initInput(void);
 void resetInput(void);
 struct input_info getInput(void);
 
-#define INPUT_EMPTY_INFO (struct input_info){false, INPUT_ACTION_MULTI__NONE, INPUT_ACTION_SINGLE__NONE, 0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}
+#define INPUT_EMPTY_INFO (struct input_info){false, INPUT_ACTION_MULTI__NONE, INPUT_ACTION_SINGLE__NONE, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}
 
 #endif
 

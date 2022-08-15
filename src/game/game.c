@@ -281,6 +281,7 @@ bool doGame(char* addr, int port) {
     float yvel = 0.0;
     float xcm = 0.0;
     float zcm = 0.0;
+    int invspot = 0;
     startMesher(&chunks);
     setRandSeed(8, altutime());
     coord_3d tmpcamrot = {0, 0, 0};
@@ -291,6 +292,19 @@ bool doGame(char* addr, int port) {
         if (loopdelay) microwait(loopdelay);
         float bps = 4;
         struct input_info input = getInput();
+        switch (input.single_action) {
+            case INPUT_ACTION_SINGLE_INV_0 ... INPUT_ACTION_SINGLE_INV_9:;
+                invspot = input.single_action - INPUT_ACTION_SINGLE_INV_0;
+                break;
+            case INPUT_ACTION_SINGLE_INV_NEXT:;
+                ++invspot;
+                if (invspot > 9) invspot = 0;
+                break;
+            case INPUT_ACTION_SINGLE_INV_PREV:;
+                --invspot;
+                if (invspot < 0) invspot = 9;
+                break;
+        }
         bool crouch = false;
         if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_CROUCH)) {
             crouch = true;
@@ -448,7 +462,7 @@ bool doGame(char* addr, int port) {
             if (!placehold || (altutime() - ptime) >= 500000)
                 if ((altutime() - ptime2) >= 125000 && blockid && blockid != 7 && (!blockid2 || blockid2 == 7)) {
                     ptime2 = altutime();
-                    setBlock(&chunks, 0, 0, lastblockx, lastblocky, lastblockz, (struct blockdata){(getRandWord(8) % 10) + 1, 0, 0});
+                    setBlock(&chunks, 0, 0, lastblockx, lastblocky, lastblockz, (struct blockdata){invspot + 1, 0, 0});
                 }
             placehold = true;
         } else {
