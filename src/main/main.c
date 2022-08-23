@@ -7,6 +7,7 @@
 #include <game/blocks.h>
 #include <common/common.h>
 #include <common/resource.h>
+#include <common/config.h>
 #include <bmd/bmd.h>
 #include <renderer/renderer.h>
 #include <server/server.h>
@@ -65,6 +66,7 @@ static bool showcon;
 
 static void commonSetup() {
     file_data tmpfile = getTextFile("cavecube.cfg");
+    openConfig("test.cfg");
     chdir(localdir);
     tmpfile = catTextFiles(tmpfile, true, getTextFile("cavecube.cfg"), true);
     if (strcmp(startdir, maindir)) {

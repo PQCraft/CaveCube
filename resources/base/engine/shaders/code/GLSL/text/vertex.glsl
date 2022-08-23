@@ -1,11 +1,10 @@
 layout (location = 0) in vec4 data;
-
-out vec2 texCoord;
-
 uniform vec2 mpos;
 uniform float xratio;
 uniform float yratio;
 uniform float scale;
+
+out vec2 texCoord;
 
 void main() {
     texCoord.x = data[2];

@@ -11,4 +11,5 @@
 !README.md
 !update.sh
 !util.mk
+!.gitattributes
 !.gitignore

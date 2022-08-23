@@ -7,7 +7,7 @@
 #include <inttypes.h>
 
 enum {
-    INPUT_MODE_GUI,
+    INPUT_MODE_UI,
     INPUT_MODE_GAME,
 };
 
@@ -28,8 +28,6 @@ enum {
 enum {
     INPUT_ACTION_SINGLE__NONE = -1,
     INPUT_ACTION_SINGLE_ESC,
-    INPUT_ACTION_SINGLE_LCLICK,
-    INPUT_ACTION_SINGLE_RCLICK,
     INPUT_ACTION_SINGLE_INV,
     INPUT_ACTION_SINGLE_INV_0,
     INPUT_ACTION_SINGLE_INV_1,
@@ -43,7 +41,16 @@ enum {
     INPUT_ACTION_SINGLE_INV_9,
     INPUT_ACTION_SINGLE_INV_NEXT,
     INPUT_ACTION_SINGLE_INV_PREV,
+    INPUT_ACTION_SINGLE_DEBUG,
     INPUT_ACTION_SINGLE__MAX,
+};
+
+enum {
+    INPUT_ACTION_UI__NONE = -1,
+    INPUT_ACTION_UI_ESC,
+    INPUT_ACTION_UI_LCLICK,
+    INPUT_ACTION_UI_RCLICK,
+    INPUT_ACTION_UI__MAX,
 };
 
 struct input_info {
@@ -56,6 +63,10 @@ struct input_info {
     float rot_mult;
     float rot_up;
     float rot_right;
+    int ui_action;
+    int ui_mouse_x;
+    int ui_mouse_y;
+    int ui_mouse_click;
 };
 
 void setInputMode(int);
@@ -63,7 +74,7 @@ bool initInput(void);
 void resetInput(void);
 struct input_info getInput(void);
 
-#define INPUT_EMPTY_INFO (struct input_info){false, INPUT_ACTION_MULTI__NONE, INPUT_ACTION_SINGLE__NONE, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}
+#define INPUT_EMPTY_INFO (struct input_info){false, INPUT_ACTION_MULTI__NONE, INPUT_ACTION_SINGLE__NONE, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, INPUT_ACTION_UI__NONE, 0, 0, 0}
 
 #endif
 

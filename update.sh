@@ -1,5 +1,7 @@
 #!/bin/bash
 
+{
+
 I="\e[0m\e[1m\e[37m[\e[36mI\e[37m]\e[0m"
 E="\e[0m\e[1m\e[37m[\e[31mX\e[37m]\e[0m"
 Q="\e[0m\e[1m\e[37m[\e[32m?\e[37m]\e[0m"
@@ -127,3 +129,6 @@ tsk "Cleaning up..."
 rm -rf cavecube*.tar.gz cavecube*.zip
 
 tsk "Done"
+exit
+
+}
