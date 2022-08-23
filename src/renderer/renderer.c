@@ -243,38 +243,6 @@ static inline bool makeShaderProg(char* hdrtext, char* _vstext, char* _fstext, G
     return retval;
 }
 
-//extern float vertices[];
-//extern uint32_t indices[];
-
-struct model* loadModel(char* mpath, char** tpath) {
-    resdata_bmd* mdata = loadResource(RESOURCE_BMD, mpath);
-    struct model* m = malloc(sizeof(struct model));
-    //memset(m, 0, sizeof(struct model));
-    m->model = mdata;
-    m->pos = (coord_3d){0.0, 0.0, 0.0};
-    m->rot = (coord_3d){0.0, 0.0, 0.0};
-    m->scale = (coord_3d){1.0, 1.0, 1.0};
-    m->renddata = malloc(mdata->parts * sizeof(struct model_renddata));
-    for (unsigned i = 0; i < mdata->parts; ++i) {
-        resdata_texture* tdata = loadResource(RESOURCE_TEXTURE, *tpath++);
-        m->renddata[i].texture = tdata;
-        glGenVertexArrays(1, &m->renddata[i].VAO);
-        glGenBuffers(1, &m->renddata[i].VBO);
-        glGenBuffers(1, &m->renddata[i].EBO);
-        glBindVertexArray(m->renddata[i].VAO);
-        glBindBuffer(GL_ARRAY_BUFFER, m->renddata[i].VBO);
-        glBufferData(GL_ARRAY_BUFFER, m->model->part[i].vsize, m->model->part[i].vertices, GL_STATIC_DRAW);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m->renddata[i].EBO);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, m->model->part[i].isize, m->model->part[i].indices, GL_STATIC_DRAW);
-        glEnableVertexAttribArray(0);
-        glEnableVertexAttribArray(1);
-        glBindTexture(GL_TEXTURE_2D, 0);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-    }
-    return m;
-}
-
 void createTexture(unsigned char* data, resdata_texture* tdata) {
     glGenTextures(1, &tdata->data);
     glBindTexture(GL_TEXTURE_2D, tdata->data);
@@ -290,48 +258,6 @@ void createTexture(unsigned char* data, resdata_texture* tdata) {
 void destroyTexture(resdata_texture* tdata) {
     glDeleteTextures(1, &tdata->data);
 }
-
-/*
-void renderPartAt(struct model* m, unsigned i, coord_3d pos, bool advanced) {
-    //glBindVertexArray(m->renddata[i].VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, m->renddata[i].VBO);
-    //glBufferData(GL_ARRAY_BUFFER, m->model->part[i].vsize, m->model->part[i].vertices, GL_STATIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m->renddata[i].EBO);
-    //glBufferData(GL_ELEMENT_ARRAY_BUFFER, m->model->part[i].isize, m->model->part[i].indices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-    //mat4 struct model __attribute__((aligned (32))) = GFX_DEFAULT_MAT4;
-    //glm_translate(struct model, (vec3){m->pos.x + pos.x, m->pos.y + pos.y, m->pos.z + pos.z});
-    if (advanced) {
-        glm_rotate(struct model, m->rot.x * M_PI / 180, (vec3){1, 0, 0});
-        glm_rotate(struct model, m->rot.y * M_PI / 180, (vec3){0, 1, 0});
-        glm_rotate(struct model, m->rot.z * M_PI / 180, (vec3){0, 0, 1});
-        glm_scale(struct model, (vec3){m->scale.x, m->scale.y, m->scale.z});
-    }
-    setUniform3f(rendinf.shaderprog, "mPos", (float[]){m->pos.x + pos.x, m->pos.y + pos.y, m->pos.z + pos.z});
-    //setMat4(rendinf.shaderprog, "struct model", struct model);
-    //glBindTexture(GL_TEXTURE_2D, m->renddata[i].texture->data);
-    //glUniform1i(glGetUniformLocation(rendinf.shaderprog, "TexData"), 0);
-    glDrawElements(GL_TRIANGLES, m->model->part[i].isize / sizeof(uint32_t), GL_UNSIGNED_INT, 0);
-    //glBindTexture(GL_TEXTURE_2D, 0);
-    //glBindBuffer(GL_ARRAY_BUFFER, 0);
-    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-}
-
-void renderPart(struct model* m, unsigned i, bool advanced) {
-    renderPartAt(m, i, (coord_3d){0.0, 0.0, 0.0}, advanced);
-}
-
-void renderModelAt(struct model* m, coord_3d pos, bool advanced) {
-    for (unsigned i = 0; i < m->model->parts; ++i) {
-        renderPartAt(m, i, pos, advanced);
-    }
-}
-
-void renderModel(struct model* m, bool advanced) {
-    renderModelAt(m, (coord_3d){0.0, 0.0, 0.0}, advanced);
-}
-*/
 
 void updateScreen() {
     static int lv = -1;
@@ -418,23 +344,18 @@ static void* meshthread(void* args) {
     struct chunkdata* data = args;
     struct blockdata bdata;
     struct blockdata bdata2[6];
-    bool activity = false;
+    uint64_t acttime = altutime();
     for (int32_t c = -1; !quitRequest; --c) {
-        if (c < 0) {
-            c = data->info.widthsq - 1;
-            activity = false;
-        }
+        if (c < 0) c = data->info.widthsq - 1;
+        bool activity = false;
         pthread_mutex_lock(&uclock);
         bool cond = !data->renddata[c].generated || data->renddata[c].updated || data->renddata[c].busy || data->renddata[c].ready;
         //if (data->renddata[c].busy) printf("BUSY [%d]\n", c);
         if (!cond) {
             data->renddata[c].busy = true;
             activity = true;
-        }
-        //pthread_mutex_unlock(&uclock);
-        if (cond) {
+        } else {
             pthread_mutex_unlock(&uclock);
-            if (!c && !activity) microwait(25000);
             continue;
         }
         int vpsize = 256;
@@ -506,6 +427,11 @@ static void* meshthread(void* args) {
         data->renddata[c].ready = true;
         data->renddata[c].busy = false;
         pthread_mutex_unlock(&uclock);
+        if (activity) {
+            acttime = altutime();
+        } else if (altutime() - acttime > 1000000) {
+            microwait(50000);
+        }
     }
     return NULL;
 }
@@ -610,6 +536,8 @@ static inline coord_3d_dbl intCoord_dbl(coord_3d_dbl in) {
     return in;
 }
 
+static resdata_texture* crosshair;
+
 static uint32_t rendc;
 
 void renderChunks(void* vdata) {
@@ -653,6 +581,8 @@ void renderChunks(void* vdata) {
     glDisable(GL_DEPTH_TEST);
     setShaderProg(shader_2d);
     glBindBuffer(GL_ARRAY_BUFFER, VBO2D);
+    glUniform1f(glGetUniformLocation(rendinf.shaderprog, "xratio"), ((float)(crosshair->width)) / (float)rendinf.width);
+    glUniform1f(glGetUniformLocation(rendinf.shaderprog, "yratio"), ((float)(crosshair->height)) / (float)rendinf.height);
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
     glDrawArrays(GL_TRIANGLES, 0, 6);
 
@@ -1006,7 +936,7 @@ bool initRenderer() {
 
     setShaderProg(shader_2d);
     glActiveTexture(GL_TEXTURE3);
-    resdata_texture* crosshair = loadResource(RESOURCE_TEXTURE, "game/textures/ui/crosshair.png");
+    crosshair = loadResource(RESOURCE_TEXTURE, "game/textures/ui/crosshair.png");
     glBindTexture(GL_TEXTURE_2D, crosshair->data);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), 3);
     setUniform4f(rendinf.shaderprog, "mcolor", (float[]){1.0, 1.0, 1.0, 1.0});

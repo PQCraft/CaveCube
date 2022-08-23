@@ -3,7 +3,7 @@
 
 #define VER_MAJOR 0
 #define VER_MINOR 2
-#define VER_PATCH 0
+#define VER_PATCH 1
 
 #ifdef DEBUG
     #define NAME_THREADS

@@ -79,12 +79,14 @@ void* makeResource(int type, char* path) {
         case RESOURCE_IMAGE:; {
             resdata_image* imagedata = data = calloc(1, sizeof(resdata_image));
             imagedata->data = stbi_load(path, &imagedata->width, &imagedata->height, &imagedata->channels, STBI_rgb_alpha);
+            imagedata->channels = 4;
             break;
         }
         case RESOURCE_TEXTURE:; {
             #ifndef SERVER
             resdata_texture* texturedata = data = calloc(1, sizeof(resdata_texture));
             unsigned char* idata = stbi_load(path, &texturedata->width, &texturedata->height, &texturedata->channels, STBI_rgb_alpha);
+            texturedata->channels = 4;
             createTexture(idata, texturedata);
             stbi_image_free(idata);
             #endif

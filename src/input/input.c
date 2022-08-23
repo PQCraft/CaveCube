@@ -58,8 +58,6 @@ input_keys input_ma[INPUT_ACTION_MULTI__MAX] = {
 input_keys input_sa[INPUT_ACTION_SINGLE__MAX] = {
     #if defined(USESDL2)
     KEY('k', SDL_SCANCODE_ESCAPE, 0, 0),
-    KEY('m', SDL_BUTTON(1), 0, 0),
-    KEY('m', SDL_BUTTON(3), 0, 0),
     KEY('k', SDL_SCANCODE_I, 0, 0),
     KEY('k', SDL_SCANCODE_1, 0, 0),
     KEY('k', SDL_SCANCODE_2, 0, 0),
@@ -73,10 +71,9 @@ input_keys input_sa[INPUT_ACTION_SINGLE__MAX] = {
     KEY('k', SDL_SCANCODE_0, 0, 0),
     KEY('k', SDL_SCANCODE_RIGHTBRACKET, 0, 0),
     KEY('k', SDL_SCANCODE_LEFTBRACKET, 0, 0),
+    KEY('k', SDL_SCANCODE_F3, 0, 0),
     #else
     KEY('k', GLFW_KEY_ESCAPE, 0, 0),
-    KEY('m', GLFW_MOUSE_BUTTON_LEFT, 0, 0),
-    KEY('m', GLFW_MOUSE_BUTTON_RIGHT, 0, 0),
     KEY('k', GLFW_KEY_I, 0, 0),
     KEY('k', GLFW_KEY_1, 0, 0),
     KEY('k', GLFW_KEY_2, 0, 0),
@@ -90,6 +87,18 @@ input_keys input_sa[INPUT_ACTION_SINGLE__MAX] = {
     KEY('k', GLFW_KEY_0, 0, 0),
     KEY('k', GLFW_KEY_RIGHT_BRACKET, 0, 0),
     KEY('k', GLFW_KEY_LEFT_BRACKET, 0, 0),
+    KEY('k', GLFW_KEY_F3, 0, 0),
+    #endif
+};
+input_keys input_ui[] = {
+    #if defined(USESDL2)
+    KEY('k', SDL_SCANCODE_ESCAPE, 0, 0),
+    KEY('m', SDL_BUTTON(1), 0, 0),
+    KEY('m', SDL_BUTTON(3), 0, 0),
+    #else
+    KEY('k', GLFW_KEY_ESCAPE, 0, 0),
+    KEY('m', GLFW_MOUSE_BUTTON_LEFT, 0, 0),
+    KEY('m', GLFW_MOUSE_BUTTON_RIGHT, 0, 0),
     #endif
 };
 
@@ -240,6 +249,9 @@ struct input_info getInput() {
             } else {
                 if (!keyDown(input_sa[lastsa])) lastsa = INPUT_ACTION_SINGLE__NONE;
             }
+            break;
+        }
+        case INPUT_MODE_UI:; {
             break;
         }
     }
