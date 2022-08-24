@@ -21,7 +21,7 @@ struct config {
 
 struct config_keys* openConfig(char*);
 bool appendConfig(char*, struct config_keys*);
-void declareKey(struct config*, char*, char*);
+void declareKey(struct config*, char*, char*, char*, bool);
 struct config_key* getConfigKey(char*, char*);
 void writeConfig(struct config*, char*);
 void closeConfig(struct config*);
