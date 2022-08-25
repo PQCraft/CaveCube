@@ -65,7 +65,9 @@ void deleteKey(struct config* cfg, char* sect, char* key) {
         }
     }
     if (keyi < 0) return;
-    
+    free(cfg->sectdata[secti].keydata[keyi].name);
+    cfg->sectdata[secti].keydata[keyi].name = NULL;
+    free(cfg->sectdata[secti].keydata[keyi].value);
 }
 
 struct config_keys* openConfig(char* path) {
