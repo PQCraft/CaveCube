@@ -10,9 +10,9 @@
 #include <stdbool.h>
 
 void declareKey(struct config* cfg, char* sect, char* key, char* val, bool overwrite) {
-    printf("Adding key {%s} to section {%s} with value {%s}...\n", key, sect, val);
     int secti = -1;
     for (int i = 0; i < cfg->sects; ++i) {
+        if (!cfg->sectdata[i].name) continue;
         if (!strcasecmp(cfg->sectdata[i].name, sect)) {
             secti = i;
             break;
@@ -26,21 +26,46 @@ void declareKey(struct config* cfg, char* sect, char* key, char* val, bool overw
     }
     int keyi = -1;
     for (int i = 0; i < cfg->sectdata[secti].keys; ++i) {
+        if (!cfg->sectdata[secti].keydata[i].name) continue;
         if (!strcasecmp(cfg->sectdata[secti].keydata[i].name, key)) {
             keyi = i;
             break;
         }
     }
     if (keyi < 0) {
+        printf("Adding key {%s} to section {%s} with value {%s}...\n", key, sect, val);
         keyi = cfg->sectdata[secti].keys++;
         cfg->sectdata[secti].keydata = realloc(cfg->sectdata[secti].keydata, cfg->sectdata[secti].keys * sizeof(*cfg->sectdata[secti].keydata));
         memset(&cfg->sectdata[secti].keydata[keyi], 0, sizeof(*cfg->sectdata[secti].keydata));
         cfg->sectdata[secti].keydata[keyi].name = strdup(key);
         cfg->sectdata[secti].keydata[keyi].value = strdup(val);
     } else if (overwrite) {
+        printf("Rewriting key {%s} in section {%s} with old value {%s} with new value {%s}...\n", key, sect, cfg->sectdata[secti].keydata[keyi].value, val);
         free(cfg->sectdata[secti].keydata[keyi].value);
         cfg->sectdata[secti].keydata[keyi].value = strdup(val);
     }
+}
+
+void deleteKey(struct config* cfg, char* sect, char* key) {
+    int secti = -1;
+    for (int i = 0; i < cfg->sects; ++i) {
+        if (!cfg->sectdata[i].name) continue;
+        if (!strcasecmp(cfg->sectdata[i].name, sect)) {
+            secti = i;
+            break;
+        }
+    }
+    if (secti < 0) return;
+    int keyi = -1;
+    for (int i = 0; i < cfg->sectdata[secti].keys; ++i) {
+        if (!cfg->sectdata[secti].keydata[i].name) continue;
+        if (!strcasecmp(cfg->sectdata[secti].keydata[i].name, key)) {
+            keyi = i;
+            break;
+        }
+    }
+    if (keyi < 0) return;
+    
 }
 
 struct config_keys* openConfig(char* path) {
