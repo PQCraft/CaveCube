@@ -3,6 +3,7 @@
 #include <main/main.h>
 #include "game.h"
 #include "chunk.h"
+#include "blocks.h"
 #include <common/common.h>
 #include <common/resource.h>
 #include <renderer/renderer.h>
@@ -282,7 +283,9 @@ bool doGame(char* addr, int port) {
     float xcm = 0.0;
     float zcm = 0.0;
     int invspot = 0;
-    startMesher(&chunks);
+    int invoff = 0;
+    setMeshChunks(&chunks);
+    startMesher();
     setRandSeed(8, altutime());
     coord_3d tmpcamrot = {0, 0, 0};
     resetInput();
@@ -303,6 +306,14 @@ bool doGame(char* addr, int port) {
             case INPUT_ACTION_SINGLE_INV_PREV:;
                 --invspot;
                 if (invspot < 0) invspot = 9;
+                break;
+            case INPUT_ACTION_SINGLE_INVOFF_NEXT:;
+                ++invoff;
+                if (invoff > 4) invoff = 0;
+                break;
+            case INPUT_ACTION_SINGLE_INVOFF_PREV:;
+                --invoff;
+                if (invoff < 0) invoff = 4;
                 break;
         }
         bool crouch = false;
@@ -462,7 +473,8 @@ bool doGame(char* addr, int port) {
             if (!placehold || (altutime() - ptime) >= 500000)
                 if ((altutime() - ptime2) >= 125000 && blockid && blockid != 7 && (!blockid2 || blockid2 == 7)) {
                     ptime2 = altutime();
-                    setBlock(&chunks, 0, 0, lastblockx, lastblocky, lastblockz, (struct blockdata){invspot + 1, 0, 0});
+                    int blocknum = invspot + 1 + invoff * 10;
+                    if (blockinf[blocknum].id) setBlock(&chunks, 0, 0, lastblockx, lastblocky, lastblockz, (struct blockdata){blocknum, 0, 0});
                 }
             placehold = true;
         } else {
@@ -493,8 +505,8 @@ bool doGame(char* addr, int port) {
             if (crouch) rendinf.campos.y -= 0.375;
             updateCam();
             if (crouch) rendinf.campos.y += 0.375;
-            updateChunks(&chunks);
-            renderChunks(&chunks);
+            updateChunks();
+            render();
             updateScreen();
             fpsstarttime2 = altutime();
             ++fpsct;

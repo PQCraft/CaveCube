@@ -93,10 +93,9 @@ struct chunk_renddata {
     unsigned VBO3;
     uint32_t vcount3;
     uint32_t* vertices3;
-    bool buffered:1;
+    uint64_t updateid;
     bool ready:1;
-    bool busy:1;
-    bool updated:1;
+    bool buffered:1;
     bool generated:1;
 };
 
@@ -123,9 +122,12 @@ void destroyTexture(resdata_texture*);
 struct model* loadModel(char*, char**);
 void updateCam(void);
 void updateScreen(void);
-void updateChunks(void*);
-void startMesher(void*);
-void renderChunks(void*);
+void setMeshChunks(void*);
+void updateChunks(void);
+void startMesher(void);
+void updateChunk(int64_t, int64_t, bool);
+void setMeshChunkOff(int64_t, int64_t);
+void render(void);
 void setSkyColor(float, float, float);
 void setScreenMult(float, float, float);
 void setSpace(int);
