@@ -33,14 +33,14 @@ void declareKey(struct config* cfg, char* sect, char* key, char* val, bool overw
         }
     }
     if (keyi < 0) {
-        //printf("Adding key {%s} to section {%s} with value {%s}...\n", key, sect, val);
+        printf("Adding key {%s} to section {%s} with value {%s}...\n", key, sect, val);
         keyi = cfg->sectdata[secti].keys++;
         cfg->sectdata[secti].keydata = realloc(cfg->sectdata[secti].keydata, cfg->sectdata[secti].keys * sizeof(*cfg->sectdata[secti].keydata));
         memset(&cfg->sectdata[secti].keydata[keyi], 0, sizeof(*cfg->sectdata[secti].keydata));
         cfg->sectdata[secti].keydata[keyi].name = strdup(key);
         cfg->sectdata[secti].keydata[keyi].value = strdup(val);
     } else if (overwrite) {
-        //printf("Rewriting key {%s} in section {%s} with old value {%s} with new value {%s}...\n", key, sect, cfg->sectdata[secti].keydata[keyi].value, val);
+        printf("Rewriting key {%s} in section {%s} with old value {%s} with new value {%s}...\n", key, sect, cfg->sectdata[secti].keydata[keyi].value, val);
         free(cfg->sectdata[secti].keydata[keyi].value);
         cfg->sectdata[secti].keydata[keyi].value = strdup(val);
     }

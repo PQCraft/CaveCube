@@ -71,6 +71,8 @@ input_keys input_sa[INPUT_ACTION_SINGLE__MAX] = {
     KEY('k', SDL_SCANCODE_0, 0, 0),
     KEY('k', SDL_SCANCODE_RIGHTBRACKET, 0, 0),
     KEY('k', SDL_SCANCODE_LEFTBRACKET, 0, 0),
+    KEY('k', SDL_SCANCODE_EQUAL, 0, 0),
+    KEY('k', SDL_SCANCODE_MINUS, 0, 0),
     KEY('k', SDL_SCANCODE_F3, 0, 0),
     #else
     KEY('k', GLFW_KEY_ESCAPE, 0, 0),
@@ -87,6 +89,8 @@ input_keys input_sa[INPUT_ACTION_SINGLE__MAX] = {
     KEY('k', GLFW_KEY_0, 0, 0),
     KEY('k', GLFW_KEY_RIGHT_BRACKET, 0, 0),
     KEY('k', GLFW_KEY_LEFT_BRACKET, 0, 0),
+    KEY('k', GLFW_KEY_EQUAL, 0, 0),
+    KEY('k', GLFW_KEY_MINUS, 0, 0),
     KEY('k', GLFW_KEY_F3, 0, 0),
     #endif
 };
