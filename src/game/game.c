@@ -541,7 +541,7 @@ bool doGame(char* addr, int port) {
         free(tmpbuf[i]);
     }
     free(tmpbuf);
-    stopServer();
+    if (!addr) stopServer();
     return true;
 }
 

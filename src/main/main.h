@@ -2,8 +2,8 @@
 #define MAIN_MAIN_H
 
 #define VER_MAJOR 0
-#define VER_MINOR 2
-#define VER_PATCH 1
+#define VER_MINOR 3
+#define VER_PATCH 0
 
 #ifdef DEBUG
     #define NAME_THREADS

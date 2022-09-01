@@ -114,6 +114,7 @@ typedef unsigned int texture_t;
 extern struct renderer_info rendinf;
 extern pthread_mutex_t uclock;
 extern int MESHER_THREADS;
+extern int MESHER_THREADS_MAX;
 
 bool initRenderer(void);
 void quitRenderer(void);

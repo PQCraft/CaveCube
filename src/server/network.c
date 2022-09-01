@@ -166,7 +166,7 @@ struct netcxn* newCxn(int type, char* addr, int port, int obs, int ibs) {
     address->sin_addr.s_addr = (addr) ? inet_addr(addr) : INADDR_ANY;
     address->sin_port = host2net16(port);
     switch (type) {
-        case CXN_PASSIVE:;
+        case CXN_PASSIVE:; {
             #ifndef _WIN32
             int opt = 1;
             setsockopt(newsock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
@@ -185,13 +185,15 @@ struct netcxn* newCxn(int type, char* addr, int port, int obs, int ibs) {
                 return NULL;
             }
             break;
-        case CXN_ACTIVE:;
+        }
+        case CXN_ACTIVE:; {
             if (connect(newsock, (struct sockaddr*)address, sizeof(*address))) {
                 fputs("newCxn: Failed to connect\n", stderr);
                 close(newsock);
                 return NULL;
             }
             break;
+        }
     }
     #ifndef _WIN32
     {int flags = fcntl(newsock, F_GETFL); fcntl(newsock, F_SETFL, flags | O_NONBLOCK);}
@@ -228,7 +230,7 @@ void closeCxn(struct netcxn* cxn) {
 
 struct netcxn* acceptCxn(struct netcxn* cxn, int obs, int ibs) {
     switch (cxn->type) {
-        case CXN_PASSIVE:;
+        case CXN_PASSIVE:; {
             sock_t newsock = INVALID_SOCKET;
             struct sockaddr_in* address = calloc(1, sizeof(*address));
             socklen_t socklen = sizeof(*address);
@@ -255,45 +257,50 @@ struct netcxn* acceptCxn(struct netcxn* cxn, int obs, int ibs) {
             };
             return newinf;
             break;
+        }
     }
     return NULL;
 }
 
 int recvCxn(struct netcxn* cxn) {
     switch (cxn->type) {
-        case CXN_ACTIVE:;
+        case CXN_ACTIVE:; {
             //int bytes = 0;
             //if (SOCKERR(ioctlsocket(cxn->socket, FIONREAD, &bytes))) return -1;
             //if (bytes < 0) return -1;
             return writeSockToBuf(cxn->inbuf, cxn->socket, cxn->inbuf->size - cxn->inbuf->dlen);
             break;
+        }
     }
     return 0;
 }
 
 int sendCxn(struct netcxn* cxn) {
     switch (cxn->type) {
-        case CXN_ACTIVE:;
+        case CXN_ACTIVE:; {
             return writeBufToSock(cxn->outbuf, cxn->socket);
             break;
+        }
     }
     return 0;
 }
 
 int readFromCxnBuf(struct netcxn* cxn, void* data, int size) {
     switch (cxn->type) {
-        case CXN_ACTIVE:;
+        case CXN_ACTIVE:; {
             return writeBufToData(cxn->inbuf, data, size);
             break;
+        }
     }
     return 0;
 }
 
 int writeToCxnBuf(struct netcxn* cxn, void* data, int size) {
     switch (cxn->type) {
-        case CXN_ACTIVE:;
+        case CXN_ACTIVE:; {
             return writeDataToBuf(cxn->outbuf, data, size);
             break;
+        }
     }
     return 0;
 }

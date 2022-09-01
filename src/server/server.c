@@ -646,6 +646,7 @@ bool cliConnect(char* addr, int port, void (*cb)(int, void*)) {
         fputs("cliConnect: Failed to create connection\n", stderr);
         return false;
     }
+    initMsgData(&climsgout);
     callback = cb;
     #ifdef NAME_THREADS
     char name[256];
@@ -694,8 +695,5 @@ void cliSend(int id, ...) {
 bool initServer() {
     if (!initNet()) return false;
     pthread_mutex_init(&pdatalock, NULL);
-    #ifndef SERVER
-    initMsgData(&climsgout);
-    #endif
     return true;
 }
