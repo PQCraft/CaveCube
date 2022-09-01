@@ -23,6 +23,7 @@
 #include "cglm/cglm.h"
 
 int MESHER_THREADS;
+int MESHER_THREADS_MAX = 2;
 
 struct renderer_info rendinf;
 //static resdata_bmd* blockmodel;
@@ -565,8 +566,8 @@ static void* meshthread(void* args) {
         }
         if (activity) {
             acttime = altutime();
-        } else if (altutime() - acttime > 1000000) {
-            microwait(50000);
+        } else if (altutime() - acttime > 3000000) {
+            microwait(500000);
         }
     }
     return NULL;
@@ -609,10 +610,11 @@ void updateChunks() {
     pthread_mutex_unlock(&uclock);
 }
 
-static bool setchunks = false;
+static bool mesheractive = false;
 
 void startMesher() {
-    if (!setchunks) {
+    if (!mesheractive) {
+        if (MESHER_THREADS > MESHER_THREADS_MAX) MESHER_THREADS = MESHER_THREADS_MAX;
         #ifdef NAME_THREADS
         char name[256];
         char name2[256];
@@ -630,7 +632,7 @@ void startMesher() {
             pthread_setname_np(pthreads[i], name);
             #endif
         }
-        setchunks = true;
+        mesheractive = true;
     }
 }
 
@@ -1109,7 +1111,7 @@ bool initRenderer() {
 }
 
 void quitRenderer() {
-    if (setchunks) {
+    if (mesheractive) {
         for (int i = 0; i < MESHER_THREADS && i < MAX_THREADS; ++i) {
             pthread_join(pthreads[i], NULL);
         }
