@@ -38,5 +38,6 @@ char* pathfilename(char*);
 char* execpath(void);
 int getCoreCt(void);
 char* spCharToStr(char);
+bool getBool(char*);
 
 #endif

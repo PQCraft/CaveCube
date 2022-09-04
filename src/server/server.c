@@ -412,7 +412,7 @@ static void* servnetthread(void* args) {
     return NULL;
 }
 
-int startServer(char* addr, int port, char* world, int mcli) {
+int startServer(char* addr, int port, int mcli, char* world) {
     (void)world;
     setRandSeed(1, altutime() + (uintptr_t)"");
     if (port < 0 || port > 0xFFFF) port = 46000 + (getRandWord(1) % 1000);

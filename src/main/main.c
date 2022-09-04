@@ -67,8 +67,10 @@ static bool showcon;
 static void commonSetup() {
     file_data tmpfile = getTextFile("cavecube.cfg");
     openConfig("test.cfg");
+    #ifndef SERVER
     chdir(localdir);
     tmpfile = catTextFiles(tmpfile, true, getTextFile("cavecube.cfg"), true);
+    #endif
     if (strcmp(startdir, maindir)) {
         chdir(startdir);
         tmpfile = catTextFiles(tmpfile, true, getTextFile("cavecube.cfg"), true);
@@ -84,42 +86,33 @@ static void commonSetup() {
     initBlocks();
 }
 
+#define ARG_INVAL(x) {fprintf(stderr, "Invalid option: '%s'\n", x);}
+#define ARG_INVALSYN() {fprintf(stderr, "Invalid option syntax\n");}
+#define ARG_INVALVAR(x) {fprintf(stderr, "Invalid option variable: '%s'\n", x);}
+#define ARG_INVALVARSYN() {fprintf(stderr, "Invalid option variable syntax\n");}
+
+static inline int getNextArg(char* arg) {
+    if (!arg || !arg[0] || arg[0] == '-') return -1;
+    int i = 0;
+    for (; arg[i]; ++i) {if (arg[i] == '=') break;}
+    return i;
+}
+
+#define MAIN_READOPT() {\
+    name = argv[i];\
+    val = name + nlen;\
+    val = (*val) ? val + 1 : NULL;\
+    *(name + nlen) = 0;\
+}
+
 int main(int _argc, char** _argv) {
-    #ifndef _WIN32
-    bool winopt = false;
-    #else
+    int ret = 0;
+    #ifdef _WIN32
     DWORD procs[2];
     DWORD procct = GetConsoleProcessList((LPDWORD)procs, 2);
     bool owncon = (procct < 2);
     if (owncon) ShowWindow(GetConsoleWindow(), SW_HIDE);
-    bool winopt = true;
     #endif
-    printf("CaveCube version %d.%d.%d\n", VER_MAJOR, VER_MINOR, VER_PATCH);
-    if (_argc > 1 && (!strcmp(_argv[1], "-help") || !strcmp(_argv[1], "--help") || (winopt && !strcmp(_argv[1], "/help")))) {
-        #ifndef SERVER
-        printf("%s [ARGUMENTS]\n", _argv[0]);
-        puts("    With no arguments, the client is connected to a server started for 1 person on 0.0.0.0.");
-        puts("    Arguments:");
-        puts("        "OPTPREFIXSTR"help");
-        puts("            Shows the help text.");
-        puts("        "OPTPREFIXSTR"server [<ADDRESS> [<PORT> [<MAX PLAYERS>]]]");
-        puts("            Starts the server.");
-        puts("            ADDRESS: IP address to start server on (empty or not provided for 0.0.0.0).");
-        puts("            PORT: Port to start server on (-1 or not provided for auto (assigns a random port from 46000 to 46999)).");
-        puts("            MAX PLAYERS: Max amount of players allowed to connect (0 or less to use the internal maximum, not provided for 1).");
-        puts("        "OPTPREFIXSTR"connect <ADDRESS> <PORT>");
-        puts("            Connects to a server.");
-        puts("            ADDRESS: IP address to connect to.");
-        puts("            PORT: Port to connect to.");
-        #else
-        printf("%s [<ADDRESS> [<PORT> [<MAX PLAYERS>]]]\n", _argv[0]);
-        puts("    Starts the server.");
-        puts("    ADDRESS: IP address to start server on (empty or not provided for 0.0.0.0).");
-        puts("    PORT: Port to start server on (-1 or not provided for auto (assigns a random port from 46000 to 46999)).");
-        puts("    MAX PLAYERS: Max amount of players allowed to connect (0 or less to use the internal maximum, not provided for 1).");
-        #endif
-        return 0;
-    }
     argc = _argc;
     argv = _argv;
     maindir = strdup(pathfilename(execpath()));
@@ -141,6 +134,7 @@ int main(int _argc, char** _argv) {
             startdir[tmplen + 1] = 0;
         }
     }
+    #ifndef SERVER
     {
         #ifndef _WIN32
         char* tmpdir = getenv("HOME");
@@ -181,9 +175,14 @@ int main(int _argc, char** _argv) {
             fclose(tmpcfg);
         }
     }
+    #endif
+    #if DEBUG >= 1
     printf("Main directory: {%s}\n", maindir);
     printf("Start directory: {%s}\n", startdir);
+    #ifndef SERVER
     printf("Local directory: {%s}\n", localdir);
+    #endif
+    #endif
     chdir(maindir);
     signal(SIGINT, sigh);
     #ifdef _WIN32
@@ -191,68 +190,173 @@ int main(int _argc, char** _argv) {
     #endif
     int cores = getCoreCt();
     if (cores < 1) cores = 1;
+    struct {
+        char* world;
+        char* addr;
+        int port;
+        int players;
+    } srv_opt = {"world", NULL, 46000, 32};
     #ifndef SERVER
-    if (argc > 1) {
-        if (!strcmp(argv[1], "-server") || (winopt && !strcmp(argv[1], "/server"))) {
+    struct {
+        char* world;
+        bool lan;
+        int players;
+    } loc_opt = {"world", false, 8};
+    struct {
+        char* addr;
+        int port;
+    } cli_opt = {NULL, 46000};
+    int gametype = -1;
+    bool servopt = false;
+    #else
+    bool servopt = true;
+    #endif
+    for (int i = 1; i < argc; ++i) {
+        if (argv[i][0] == '-' || servopt) {
+            int nlen = 0;
+            char* name = NULL;
+            char* val = NULL;
+            if (!servopt) {
+                nlen = getNextArg(&argv[i][1]);
+                name = &argv[i][1];
+                val = name + nlen;
+                val = (*val) ? val + 1 : NULL;
+                *(name + nlen) = 0;
+            }
+            if (nlen == -1) {
+                ARG_INVAL(argv[i]);
+                return 1;
+            } else if (!servopt && !strcmp(name, "help")) {
+                if (val || getNextArg(argv[i + 1]) != -1) {ARG_INVALSYN(); return 1;}
+                return 0;
+            } else if (!servopt && !strcmp(name, "version")) {
+                if (val || getNextArg(argv[i + 1]) != -1) {ARG_INVALSYN(); return 1;}
+                #ifndef SERVER
+                printf("CaveCube");
+                #else
+                printf("CaveCube server");
+                #endif
+                printf(" version %d.%d.%d\n", VER_MAJOR, VER_MINOR, VER_PATCH);
+                return 0;
+            } else if (!servopt && !strcmp(name, "config")) {
+                if (!val || getNextArg(argv[i + 1]) != -1) {ARG_INVALSYN(); return 1;}
+                // TODO: change config from cavecube.cfg
+                printf("Changed config to '%s'\n", val);
+            } else if (!servopt && !strcmp(name, "no-other-configs")) {
+                if (val || getNextArg(argv[i + 1]) != -1) {ARG_INVALSYN(); return 1;}
+                // TODO: skip loading configs in maindir and localdir
+            #ifndef SERVER
+            } else if (!strcmp(name, "world")) {
+                if (gametype >= 0) {ARG_INVALSYN(); return 1;}
+                gametype = 0;
+                if (val) loc_opt.world = val;
+                ++i;
+                while ((nlen = getNextArg(argv[i])) != -1) {
+                    MAIN_READOPT();
+                    if (!strcmp(name, "w") || !strcmp(name, "world")) {if (!val) {ARG_INVALVARSYN(); return 1;} loc_opt.world = val;}
+                    else if (!strcmp(name, "l") || !strcmp(name, "lan")) loc_opt.lan = (val) ? getBool(val) : true;
+                    else if (!strcmp(name, "pl") || !strcmp(name, "players")) {if (!val) {ARG_INVALVARSYN(); return 1;} loc_opt.players = atoi(val); if (loc_opt.players < 1) loc_opt.players = 1;}
+                    else {ARG_INVALVAR(name); return 1;}
+                    ++i;
+                }
+                --i;
+            } else if (!strcmp(name, "client") || !strcmp(name, "connect")) {
+                if (val || gametype >= 0) {ARG_INVALSYN(); return 1;}
+                gametype = 1;
+                ++i;
+                while ((nlen = getNextArg(argv[i])) != -1) {
+                    MAIN_READOPT();
+                    if (!strcmp(name, "a") || !strcmp(name, "addr") || !strcmp(name, "address")) {if (!val) {ARG_INVALVARSYN(); return 1;} cli_opt.addr = val;}
+                    else if (!strcmp(name, "p") || !strcmp(name, "port")) {if (!val) {ARG_INVALVARSYN(); return 1;} cli_opt.port = atoi(val); if (cli_opt.port < 0) cli_opt.port = 0;}
+                    else {ARG_INVALVAR(name); return 1;}
+                    ++i;
+                }
+                --i;
+            #endif
+            } else if (servopt || !strcmp(name, "server")) {
+                if (val) {ARG_INVALSYN(); return 1;}
+                #ifndef SERVER
+                if (gametype >= 0) {ARG_INVALSYN(); return 1;}
+                gametype = 2;
+                #endif
+                if (!servopt) ++i;
+                servopt = false;
+                while ((nlen = getNextArg(argv[i])) != -1) {
+                    MAIN_READOPT();
+                    if (!strcmp(name, "w") || !strcmp(name, "world")) {if (!val) {ARG_INVALVARSYN(); return 1;} srv_opt.world = val;}
+                    else if (!strcmp(name, "a") || !strcmp(name, "addr") || !strcmp(name, "address")) {if (!val) {ARG_INVALVARSYN(); return 1;} srv_opt.addr = val;}
+                    else if (!strcmp(name, "p") || !strcmp(name, "port")) {if (!val) {ARG_INVALVARSYN(); return 1;} srv_opt.port = atoi(val); if (srv_opt.port < 0) srv_opt.port = 0;}
+                    else if (!strcmp(name, "pl") || !strcmp(name, "players")) {if (!val) {ARG_INVALVARSYN(); return 1;} srv_opt.players = atoi(val); if (srv_opt.players < 1) srv_opt.players = 1;}
+                    else {ARG_INVALVAR(name); return 1;}
+                    ++i;
+                }
+                --i;
+            } else {
+                ARG_INVAL(argv[i]);
+                return 1;
+            }
+        } else {
+            ARG_INVAL(argv[i]);
+            return 1;
+        }
+    }
+    commonSetup();
+    #ifdef _WIN32
+    if (owncon && showcon) ShowWindow(GetConsoleWindow(), SW_SHOW);
+    #endif
+    #ifndef SERVER
+    switch (gametype) {
+        default:; {
+            cores -= 4;
+            if (cores < 2) cores = 2;
+            SERVER_THREADS = cores / 2;
+            cores -= SERVER_THREADS;
+            MESHER_THREADS = cores;
+            if (!initServer()) return 1;
+            if (!initRenderer()) return 1;
+            printf("Starting world '%s'%s...\n", loc_opt.world, (loc_opt.lan) ? " on LAN" : "");
+            int servport;
+            if ((servport = startServer(NULL, -1, (loc_opt.lan) ? loc_opt.players : 1)) < 0, loc_opt.world) {
+                fputs("Server failed to start\n", stderr);
+                return 1;
+            }
+            bool game_ecode = doGame(NULL, servport);
+            stopServer();
+            quitRenderer();
+            ret = !game_ecode;
+            break;
+        }
+        case 1:; {
+            cores -= 3;
+            if (cores < 1) cores = 1;
+            MESHER_THREADS = cores;
+            if (!initRenderer()) return 1;
+            bool game_ecode = doGame(cli_opt.addr, cli_opt.port);
+            stopServer();
+            quitRenderer();
+            ret = !game_ecode;
+            break;
+        }
+        case 2:; {
             cores -= 1;
             if (cores < 1) cores = 1;
             SERVER_THREADS = cores;
-            commonSetup();
             if (!initServer()) return 1;
-            char* addr = (argc > 2 && argv[2][0]) ? argv[2] : NULL;
-            int port = (argc > 3) ? atoi(argv[3]) : -1;
-            int players = (argc > 4) ? atoi(argv[4]) : 0;
-            puts("Starting server...");
-            if (startServer(addr, port, NULL, players) < 0) {
+            if (startServer(srv_opt.addr, srv_opt.port, srv_opt.players, srv_opt.world) < 0) {
                 fputs("Server failed to start\n", stderr);
                 return 1;
             }
             pause();
             stopServer();
-        } else if (!strcmp(argv[1], "-connect") || (winopt && !strcmp(argv[1], "/connect"))) {
-            cores -= 3;
-            if (cores < 1) cores = 1;
-            MESHER_THREADS = cores;
-            if (argc < 3) {fputs("Please provide address and port\n", stderr); return 1;}
-            commonSetup();
-            #ifdef _WIN32
-            if (owncon && showcon) ShowWindow(GetConsoleWindow(), SW_SHOW);
-            #endif
-            if (!initRenderer()) return 1;
-            bool game_ecode = doGame(argv[2], atoi(argv[3]));
-            quitRenderer();
-            return !game_ecode;
-        } else {
-            fprintf(stderr, "Invalid argument: %s\n", argv[1]);
-            return 1;
+            break;
         }
-    } else {
-        cores -= 4;
-        if (cores < 2) cores = 2;
-        SERVER_THREADS = cores / 2;
-        cores -= SERVER_THREADS;
-        MESHER_THREADS = cores;
-        commonSetup();
-        #ifdef _WIN32
-        if (owncon && showcon) ShowWindow(GetConsoleWindow(), SW_SHOW);
-        #endif
-        if (!initServer()) return 1;
-        if (!initRenderer()) return 1;
-        bool game_ecode = doGame(NULL, -1);
-        quitRenderer();
-        return !game_ecode;
     }
     #else
     cores -= 1;
     if (cores < 1) cores = 1;
     SERVER_THREADS = cores;
-    commonSetup();
     if (!initServer()) return 1;
-    char* addr = (argc > 1 && argv[1][0]) ? argv[1] : NULL;
-    int port = (argc > 2) ? atoi(argv[2]) : -1;
-    int players = (argc > 3) ? atoi(argv[3]) : 0;
-    puts("Starting server...");
-    if (startServer(addr, port, NULL, players) < 0) {
+    if (startServer(srv_opt.addr, srv_opt.port, srv_opt.players, srv_opt.world) < 0) {
         fputs("Server failed to start\n", stderr);
         return 1;
     }
@@ -261,7 +365,9 @@ int main(int _argc, char** _argv) {
     #endif
     free(maindir);
     free(startdir);
+    #ifndef SERVER
     free(localdir);
+    #endif
     if (config) free(config);
-    return 0;
+    return ret;
 }

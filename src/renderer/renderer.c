@@ -614,12 +614,11 @@ static bool mesheractive = false;
 
 void startMesher() {
     if (!mesheractive) {
-        if (MESHER_THREADS > MESHER_THREADS_MAX) MESHER_THREADS = MESHER_THREADS_MAX;
         #ifdef NAME_THREADS
         char name[256];
         char name2[256];
         #endif
-        for (int i = 0; i < MESHER_THREADS && i < MAX_THREADS; ++i) {
+        for (int i = 0; i < MESHER_THREADS && i < MAX_THREADS && i < MESHER_THREADS_MAX; ++i) {
             #ifdef NAME_THREADS
             name[0] = 0;
             name2[0] = 0;

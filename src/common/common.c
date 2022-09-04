@@ -8,6 +8,9 @@
 #include <time.h>
 #include <sys/time.h>
 #include <string.h>
+#ifdef _WIN32
+    #define strcasecmp stricmp
+#endif
 #include <stddef.h>
 #include <stdbool.h>
 #include <unistd.h>
@@ -337,6 +340,10 @@ bool getConfigValBool(char* val) {
     bool ret = (!strcmp(nval, "true") || !strcmp(nval, "yes") || atoi(nval) != 0);
     free(nval);
     return ret;
+}
+
+bool getBool(char* str) {
+    return (!strcasecmp(str, "true") || !strcasecmp(str, "yes") || atoi(str) != 0);
 }
 
 uint64_t qhash(char* str, int max) {

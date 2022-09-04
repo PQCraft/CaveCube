@@ -235,14 +235,6 @@ bool doGame(char* addr, int port) {
     initInput();
     float pmult = posmult;
     int servport = port;
-    if (!addr) {
-        puts("Starting server...");
-        if ((servport = startServer(NULL, servport, NULL, 1)) == -1) {
-            fputs("Server failed to start\n", stderr);
-            return false;
-        }
-        printf("Started server on port [%d]\n", servport);
-    }
     puts("Connecting to server...");
     if (!cliConnect((addr) ? addr : "127.0.0.1", servport, handleServer)) {
         fputs("Failed to connect to server\n", stderr);
@@ -541,7 +533,6 @@ bool doGame(char* addr, int port) {
         free(tmpbuf[i]);
     }
     free(tmpbuf);
-    if (!addr) stopServer();
     return true;
 }
 

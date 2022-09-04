@@ -5,7 +5,11 @@
 #define VER_MINOR 3
 #define VER_PATCH 0
 
-#ifdef DEBUG
+#ifndef DEBUG
+    #define DEBUG 0
+#endif
+
+#if DEBUG >= 1
     #define NAME_THREADS
 #endif
 
