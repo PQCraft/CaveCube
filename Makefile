@@ -24,9 +24,17 @@ endif
 
 SRCDIR ?= src
 ifndef OS
-    OBJDIR ?= obj
+    ifndef SERVER
+        OBJDIR ?= obj
+    else
+        OBJDIR ?= srvobj
+    endif
 else
-    OBJDIR ?= winobj
+    ifndef SERVER
+        OBJDIR ?= winobj
+    else
+        OBJDIR ?= winsrvobj
+    endif
 endif
 
 SRCDIR := $(patsubst %/,%,$(SRCDIR))

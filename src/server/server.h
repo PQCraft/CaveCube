@@ -91,7 +91,7 @@ enum {
 extern int SERVER_THREADS;
 
 bool initServer(void);
-int startServer(char*, int, char*, int);
+int startServer(char*, int, int, char*);
 void stopServer(void);
 
 bool cliConnect(char*, int, void (*)(int, void*));
