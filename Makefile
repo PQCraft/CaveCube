@@ -102,7 +102,7 @@ MKENV = NAME="$@" SRCDIR="$(SRCDIR)" OBJDIR="$(OBJDIR)" UTILMK="util.mk" CC="$(C
 MKENV2 = NAME="$@" CC="$(CC)" CFLAGS="$(CFLAGS) -I../../$(SRCDIR)" SRCDIR="../../$(SRCDIR)" OBJDIR="../../$(OBJDIR)" UTILMK="../../util.mk"
 MKENVSUB = CC="$(CC)" BINFLAGS="$(BINFLAGS)" OBJDIR="$(OBJDIR)"
 ifdef DEBUG
-    MKENVMOD += DEBUG=y
+    MKENVMOD += DEBUG="$(DEBUG)"
 endif
 ifdef SERVER
     MKENVMOD += SERVER=y
@@ -203,7 +203,7 @@ $(BIN): $(wildcard $(OBJDIR)/*/*.o)
 	@$(CC) $^ $(BINFLAGS) -o $@
 ifndef DEBUG
 	@$(STRIP) --strip-all $@
-	@$(OBJCOPY) -w --remove-section '.note*' $@
+	@$(OBJCOPY) -w --remove-section ".note*" $@
 endif
 endif
 

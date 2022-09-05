@@ -47,13 +47,13 @@ static inline coord_3d intCoord(coord_3d in) {
     return in;
 }
 
-static inline coord_3d_dbl intCoord_dbl(coord_3d_dbl in) {
+static inline coord_3d_dbl w2bCoord(coord_3d_dbl in) {
     in.x -= (in.x < 0) ? 1.0 : 0.0;
     in.y -= (in.y < 0) ? 1.0 : 0.0;
-    in.z += (in.z > 0) ? 1.0 : 0.0;
-    in.x = (int)in.x;
-    in.y = (int)in.y;
-    in.z = (int)in.z;
+    in.z -= (in.z < 0) ? 1.0 : 0.0;
+    in.x = (int64_t)in.x;
+    in.y = (int64_t)in.y;
+    in.z = (int64_t)in.z;
     return in;
 }
 
@@ -327,8 +327,8 @@ bool doGame(char* addr, int port) {
         rendinf.camrot.z = input.mov_right * leanmult;
         if (tmpcamrot.y < 0) tmpcamrot.y += 360;
         else if (tmpcamrot.y >= 360) tmpcamrot.y -= 360;
-        if (tmpcamrot.x > 89.99) tmpcamrot.x = 89.99;
-        if (tmpcamrot.x < -89.99) tmpcamrot.x = -89.99;
+        if (tmpcamrot.x > 90.0) tmpcamrot.x = 90.0;
+        if (tmpcamrot.x < -90.0) tmpcamrot.x = -90.0;
         float yrotrad = (tmpcamrot.y / 180 * M_PI);
         int cmx = 0, cmz = 0;
         static bool first = true;
@@ -496,8 +496,8 @@ bool doGame(char* addr, int port) {
             }
             if (crouch) rendinf.campos.y -= 0.375;
             updateCam();
-            if (crouch) rendinf.campos.y += 0.375;
             updateChunks();
+            if (crouch) rendinf.campos.y += 0.375;
             render();
             updateScreen();
             fpsstarttime2 = altutime();
@@ -506,7 +506,7 @@ bool doGame(char* addr, int port) {
         //uint64_t et2 = altutime() - st1;
         //if (et2 > 16667) printf("OY!: logic:[%lu]; rend:[%lu]\n", et1, et2);
         pcoord = icoord2wcoord(rendinf.campos, pchunkx, pchunkz);
-        coord_3d_dbl bcoord = intCoord_dbl(pcoord);
+        coord_3d_dbl bcoord = w2bCoord(pcoord);
         pblockx = bcoord.x;
         pblocky = bcoord.y;
         pblockz = bcoord.z;

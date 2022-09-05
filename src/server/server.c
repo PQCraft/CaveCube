@@ -220,7 +220,7 @@ static void* servthread(void* args) {
     return NULL;
 }
 
-struct netcxn* servcxn;
+static struct netcxn* servcxn;
 
 #define pCML_nbyte() ({int byte; if (tmpsize > 0) {byte = buf->data[ptr]; ptr = (ptr + 1) % buf->size; --tmpsize;} else {byte = -1;}; byte;})
 static int peekCliMsgLen(struct netcxn* cxn) {
@@ -476,7 +476,7 @@ void stopServer() {
 
 #include <stdarg.h>
 
-struct netcxn* clicxn;
+static struct netcxn* clicxn;
 
 static void (*callback)(int, void*);
 

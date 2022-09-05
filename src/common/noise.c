@@ -1,3 +1,4 @@
+#include "noise.h"
 #include "common.h"
 
 #include <math.h>
@@ -7,10 +8,10 @@
 
 static const int SEED = 1985;
 
-unsigned char* hash[16];
+unsigned char* hash[NOISE_TABLES];
 
 void initNoiseTable(int s) {
-    for (int i = 0; i < 16; ++i) {
+    for (int i = 0; i < NOISE_TABLES; ++i) {
         if (!hash[i]) hash[i] = malloc(256);
         for (int j = 0; j < 256; ++j) {
             hash[i][j] = getRandByte(s);
@@ -81,19 +82,7 @@ double perlin2d(int t, double x, double y, double freq, int depth) {
 }
 
 double nperlin2d(int t, double x, double y, double freq, int depth) {
-    double xa = x * freq;
-    double ya = y * freq;
-    double amp = 1.0;
-    double fin = 0;
-    double div = 0.0;
-    for (int i = 0; i < depth; i++) {
-        div += 256 * amp;
-        fin += noise2d(t, xa, ya) * amp;
-        amp /= 2;
-        xa += xa;
-        ya += ya;
-    }
-    return (fin / div) * 2 - 1;
+    return perlin2d(t, x, y, freq, depth) * 2 - 1;
 }
 
 double mperlin2d(int t, double x, double y, double freq, int depth, int samples) {

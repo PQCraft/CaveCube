@@ -32,6 +32,14 @@
 #endif
 
 #ifndef _WIN32
+    #define PATHSEP '/'
+    #define PATHSEPSTR "/"
+#else
+    #define PATHSEP '\\'
+    #define PATHSEPSTR "\\"
+#endif
+
+#ifndef _WIN32
     #define PRIdz "zd"
     #define PRIuz "zu"
     #define PRIxz "zx"

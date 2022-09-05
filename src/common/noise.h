@@ -1,6 +1,10 @@
 #ifndef COMMON_NOISE_H
 #define COMMON_NOISE_H
 
+#ifndef NOISE_TABLES
+    #define NOISE_TABLES 64
+#endif
+
 void initNoiseTable(int);
 double noise2d(int, double, double);
 double nnoise2d(int, double, double);
