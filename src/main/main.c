@@ -47,11 +47,9 @@ static void sigsegvh(int sig) {
 #endif
 
 #ifndef _WIN32
-    #define OPTPREFIX '-'
-    #define OPTPREFIXSTR "-"
+    #define mkdir(x) mkdir(x, (S_IRWXU) | (S_IRGRP | S_IXGRP) | (S_IROTH | S_IXOTH))
 #else
-    #define OPTPREFIX '/'
-    #define OPTPREFIXSTR "/"
+    #define realpath(x, y) _fullpath(y, x, MAX_PATH)
 #endif
 
 #ifdef _WIN32
@@ -105,6 +103,15 @@ static inline int getNextArg(char* arg) {
     *(name + nlen) = 0;\
 }
 
+#define MAIN_STRPATH(x) {\
+    uint32_t tmplen = strlen(x);\
+    if (x[tmplen] != PATHSEP) {\
+        x = realloc(x, tmplen + 2);\
+        x[tmplen] = PATHSEP;\
+        x[tmplen + 1] = 0;\
+    }\
+}
+
 int main(int _argc, char** _argv) {
     int ret = 0;
     #ifdef _WIN32
@@ -116,24 +123,8 @@ int main(int _argc, char** _argv) {
     argc = _argc;
     argv = _argv;
     maindir = strdup(pathfilename(execpath()));
-    #ifndef _WIN32
     startdir = realpath(".", NULL);
-    #else
-    startdir = _fullpath(NULL, ".", MAX_PATH);
-    #endif
-    {
-        uint32_t tmplen = strlen(startdir);
-        #ifndef _WIN32
-        char echar = '/';
-        #else
-        char echar = '\\';
-        #endif
-        if (startdir[tmplen] != echar) {
-            startdir = realloc(startdir, tmplen + 2);
-            startdir[tmplen] = echar;
-            startdir[tmplen + 1] = 0;
-        }
-    }
+    MAIN_STRPATH(startdir);
     #ifndef SERVER
     {
         #ifndef _WIN32
@@ -146,30 +137,12 @@ int main(int _argc, char** _argv) {
         chdir(tmpdir);
         bool new = false;
         if (isFile(tmpdn) == -1) {
-            #ifndef _WIN32
-            mkdir(tmpdn, (S_IRWXU) | (S_IRGRP | S_IXGRP) | (S_IROTH | S_IXOTH));
-            #else
             mkdir(tmpdn);
-            #endif
             new = true;
         }
         chdir(tmpdn);
-        #ifndef _WIN32
         localdir = realpath(".", NULL);
-        #else
-        localdir = _fullpath(NULL, ".", MAX_PATH);
-        #endif
-        uint32_t tmplen = strlen(localdir);
-        #ifndef _WIN32
-        char echar = '/';
-        #else
-        char echar = '\\';
-        #endif
-        if (localdir[tmplen] != echar) {
-            localdir = realloc(localdir, tmplen + 2);
-            localdir[tmplen] = echar;
-            localdir[tmplen + 1] = 0;
-        }
+        MAIN_STRPATH(localdir);
         if (new) {
             FILE* tmpcfg = fopen("cavecube.cfg", "w");
             fclose(tmpcfg);
@@ -190,13 +163,9 @@ int main(int _argc, char** _argv) {
     #endif
     int cores = getCoreCt();
     if (cores < 1) cores = 1;
-    struct {
-        char* world;
-        char* addr;
-        int port;
-        int players;
-    } srv_opt = {"world", NULL, 46000, 32};
     #ifndef SERVER
+    int gametype = -1;
+    bool servopt = false;
     struct {
         char* world;
         bool lan;
@@ -206,11 +175,15 @@ int main(int _argc, char** _argv) {
         char* addr;
         int port;
     } cli_opt = {NULL, 46000};
-    int gametype = -1;
-    bool servopt = false;
     #else
     bool servopt = true;
     #endif
+    struct {
+        char* world;
+        char* addr;
+        int port;
+        int players;
+    } srv_opt = {"world", NULL, 46000, 32};
     for (int i = 1; i < argc; ++i) {
         if (argv[i][0] == '-' || servopt) {
             int nlen = 0;
@@ -316,7 +289,7 @@ int main(int _argc, char** _argv) {
             if (!initRenderer()) return 1;
             printf("Starting world '%s'%s...\n", loc_opt.world, (loc_opt.lan) ? " on LAN" : "");
             int servport;
-            if ((servport = startServer(NULL, -1, (loc_opt.lan) ? loc_opt.players : 1)) < 0, loc_opt.world) {
+            if ((servport = startServer(NULL, -1, (loc_opt.lan) ? loc_opt.players : 1, loc_opt.world)) < 0) {
                 fputs("Server failed to start\n", stderr);
                 return 1;
             }

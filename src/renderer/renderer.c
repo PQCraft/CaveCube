@@ -92,41 +92,130 @@ void setSpace(int space) {
     }
 }
 
+#define avec2 vec2 __attribute__((aligned (32)))
+#define avec3 vec3 __attribute__((aligned (32)))
+#define avec4 vec4 __attribute__((aligned (32)))
+#define amat4 mat4 __attribute__((aligned (32)))
+
+struct frustum {
+	float planes[6][16];
+};
+static struct frustum frust;
+
+static float c3dlen(coord_3d a) {
+    return sqrtf(a.x * a.x + a.y * a.y + a.z * a.z);
+}
+
+static void normFrustPlane(struct frustum* frust, int plane) {
+	float len = c3dlen((coord_3d){frust->planes[plane][0], frust->planes[plane][1], frust->planes[plane][2]});
+	for (int i = 0; i < 4; i++) {
+		frust->planes[plane][i] /= len;
+	}
+}
+
+void calcFrust(struct frustum* frust, float* proj, float* view) {
+	float clip[16];
+	clip[0x0] = view[0x0] * proj[0x0] + view[0x1] * proj[0x4] + view[0x2] * proj[0x8] + view[0x3] * proj[0xC];
+	clip[0x1] = view[0x0] * proj[0x1] + view[0x1] * proj[0x5] + view[0x2] * proj[0x9] + view[0x3] * proj[0xD];
+	clip[0x2] = view[0x0] * proj[0x2] + view[0x1] * proj[0x6] + view[0x2] * proj[0xA] + view[0x3] * proj[0xE];
+	clip[0x3] = view[0x0] * proj[0x3] + view[0x1] * proj[0x7] + view[0x2] * proj[0xB] + view[0x3] * proj[0xF];
+	clip[0x4] = view[0x4] * proj[0x0] + view[0x5] * proj[0x4] + view[0x6] * proj[0x8] + view[0x7] * proj[0xC];
+	clip[0x5] = view[0x4] * proj[0x1] + view[0x5] * proj[0x5] + view[0x6] * proj[0x9] + view[0x7] * proj[0xD];
+	clip[0x6] = view[0x4] * proj[0x2] + view[0x5] * proj[0x6] + view[0x6] * proj[0xA] + view[0x7] * proj[0xE];
+	clip[0x7] = view[0x4] * proj[0x3] + view[0x5] * proj[0x7] + view[0x6] * proj[0xB] + view[0x7] * proj[0xF];
+	clip[0x8] = view[0x8] * proj[0x0] + view[0x9] * proj[0x4] + view[0xA] * proj[0x8] + view[0xB] * proj[0xC];
+	clip[0x9] = view[0x8] * proj[0x1] + view[0x9] * proj[0x5] + view[0xA] * proj[0x9] + view[0xB] * proj[0xD];
+	clip[0xA] = view[0x8] * proj[0x2] + view[0x9] * proj[0x6] + view[0xA] * proj[0xA] + view[0xB] * proj[0xE];
+	clip[0xB] = view[0x8] * proj[0x3] + view[0x9] * proj[0x7] + view[0xA] * proj[0xB] + view[0xB] * proj[0xF];
+	clip[0xC] = view[0xC] * proj[0x0] + view[0xD] * proj[0x4] + view[0xE] * proj[0x8] + view[0xF] * proj[0xC];
+	clip[0xD] = view[0xC] * proj[0x1] + view[0xD] * proj[0x5] + view[0xE] * proj[0x9] + view[0xF] * proj[0xD];
+	clip[0xE] = view[0xC] * proj[0x2] + view[0xD] * proj[0x6] + view[0xE] * proj[0xA] + view[0xF] * proj[0xE];
+	clip[0xF] = view[0xC] * proj[0x3] + view[0xD] * proj[0x7] + view[0xE] * proj[0xB] + view[0xF] * proj[0xF];
+	frust->planes[0][0] = clip[0x3] - clip[0x0];
+	frust->planes[0][1] = clip[0x7] - clip[0x4];
+	frust->planes[0][2] = clip[0xB] - clip[0x8];
+	frust->planes[0][3] = clip[0xF] - clip[0xC];
+	normFrustPlane(frust, 0);
+	frust->planes[1][0] = clip[0x3] + clip[0x0];
+	frust->planes[1][1] = clip[0x7] + clip[0x4];
+	frust->planes[1][2] = clip[0xB] + clip[0x8];
+	frust->planes[1][3] = clip[0xF] + clip[0xC];
+	normFrustPlane(frust, 1);
+	frust->planes[2][0] = clip[0x3] - clip[0x1];
+	frust->planes[2][1] = clip[0x7] - clip[0x5];
+	frust->planes[2][2] = clip[0xB] - clip[0x9];
+	frust->planes[2][3] = clip[0xF] - clip[0xD];
+	normFrustPlane(frust, 2);
+	frust->planes[3][0] = clip[0x3] + clip[0x1];
+	frust->planes[3][1] = clip[0x7] + clip[0x5];
+	frust->planes[3][2] = clip[0xB] + clip[0x9];
+	frust->planes[3][3] = clip[0xF] + clip[0xD];
+	normFrustPlane(frust, 3);
+	frust->planes[4][0] = clip[0x3] - clip[0x2];
+	frust->planes[4][1] = clip[0x7] - clip[0x6];
+	frust->planes[4][2] = clip[0xB] - clip[0xA];
+	frust->planes[4][3] = clip[0xF] - clip[0xE];
+	normFrustPlane(frust, 4);
+	frust->planes[5][0] = clip[0x3] + clip[0x2];
+	frust->planes[5][1] = clip[0x7] + clip[0x6];
+	frust->planes[5][2] = clip[0xB] + clip[0xA];
+	frust->planes[5][3] = clip[0xF] + clip[0xE];
+	normFrustPlane(frust, 5);
+}
+
+bool isVisible(struct frustum* frust, float ax, float ay, float az, float bx, float by, float bz) {
+	for (int i = 0; i < 6; i++) {
+		bool b = true;
+		b = b && frust->planes[i][0] * ax + frust->planes[i][1] * ay + frust->planes[i][2] * az + frust->planes[i][3] <= 0.0;
+		b = b && frust->planes[i][0] * bx + frust->planes[i][1] * ay + frust->planes[i][2] * az + frust->planes[i][3] <= 0.0;
+		b = b && frust->planes[i][0] * ax + frust->planes[i][1] * by + frust->planes[i][2] * az + frust->planes[i][3] <= 0.0;
+		b = b && frust->planes[i][0] * bx + frust->planes[i][1] * by + frust->planes[i][2] * az + frust->planes[i][3] <= 0.0;
+		b = b && frust->planes[i][0] * ax + frust->planes[i][1] * ay + frust->planes[i][2] * bz + frust->planes[i][3] <= 0.0;
+		b = b && frust->planes[i][0] * bx + frust->planes[i][1] * ay + frust->planes[i][2] * bz + frust->planes[i][3] <= 0.0;
+		b = b && frust->planes[i][0] * ax + frust->planes[i][1] * by + frust->planes[i][2] * bz + frust->planes[i][3] <= 0.0;
+		b = b && frust->planes[i][0] * bx + frust->planes[i][1] * by + frust->planes[i][2] * bz + frust->planes[i][3] <= 0.0;
+		if (b) { return false; }
+	}
+	return true;
+}
+
 static float uc_fov = -1.0, uc_asp = -1.0;
-static float uc_rotradx, uc_rotrady;
-static mat4 uc_projection __attribute__((aligned (32)));
-static mat4 uc_view __attribute__((aligned (32)));
-static vec3 uc_direction __attribute__((aligned (32)));
-static vec3 uc_up __attribute__((aligned (32)));
-static vec3 uc_front __attribute__((aligned (32)));
+static avec3 uc_campos;
+static float uc_rotradx, uc_rotrady, uc_rotradz;
+static amat4 uc_proj;
+static amat4 uc_view;
+static avec3 uc_direction;
+static avec3 uc_up;
+static avec3 uc_front;
 static bool uc_uproj = false;
+static avec3 uc_z1z = {0.0, 1.0, 0.0};
 
 void updateCam() {
     if (rendinf.aspect != uc_asp) {uc_asp = rendinf.aspect; uc_uproj = true;}
     if (rendinf.camfov != uc_fov) {uc_fov = rendinf.camfov; uc_uproj = true;}
     if (uc_uproj) {
-        glm_perspective(uc_fov * M_PI / 180.0, uc_asp, 0.05, 1024.0, uc_projection);
-        setMat4(rendinf.shaderprog, "projection", uc_projection);
+        glm_mat4_copy((mat4)GLM_MAT4_IDENTITY_INIT, uc_proj);
+        glm_perspective(uc_fov * M_PI / 180.0, uc_asp, rendinf.near, rendinf.far, uc_proj);
+        setMat4(rendinf.shaderprog, "projection", uc_proj);
         uc_uproj = false;
     }
+    uc_campos[0] = rendinf.campos.x;
+    uc_campos[1] = rendinf.campos.y;
+    uc_campos[2] = rendinf.campos.z;
     uc_rotradx = rendinf.camrot.x * M_PI / 180.0;
     uc_rotrady = (rendinf.camrot.y - 90.0) * M_PI / 180.0;
+    uc_rotradz = rendinf.camrot.z * M_PI / 180.0;
     uc_direction[0] = cos(uc_rotrady) * cos(uc_rotradx);
     uc_direction[1] = sin(uc_rotradx);
     uc_direction[2] = sin(uc_rotrady) * cos(uc_rotradx);
-    uc_up[0] = 0;
-    uc_up[1] = 1;
-    uc_up[2] = 0;
-    uc_front[0] = uc_direction[0];
-    uc_front[1] = uc_direction[1];
-    uc_front[2] = uc_direction[2];
-    uc_direction[0] += rendinf.campos.x;
-    uc_direction[1] += rendinf.campos.y;
-    uc_direction[2] += rendinf.campos.z;
-    glm_vec3_rotate(uc_up, rendinf.camrot.z * M_PI / 180.0, uc_front);
-    glm_lookat((vec3){rendinf.campos.x, rendinf.campos.y, rendinf.campos.z},
-        uc_direction, uc_up, uc_view);
+    glm_vec3_copy(uc_z1z, uc_up);
+    glm_vec3_copy(uc_direction, uc_front);
+    glm_vec3_add(uc_campos, uc_direction, uc_direction);
+    glm_vec3_rotate(uc_up, uc_rotradz, uc_front);
+    glm_mat4_copy((mat4)GLM_MAT4_IDENTITY_INIT, uc_view);
+    glm_lookat(uc_campos, uc_direction, uc_up, uc_view);
     setMat4(rendinf.shaderprog, "view", uc_view);
+    calcFrust(&frust, (float*)uc_proj, (float*)uc_view);
 }
 
 void setFullscreen(bool fullscreen) {
@@ -340,6 +429,7 @@ static void initMsgData(struct msgdata* mdata) {
     pthread_mutex_init(&mdata->lock, NULL);
 }
 
+/*
 static void deinitMsgData(struct msgdata* mdata) {
     pthread_mutex_lock(&mdata->lock);
     mdata->valid = false;
@@ -347,6 +437,7 @@ static void deinitMsgData(struct msgdata* mdata) {
     pthread_mutex_unlock(&mdata->lock);
     pthread_mutex_destroy(&mdata->lock);
 }
+*/
 
 static void addMsg(struct msgdata* mdata, int64_t x, int64_t z, uint64_t id, bool dep, bool full) {
     pthread_mutex_lock(&mdata->lock);
@@ -682,8 +773,10 @@ void render() {
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "dist"), chunks->info.dist);
     setUniform3f(rendinf.shaderprog, "cam", (float[]){rendinf.campos.x, rendinf.campos.y, rendinf.campos.z});
     for (rendc = 0; rendc < chunks->info.widthsq; ++rendc) {
-        if (!chunks->renddata[rendc].buffered || !chunks->renddata[rendc].vcount) continue;
-        setUniform2f(rendinf.shaderprog, "ccoord", (float[]){(int)(rendc % chunks->info.width) - (int)chunks->info.dist, (int)(rendc / chunks->info.width) - (int)chunks->info.dist});
+        avec2 coord = {(int)(rendc % chunks->info.width) - (int)chunks->info.dist, (int)(rendc / chunks->info.width) - (int)chunks->info.dist};
+        if (!(chunks->renddata[rendc].visible = isVisible(&frust, coord[0] * 16 - 8, 0, coord[1] * 16 - 8, coord[0] * 16 + 8, 256, coord[1] * 16 + 8))
+            || !chunks->renddata[rendc].buffered || !chunks->renddata[rendc].vcount) continue;
+        setUniform2f(rendinf.shaderprog, "ccoord", coord);
         glBindBuffer(GL_ARRAY_BUFFER, chunks->renddata[rendc].VBO);
         glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 3 * sizeof(uint32_t), (void*)(0));
         glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 3 * sizeof(uint32_t), (void*)(sizeof(uint32_t)));
@@ -694,7 +787,7 @@ void render() {
     glDisable(GL_CULL_FACE);
     glDepthMask(false);
     for (rendc = 0; rendc < chunks->info.widthsq; ++rendc) {
-        if (!chunks->renddata[rendc].buffered || !chunks->renddata[rendc].vcount2) continue;
+        if (!chunks->renddata[rendc].visible || !chunks->renddata[rendc].buffered || !chunks->renddata[rendc].vcount2) continue;
         setUniform2f(rendinf.shaderprog, "ccoord", (float[]){(int)(rendc % chunks->info.width) - (int)chunks->info.dist, (int)(rendc / chunks->info.width) - (int)chunks->info.dist});
         glBindBuffer(GL_ARRAY_BUFFER, chunks->renddata[rendc].VBO2);
         glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 3 * sizeof(uint32_t), (void*)(0));
@@ -704,7 +797,7 @@ void render() {
     }
     glEnable(GL_CULL_FACE);
     for (rendc = 0; rendc < chunks->info.widthsq; ++rendc) {
-        if (!chunks->renddata[rendc].buffered || !chunks->renddata[rendc].vcount3) continue;
+        if (!chunks->renddata[rendc].visible || !chunks->renddata[rendc].buffered || !chunks->renddata[rendc].vcount3) continue;
         setUniform2f(rendinf.shaderprog, "ccoord", (float[]){(int)(rendc % chunks->info.width) - (int)chunks->info.dist, (int)(rendc / chunks->info.width) - (int)chunks->info.dist});
         glBindBuffer(GL_ARRAY_BUFFER, chunks->renddata[rendc].VBO3);
         glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 3 * sizeof(uint32_t), (void*)(0));
@@ -811,6 +904,8 @@ bool initRenderer() {
     #endif
 
     rendinf.camfov = 85;
+    rendinf.near = 0.05;
+    rendinf.far = 1024.0;
     rendinf.campos = GFX_DEFAULT_POS;
     rendinf.camrot = GFX_DEFAULT_ROT;
     //rendinf.camrot.y = 180;

@@ -64,6 +64,8 @@ struct renderer_info {
     coord_3d campos;
     coord_3d camrot;
     float camfov;
+    float near;
+    float far;
     float aspect;
     GLuint shaderprog;
 };
@@ -97,6 +99,7 @@ struct chunk_renddata {
     bool ready:1;
     bool buffered:1;
     bool generated:1;
+    bool visible:1;
 };
 
 enum {
