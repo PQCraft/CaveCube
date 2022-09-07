@@ -3,6 +3,8 @@
 
 #include <stdbool.h>
 
+#define CONFIG struct config
+
 struct config_key {
     char* name;
     char* value;
@@ -17,14 +19,14 @@ struct config_sect {
 struct config {
     int sects;
     struct config_sect* sectdata;
+    bool changed;
 };
 
-struct config_keys* openConfig(char*);
-bool appendConfig(char*, struct config_keys*);
-void declareKey(struct config*, char*, char*, char*, bool);
-void deleteKey(struct config*, char*, char*);
-struct config_key* getConfigKey(char*, char*);
-void writeConfig(struct config*, char*);
+struct config* openConfig(char*);
+void declareConfigKey(struct config*, char*, char*, char*, bool);
+void deleteConfigKey(struct config*, char*, char*);
+char* getConfigKey(struct config*, char*, char*);
+bool writeConfig(struct config*, char*);
 void closeConfig(struct config*);
 
 #endif

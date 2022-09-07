@@ -16,24 +16,12 @@ ifndef MKSUB
 $(BASEDIRS):
 	@$(MAKE) --silent --no-print-directory -f gen.mk NAME="$@" ${MKENV2} MKSUB=y NAME="$@" $(MKOUT)
 else
-ifndef OS
 define MKSRC
 $(subst .mk,,$(subst $(OBJDIR)/,$(SRCDIR)/,$@))
 endef
-else
-define MKSRC
-$(subst .mk,,$(subst $(OBJDIR)/,$(SRCDIR)\,$@))
-endef
-endif
-ifndef OS
 define MKND
 $(OBJDIR)/$(subst .mk,,$(subst $(OBJDIR)/,,$@))
 endef
-else
-define MKND
-$(OBJDIR)/$(subst .mk,,$(subst $(OBJDIR)\,,$@))
-endef
-endif
 $(OBJDIR)/%.mk: $(wildcard $(SRCDIR)/$(NAME)/*.c $(SRCDIR)/$(NAME)/*.h)
 	@echo Writing $@...
 	@echo include $$$(esc)(UTILMK$(esc)) > $@

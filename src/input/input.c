@@ -7,110 +7,118 @@
 
 #if defined(USESDL2)
     #include <SDL2/SDL.h>
+    #define _SDL_SCROLL_UP 1
+    #define _SDL_SCROLL_DOWN -1
 #else
     #include <GLFW/glfw3.h>
+    #define _GLFW_SCROLL_UP 1
+    #define _GLFW_SCROLL_DOWN -1
 #endif
 
 #include <stdlib.h>
 #include <math.h>
 
-#define KEY(t1, k1, t2, k2) (input_keys){t1, k1, t2, k2}
+#define KEY(d1, t1, k1, d2, t2, k2) (input_keys){d1, t1, k1, d2, t2, k2}
 
 typedef struct {
+    char kd1;
     char kt1;
     int key1;
+    char kd2;
     char kt2;
     int key2;
 } input_keys;
 
 input_keys input_mov[] = {
     #if defined(USESDL2)
-    KEY('k', SDL_SCANCODE_W, 0, 0),
-    KEY('k', SDL_SCANCODE_S, 0, 0),
-    KEY('k', SDL_SCANCODE_A, 0, 0),
-    KEY('k', SDL_SCANCODE_D, 0, 0),
+    KEY('k', 'b', SDL_SCANCODE_W, 0, 0, 0),
+    KEY('k', 'b', SDL_SCANCODE_S, 0, 0, 0),
+    KEY('k', 'b', SDL_SCANCODE_A, 0, 0, 0),
+    KEY('k', 'b', SDL_SCANCODE_D, 0, 0, 0),
     #else
-    KEY('k', GLFW_KEY_W, 0, 0),
-    KEY('k', GLFW_KEY_S, 0, 0),
-    KEY('k', GLFW_KEY_A, 0, 0),
-    KEY('k', GLFW_KEY_D, 0, 0),
+    KEY('k', 'b', GLFW_KEY_W, 0, 0, 0),
+    KEY('k', 'b', GLFW_KEY_S, 0, 0, 0),
+    KEY('k', 'b', GLFW_KEY_A, 0, 0, 0),
+    KEY('k', 'b', GLFW_KEY_D, 0, 0, 0),
     #endif
 };
 input_keys input_ma[INPUT_ACTION_MULTI__MAX] = {
     #if defined(USESDL2)
-    KEY('m', SDL_BUTTON(1), 0, 0),
-    KEY('m', SDL_BUTTON(3), 0, 0),
-    KEY('m', SDL_BUTTON(2), 0, 0),
-    KEY('k', SDL_SCANCODE_SPACE, 0, 0),
-    KEY('k', SDL_SCANCODE_LSHIFT,'k',  SDL_SCANCODE_RSHIFT),
-    KEY('k', SDL_SCANCODE_LCTRL, 'k', SDL_SCANCODE_RCTRL),
-    KEY('k', SDL_SCANCODE_TAB, 0, 0),
+    KEY('m', 'b', SDL_BUTTON(1),       0, 0, 0),
+    KEY('m', 'b', SDL_BUTTON(3),       0, 0, 0),
+    KEY('m', 'b', SDL_BUTTON(2),       0, 0, 0),
+    KEY('k', 'b', SDL_SCANCODE_SPACE,  0, 0, 0),
+    KEY('k', 'b', SDL_SCANCODE_LSHIFT, 'k', 'b', SDL_SCANCODE_RSHIFT),
+    KEY('k', 'b', SDL_SCANCODE_LCTRL,  'k', 'b', SDL_SCANCODE_RCTRL),
+    KEY('k', 'b', SDL_SCANCODE_TAB,    0, 0, 0),
     #else
-    KEY('m', GLFW_MOUSE_BUTTON_LEFT, 0, 0),
-    KEY('m', GLFW_MOUSE_BUTTON_RIGHT, 0, 0),
-    KEY('m', GLFW_MOUSE_BUTTON_MIDDLE, 0, 0),
-    KEY('k', GLFW_KEY_SPACE, 0, 0),
-    KEY('k', GLFW_KEY_LEFT_SHIFT,'k',  GLFW_KEY_RIGHT_SHIFT),
-    KEY('k', GLFW_KEY_LEFT_CONTROL, 'k', GLFW_KEY_RIGHT_CONTROL),
-    KEY('k', GLFW_KEY_TAB, 0, 0),
+    KEY('m', 'b', GLFW_MOUSE_BUTTON_LEFT,   0, 0, 0),
+    KEY('m', 'b', GLFW_MOUSE_BUTTON_RIGHT,  0, 0, 0),
+    KEY('m', 'b', GLFW_MOUSE_BUTTON_MIDDLE, 0, 0, 0),
+    KEY('k', 'b', GLFW_KEY_SPACE,           0, 0, 0),
+    KEY('k', 'b', GLFW_KEY_LEFT_SHIFT,      'k', 'b', GLFW_KEY_RIGHT_SHIFT),
+    KEY('k', 'b', GLFW_KEY_LEFT_CONTROL,    'k', 'b', GLFW_KEY_RIGHT_CONTROL),
+    KEY('k', 'b', GLFW_KEY_TAB,             0, 0, 0),
     #endif
 };
 input_keys input_sa[INPUT_ACTION_SINGLE__MAX] = {
     #if defined(USESDL2)
-    KEY('k', SDL_SCANCODE_ESCAPE, 0, 0),
-    KEY('k', SDL_SCANCODE_I, 0, 0),
-    KEY('k', SDL_SCANCODE_1, 0, 0),
-    KEY('k', SDL_SCANCODE_2, 0, 0),
-    KEY('k', SDL_SCANCODE_3, 0, 0),
-    KEY('k', SDL_SCANCODE_4, 0, 0),
-    KEY('k', SDL_SCANCODE_5, 0, 0),
-    KEY('k', SDL_SCANCODE_6, 0, 0),
-    KEY('k', SDL_SCANCODE_7, 0, 0),
-    KEY('k', SDL_SCANCODE_8, 0, 0),
-    KEY('k', SDL_SCANCODE_9, 0, 0),
-    KEY('k', SDL_SCANCODE_0, 0, 0),
-    KEY('k', SDL_SCANCODE_RIGHTBRACKET, 0, 0),
-    KEY('k', SDL_SCANCODE_LEFTBRACKET, 0, 0),
-    KEY('k', SDL_SCANCODE_EQUAL, 0, 0),
-    KEY('k', SDL_SCANCODE_MINUS, 0, 0),
-    KEY('k', SDL_SCANCODE_F3, 0, 0),
+    KEY('k', 'b', SDL_SCANCODE_ESCAPE,       0, 0, 0),
+    KEY('k', 'b', SDL_SCANCODE_I,            0, 0, 0),
+    KEY('k', 'b', SDL_SCANCODE_1,            0, 0, 0),
+    KEY('k', 'b', SDL_SCANCODE_2,            0, 0, 0),
+    KEY('k', 'b', SDL_SCANCODE_3,            0, 0, 0),
+    KEY('k', 'b', SDL_SCANCODE_4,            0, 0, 0),
+    KEY('k', 'b', SDL_SCANCODE_5,            0, 0, 0),
+    KEY('k', 'b', SDL_SCANCODE_6,            0, 0, 0),
+    KEY('k', 'b', SDL_SCANCODE_7,            0, 0, 0),
+    KEY('k', 'b', SDL_SCANCODE_8,            0, 0, 0),
+    KEY('k', 'b', SDL_SCANCODE_9,            0, 0, 0),
+    KEY('k', 'b', SDL_SCANCODE_0,            0, 0, 0),
+    KEY('k', 'b', SDL_SCANCODE_RIGHTBRACKET, 'm', 'w', _SDL_SCROLL_UP),
+    KEY('k', 'b', SDL_SCANCODE_LEFTBRACKET,  'm', 'w', _SDL_SCROLL_DOWN),
+    KEY('k', 'b', SDL_SCANCODE_EQUAL,        0, 0, 0),
+    KEY('k', 'b', SDL_SCANCODE_MINUS,        0, 0, 0),
+    KEY('k', 'b', SDL_SCANCODE_F3,           0, 0, 0),
     #else
-    KEY('k', GLFW_KEY_ESCAPE, 0, 0),
-    KEY('k', GLFW_KEY_I, 0, 0),
-    KEY('k', GLFW_KEY_1, 0, 0),
-    KEY('k', GLFW_KEY_2, 0, 0),
-    KEY('k', GLFW_KEY_3, 0, 0),
-    KEY('k', GLFW_KEY_4, 0, 0),
-    KEY('k', GLFW_KEY_5, 0, 0),
-    KEY('k', GLFW_KEY_6, 0, 0),
-    KEY('k', GLFW_KEY_7, 0, 0),
-    KEY('k', GLFW_KEY_8, 0, 0),
-    KEY('k', GLFW_KEY_9, 0, 0),
-    KEY('k', GLFW_KEY_0, 0, 0),
-    KEY('k', GLFW_KEY_RIGHT_BRACKET, 0, 0),
-    KEY('k', GLFW_KEY_LEFT_BRACKET, 0, 0),
-    KEY('k', GLFW_KEY_EQUAL, 0, 0),
-    KEY('k', GLFW_KEY_MINUS, 0, 0),
-    KEY('k', GLFW_KEY_F3, 0, 0),
+    KEY('k', 'b', GLFW_KEY_ESCAPE,        0, 0, 0),
+    KEY('k', 'b', GLFW_KEY_I,             0, 0, 0),
+    KEY('k', 'b', GLFW_KEY_1,             0, 0, 0),
+    KEY('k', 'b', GLFW_KEY_2,             0, 0, 0),
+    KEY('k', 'b', GLFW_KEY_3,             0, 0, 0),
+    KEY('k', 'b', GLFW_KEY_4,             0, 0, 0),
+    KEY('k', 'b', GLFW_KEY_5,             0, 0, 0),
+    KEY('k', 'b', GLFW_KEY_6,             0, 0, 0),
+    KEY('k', 'b', GLFW_KEY_7,             0, 0, 0),
+    KEY('k', 'b', GLFW_KEY_8,             0, 0, 0),
+    KEY('k', 'b', GLFW_KEY_9,             0, 0, 0),
+    KEY('k', 'b', GLFW_KEY_0,             0, 0, 0),
+    KEY('k', 'b', GLFW_KEY_RIGHT_BRACKET, 'm', 'w', _GLFW_SCROLL_UP),
+    KEY('k', 'b', GLFW_KEY_LEFT_BRACKET,  'm', 'w', _GLFW_SCROLL_DOWN),
+    KEY('k', 'b', GLFW_KEY_EQUAL,         0, 0, 0),
+    KEY('k', 'b', GLFW_KEY_MINUS,         0, 0, 0),
+    KEY('k', 'b', GLFW_KEY_F3,            0, 0, 0),
     #endif
 };
 input_keys input_ui[] = {
     #if defined(USESDL2)
-    KEY('k', SDL_SCANCODE_ESCAPE, 0, 0),
-    KEY('m', SDL_BUTTON(1), 0, 0),
-    KEY('m', SDL_BUTTON(3), 0, 0),
+    KEY('k', 'b', SDL_SCANCODE_ESCAPE, 0, 0, 0),
+    KEY('m', 'b', SDL_BUTTON(1),       0, 0, 0),
+    KEY('m', 'b', SDL_BUTTON(3),       0, 0, 0),
     #else
-    KEY('k', GLFW_KEY_ESCAPE, 0, 0),
-    KEY('m', GLFW_MOUSE_BUTTON_LEFT, 0, 0),
-    KEY('m', GLFW_MOUSE_BUTTON_RIGHT, 0, 0),
+    KEY('k', 'b', GLFW_KEY_ESCAPE,         0, 0, 0),
+    KEY('m', 'b', GLFW_MOUSE_BUTTON_LEFT,  0, 0, 0),
+    KEY('m', 'b', GLFW_MOUSE_BUTTON_RIGHT, 0, 0, 0),
     #endif
 };
 
 static float rotsen;
 
 bool initInput() {
-    rotsen = atof(getConfigVarStatic(config, "input.rotsen", "1", 64));
-    bool rawmouse = getConfigValBool(getConfigVarStatic(config, "input.rawmouse", "true", 64));
+    declareConfigKey(config, "Input", "rotationMult", "1", false);
+    declareConfigKey(config, "Input", "rawMouse", "true", false);
+    rotsen = atof(getConfigKey(config, "Input", "rotationMult"));
+    bool rawmouse = getBool(getConfigKey(config, "Input", "rawMouse"));
     #if defined(USESDL2)
     if (rawmouse) SDL_SetHintWithPriority(SDL_HINT_MOUSE_RELATIVE_MODE_WARP, "1", SDL_HINT_OVERRIDE);
     #else
@@ -156,27 +164,39 @@ void sdlgetmouse(double* mx, double* my) {
 static const uint8_t* sdlkeymap;
 #endif
 
-static bool _keyDown(int type, int key) {
-    switch (type) {
-        case 'k':;
-            #if defined(USESDL2)
-            return sdlkeymap[key];
-            #else
-            return (glfwGetKey(rendinf.window, key) == GLFW_PRESS);
-            #endif
+static bool _keyDown(int device, int type, int key) {
+    switch (device) {
+        case 'k':; {
+            switch (type) {
+                case 'b':; {
+                    #if defined(USESDL2)
+                    return sdlkeymap[key];
+                    #else
+                    return (glfwGetKey(rendinf.window, key) == GLFW_PRESS);
+                    #endif
+                    break;
+                }
+            }
             break;
-        case 'm':;
-            #if defined(USESDL2)
-            return ((SDL_GetMouseState(NULL, NULL) & key) != 0);
-            #else
-            return (glfwGetMouseButton(rendinf.window, key) == GLFW_PRESS);
-            #endif
+        }
+        case 'm':; {
+            switch (type) {
+                case 'b':; {
+                    #if defined(USESDL2)
+                    return ((SDL_GetMouseState(NULL, NULL) & key) != 0);
+                    #else
+                    return (glfwGetMouseButton(rendinf.window, key) == GLFW_PRESS);
+                    #endif
+                    break;
+                }
+            }
             break;
+        }
     }
     return false;
 }
 
-#define keyDown(x) (_keyDown(x.kt1, x.key1) || _keyDown(x.kt2, x.key2))
+#define keyDown(x) (_keyDown(x.kd1, x.kt1, x.key1) || _keyDown(x.kd2, x.kt2, x.key2))
 
 static uint64_t polltime;
 

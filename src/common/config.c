@@ -1,15 +1,13 @@
+#include <main/main.h>
 #include "config.h"
 #include <common/common.h>
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#ifdef _WIN32
-    #define strcasecmp stricmp
-#endif
 #include <stdbool.h>
 
-void declareKey(struct config* cfg, char* sect, char* key, char* val, bool overwrite) {
+void declareConfigKey(struct config* cfg, char* sect, char* key, char* val, bool overwrite) {
     int secti = -1;
     for (int i = 0; i < cfg->sects; ++i) {
         if (!cfg->sectdata[i].name) continue;
@@ -33,7 +31,7 @@ void declareKey(struct config* cfg, char* sect, char* key, char* val, bool overw
         }
     }
     if (keyi < 0) {
-        #if DEBUG >= 1
+        #if DBGLVL(1)
         printf("Adding key {%s} to section {%s} with value {%s}...\n", key, sect, val);
         #endif
         keyi = cfg->sectdata[secti].keys++;
@@ -41,16 +39,40 @@ void declareKey(struct config* cfg, char* sect, char* key, char* val, bool overw
         memset(&cfg->sectdata[secti].keydata[keyi], 0, sizeof(*cfg->sectdata[secti].keydata));
         cfg->sectdata[secti].keydata[keyi].name = strdup(key);
         cfg->sectdata[secti].keydata[keyi].value = strdup(val);
+        cfg->changed = true;
     } else if (overwrite) {
-        #if DEBUG >= 1
+        #if DBGLVL(1)
         printf("Rewriting key {%s} in section {%s} with old value {%s} with new value {%s}...\n", key, sect, cfg->sectdata[secti].keydata[keyi].value, val);
         #endif
         free(cfg->sectdata[secti].keydata[keyi].value);
         cfg->sectdata[secti].keydata[keyi].value = strdup(val);
+        cfg->changed = true;
     }
 }
 
-void deleteKey(struct config* cfg, char* sect, char* key) {
+char* getConfigKey(struct config* cfg, char* sect, char* key) {
+    int secti = -1;
+    for (int i = 0; i < cfg->sects; ++i) {
+        if (!cfg->sectdata[i].name) continue;
+        if (!strcasecmp(cfg->sectdata[i].name, sect)) {
+            secti = i;
+            break;
+        }
+    }
+    if (secti < 0) return NULL;
+    int keyi = -1;
+    for (int i = 0; i < cfg->sectdata[secti].keys; ++i) {
+        if (!cfg->sectdata[secti].keydata[i].name) continue;
+        if (!strcasecmp(cfg->sectdata[secti].keydata[i].name, key)) {
+            keyi = i;
+            break;
+        }
+    }
+    if (keyi < 0) return NULL;
+    return cfg->sectdata[secti].keydata[keyi].value;
+}
+
+void deleteConfigKey(struct config* cfg, char* sect, char* key) {
     int secti = -1;
     for (int i = 0; i < cfg->sects; ++i) {
         if (!cfg->sectdata[i].name) continue;
@@ -72,9 +94,11 @@ void deleteKey(struct config* cfg, char* sect, char* key) {
     free(cfg->sectdata[secti].keydata[keyi].name);
     cfg->sectdata[secti].keydata[keyi].name = NULL;
     free(cfg->sectdata[secti].keydata[keyi].value);
+    cfg->changed = true;
 }
 
-struct config_keys* openConfig(char* path) {
+struct config* openConfig(char* path) {
+    if (!path) return calloc(1, sizeof(struct config));
     file_data fdata = getTextFile(path);
     if (!fdata.data) return NULL;
     --fdata.size;
@@ -87,7 +111,7 @@ struct config_keys* openConfig(char* path) {
         bool esc = false;
         int eqpos = -1;
         for (; linestart < fdata.size && (fdata.data[linestart] == ' ' || fdata.data[linestart] == '\t'); ++linestart) {}
-        int type = (fdata.data[linestart] == '#') ? 0 : ((fdata.data[linestart] == '[') ? 2 : 1);
+        int type = (fdata.data[linestart] == '#' || fdata.data[linestart] == '\n') ? 0 : ((fdata.data[linestart] == '[') ? 2 : 1);
         int namestart = linestart;
         int nameend = -1;
         if (type == 0) {
@@ -237,7 +261,7 @@ struct config_keys* openConfig(char* path) {
                 }
                 outline[olptr] = 0;
                 //printf("LINE POST: {%s}\n", outline);
-                declareKey(cfg, sect, name, outline, true);
+                declareConfigKey(cfg, sect, name, outline, true);
                 free(name);
                 free(line);
                 free(outline);
@@ -247,4 +271,103 @@ struct config_keys* openConfig(char* path) {
         else linestart = lineend + 1;
     }
     free(sect);
+    cfg->changed = false;
+    return cfg;
+}
+
+static inline void writeKeys(struct config* cfg, int i, FILE* outfile) {
+    for (int j = 0; j < cfg->sectdata[i].keys; ++j) {
+        fputs(cfg->sectdata[i].keydata[j].name, outfile);
+        fputs(" = ", outfile);
+        bool q = false;
+        {
+            bool f = true;
+            for (unsigned char* tmpstr = (unsigned char*)cfg->sectdata[i].keydata[j].value; *tmpstr; ++tmpstr) {
+                if (*tmpstr < 32 || *tmpstr > 126 || (!*(tmpstr + 1) && (*tmpstr == ' ' || *tmpstr == '\t'))) {q = true; break;}
+                if (f) {f = false; if (*tmpstr == ' ' || *tmpstr == '\t') {q = true; break;}}
+            }
+        }
+        if (q) fputc('"', outfile);
+        for (unsigned char* tmpstr = (unsigned char*)cfg->sectdata[i].keydata[j].value; *tmpstr; ++tmpstr) {
+            if (*tmpstr == '"') {
+                fputs("\\\"", outfile);
+            } else if (*tmpstr == '\\') {
+                fputs("\\\\", outfile);
+            } else if (*tmpstr < 32 || *tmpstr > 126) {
+                switch (*tmpstr) {
+                    case '\a':;
+                        fputs("\\a", outfile);
+                        break;
+                    case '\b':;
+                        fputs("\\b", outfile);
+                        break;
+                    case '\e':;
+                        fputs("\\e", outfile);
+                        break;
+                    case '\f':;
+                        fputs("\\f", outfile);
+                        break;
+                    case '\n':;
+                        fputs("\\n", outfile);
+                        break;
+                    case '\r':;
+                        fputs("\\r", outfile);
+                        break;
+                    case '\t':;
+                        fputc('\t', outfile);
+                        break;
+                    case '\v':;
+                        fputs("\\v", outfile);
+                        break;
+                    default:;
+                        fprintf(outfile, "\\x%02X", *tmpstr);
+                        break;
+                }
+            } else {
+                fputc(*tmpstr, outfile);
+            }
+        }
+        if (q) fputc('"', outfile);
+        fputc('\n', outfile);
+    }
+}
+
+bool writeConfig(struct config* cfg, char* name) {
+    FILE* outfile = fopen(name, "w");
+    if (!outfile) return false;
+    #if DBGLVL(1)
+    printf("Writing config to '%s'...\n", name);
+    #endif
+    bool first = true;
+    for (int i = 0; i < cfg->sects; ++i) {
+        if (!cfg->sectdata[i].keys || *cfg->sectdata[i].name) continue;
+        writeKeys(cfg, i, outfile);
+        first = false;
+    }
+    for (int i = 0; i < cfg->sects; ++i) {
+        if (!cfg->sectdata[i].keys || !*cfg->sectdata[i].name) continue;
+        if (first) {first = false;} else {fputc('\n', outfile);}
+        fputc('[', outfile);
+        fputs(cfg->sectdata[i].name, outfile);
+        fputc(']', outfile);
+        fputc('\n', outfile);
+        writeKeys(cfg, i, outfile);
+    }
+    fclose(outfile);
+    return true;
+}
+
+void closeConfig(struct config* cfg) {
+    for (int i = 0; i < cfg->sects; ++i) {
+        for (int j = 0; j < cfg->sectdata[i].keys; ++j) {
+            if (cfg->sectdata[i].keydata[j].name) {
+                free(cfg->sectdata[i].keydata[j].name);
+                free(cfg->sectdata[i].keydata[j].value);
+            }
+        }
+        free(cfg->sectdata[i].name);
+        free(cfg->sectdata[i].keydata);
+    }
+    free(cfg->sectdata);
+    free(cfg);
 }

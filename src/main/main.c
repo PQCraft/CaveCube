@@ -22,7 +22,10 @@
     #include <windows.h>
 #endif
 
-char* config = NULL;
+#include <common/glue.h>
+
+char configpath[MAX_PATH] = "";
+CONFIG* config = NULL;
 int quitRequest = 0;
 
 int argc;
@@ -46,15 +49,14 @@ static void sigsegvh(int sig) {
 }
 #endif
 
-#ifndef _WIN32
-    #define mkdir(x) mkdir(x, (S_IRWXU) | (S_IRGRP | S_IXGRP) | (S_IROTH | S_IXOTH))
-#else
-    #define realpath(x, y) _fullpath(y, x, MAX_PATH)
-#endif
-
 #ifdef _WIN32
 static bool showcon;
 #endif
+
+static bool altchdir(char* path) {
+    if (chdir(path) < 0) {fprintf(stderr, "Could not chdir into '%s'\n", path); return false;}
+    return true;
+}
 
 #ifndef SERVER
     #define SC_VAL "false"
@@ -63,22 +65,12 @@ static bool showcon;
 #endif
 
 static void commonSetup() {
-    file_data tmpfile = getTextFile("cavecube.cfg");
-    openConfig("test.cfg");
-    #ifndef SERVER
-    chdir(localdir);
-    tmpfile = catTextFiles(tmpfile, true, getTextFile("cavecube.cfg"), true);
-    #endif
-    if (strcmp(startdir, maindir)) {
-        chdir(startdir);
-        tmpfile = catTextFiles(tmpfile, true, getTextFile("cavecube.cfg"), true);
-    }
-    chdir(maindir);
-    config = strdup((char*)tmpfile.data);
-    freeFile(tmpfile);
-    //printf("Config:\n%s\nEOF\n", config);
+    if (!altchdir(startdir)) exit(1);
+    config = openConfig((isFile(configpath) == 1) ? configpath : NULL);
+    if (!altchdir(maindir)) exit(1);
     #ifdef _WIN32
-    showcon = getConfigValBool(getConfigVarStatic(config, "main.showcon", SC_VAL, 64));
+    declareConfigKey(config, "Main", "showConsole", SC_VAL, false);
+    showcon = getBool(getConfigKey(config, "showConsole"));
     #endif
     initResource();
     initBlocks();
@@ -134,31 +126,37 @@ int main(int _argc, char** _argv) {
         char* tmpdir = getenv("AppData");
         char* tmpdn = "cavecube";
         #endif
-        chdir(tmpdir);
-        bool new = false;
-        if (isFile(tmpdn) == -1) {
-            mkdir(tmpdn);
-            new = true;
+        if (!altchdir(tmpdir)) return 1;
+        switch (isFile(tmpdn)) {
+            case -1:;
+                mkdir(tmpdn);
+                break;
+            case 1:;
+                fprintf(stderr, "'%s' is not a directory", tmpdn);
+                return 1;
+                break;
         }
-        chdir(tmpdn);
+        if (!altchdir(tmpdn)) return 1;
         localdir = realpath(".", NULL);
         MAIN_STRPATH(localdir);
-        if (new) {
-            FILE* tmpcfg = fopen("cavecube.cfg", "w");
-            fclose(tmpcfg);
-        }
     }
+    strcpy(configpath, localdir);
+    strcat(configpath, "cavecube.cfg");
+    #else
+    strcpy(configpath, "ccserver.cfg");
     #endif
-    #if DEBUG >= 1
+    #if DBGLVL(1)
     printf("Main directory: {%s}\n", maindir);
     printf("Start directory: {%s}\n", startdir);
     #ifndef SERVER
     printf("Local directory: {%s}\n", localdir);
     #endif
     #endif
-    chdir(maindir);
+    if (!altchdir(maindir)) return 1;
     signal(SIGINT, sigh);
-    #ifdef _WIN32
+    #ifndef _WIN32
+    signal(SIGPIPE, SIG_IGN);
+    #else
     signal(SIGSEGV, sigsegvh);
     #endif
     int cores = getCoreCt();
@@ -213,11 +211,18 @@ int main(int _argc, char** _argv) {
                 return 0;
             } else if (!servopt && !strcmp(name, "config")) {
                 if (!val || getNextArg(argv[i + 1]) != -1) {ARG_INVALSYN(); return 1;}
-                // TODO: change config from cavecube.cfg
-                printf("Changed config to '%s'\n", val);
-            } else if (!servopt && !strcmp(name, "no-other-configs")) {
-                if (val || getNextArg(argv[i + 1]) != -1) {ARG_INVALSYN(); return 1;}
-                // TODO: skip loading configs in maindir and localdir
+                switch (isFile(val)) {
+                    case -1:;
+                        fprintf(stderr, "File '%s' does not exist", val);
+                        return 1;
+                        break;
+                    case 0:;
+                        fprintf(stderr, "'%s' is not a file", val);
+                        return 1;
+                        break;
+                }
+                strcpy(configpath, val);
+                printf("Changed config to '%s'\n", configpath);
             #ifndef SERVER
             } else if (!strcmp(name, "world")) {
                 if (gametype >= 0) {ARG_INVALSYN(); return 1;}
@@ -273,6 +278,9 @@ int main(int _argc, char** _argv) {
             return 1;
         }
     }
+    #if DBGLVL(1)
+    printf("Config path: {%s}\n", configpath);
+    #endif
     commonSetup();
     #ifdef _WIN32
     if (owncon && showcon) ShowWindow(GetConsoleWindow(), SW_SHOW);
@@ -336,11 +344,15 @@ int main(int _argc, char** _argv) {
     pause();
     stopServer();
     #endif
+    #ifndef SERVER
+    if (!altchdir(startdir)) return 1;
+    if (config->changed) if (!writeConfig(config, configpath)) return 1;
+    #endif
+    closeConfig(config);
     free(maindir);
     free(startdir);
     #ifndef SERVER
     free(localdir);
     #endif
-    if (config) free(config);
     return ret;
 }
