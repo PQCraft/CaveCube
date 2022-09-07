@@ -460,6 +460,9 @@ int startServer(char* addr, int port, int mcli, char* world) {
 void stopServer() {
     puts("Stopping server...");
     serveralive = false;
+    for (int i = 0; i < SERVER_THREADS && i < MAX_THREADS; ++i) {
+        pthread_join(servpthreads[i], NULL);
+    }
     pthread_join(servnetthreadh, NULL);
     for (int i = 0; i < maxclients; ++i) {
         if (pdata[i].valid) {

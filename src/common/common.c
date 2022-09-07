@@ -8,17 +8,15 @@
 #include <time.h>
 #include <sys/time.h>
 #include <string.h>
-#ifdef _WIN32
-    #define strcasecmp stricmp
-#endif
 #include <stddef.h>
 #include <stdbool.h>
 #include <unistd.h>
 #include <math.h>
-
 #ifdef _WIN32
     #include <windows.h>
 #endif
+
+#include <common/glue.h>
 
 int getCoreCt() {
     #if defined(_WIN32)
@@ -225,7 +223,7 @@ void freeFile(file_data file) {
 
 #define GCVWOUT(x) {++len; *out++ = (x);}
 
-void getConfigVar(char* fdata, char* var, char* dval, long size, char* out) {
+void getInfoVar(char* fdata, char* var, char* dval, long size, char* out) {
     if (size < 1) size = GCBUFSIZE;
     if (!out) return;
     if (!var) return;
@@ -308,15 +306,15 @@ void getConfigVar(char* fdata, char* var, char* dval, long size, char* out) {
     *out = 0;
 }
 
-char* getConfigVarAlloc(char* fdata, char* var, char* dval, long size) {
+char* getInfoVarAlloc(char* fdata, char* var, char* dval, long size) {
     if (size < 1) size = GCBUFSIZE;
     char* out = malloc(size);
-    getConfigVar(fdata, var, dval, size, out);
+    getInfoVar(fdata, var, dval, size, out);
     out = realloc(out, strlen(out) + 1);
     return out;
 }
 
-char* getConfigVarStatic(char* fdata, char* var, char* dval, long size) {
+char* getInfoVarStatic(char* fdata, char* var, char* dval, long size) {
     if (size < 1) size = GCBUFSIZE;
     static long outsize = 0;
     static char* out = NULL;
@@ -327,19 +325,8 @@ char* getConfigVarStatic(char* fdata, char* var, char* dval, long size) {
         out = realloc(out, size);
         outsize = size;
     }
-    getConfigVar(fdata, var, dval, size, out);
+    getInfoVar(fdata, var, dval, size, out);
     return out;
-}
-
-bool getConfigValBool(char* val) {
-    if (!val) return -1;
-    char* nval = strdup(val);
-    for (char* nvalp = nval; *nvalp; ++nvalp) {
-        if (*nvalp >= 'A' && *nvalp <= 'Z') *nvalp += 32;
-    }
-    bool ret = (!strcmp(nval, "true") || !strcmp(nval, "yes") || atoi(nval) != 0);
-    free(nval);
-    return ret;
 }
 
 bool getBool(char* str) {

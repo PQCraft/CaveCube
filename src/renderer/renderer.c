@@ -100,81 +100,77 @@ void setSpace(int space) {
 struct frustum {
 	float planes[6][16];
 };
-static struct frustum frust;
 
-static float c3dlen(coord_3d a) {
-    return sqrtf(a.x * a.x + a.y * a.y + a.z * a.z);
-}
+static struct frustum __attribute__((aligned (32))) frust;
 
-static void normFrustPlane(struct frustum* frust, int plane) {
-	float len = c3dlen((coord_3d){frust->planes[plane][0], frust->planes[plane][1], frust->planes[plane][2]});
+static inline void normFrustPlane(struct frustum* frust, int plane) {
+	float len = sqrtf(frust->planes[plane][0] * frust->planes[plane][0] + frust->planes[plane][1] * frust->planes[plane][1] + frust->planes[plane][2] * frust->planes[plane][2]);
 	for (int i = 0; i < 4; i++) {
 		frust->planes[plane][i] /= len;
 	}
 }
 
-void calcFrust(struct frustum* frust, float* proj, float* view) {
-	float clip[16];
-	clip[0x0] = view[0x0] * proj[0x0] + view[0x1] * proj[0x4] + view[0x2] * proj[0x8] + view[0x3] * proj[0xC];
-	clip[0x1] = view[0x0] * proj[0x1] + view[0x1] * proj[0x5] + view[0x2] * proj[0x9] + view[0x3] * proj[0xD];
-	clip[0x2] = view[0x0] * proj[0x2] + view[0x1] * proj[0x6] + view[0x2] * proj[0xA] + view[0x3] * proj[0xE];
-	clip[0x3] = view[0x0] * proj[0x3] + view[0x1] * proj[0x7] + view[0x2] * proj[0xB] + view[0x3] * proj[0xF];
-	clip[0x4] = view[0x4] * proj[0x0] + view[0x5] * proj[0x4] + view[0x6] * proj[0x8] + view[0x7] * proj[0xC];
-	clip[0x5] = view[0x4] * proj[0x1] + view[0x5] * proj[0x5] + view[0x6] * proj[0x9] + view[0x7] * proj[0xD];
-	clip[0x6] = view[0x4] * proj[0x2] + view[0x5] * proj[0x6] + view[0x6] * proj[0xA] + view[0x7] * proj[0xE];
-	clip[0x7] = view[0x4] * proj[0x3] + view[0x5] * proj[0x7] + view[0x6] * proj[0xB] + view[0x7] * proj[0xF];
-	clip[0x8] = view[0x8] * proj[0x0] + view[0x9] * proj[0x4] + view[0xA] * proj[0x8] + view[0xB] * proj[0xC];
-	clip[0x9] = view[0x8] * proj[0x1] + view[0x9] * proj[0x5] + view[0xA] * proj[0x9] + view[0xB] * proj[0xD];
-	clip[0xA] = view[0x8] * proj[0x2] + view[0x9] * proj[0x6] + view[0xA] * proj[0xA] + view[0xB] * proj[0xE];
-	clip[0xB] = view[0x8] * proj[0x3] + view[0x9] * proj[0x7] + view[0xA] * proj[0xB] + view[0xB] * proj[0xF];
-	clip[0xC] = view[0xC] * proj[0x0] + view[0xD] * proj[0x4] + view[0xE] * proj[0x8] + view[0xF] * proj[0xC];
-	clip[0xD] = view[0xC] * proj[0x1] + view[0xD] * proj[0x5] + view[0xE] * proj[0x9] + view[0xF] * proj[0xD];
-	clip[0xE] = view[0xC] * proj[0x2] + view[0xD] * proj[0x6] + view[0xE] * proj[0xA] + view[0xF] * proj[0xE];
-	clip[0xF] = view[0xC] * proj[0x3] + view[0xD] * proj[0x7] + view[0xE] * proj[0xB] + view[0xF] * proj[0xF];
-	frust->planes[0][0] = clip[0x3] - clip[0x0];
-	frust->planes[0][1] = clip[0x7] - clip[0x4];
-	frust->planes[0][2] = clip[0xB] - clip[0x8];
-	frust->planes[0][3] = clip[0xF] - clip[0xC];
+static float __attribute__((aligned (32))) cf_clip[16];
+
+static inline void calcFrust(struct frustum* frust, float* proj, float* view) {
+	cf_clip[0] = view[0] * proj[0] + view[1] * proj[4] + view[2] * proj[8] + view[3] * proj[12];
+	cf_clip[1] = view[0] * proj[1] + view[1] * proj[5] + view[2] * proj[9] + view[3] * proj[13];
+	cf_clip[2] = view[0] * proj[2] + view[1] * proj[6] + view[2] * proj[10] + view[3] * proj[14];
+	cf_clip[3] = view[0] * proj[3] + view[1] * proj[7] + view[2] * proj[11] + view[3] * proj[15];
+	cf_clip[4] = view[4] * proj[0] + view[5] * proj[4] + view[6] * proj[8] + view[7] * proj[12];
+	cf_clip[5] = view[4] * proj[1] + view[5] * proj[5] + view[6] * proj[9] + view[7] * proj[13];
+	cf_clip[6] = view[4] * proj[2] + view[5] * proj[6] + view[6] * proj[10] + view[7] * proj[14];
+	cf_clip[7] = view[4] * proj[3] + view[5] * proj[7] + view[6] * proj[11] + view[7] * proj[15];
+	cf_clip[8] = view[8] * proj[0] + view[9] * proj[4] + view[10] * proj[8] + view[11] * proj[12];
+	cf_clip[9] = view[8] * proj[1] + view[9] * proj[5] + view[10] * proj[9] + view[11] * proj[13];
+	cf_clip[10] = view[8] * proj[2] + view[9] * proj[6] + view[10] * proj[10] + view[11] * proj[14];
+	cf_clip[11] = view[8] * proj[3] + view[9] * proj[7] + view[10] * proj[11] + view[11] * proj[15];
+	cf_clip[12] = view[12] * proj[0] + view[13] * proj[4] + view[14] * proj[8] + view[15] * proj[12];
+	cf_clip[13] = view[12] * proj[1] + view[13] * proj[5] + view[14] * proj[9] + view[15] * proj[13];
+	cf_clip[14] = view[12] * proj[2] + view[13] * proj[6] + view[14] * proj[10] + view[15] * proj[14];
+	cf_clip[15] = view[12] * proj[3] + view[13] * proj[7] + view[14] * proj[11] + view[15] * proj[15];
+	frust->planes[0][0] = cf_clip[3] - cf_clip[0];
+	frust->planes[0][1] = cf_clip[7] - cf_clip[4];
+	frust->planes[0][2] = cf_clip[11] - cf_clip[8];
+	frust->planes[0][3] = cf_clip[15] - cf_clip[12];
 	normFrustPlane(frust, 0);
-	frust->planes[1][0] = clip[0x3] + clip[0x0];
-	frust->planes[1][1] = clip[0x7] + clip[0x4];
-	frust->planes[1][2] = clip[0xB] + clip[0x8];
-	frust->planes[1][3] = clip[0xF] + clip[0xC];
+	frust->planes[1][0] = cf_clip[3] + cf_clip[0];
+	frust->planes[1][1] = cf_clip[7] + cf_clip[4];
+	frust->planes[1][2] = cf_clip[11] + cf_clip[8];
+	frust->planes[1][3] = cf_clip[15] + cf_clip[12];
 	normFrustPlane(frust, 1);
-	frust->planes[2][0] = clip[0x3] - clip[0x1];
-	frust->planes[2][1] = clip[0x7] - clip[0x5];
-	frust->planes[2][2] = clip[0xB] - clip[0x9];
-	frust->planes[2][3] = clip[0xF] - clip[0xD];
+	frust->planes[2][0] = cf_clip[3] - cf_clip[1];
+	frust->planes[2][1] = cf_clip[7] - cf_clip[5];
+	frust->planes[2][2] = cf_clip[11] - cf_clip[9];
+	frust->planes[2][3] = cf_clip[15] - cf_clip[13];
 	normFrustPlane(frust, 2);
-	frust->planes[3][0] = clip[0x3] + clip[0x1];
-	frust->planes[3][1] = clip[0x7] + clip[0x5];
-	frust->planes[3][2] = clip[0xB] + clip[0x9];
-	frust->planes[3][3] = clip[0xF] + clip[0xD];
+	frust->planes[3][0] = cf_clip[3] + cf_clip[1];
+	frust->planes[3][1] = cf_clip[7] + cf_clip[5];
+	frust->planes[3][2] = cf_clip[11] + cf_clip[9];
+	frust->planes[3][3] = cf_clip[15] + cf_clip[13];
 	normFrustPlane(frust, 3);
-	frust->planes[4][0] = clip[0x3] - clip[0x2];
-	frust->planes[4][1] = clip[0x7] - clip[0x6];
-	frust->planes[4][2] = clip[0xB] - clip[0xA];
-	frust->planes[4][3] = clip[0xF] - clip[0xE];
+	frust->planes[4][0] = cf_clip[3] - cf_clip[2];
+	frust->planes[4][1] = cf_clip[7] - cf_clip[6];
+	frust->planes[4][2] = cf_clip[11] - cf_clip[10];
+	frust->planes[4][3] = cf_clip[15] - cf_clip[14];
 	normFrustPlane(frust, 4);
-	frust->planes[5][0] = clip[0x3] + clip[0x2];
-	frust->planes[5][1] = clip[0x7] + clip[0x6];
-	frust->planes[5][2] = clip[0xB] + clip[0xA];
-	frust->planes[5][3] = clip[0xF] + clip[0xE];
+	frust->planes[5][0] = cf_clip[3] + cf_clip[2];
+	frust->planes[5][1] = cf_clip[7] + cf_clip[6];
+	frust->planes[5][2] = cf_clip[11] + cf_clip[10];
+	frust->planes[5][3] = cf_clip[15] + cf_clip[14];
 	normFrustPlane(frust, 5);
 }
 
-bool isVisible(struct frustum* frust, float ax, float ay, float az, float bx, float by, float bz) {
+static inline bool isVisible(struct frustum* frust, float ax, float ay, float az, float bx, float by, float bz) {
 	for (int i = 0; i < 6; i++) {
-		bool b = true;
-		b = b && frust->planes[i][0] * ax + frust->planes[i][1] * ay + frust->planes[i][2] * az + frust->planes[i][3] <= 0.0;
-		b = b && frust->planes[i][0] * bx + frust->planes[i][1] * ay + frust->planes[i][2] * az + frust->planes[i][3] <= 0.0;
-		b = b && frust->planes[i][0] * ax + frust->planes[i][1] * by + frust->planes[i][2] * az + frust->planes[i][3] <= 0.0;
-		b = b && frust->planes[i][0] * bx + frust->planes[i][1] * by + frust->planes[i][2] * az + frust->planes[i][3] <= 0.0;
-		b = b && frust->planes[i][0] * ax + frust->planes[i][1] * ay + frust->planes[i][2] * bz + frust->planes[i][3] <= 0.0;
-		b = b && frust->planes[i][0] * bx + frust->planes[i][1] * ay + frust->planes[i][2] * bz + frust->planes[i][3] <= 0.0;
-		b = b && frust->planes[i][0] * ax + frust->planes[i][1] * by + frust->planes[i][2] * bz + frust->planes[i][3] <= 0.0;
-		b = b && frust->planes[i][0] * bx + frust->planes[i][1] * by + frust->planes[i][2] * bz + frust->planes[i][3] <= 0.0;
-		if (b) { return false; }
+		if ((frust->planes[i][0] * ax + frust->planes[i][1] * ay + frust->planes[i][2] * az + frust->planes[i][3] <= 0.0) &&
+		    (frust->planes[i][0] * bx + frust->planes[i][1] * ay + frust->planes[i][2] * az + frust->planes[i][3] <= 0.0) &&
+		    (frust->planes[i][0] * ax + frust->planes[i][1] * by + frust->planes[i][2] * az + frust->planes[i][3] <= 0.0) &&
+		    (frust->planes[i][0] * bx + frust->planes[i][1] * by + frust->planes[i][2] * az + frust->planes[i][3] <= 0.0) &&
+		    (frust->planes[i][0] * ax + frust->planes[i][1] * ay + frust->planes[i][2] * bz + frust->planes[i][3] <= 0.0) &&
+		    (frust->planes[i][0] * bx + frust->planes[i][1] * ay + frust->planes[i][2] * bz + frust->planes[i][3] <= 0.0) &&
+		    (frust->planes[i][0] * ax + frust->planes[i][1] * by + frust->planes[i][2] * bz + frust->planes[i][3] <= 0.0) &&
+		    (frust->planes[i][0] * bx + frust->planes[i][1] * by + frust->planes[i][2] * bz + frust->planes[i][3] <= 0.0)) return false;
 	}
 	return true;
 }
@@ -257,7 +253,7 @@ void setFullscreen(bool fullscreen) {
         }
         rendinf.fullscr = false;
     }
-    updateCam();
+    //updateCam();
 }
 
 static inline bool makeShaderProg(char* hdrtext, char* _vstext, char* _fstext, GLuint* p) {
@@ -911,7 +907,8 @@ bool initRenderer() {
     //rendinf.camrot.y = 180;
 
     #if defined(USESDL2)
-    bool compositing = getConfigValBool(getConfigVarStatic(config, "renderer.compositing", "true", 64));
+    declareConfigKey(config, "Renderer", "compositing", "true", false);
+    bool compositing = getBool(getConfigKey(config, "Renderer" "compositing"));
     SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
     #if defined(USEGLES)
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
@@ -964,15 +961,19 @@ bool initRenderer() {
     rendinf.win_fps = rendinf.disphz;
     #endif
 
-    sscanf(getConfigVarStatic(config, "renderer.resolution", "", 256), "%ux%u@%u",
+    declareConfigKey(config, "Renderer", "resolution", "1024x768", false);
+    declareConfigKey(config, "Renderer", "fullScreenRes", "0x0", false);
+    declareConfigKey(config, "Renderer", "vSync", "false", false);
+    declareConfigKey(config, "Renderer", "fullScreen", "false", false);
+    sscanf(getConfigKey(config, "Renderer", "resolution"), "%ux%u@%u",
         &rendinf.win_width, &rendinf.win_height, &rendinf.win_fps);
     if (!rendinf.win_width || rendinf.win_width > 32767) rendinf.win_width = 1024;
     if (!rendinf.win_height || rendinf.win_height > 32767) rendinf.win_height = 768;
     rendinf.full_fps = rendinf.win_fps;
-    sscanf(getConfigVarStatic(config, "renderer.fullresolution", "", 256), "%ux%u@%u",
+    sscanf(getConfigKey(config, "Renderer", "fullScreenRes"), "%ux%u@%u",
         &rendinf.full_width, &rendinf.full_height, &rendinf.full_fps);
-    rendinf.vsync = getConfigValBool(getConfigVarStatic(config, "renderer.vsync", "false", 64));
-    rendinf.fullscr = getConfigValBool(getConfigVarStatic(config, "renderer.fullscreen", "false", 64));
+    rendinf.vsync = getBool(getConfigKey(config, "Renderer", "vSync"));
+    rendinf.fullscr = getBool(getConfigKey(config, "Renderer", "fullScreen"));
 
     #if defined(USESDL2)
     if (!(rendinf.window = SDL_CreateWindow("CaveCube", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, rendinf.win_width, rendinf.win_height, SDL_WINDOW_OPENGL))) {

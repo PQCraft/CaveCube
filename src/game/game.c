@@ -228,8 +228,10 @@ bool doGame(char* addr, int port) {
     for (int i = 0; i < 16; ++i) {
         tmpbuf[i] = malloc(4096);
     }
-    chunks = allocChunks(atoi(getConfigVarStatic(config, "game.chunks", "8", 64)));
-    loopdelay = atoi(getConfigVarStatic(config, "game.loopdelay", (rendinf.fps || rendinf.vsync) ? "5000" : "0", 64));
+    declareConfigKey(config, "Game", "viewDist", "8", false);
+    declareConfigKey(config, "Game", "loopDelay", "5000", false);
+    chunks = allocChunks(atoi(getConfigKey(config, "Game", "viewDist")));
+    if (rendinf.fps || rendinf.vsync) loopdelay = atoi(getConfigKey(config, "Game", "loopDelay"));
     printf("Allocated chunks: [%d] [%d]\n", chunks.info.width, chunks.info.widthsq);
     rendinf.campos.y = 151.5;
     initInput();
