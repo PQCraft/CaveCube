@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+#include <errno.h>
 
 void declareConfigKey(struct config* cfg, char* sect, char* key, char* val, bool overwrite) {
     int secti = -1;
@@ -333,11 +334,16 @@ static inline void writeKeys(struct config* cfg, int i, FILE* outfile) {
 }
 
 bool writeConfig(struct config* cfg, char* name) {
-    FILE* outfile = fopen(name, "w");
-    if (!outfile) return false;
     #if DBGLVL(1)
     printf("Writing config to '%s'...\n", name);
     #endif
+    FILE* outfile = fopen(name, "w");
+    if (!outfile) {
+        #if DBGLVL(1)
+        printf("Failed to open file: '%s'\n", strerror(errno));
+        #endif
+        return false;
+    }
     bool first = true;
     for (int i = 0; i < cfg->sects; ++i) {
         if (!cfg->sectdata[i].keys || *cfg->sectdata[i].name) continue;

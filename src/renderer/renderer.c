@@ -3,6 +3,7 @@
 #include <main/main.h>
 #include "renderer.h"
 #include "glad.h"
+#include <main/version.h>
 #include <common/common.h>
 #include <common/resource.h>
 #include <common/noise.h>
@@ -963,7 +964,7 @@ bool initRenderer() {
 
     declareConfigKey(config, "Renderer", "resolution", "1024x768", false);
     declareConfigKey(config, "Renderer", "fullScreenRes", "0x0", false);
-    declareConfigKey(config, "Renderer", "vSync", "false", false);
+    declareConfigKey(config, "Renderer", "vSync", "true", false);
     declareConfigKey(config, "Renderer", "fullScreen", "false", false);
     sscanf(getConfigKey(config, "Renderer", "resolution"), "%ux%u@%u",
         &rendinf.win_width, &rendinf.win_height, &rendinf.win_fps);

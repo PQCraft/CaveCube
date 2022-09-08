@@ -30,9 +30,9 @@ $(OBJDIR)/%.mk: $(wildcard $(SRCDIR)/$(NAME)/*.c $(SRCDIR)/$(NAME)/*.h)
 	@$(echoblank) >> $@
 	@$(MAKE) --silent --no-print-directory -C "$(MKSRC)" -f ../../gen.mk NAME="$(subst .mk,,$(subst $(OBJDIR)/,,$@))" ${MKENV} MKRULES=y
 ifndef OS
-	@[ ! -d "$(MKND)" ] && echo Creating $(MKND)... && mkdir "$(MKND)"; true
+	@[ ! -d "$(MKND)" ] && echo Creating $(MKND)... && mkdir -p "$(MKND)"; true
 else
-	@if not exist "$(MKND)" echo Creating $(MKND)... & mkdir "$(MKND)"
+	@if not exist "$(MKND)" echo Creating $(MKND)... & md "$(subst /,\,$(MKND))"
 endif
 endif
 

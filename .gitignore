@@ -1,6 +1,6 @@
 *
-!docs/
-!docs/**
+!extras/
+!extras/**
 !resources/
 !resources/**
 !src/
