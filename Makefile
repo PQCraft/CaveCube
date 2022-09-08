@@ -3,15 +3,18 @@ ifndef OS
         CC ?= gcc
         STRIP ?= strip
         OBJCOPY ?= objcopy
+        WINDRES ?= true
     else
         CC = x86_64-w64-mingw32-gcc
         STRIP = x86_64-w64-mingw32-strip
         OBJCOPY = x86_64-w64-mingw32-objcopy
+        WINDRES = x86_64-w64-mingw32-windres
     endif
 else
     CC = gcc
     STRIP = strip
     OBJCOPY = objcopy
+    WINDRES = windres
 endif
 
 ifdef WIN32
@@ -24,18 +27,16 @@ endif
 
 SRCDIR ?= src
 ifndef OS
-    ifndef SERVER
-        OBJDIR ?= obj
-    else
-        OBJDIR ?= srvobj
-    endif
+    PLATFORM := nix
 else
-    ifndef SERVER
-        OBJDIR ?= winobj
-    else
-        OBJDIR ?= winsrvobj
-    endif
+    PLATFORM := win
 endif
+ifndef SERVER
+    MODULE := game
+else
+    MODULE := server
+endif
+OBJDIR ?= obj/$(MODULE)/$(PLATFORM)
 
 SRCDIR := $(patsubst %/,%,$(SRCDIR))
 OBJDIR := $(patsubst %/,%,$(OBJDIR))
@@ -62,9 +63,15 @@ BIN := $(BINNAME)$(BINEXT)
 CFLAGS += -Wall -Wextra -O2
 ifdef DEBUG
     CFLAGS += -g -DDEBUG=$(DEBUG)
+    ifdef OS
+        WRFLAGS += -DDEBUG=$(DEBUG)
+    endif
 endif
 ifdef SERVER
     CFLAGS += -DSERVER
+    ifdef OS
+        WRFLAGS += -DSERVER
+    endif
 endif
 
 BINFLAGS += -lm
@@ -75,9 +82,15 @@ else
 endif
 ifdef USEGLES
     CFLAGS += -DUSEGLES
+    ifdef OS
+        WRFLAGS += -DUSEGLES
+    endif
 endif
 ifdef USESDL2
     CFLAGS += -DUSESDL2
+    ifdef OS
+        WRFLAGS += -DUSESDL2
+    endif
     BINFLAGS += -lSDL2
 else
     ifndef OS
@@ -116,6 +129,10 @@ endif
 
 GENSENT = $(OBJDIR)/.mkgen
 
+ifdef OS
+    WIN32=y
+endif
+
 ifndef OS
 define null
 @echo > /dev/null
@@ -128,11 +145,11 @@ endif
 
 ifndef OS
 define mkdir
-@[ ! -d "$@" ] && echo Creating $@... && mkdir "$@"; true
+@[ ! -d "$@" ] && echo Creating $@... && mkdir -p "$@"; true
 endef
 else
 define mkdir
-@if not exist "$@" echo Creating $@... & mkdir "$@"
+@if not exist "$@" echo Creating $@... & md "$(subst /,\,$@)"
 endef
 endif
 
@@ -200,7 +217,12 @@ $(BIN):
 else
 $(BIN): $(wildcard $(OBJDIR)/*/*.o)
 	@echo Building $@...
+ifdef WIN32
+	@$(WINDRES) $(WRFLAGS) -DORIG_NAME="$(BIN)" -DINT_NAME="$(BINNAME)" src/cavecube.rc -o $(OBJDIR)/rc.o
+	@$(CC) $^ $(OBJDIR)/rc.o $(BINFLAGS) -o $@
+else
 	@$(CC) $^ $(BINFLAGS) -o $@
+endif
 ifndef DEBUG
 	@$(STRIP) --strip-all $@
 	@$(OBJCOPY) -w --remove-section ".note*" $@

@@ -4,6 +4,7 @@
 #include "game.h"
 #include "chunk.h"
 #include "blocks.h"
+#include <main/version.h>
 #include <common/common.h>
 #include <common/resource.h>
 #include <renderer/renderer.h>

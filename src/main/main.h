@@ -1,9 +1,7 @@
 #ifndef MAIN_MAIN_H
 #define MAIN_MAIN_H
 
-#define VER_MAJOR 0
-#define VER_MINOR 3
-#define VER_PATCH 0
+#include "main.h"
 
 #include <common/config.h>
 

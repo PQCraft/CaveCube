@@ -3,6 +3,7 @@
 #endif
 
 #include "main.h"
+#include "version.h"
 #include <game/game.h>
 #include <game/blocks.h>
 #include <common/common.h>
@@ -70,7 +71,7 @@ static void commonSetup() {
     if (!altchdir(maindir)) exit(1);
     #ifdef _WIN32
     declareConfigKey(config, "Main", "showConsole", SC_VAL, false);
-    showcon = getBool(getConfigKey(config, "showConsole"));
+    showcon = getBool(getConfigKey(config, "Main", "showConsole"));
     #endif
     initResource();
     initBlocks();
@@ -132,7 +133,7 @@ int main(int _argc, char** _argv) {
                 mkdir(tmpdn);
                 break;
             case 1:;
-                fprintf(stderr, "'%s' is not a directory", tmpdn);
+                fprintf(stderr, "'%s' is not a directory\n", tmpdn);
                 return 1;
                 break;
         }
@@ -142,6 +143,7 @@ int main(int _argc, char** _argv) {
     }
     strcpy(configpath, localdir);
     strcat(configpath, "cavecube.cfg");
+    bool chconfig = false;
     #else
     strcpy(configpath, "ccserver.cfg");
     #endif
@@ -199,33 +201,52 @@ int main(int _argc, char** _argv) {
                 return 1;
             } else if (!servopt && !strcmp(name, "help")) {
                 if (val || getNextArg(argv[i + 1]) != -1) {ARG_INVALSYN(); return 1;}
+                printf("SYNTAX: %s [-[OPTION] [VARIABLE]...]...\n", argv[0]);
+                puts("OPTIONS AND VARIABLES:");
+                puts("    help - Shows the help text.");
+                puts("    version - Shows the version information.");
+                puts("    config[=FILE] - Changes the configuration file to FILE.");
+                #ifndef SERVER
+                puts("    world[=NAME] - Starts a local game on the world named NAME.");
+                puts("        {w|world}=NAME - Sets the world name to start to NAME.");
+                puts("        {pl|players}=AMOUNT - Changes the maximum amount of players to AMOUNT.");
+                puts("        {l|lan}[=BOOL] - Broadcasts the game to LAN (true if BOOL is not provided).");
+                puts("    {client|connect} - Connects to a server.");
+                puts("        {a|addr|address}=IP - Server address to connect to (127.0.0.1 if IP is not provided).");
+                puts("        {p|port}=PORT - Server port to connect to (46000 if PORT is not provided).");
+                #endif
+                printf("    server - Starts a server%s.\n", (servopt) ? " (always assumed to be the first option passed)" : "");
+                puts("        {w|world}=NAME - Sets the world name to host to NAME.");
+                puts("        {pl|players}=AMOUNT - Changes the maximum amount of players to AMOUNT.");
+                puts("        {a|addr|address}=IP - Address to start server on (0.0.0.0 if IP is not provided).");
+                puts("        {p|port}=PORT - Port to start server on (46000 if PORT is not provided).");
                 return 0;
             } else if (!servopt && !strcmp(name, "version")) {
                 if (val || getNextArg(argv[i + 1]) != -1) {ARG_INVALSYN(); return 1;}
-                #ifndef SERVER
-                printf("CaveCube");
-                #else
-                printf("CaveCube server");
-                #endif
-                printf(" version %d.%d.%d\n", VER_MAJOR, VER_MINOR, VER_PATCH);
+                printf("%s version %s\n", PROG_NAME, VER_STR);
                 return 0;
             } else if (!servopt && !strcmp(name, "config")) {
                 if (!val || getNextArg(argv[i + 1]) != -1) {ARG_INVALSYN(); return 1;}
                 switch (isFile(val)) {
                     case -1:;
-                        fprintf(stderr, "File '%s' does not exist", val);
+                        fprintf(stderr, "File '%s' does not exist\n", val);
                         return 1;
                         break;
                     case 0:;
-                        fprintf(stderr, "'%s' is not a file", val);
+                        fprintf(stderr, "'%s' is not a file\n", val);
                         return 1;
                         break;
                 }
                 strcpy(configpath, val);
+                #ifndef SERVER
+                chconfig = true;
+                #endif
+                #if DBGLVL(1)
                 printf("Changed config to '%s'\n", configpath);
+                #endif
             #ifndef SERVER
             } else if (!strcmp(name, "world")) {
-                if (gametype >= 0) {ARG_INVALSYN(); return 1;}
+                if (gametype >= 0 && gametype != 0) {ARG_INVALSYN(); return 1;}
                 gametype = 0;
                 if (val) loc_opt.world = val;
                 ++i;
@@ -239,7 +260,7 @@ int main(int _argc, char** _argv) {
                 }
                 --i;
             } else if (!strcmp(name, "client") || !strcmp(name, "connect")) {
-                if (val || gametype >= 0) {ARG_INVALSYN(); return 1;}
+                if (val || (gametype >= 0 && gametype != 1)) {ARG_INVALSYN(); return 1;}
                 gametype = 1;
                 ++i;
                 while ((nlen = getNextArg(argv[i])) != -1) {
@@ -254,7 +275,7 @@ int main(int _argc, char** _argv) {
             } else if (servopt || !strcmp(name, "server")) {
                 if (val) {ARG_INVALSYN(); return 1;}
                 #ifndef SERVER
-                if (gametype >= 0) {ARG_INVALSYN(); return 1;}
+                if (gametype >= 0 && gametype != 2) {ARG_INVALSYN(); return 1;}
                 gametype = 2;
                 #endif
                 if (!servopt) ++i;
@@ -346,7 +367,7 @@ int main(int _argc, char** _argv) {
     #endif
     #ifndef SERVER
     if (!altchdir(startdir)) return 1;
-    if (config->changed) if (!writeConfig(config, configpath)) return 1;
+    if (!chconfig && config->changed) if (!writeConfig(config, configpath)) return 1;
     #endif
     closeConfig(config);
     free(maindir);

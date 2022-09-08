@@ -18,11 +18,11 @@ endef
 
 ifndef OS
 define mkdir
-@[ ! -d "$@" ] && echo Creating $@... && mkdir "$@"; true
+@[ ! -d "$@" ] && echo Creating $@... && mkdir -p "$@"; true
 endef
 else
 define mkdir
-@if not exist "$@" echo Creating $@... & mkdir "$@"
+@if not exist "$@" echo Creating $@... & md "$(subst /,\,$@)"
 endef
 endif
 

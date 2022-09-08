@@ -30,9 +30,9 @@ _exit() {
 }
 
 tsk "Getting info..."
-VER_MAJOR="$(grep '#define VER_MAJOR ' src/main/main.h | sed 's/#define .* //')"
-VER_MINOR="$(grep '#define VER_MINOR ' src/main/main.h | sed 's/#define .* //')"
-VER_PATCH="$(grep '#define VER_PATCH ' src/main/main.h | sed 's/#define .* //')"
+VER_MAJOR="$(grep '#define VER_MAJOR ' src/main/version.h | sed 's/#define .* //')"
+VER_MINOR="$(grep '#define VER_MINOR ' src/main/version.h | sed 's/#define .* //')"
+VER_PATCH="$(grep '#define VER_PATCH ' src/main/version.h | sed 's/#define .* //')"
 VER="${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}"
 printf "${I} ${TB}Version:${TR} [%s]\n" "${VER}"
 RELTEXT="$(sed -n '/DONE/,$p' .progress.txt | tail -n +2)"
@@ -91,7 +91,7 @@ buildrel "server" "Linux" SERVER=y
 pkgrel() { _zip "cavecube-server-windows.zip" ccserver.exe; }
 buildrel "server" "Windows" SERVER=y WIN32=y
 inf "Making cavecube-data.zip..."
-_zip "cavecube-data.zip" docs/ resources/
+_zip "cavecube-data.zip" extras/ resources/
 pause
 
 tsk "Pushing..."
