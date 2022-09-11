@@ -21,6 +21,8 @@
 #endif
 
 int fps;
+int realfps;
+bool showDebugInfo = false;
 coord_3d_dbl pcoord;
 coord_3d pvelocity;
 int64_t pchunkx, pchunky, pchunkz;
@@ -195,8 +197,11 @@ static inline coord_3d_dbl icoord2wcoord(coord_3d cam, int64_t cx, int64_t cz) {
     return ret;
 }
 
+static pthread_mutex_t gfxlock = PTHREAD_MUTEX_INITIALIZER;
 static bool ping = false;
 static int compat = 0;
+static bool setskycolor = false;
+static color newskycolor;
 
 static void handleServer(int msg, void* _data) {
     //printf("Recieved [%d] from server\n", msg);
@@ -217,6 +222,15 @@ static void handleServer(int msg, void* _data) {
         case SERVER_UPDATECHUNK:; {
             struct server_data_updatechunk* data = _data;
             writeChunk(&chunks, data->x, data->z, data->data);
+            break;
+        }
+        case SERVER_SETSKYCOLOR:; {
+            struct server_data_setskycolor* data = _data;
+            //printf("set sky color to [#%02x%02x%02x]\n", data->r, data->g, data->b);
+            pthread_mutex_lock(&gfxlock);
+            newskycolor = (color){(float)data->r / 255.0, (float)data->g / 255.0, (float)data->b / 255.0};
+            setskycolor = true;
+            pthread_mutex_unlock(&gfxlock);
             break;
         }
     }
@@ -266,6 +280,8 @@ bool doGame(char* addr, int port) {
     int64_t cx = 0;
     int64_t cz = 0;
     //genChunks(&chunks, cx, cz);
+    double fpstime = 0;
+    double lowframe = 1000000.0 / (double)rendinf.disphz;
     uint64_t fpsstarttime2 = altutime();
     uint64_t ptime = fpsstarttime2;
     uint64_t dtime = fpsstarttime2;
@@ -285,6 +301,7 @@ bool doGame(char* addr, int port) {
     coord_3d tmpcamrot = {0, 0, 0};
     resetInput();
     setInputMode(INPUT_MODE_GAME);
+    //setSkyColor(0.5, 0.5, 0.5);
     while (!quitRequest) {
         uint64_t st1 = altutime();
         if (loopdelay) microwait(loopdelay);
@@ -309,6 +326,12 @@ bool doGame(char* addr, int port) {
             case INPUT_ACTION_SINGLE_INVOFF_PREV:;
                 --invoff;
                 if (invoff < 0) invoff = 4;
+                break;
+            case INPUT_ACTION_SINGLE_FULLSCR:;
+                setFullscreen(!rendinf.fullscr);
+                break;
+            case INPUT_ACTION_SINGLE_DEBUG:;
+                showDebugInfo = !showDebugInfo;
                 break;
         }
         bool crouch = false;
@@ -492,17 +515,27 @@ bool doGame(char* addr, int port) {
         if ((!rendinf.vsync && !rendinf.fps) || !rendinf.fps || (altutime() - fpsstarttime2) >= rendtime / rendinf.fps) {
             //puts("render");
             if (curbdata.id == 7) {
-                setSpace(SPACE_UNDERWATER);
+                setVisibility(-7, 0.85);
+                setScreenMult(0.4, 0.55, 0.8);
             } else {
-                setSpace(SPACE_NORMAL);
-                //setSpace(SPACE_UNDERWORLD);
+                setVisibility(3, 1);
+                setScreenMult(1, 1, 1);
             }
+            pthread_mutex_lock(&gfxlock);
+            if (setskycolor) {
+                setSkyColor(newskycolor.r, newskycolor.g, newskycolor.b);
+                setskycolor = false;
+            }
+            pthread_mutex_unlock(&gfxlock);
             if (crouch) rendinf.campos.y -= 0.375;
             updateCam();
             updateChunks();
             if (crouch) rendinf.campos.y += 0.375;
             render();
             updateScreen();
+            double tmp = (double)(altutime() - fpsstarttime2);
+            fpstime += tmp;
+            if (tmp > lowframe) lowframe = tmp;
             fpsstarttime2 = altutime();
             ++fpsct;
         }
@@ -517,17 +550,22 @@ bool doGame(char* addr, int port) {
         if (pchunky < 0) pchunky = 0;
         if (pchunky > 15) pchunky = 15;
         uint64_t curtime = altutime();
-        if (curtime - fpsstarttime >= 1000000) {
+        if (curtime - fpsstarttime >= 250000) {
             #ifdef SHOWFPS
             printf("Rendered [%d] frames in %f seconds with a goal of [%d] frames in 1.000000 seconds.\n", fpsct, (float)(curtime - fpsstarttime) / 1000000.0, rendinf.fps);
             #endif
-            fps = fpsct;
+            fps = round(1000000.0 / (double)((fpstime / (double)fpsct)));
+            realfps = round(1000000.0 / (double)lowframe);
             fpsstarttime = curtime;
+            /*
             if (rendinf.fps) {
-                if (rendtime > 500000 && fpsct < (int)rendinf.fps) rendtime -= 10000;
-                if (rendtime < 1000000 && fpsct > (int)rendinf.fps + 5) rendtime += 10000;
+                if (rendtime > 50000 && fpsct < (int)rendinf.fps) rendtime -= 100000;
+                if (rendtime < 100000 && fpsct > (int)rendinf.fps + 5) rendtime += 100000;
             }
+            */
             fpsct = 0;
+            fpstime = 0;
+            lowframe = 1000000.0 / (double)rendinf.disphz;
         }
         fpsmult = (double)((uint64_t)altutime() - (uint64_t)st1) / 1000000.0;
         pmult = posmult * fpsmult;

@@ -39,75 +39,6 @@ RELTEXT="$(sed -n '/DONE/,$p' .progress.txt | tail -n +2)"
 printf "${I} ${TB}Release text:${TR}\n%s\n${TB}EOF${TR}\n" "${RELTEXT}"
 pause
 
-tsk "Building..."
-NJOBS=""
-#NJOBS="$(nproc)"
-rm -rf cavecube*.tar.gz cavecube*.zip
-_tar() { rm -f "${1}"; tar -zc -f "${1}" ${@:2} 1> /dev/null; }
-_zip() { rm -f "${1}"; zip -r -9 "${1}" ${@:2} 1> /dev/null; }
-buildrel() {
-    local TYPE="${1}"
-    local OS="${2}"
-    inf "Building ${TYPE} for ${OS}..."
-    make ${@:3} clean 1> /dev/null || _exit
-    RESPONSE=""
-    while ! make ${@:3} "-j${NJOBS}" 1> /dev/null; do
-    #while ! (exit 1); do
-        while [[ -z "${RESPONSE}" ]]; do
-            ask "${TB}Build failed. Retry?${TR} (${TB}Y${TR}es/${TB}N${TR}o/${TB}C${TR}lean): "
-            case "${RESPONSE,,}" in
-                y | yes)
-                    break
-                    ;;
-                n | no)
-                    break
-                    ;;
-                c | clean)
-                    make ${@:3} clean 1> /dev/null || _exit
-                    ;;
-                *)
-                    RESPONSE=""
-                    ;;
-            esac
-        done
-        case "${RESPONSE,,}" in
-            n | no)
-                break
-                ;;
-            *)
-                RESPONSE=""
-                ;;
-        esac
-    done
-    pkgrel || _exit
-    make ${@:3} clean 1> /dev/null || _exit
-}
-pkgrel() { _tar "cavecube-linux.tar.gz" cavecube; }
-buildrel "game" "Linux"
-pkgrel() { _zip "cavecube-windows.zip" cavecube.exe; }
-buildrel "game" "Windows" WIN32=y
-pkgrel() { _tar "cavecube-server-linux.tar.gz" ccserver; }
-buildrel "server" "Linux" SERVER=y
-pkgrel() { _zip "cavecube-server-windows.zip" ccserver.exe; }
-buildrel "server" "Windows" SERVER=y WIN32=y
-inf "Making cavecube-data.zip..."
-_zip "cavecube-data.zip" extras/ resources/
-pause
-
-tsk "Pushing..."
-git add . || _exit
-git commit -S -m "${VER}" -m "${RELTEXT}" || _exit
-git push || _exit
-
-tsk "Making release..."
-git tag -s "${VER}" -m "${RELTEXT}" || _exit
-git push --tags || _exit
-gh release create "${VER}" --title "${VER}" --notes "${RELTEXT}" cavecube*.tar.gz cavecube*.zip || _exit
-git checkout master || _exit
-git merge dev || _exit
-git push || _exit
-git checkout dev || _exit
-
 tsk "Updating AUR..."
 updatepkg() {
     inf "Updating ${1}..."
@@ -124,9 +55,6 @@ updatepkg() {
 }
 updatepkg cavecube
 updatepkg cavecube-bin
-
-tsk "Cleaning up..."
-rm -rf cavecube*.tar.gz cavecube*.zip
 
 tsk "Done"
 exit

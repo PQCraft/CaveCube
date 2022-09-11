@@ -286,6 +286,9 @@ static void* servnetthread(void* args) {
                     pdata[i].cxn = newcxn;
                     memset(&pdata[i].player, 0, sizeof(pdata[i].player));
                     added = true;
+                    struct server_data_setskycolor* tmpdata = malloc(sizeof(*tmpdata));
+                    *tmpdata = (struct server_data_setskycolor){0x8A, 0xC3, 0xFF};
+                    addMsg(&servmsgout, SERVER_SETSKYCOLOR, tmpdata, pdata[i].uuid, i);
                     break;
                 }
             }
@@ -393,6 +396,12 @@ static void* servnetthread(void* args) {
                                     writeToCxnBuf(pdata[i].cxn, &tmpqword, 8);
                                     writeToCxnBuf(pdata[i].cxn, &tmpdata->data, 65536 * sizeof(struct blockdata));
                                     break;
+                                }
+                                case SERVER_SETSKYCOLOR:; {
+                                    struct server_data_setskycolor* tmpdata = msg.data;
+                                    writeToCxnBuf(pdata[i].cxn, &tmpdata->r, 1);
+                                    writeToCxnBuf(pdata[i].cxn, &tmpdata->g, 1);
+                                    writeToCxnBuf(pdata[i].cxn, &tmpdata->b, 1);
                                 }
                             }
                             if (msg.data) free(msg.data);
@@ -517,6 +526,9 @@ static int peekServMsgLen(struct netcxn* cxn) {
                 case SERVER_UPDATECHUNK:; {
                     return 2 + 16 + 65536 * sizeof(struct blockdata);
                 }
+                case SERVER_SETSKYCOLOR:; {
+                    return 2 + 3;
+                }
                 default:; /*has SERVER_PONG*/ {
                     return 2;
                 }
@@ -590,6 +602,14 @@ static void* clinetthread(void* args) {
                             data.z = net2host64(data.z);
                             memcpy(data.data, &buf[ptr], 65536 * sizeof(struct blockdata));
                             callback(SERVER_UPDATECHUNK, &data);
+                            break;
+                        }
+                        case SERVER_SETSKYCOLOR:; {
+                            struct server_data_setskycolor data;
+                            data.r = buf[ptr++];
+                            data.g = buf[ptr++];
+                            data.b = buf[ptr++];
+                            callback(SERVER_SETSKYCOLOR, &data);
                             break;
                         }
                     }

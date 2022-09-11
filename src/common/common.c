@@ -30,10 +30,12 @@ int getCoreCt() {
         mib[0] = CTL_HW;
         mib[1] = HW_AVAILCPU;
         sysctl(mib, 2, &corect, &len, NULL, 0);
-        return (corect > 0) ? corect : 1;
     #else
-        return sysconf(_SC_NPROCESSORS_ONLN);
+        int corect = sysconf(_SC_NPROCESSORS_ONLN);
     #endif
+    if (corect > MAX_THREADS) corect = MAX_THREADS;
+    if (corect < 1) corect = 1;
+    return corect;
 }
 
 uint64_t altutime() {

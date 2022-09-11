@@ -23,7 +23,4 @@ void main() {
     fragColor.rgb *= light;
     fragColor.rgb *= mcolor;
     fragColor = mix(fragColor, vec4(skycolor, fragColor.a), mixv);
-    float mult = 31;
-    fragColor = floor(fragColor * mult);
-    fragColor /= mult;
 }

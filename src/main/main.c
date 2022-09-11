@@ -223,7 +223,7 @@ int main(int _argc, char** _argv) {
                 return 0;
             } else if (!servopt && !strcmp(name, "version")) {
                 if (val || getNextArg(argv[i + 1]) != -1) {ARG_INVALSYN(); return 1;}
-                printf("%s version %s\n", PROG_NAME, VER_STR);
+                printf("%s version %s\n%s\n", PROG_NAME, VER_STR, BUILD_STR);
                 return 0;
             } else if (!servopt && !strcmp(name, "config")) {
                 if (!val || getNextArg(argv[i + 1]) != -1) {ARG_INVALSYN(); return 1;}
@@ -334,7 +334,6 @@ int main(int _argc, char** _argv) {
             MESHER_THREADS = cores;
             if (!initRenderer()) return 1;
             bool game_ecode = doGame(cli_opt.addr, cli_opt.port);
-            stopServer();
             quitRenderer();
             ret = !game_ecode;
             break;

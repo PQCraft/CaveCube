@@ -174,7 +174,7 @@ struct config* openConfig(char* path) {
                     *tmpsect = 0;
                 }
                 //printf("SECTION: {%s}\n", sect);
-            } else if (lineend > linestart) {
+            } else if (lineend >= linestart) {
                 int namelen = nameend - namestart;
                 char* name = malloc(namelen + 1);
                 {

@@ -20,7 +20,7 @@
 #endif
 
 #ifndef MAX_THREADS
-    #define MAX_THREADS 256
+    #define MAX_THREADS 32
 #endif
 
 extern CONFIG* config;

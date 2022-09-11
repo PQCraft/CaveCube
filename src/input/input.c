@@ -79,6 +79,7 @@ input_keys input_sa[INPUT_ACTION_SINGLE__MAX] = {
     KEY('k', 'b', SDL_SCANCODE_LEFTBRACKET,  'm', 'w', _SDL_SCROLL_DOWN),
     KEY('k', 'b', SDL_SCANCODE_EQUAL,        0, 0, 0),
     KEY('k', 'b', SDL_SCANCODE_MINUS,        0, 0, 0),
+    KEY('k', 'b', SDL_SCANCODE_F11,          0, 0, 0),
     KEY('k', 'b', SDL_SCANCODE_F3,           0, 0, 0),
     #else
     KEY('k', 'b', GLFW_KEY_ESCAPE,        0, 0, 0),
@@ -97,6 +98,7 @@ input_keys input_sa[INPUT_ACTION_SINGLE__MAX] = {
     KEY('k', 'b', GLFW_KEY_LEFT_BRACKET,  'm', 'w', _GLFW_SCROLL_DOWN),
     KEY('k', 'b', GLFW_KEY_EQUAL,         0, 0, 0),
     KEY('k', 'b', GLFW_KEY_MINUS,         0, 0, 0),
+    KEY('k', 'b', GLFW_KEY_F11,           0, 0, 0),
     KEY('k', 'b', GLFW_KEY_F3,            0, 0, 0),
     #endif
 };
@@ -105,10 +107,12 @@ input_keys input_ui[] = {
     KEY('k', 'b', SDL_SCANCODE_ESCAPE, 0, 0, 0),
     KEY('m', 'b', SDL_BUTTON(1),       0, 0, 0),
     KEY('m', 'b', SDL_BUTTON(3),       0, 0, 0),
+    KEY('k', 'b', SDL_SCANCODE_F11,    0, 0, 0),
     #else
     KEY('k', 'b', GLFW_KEY_ESCAPE,         0, 0, 0),
     KEY('m', 'b', GLFW_MOUSE_BUTTON_LEFT,  0, 0, 0),
     KEY('m', 'b', GLFW_MOUSE_BUTTON_RIGHT, 0, 0, 0),
+    KEY('k', 'b', GLFW_KEY_F11,            0, 0, 0),
     #endif
 };
 
@@ -207,9 +211,10 @@ void resetInput() {
     #if defined(USESDL2)
     sdlgetmouse(&mxpos, &mypos);
     #else
+    glfwPollEvents();
     glfwGetCursorPos(rendinf.window, &mxpos, &mypos);
     #endif
-    getInput();
+    //getInput();
 }
 
 static int lastsa = INPUT_ACTION_SINGLE__NONE;
@@ -247,6 +252,7 @@ struct input_info getInput() {
             if (inf.focus) {
                 inf.rot_right += mxpos - nmxpos;
                 inf.rot_up += mypos - nmypos;
+                //printf("[%lf, %lf] ([%lf, %lf] [%lf, %lf])\n", inf.rot_right, inf.rot_up, mxpos, mypos, nmxpos, nmypos);
                 mxpos = nmxpos;
                 mypos = nmypos;
             }
