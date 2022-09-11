@@ -29,9 +29,9 @@ void main() {
     light.g = float((data2 >> 24) & uint(15)) / 15.0;
     light.b = float((data2 >> 20) & uint(15)) / 15.0;
     vec4 newFragPos = projection * view * vec4(fragPos, 1.0);
-    newFragPos.xyz /= newFragPos.w * 3;
-    float mult = 256;
-    newFragPos.xy = floor(mult * newFragPos.xy) / mult;
-    newFragPos.xyz *= newFragPos.w * 3;
+    newFragPos.xyz /= newFragPos.w * 2;
+    newFragPos.x = floor(newFragPos.x * 384.0) / 384.0;
+    newFragPos.y = floor(newFragPos.y * 240.0) / 240.0;
+    newFragPos.xyz *= newFragPos.w * 2;
     gl_Position = newFragPos;
 }

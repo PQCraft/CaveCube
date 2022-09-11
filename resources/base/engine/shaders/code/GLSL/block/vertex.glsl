@@ -8,7 +8,6 @@ uniform mat4 view;
 uniform mat4 projection;
 uniform vec2 ccoord;
 uniform uint aniMult;
-uniform float texmapdiv;
 
 out vec2 texCoord;
 out vec3 fragPos;

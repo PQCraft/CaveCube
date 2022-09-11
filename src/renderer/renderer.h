@@ -48,6 +48,8 @@ struct renderer_info {
     unsigned full_width;
     unsigned full_height;
     unsigned full_fps;
+    unsigned disp_width;
+    unsigned disp_height;
     unsigned disphz;
     unsigned width;
     unsigned height;
@@ -64,8 +66,8 @@ struct renderer_info {
     coord_3d campos;
     coord_3d camrot;
     float camfov;
-    float near;
-    float far;
+    float camnear;
+    float camfar;
     float aspect;
     GLuint shaderprog;
 };
@@ -134,7 +136,8 @@ void setMeshChunkOff(int64_t, int64_t);
 void render(void);
 void setSkyColor(float, float, float);
 void setScreenMult(float, float, float);
-void setSpace(int);
+void setVisibility(int, float);
+void setFullscreen(bool);
 #if defined(USESDL2)
 void sdlreszevent(int, int);
 #endif

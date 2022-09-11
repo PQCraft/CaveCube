@@ -29,7 +29,10 @@ int MESHER_THREADS_MAX = 2;
 struct renderer_info rendinf;
 //static resdata_bmd* blockmodel;
 
-static pthread_mutex_t gllock;
+static GLuint shader_block;
+static GLuint shader_2d;
+static GLuint shader_text;
+static GLuint shader_framebuffer;
 
 static void setMat4(GLuint prog, char* name, mat4 val) {
     glUniformMatrix4fv(glGetUniformLocation(prog, name), 1, GL_FALSE, *val);
@@ -59,38 +62,24 @@ void setSkyColor(float r, float g, float b) {
     sky.g = g;
     sky.b = b;
     glClearColor(r, g, b, 1);
+    setShaderProg(shader_block);
     setUniform3f(rendinf.shaderprog, "skycolor", (float[]){r, g, b});
+    //setShaderProg(shader_3d);
+    //setUniform3f(rendinf.shaderprog, "skycolor", (float[]){r, g, b});
 }
 
 void setScreenMult(float r, float g, float b) {
+    setShaderProg(shader_framebuffer);
     setUniform3f(rendinf.shaderprog, "mcolor", (float[]){r, g, b});
 }
 
-static int curspace = -1;
-
-void setSpace(int space) {
-    if (space == curspace) return;
-    curspace = space;
-    switch (space) {
-        default:;
-            setSkyColor(0, 0.7, 0.9);
-            //setSkyColor(0, 0.01, 0.025);
-            setScreenMult(1, 1, 1);
-            glUniform1i(glGetUniformLocation(rendinf.shaderprog, "vis"), 3);
-            glUniform1f(glGetUniformLocation(rendinf.shaderprog, "vismul"), 1.0);
-            break;
-        case SPACE_UNDERWATER:;
-            setSkyColor(0, 0.33, 0.75);
-            setScreenMult(0.4, 0.55, 0.8);
-            glUniform1i(glGetUniformLocation(rendinf.shaderprog, "vis"), -7);
-            glUniform1f(glGetUniformLocation(rendinf.shaderprog, "vismul"), 0.85);
-            break;
-        case SPACE_UNDERWORLD:;
-            setSkyColor(0.25, 0, 0.05);
-            setScreenMult(0.9, 0.75, 0.7);
-            glUniform1i(glGetUniformLocation(rendinf.shaderprog, "vis"), -10);
-            glUniform1f(glGetUniformLocation(rendinf.shaderprog, "vismul"), 0.8);
-    }
+void setVisibility(int vis, float vismul) {
+    setShaderProg(shader_block);
+    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "vis"), vis);
+    glUniform1f(glGetUniformLocation(rendinf.shaderprog, "vismul"), vismul);
+    //setShaderProg(shader_3d);
+    //glUniform1i(glGetUniformLocation(rendinf.shaderprog, "vis"), vis);
+    //glUniform1f(glGetUniformLocation(rendinf.shaderprog, "vismul"), vismul);
 }
 
 #define avec2 vec2 __attribute__((aligned (32)))
@@ -192,8 +181,11 @@ void updateCam() {
     if (rendinf.camfov != uc_fov) {uc_fov = rendinf.camfov; uc_uproj = true;}
     if (uc_uproj) {
         glm_mat4_copy((mat4)GLM_MAT4_IDENTITY_INIT, uc_proj);
-        glm_perspective(uc_fov * M_PI / 180.0, uc_asp, rendinf.near, rendinf.far, uc_proj);
+        glm_perspective(uc_fov * M_PI / 180.0, uc_asp, rendinf.camnear, rendinf.camfar, uc_proj);
+        setShaderProg(shader_block);
         setMat4(rendinf.shaderprog, "projection", uc_proj);
+        //setShaderProg(shader_3d);
+        //setMat4(rendinf.shaderprog, "projection", uc_proj);
         uc_uproj = false;
     }
     uc_campos[0] = rendinf.campos.x;
@@ -211,12 +203,15 @@ void updateCam() {
     glm_vec3_rotate(uc_up, uc_rotradz, uc_front);
     glm_mat4_copy((mat4)GLM_MAT4_IDENTITY_INIT, uc_view);
     glm_lookat(uc_campos, uc_direction, uc_up, uc_view);
+    setShaderProg(shader_block);
     setMat4(rendinf.shaderprog, "view", uc_view);
+    //setShaderProg(shader_3d);
+    //setMat4(rendinf.shaderprog, "view", uc_view);
     calcFrust(&frust, (float*)uc_proj, (float*)uc_view);
 }
 
 void setFullscreen(bool fullscreen) {
-    static int winox, winoy = 0;
+    static int winox = -1, winoy = -1;
     if (fullscreen) {
         rendinf.aspect = (float)rendinf.full_width / (float)rendinf.full_height;
         rendinf.width = rendinf.full_width;
@@ -226,7 +221,9 @@ void setFullscreen(bool fullscreen) {
         SDL_GetWindowPosition(rendinf.window, &winox, &winoy);
         SDL_SetWindowFullscreen(rendinf.window, SDL_WINDOW_FULLSCREEN_DESKTOP);
         #else
-        glfwGetWindowPos(rendinf.window, &winox, &winoy);
+        if (!rendinf.fullscr) {
+            glfwGetWindowPos(rendinf.window, &winox, &winoy);
+        }
         glfwSetWindowMonitor(rendinf.window, rendinf.monitor, 0, 0, rendinf.full_width, rendinf.full_height, rendinf.full_fps);
         #endif
         rendinf.fullscr = true;
@@ -366,9 +363,9 @@ void updateScreen() {
 static unsigned VAO;
 static unsigned VBO2D;
 
-static GLuint shader_block;
-static GLuint shader_2d;
-static GLuint shader_text;
+static unsigned FBO;
+static unsigned FBTEX;
+static unsigned DBUF;
 
 struct chunkdata* chunks;
 
@@ -399,6 +396,7 @@ static float vert2D[] = {
 
 static pthread_t pthreads[MAX_THREADS];
 pthread_mutex_t uclock;
+pthread_mutex_t gllock;
 static uint8_t water;
 struct msgdata chunkmsgs;
 
@@ -766,6 +764,12 @@ static resdata_texture* crosshair;
 static uint32_t rendc;
 
 void render() {
+    pthread_mutex_lock(&gllock);
+    setShaderProg(shader_block);
+    glUniform1ui(glGetUniformLocation(rendinf.shaderprog, "aniMult"), (altutime() / 16) % 65536);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glBindFramebuffer(GL_FRAMEBUFFER, FBO);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "dist"), chunks->info.dist);
     setUniform3f(rendinf.shaderprog, "cam", (float[]){rendinf.campos.x, rendinf.campos.y, rendinf.campos.z});
@@ -780,7 +784,6 @@ void render() {
         glVertexAttribIPointer(2, 1, GL_UNSIGNED_INT, 3 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * 2));
         glDrawArrays(GL_TRIANGLES, 0, chunks->renddata[rendc].vcount);
     }
-    glUniform1ui(glGetUniformLocation(rendinf.shaderprog, "aniMult"), (altutime() / 16) % 65536);
     glDisable(GL_CULL_FACE);
     glDepthMask(false);
     for (rendc = 0; rendc < chunks->info.widthsq; ++rendc) {
@@ -812,53 +815,63 @@ void render() {
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
     glDrawArrays(GL_TRIANGLES, 0, 6);
 
-    setShaderProg(shader_text);
-    static uint64_t frames = 0;
-    ++frames;
-    static int toff = 0;
-    if (!tbuf[0][0]) {
-        sprintf(
-            tbuf[0],
-            "CaveCube %d.%d.%d\n"
-            "OpenGL version: %s\n"
-            "GLSL version: %s\n"
-            "Vendor string: %s\n"
-            "Renderer string: %s\n",
-            VER_MAJOR, VER_MINOR, VER_PATCH,
-            glver,
-            glslver,
-            glvend,
-            glrend
-        );
-        toff = strlen(tbuf[0]);
-    }
-    sprintf(
-        &tbuf[0][toff],
-        "FPS: %d\n"
-        "Position: (%lf, %lf, %lf)\n"
-        "Velocity: (%f, %f, %f)\n"
-        "Rotation: (%f, %f, %f)\n"
-        "Block: (%d, %d, %d)\n"
-        "Chunk: (%"PRId64", %"PRId64")\n",
-        fps,
-        pcoord.x, pcoord.y, pcoord.z,
-        pvelocity.x, pvelocity.y, pvelocity.z,
-        rendinf.camrot.x, rendinf.camrot.y, rendinf.camrot.z,
-        pblockx, pblocky, pblockz,
-        pchunkx, pchunkz
-    );
-    renderText(0, 0, 1, rendinf.width, tbuf[0], NULL);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    setShaderProg(shader_framebuffer);
+    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
 
-    setShaderProg(shader_block);
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
+    setShaderProg(shader_text);
+    if (showDebugInfo) {
+        static int toff = 0;
+        if (!tbuf[0][0]) {
+            sprintf(
+                tbuf[0],
+                "CaveCube %d.%d.%d\n"
+                "OpenGL version: %s\n"
+                "GLSL version: %s\n"
+                "Vendor string: %s\n"
+                "Renderer string: %s\n",
+                VER_MAJOR, VER_MINOR, VER_PATCH,
+                glver,
+                glslver,
+                glvend,
+                glrend
+            );
+            toff = strlen(tbuf[0]);
+        }
+        sprintf(
+            &tbuf[0][toff],
+            "FPS: %d (%d)\n"
+            "Position: (%lf, %lf, %lf)\n"
+            "Velocity: (%f, %f, %f)\n"
+            "Rotation: (%f, %f, %f)\n"
+            "Block: (%d, %d, %d)\n"
+            "Chunk: (%"PRId64", %"PRId64")\n",
+            fps, realfps,
+            pcoord.x, pcoord.y, pcoord.z,
+            pvelocity.x, pvelocity.y, pvelocity.z,
+            rendinf.camrot.x, rendinf.camrot.y, rendinf.camrot.z,
+            pblockx, pblocky, pblockz,
+            pchunkx, pchunkz
+        );
+        renderText(0, 0, 1, rendinf.width, tbuf[0], NULL);
+    }
+    pthread_mutex_unlock(&gllock);
 }
 
 static void winch(int w, int h) {
-    rendinf.win_width = w;
-    rendinf.win_height = h;
+    resetInput();
+    if (!rendinf.fullscr) {
+        rendinf.win_width = w;
+        rendinf.win_height = h;
+    }
     setFullscreen(rendinf.fullscr);
     pthread_mutex_lock(&gllock);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, FBTEX);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, rendinf.width, rendinf.height, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+    glBindRenderbuffer(GL_RENDERBUFFER, DBUF);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, rendinf.width, rendinf.height);
     glViewport(0, 0, rendinf.width, rendinf.height);
     pthread_mutex_unlock(&gllock);
 }
@@ -901,8 +914,8 @@ bool initRenderer() {
     #endif
 
     rendinf.camfov = 85;
-    rendinf.near = 0.05;
-    rendinf.far = 1024.0;
+    rendinf.camnear = 0.05;
+    rendinf.camfar = 1000;
     rendinf.campos = GFX_DEFAULT_POS;
     rendinf.camrot = GFX_DEFAULT_ROT;
     //rendinf.camrot.y = 180;
@@ -956,16 +969,19 @@ bool initRenderer() {
         return false;
     }
     const GLFWvidmode* vmode = glfwGetVideoMode(rendinf.monitor);
-    rendinf.full_width = vmode->width;
-    rendinf.full_height = vmode->height;
+    rendinf.disp_width = vmode->width;
+    rendinf.disp_height = vmode->height;
     rendinf.disphz = vmode->refreshRate;
     rendinf.win_fps = rendinf.disphz;
     #endif
 
     declareConfigKey(config, "Renderer", "resolution", "1024x768", false);
-    declareConfigKey(config, "Renderer", "fullScreenRes", "0x0", false);
+    declareConfigKey(config, "Renderer", "fullScreenRes", "", false);
     declareConfigKey(config, "Renderer", "vSync", "true", false);
     declareConfigKey(config, "Renderer", "fullScreen", "false", false);
+    declareConfigKey(config, "Renderer", "FOV", "85", false);
+    declareConfigKey(config, "Renderer", "nearPlane", "0.05", false);
+    declareConfigKey(config, "Renderer", "farPlane", "2500", false);
     sscanf(getConfigKey(config, "Renderer", "resolution"), "%ux%u@%u",
         &rendinf.win_width, &rendinf.win_height, &rendinf.win_fps);
     if (!rendinf.win_width || rendinf.win_width > 32767) rendinf.win_width = 1024;
@@ -973,8 +989,13 @@ bool initRenderer() {
     rendinf.full_fps = rendinf.win_fps;
     sscanf(getConfigKey(config, "Renderer", "fullScreenRes"), "%ux%u@%u",
         &rendinf.full_width, &rendinf.full_height, &rendinf.full_fps);
+    if (!rendinf.full_width || rendinf.full_width > 32767) rendinf.full_width = rendinf.disp_width;
+    if (!rendinf.full_height || rendinf.full_height > 32767) rendinf.full_height = rendinf.disp_height;
     rendinf.vsync = getBool(getConfigKey(config, "Renderer", "vSync"));
     rendinf.fullscr = getBool(getConfigKey(config, "Renderer", "fullScreen"));
+    rendinf.camfov = atof(getConfigKey(config, "Renderer", "FOV"));
+    rendinf.camnear = atof(getConfigKey(config, "Renderer", "nearPlane"));
+    rendinf.camfar = atof(getConfigKey(config, "Renderer", "farPlane"));
 
     #if defined(USESDL2)
     if (!(rendinf.window = SDL_CreateWindow("CaveCube", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, rendinf.win_width, rendinf.win_height, SDL_WINDOW_OPENGL))) {
@@ -1048,6 +1069,14 @@ bool initRenderer() {
     }
     freeResource(vs);
     freeResource(fs);
+    vs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/framebuffer/vertex.glsl");
+    fs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/framebuffer/fragment.glsl");
+    if (!vs || !fs || !makeShaderProg((char*)hdr->data, (char*)vs->data, (char*)fs->data, &shader_framebuffer)) {
+        fputs("initRenderer: Failed to compile framebuffer shader\n", stderr);
+        return false;
+    }
+    freeResource(vs);
+    freeResource(fs);
 
     printf("Windowed resolution: [%ux%u@%d]\n", rendinf.win_width, rendinf.win_height, rendinf.win_fps);
     printf("Fullscreen resolution: [%ux%u@%d]\n", rendinf.full_width, rendinf.full_height, rendinf.full_fps);
@@ -1061,13 +1090,13 @@ bool initRenderer() {
     glrend = glGetString(GL_RENDERER);
     printf("Renderer string: %s\n", glrend);
 
-    setShaderProg(shader_block);
     #if defined(USESDL2)
     #else
     glfwSetFramebufferSizeCallback(rendinf.window, fbsize);
     #endif
     setFullscreen(rendinf.fullscr);
 
+    setShaderProg(shader_block);
     glViewport(0, 0, rendinf.width, rendinf.height);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
@@ -1088,7 +1117,25 @@ bool initRenderer() {
     //glCullFace(GL_FRONT);
     glFrontFace(GL_CW);
 
+    glGenRenderbuffers(1, &DBUF);
+    glBindRenderbuffer(GL_RENDERBUFFER, DBUF);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, rendinf.width, rendinf.height);
+
+    setShaderProg(shader_framebuffer);
     glActiveTexture(GL_TEXTURE0);
+    glGenFramebuffers(1, &FBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, DBUF);
+    glGenTextures(1, &FBTEX);
+    glBindTexture(GL_TEXTURE_2D, FBTEX);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, rendinf.width, rendinf.height, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, FBTEX, 0);
+    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), 0);
+    setUniform3f(rendinf.shaderprog, "mcolor", (float[]){1.0, 1.0, 1.0});
+
+    glActiveTexture(GL_TEXTURE1);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, rendinf.width, rendinf.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -1100,7 +1147,7 @@ bool initRenderer() {
     glfwSwapBuffers(rendinf.window);
     #endif
 
-    glActiveTexture(GL_TEXTURE1);
+    glActiveTexture(GL_TEXTURE2);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, rendinf.width, rendinf.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -1154,14 +1201,14 @@ bool initRenderer() {
             freeResource(img);
         }
     }
+    setShaderProg(shader_block);
     glGenTextures(1, &texmaph);
-    glActiveTexture(GL_TEXTURE2);
+    glActiveTexture(GL_TEXTURE3);
     glBindTexture(GL_TEXTURE_2D_ARRAY, texmaph);
     glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, 16, 16, texmapsize, 0, GL_RGBA, GL_UNSIGNED_BYTE, texmap);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), 2);
-    glUniform1f(glGetUniformLocation(rendinf.shaderprog, "texmapdiv"), texmapsize - 1);
+    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), 3);
     free(texmap);
 
     glGenBuffers(1, &VBO2D);
@@ -1169,26 +1216,26 @@ bool initRenderer() {
     glBufferData(GL_ARRAY_BUFFER, sizeof(vert2D), vert2D, GL_STATIC_DRAW);
 
     setShaderProg(shader_2d);
-    glActiveTexture(GL_TEXTURE3);
+    glActiveTexture(GL_TEXTURE4);
     crosshair = loadResource(RESOURCE_TEXTURE, "game/textures/ui/crosshair.png");
     glBindTexture(GL_TEXTURE_2D, crosshair->data);
-    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), 3);
+    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), 4);
     setUniform4f(rendinf.shaderprog, "mcolor", (float[]){1.0, 1.0, 1.0, 1.0});
 
     setShaderProg(shader_text);
     glGenTextures(1, &charseth);
-    glActiveTexture(GL_TEXTURE4);
+    glActiveTexture(GL_TEXTURE5);
     resdata_image* charset = loadResource(RESOURCE_IMAGE, "game/textures/ui/charset.png");
     glBindTexture(GL_TEXTURE_2D_ARRAY, charseth);
     glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, 8, 16, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, charset->data);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), 4);
+    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), 5);
     setUniform4f(rendinf.shaderprog, "mcolor", (float[]){1.0, 1.0, 1.0, 1.0});
 
     setShaderProg(shader_block);
 
-    glActiveTexture(GL_TEXTURE3);
+    glActiveTexture(GL_TEXTURE4);
 
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
@@ -1208,7 +1255,7 @@ bool initRenderer() {
 
 void quitRenderer() {
     if (mesheractive) {
-        for (int i = 0; i < MESHER_THREADS && i < MAX_THREADS; ++i) {
+        for (int i = 0; i < MESHER_THREADS && i < MESHER_THREADS_MAX; ++i) {
             pthread_join(pthreads[i], NULL);
         }
     }

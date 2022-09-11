@@ -32,6 +32,7 @@ enum {
     SERVER_COMPATINFO,
     SERVER_LOGININFO,
     SERVER_UPDATECHUNK,
+    SERVER_SETSKYCOLOR,
     SERVER__MAX,
 };
 
@@ -63,6 +64,12 @@ struct server_data_updatechunk {
     int64_t x;
     int64_t z;
     struct blockdata data[65536];
+};
+
+struct server_data_setskycolor {
+    uint8_t r;
+    uint8_t g;
+    uint8_t b;
 };
 
 struct client_data_compatinfo {
