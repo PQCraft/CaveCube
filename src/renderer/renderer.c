@@ -805,6 +805,10 @@ void renderText(struct rendtext* text) {
     glDrawArrays(GL_TRIANGLES, 0, text->sectdata.vcount);
 }
 
+void freeTextMesh(struct rendtext* text) {
+    free(text);
+}
+
 static char tbuf[1][32768];
 
 const unsigned char* glver;
@@ -834,6 +838,42 @@ void render() {
     glEnable(GL_CULL_FACE);
     glBindFramebuffer(GL_FRAMEBUFFER, FBO);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    struct rendtext* debugtext;
+    if (showDebugInfo) {
+        static int toff = 0;
+        if (!tbuf[0][0]) {
+            sprintf(
+                tbuf[0],
+                PROG_NAME " %d.%d.%d\n"
+                "OpenGL version: %s\n"
+                "GLSL version: %s\n"
+                "Vendor string: %s\n"
+                "Renderer string: %s\n",
+                VER_MAJOR, VER_MINOR, VER_PATCH,
+                glver,
+                glslver,
+                glvend,
+                glrend
+            );
+            toff = strlen(tbuf[0]);
+        }
+        sprintf(
+            &tbuf[0][toff],
+            "FPS: %d (%d)\n"
+            "Position: (%lf, %lf, %lf)\n"
+            "Velocity: (%f, %f, %f)\n"
+            "Rotation: (%f, %f, %f)\n"
+            "Block: (%d, %d, %d)\n"
+            "Chunk: (%"PRId64", %"PRId64")\n",
+            fps, realfps,
+            pcoord.x, pcoord.y, pcoord.z,
+            pvelocity.x, pvelocity.y, pvelocity.z,
+            rendinf.camrot.x, rendinf.camrot.y, rendinf.camrot.z,
+            pblockx, pblocky, pblockz,
+            pchunkx, pchunkz
+        );
+        debugtext = meshText(0, 0, 1, rendinf.width, tbuf[0], false);
+    }
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "dist"), chunks->info.dist);
     setUniform3f(rendinf.shaderprog, "cam", (float[]){rendinf.campos.x, rendinf.campos.y, rendinf.campos.z});
     for (rendc = 0; rendc < chunks->info.widthsq; ++rendc) {
@@ -885,40 +925,8 @@ void render() {
 
     setShaderProg(shader_text);
     if (showDebugInfo) {
-        static int toff = 0;
-        if (!tbuf[0][0]) {
-            sprintf(
-                tbuf[0],
-                PROG_NAME " %d.%d.%d\n"
-                "OpenGL version: %s\n"
-                "GLSL version: %s\n"
-                "Vendor string: %s\n"
-                "Renderer string: %s\n",
-                VER_MAJOR, VER_MINOR, VER_PATCH,
-                glver,
-                glslver,
-                glvend,
-                glrend
-            );
-            toff = strlen(tbuf[0]);
-        }
-        sprintf(
-            &tbuf[0][toff],
-            "FPS: %d (%d)\n"
-            "Position: (%lf, %lf, %lf)\n"
-            "Velocity: (%f, %f, %f)\n"
-            "Rotation: (%f, %f, %f)\n"
-            "Block: (%d, %d, %d)\n"
-            "Chunk: (%"PRId64", %"PRId64")\n",
-            fps, realfps,
-            pcoord.x, pcoord.y, pcoord.z,
-            pvelocity.x, pvelocity.y, pvelocity.z,
-            rendinf.camrot.x, rendinf.camrot.y, rendinf.camrot.z,
-            pblockx, pblocky, pblockz,
-            pchunkx, pchunkz
-        );
-        struct rendtext* text = meshText(0, 0, 1, rendinf.width, tbuf[0], false);
-        renderText(text);
+        renderText(debugtext);
+        freeTextMesh(debugtext);
     }
     pthread_mutex_unlock(&gllock);
 }
