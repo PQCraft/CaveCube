@@ -514,12 +514,12 @@ static uint32_t constBlockVert2[6][6] = {
     {0x00000000, 0x000F0200, 0x000FF300, 0x000FF300, 0x0000F100, 0x00000000}, // B
 };
 
-static void mtsetvert(uint32_t** _v, int* s, int* l, uint32_t** v, uint32_t bv) {
-    bool r = false;
-    while (*l >= *s) {*s *= 2; r = true;}
-    if (r) {*_v = realloc(*_v, *s * sizeof(uint32_t)); *v = *_v + *l;}
-    **v = bv;
-    ++*v; ++*l;
+#define mtsetvert(_v, s, l, v, bv) {\
+    bool r = false;\
+    while (*l >= *s) {*s *= 2; r = true;}\
+    if (r) {*_v = realloc(*_v, *s * sizeof(**_v)); *v = *_v + *l;}\
+    **v = bv;\
+    ++*v; ++*l;\
 }
 
 static void* meshthread(void* args) {
@@ -663,7 +663,7 @@ void updateChunks() {
     //uint32_t c2 = 0;
     pthread_mutex_lock(&uclock);
     for (uint32_t c = 0; !quitRequest && c < chunks->info.widthsq; ++c) {
-        if (!chunks->renddata[c].ready) continue;
+        if (!chunks->renddata[c].ready || !chunks->renddata[c].ready) continue;
         //if (c2 >= chunks->info.widthsq) break;
         //++c2;
         uint32_t tmpsize = chunks->renddata[c].vcount * 3 * sizeof(uint32_t);
@@ -721,25 +721,88 @@ void startMesher() {
     }
 }
 
-void renderText(float x, float y, float scale, unsigned end, char* text, void* extinfo) {
-    (void)extinfo;
-    glUniform1f(glGetUniformLocation(rendinf.shaderprog, "xratio"), 8.0 / (float)rendinf.width);
-    glUniform1f(glGetUniformLocation(rendinf.shaderprog, "yratio"), 16.0 / (float)rendinf.height);
-    glUniform1f(glGetUniformLocation(rendinf.shaderprog, "scale"), scale);
-    glUniform4f(glGetUniformLocation(rendinf.shaderprog, "bmcolor"), 0, 0, 0, 0.35);
+struct rendtextsect {
+    color fg;
+    color bg;
+    unsigned vcount;
+    unsigned VBO;
+};
+
+struct rendtext {
+    float fgamult;
+    float bgamult;
+    int sects;
+    //struct rendtextsect* sectdata;
+    struct rendtextsect sectdata;
+};
+
+// data1: [16 bits: x][16 bits: y]
+// data2: [8 bits: char][8 bits: reserved][1 bit: texture x][1 bit: texture y][14: reserved]
+
+static inline uint32_t mtxtgenvert1(int16_t x, int16_t y) {
+    return (x << 16) | y;
+}
+
+static inline uint32_t mtxtgenvert2(uint8_t chr, bool tx, bool ty) {
+    return (chr << 24) | ((tx & 1) << 15) | ((ty & 1) << 14);
+}
+
+struct rendtext* meshText(int x, int y, float scale, unsigned end, char* text, bool fmt) {
+    (void)fmt;
+    struct rendtext* textdata = calloc(1, sizeof(*textdata));
+    textdata->fgamult = 1.0;
+    textdata->bgamult = 0.35;
+    int vpsize = 256;
+    uint32_t* _vptr = malloc(vpsize * sizeof(uint32_t));
+    int vplen = 0;
+    uint32_t* vptr = _vptr;
+    textdata->sectdata.fg = (color){1, 1, 1, 1};
+    textdata->sectdata.bg = (color){0, 0, 0, 1};
     for (int i = 0; *text; ++i) {
         if (*text == '\n') {
             x = 0;
-            y += scale * 16;
+            y += 16;
         } else {
-            glUniform1ui(glGetUniformLocation(rendinf.shaderprog, "chr"), (unsigned char)(*text));
-            glUniform2f(glGetUniformLocation(rendinf.shaderprog, "mpos"), x / (float)rendinf.width, y / (float)rendinf.height);
-            glDrawArrays(GL_TRIANGLES, 0, 6);
-            x += scale * 8;
-            if (x + 8.0 * scale > end) {x = 0; y += scale * 16;}
+            int16_t x1, y1, x2, y2;
+            x1 = round((float)x * scale);
+            y1 = round((float)y * scale);
+            x2 = round((float)(x + 8) * scale);
+            y2 = round((float)(y + 16) * scale);
+            unsigned char chr = (unsigned)*text;
+            mtsetvert(&_vptr, &vpsize, &vplen, &vptr, mtxtgenvert1(x1, y1));
+            mtsetvert(&_vptr, &vpsize, &vplen, &vptr, mtxtgenvert2(chr, 0, 0));
+            mtsetvert(&_vptr, &vpsize, &vplen, &vptr, mtxtgenvert1(x2, y1));
+            mtsetvert(&_vptr, &vpsize, &vplen, &vptr, mtxtgenvert2(chr, 1, 0));
+            mtsetvert(&_vptr, &vpsize, &vplen, &vptr, mtxtgenvert1(x2, y2));
+            mtsetvert(&_vptr, &vpsize, &vplen, &vptr, mtxtgenvert2(chr, 1, 1));
+            mtsetvert(&_vptr, &vpsize, &vplen, &vptr, mtxtgenvert1(x1, y1));
+            mtsetvert(&_vptr, &vpsize, &vplen, &vptr, mtxtgenvert2(chr, 0, 0));
+            mtsetvert(&_vptr, &vpsize, &vplen, &vptr, mtxtgenvert1(x2, y2));
+            mtsetvert(&_vptr, &vpsize, &vplen, &vptr, mtxtgenvert2(chr, 1, 1));
+            mtsetvert(&_vptr, &vpsize, &vplen, &vptr, mtxtgenvert1(x1, y2));
+            mtsetvert(&_vptr, &vpsize, &vplen, &vptr, mtxtgenvert2(chr, 0, 1));
+            x += 8;
+            if ((x + 8.0) * scale > end) {x = 0; y += 16;}
         }
         ++text;
     }
+    if (!textdata->sectdata.VBO) glGenBuffers(1, &textdata->sectdata.VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, textdata->sectdata.VBO);
+    glBufferData(GL_ARRAY_BUFFER, vplen * sizeof(uint32_t), _vptr, GL_STATIC_DRAW);
+    textdata->sectdata.vcount = vplen / 2;
+    free(_vptr);
+    return textdata;
+}
+
+void renderText(struct rendtext* text) {
+    glUniform1f(glGetUniformLocation(rendinf.shaderprog, "xsize"), (float)rendinf.width);
+    glUniform1f(glGetUniformLocation(rendinf.shaderprog, "ysize"), (float)rendinf.height);
+    glUniform4f(glGetUniformLocation(rendinf.shaderprog, "mcolor"), text->sectdata.fg.r, text->sectdata.fg.g, text->sectdata.fg.b, text->sectdata.fg.a * text->fgamult);
+    glUniform4f(glGetUniformLocation(rendinf.shaderprog, "bmcolor"), text->sectdata.bg.r, text->sectdata.bg.g, text->sectdata.bg.b, text->sectdata.bg.a * text->bgamult);
+    glBindBuffer(GL_ARRAY_BUFFER, text->sectdata.VBO);
+    glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 2 * sizeof(uint32_t), (void*)(0));
+    glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 2 * sizeof(uint32_t), (void*)(sizeof(uint32_t)));
+    glDrawArrays(GL_TRIANGLES, 0, text->sectdata.vcount);
 }
 
 static char tbuf[1][32768];
@@ -854,7 +917,8 @@ void render() {
             pblockx, pblocky, pblockz,
             pchunkx, pchunkz
         );
-        renderText(0, 0, 1, rendinf.width, tbuf[0], NULL);
+        struct rendtext* text = meshText(0, 0, 1, rendinf.width, tbuf[0], false);
+        renderText(text);
     }
     pthread_mutex_unlock(&gllock);
 }

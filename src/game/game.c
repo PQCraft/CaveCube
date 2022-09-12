@@ -25,7 +25,7 @@
 
 int fps;
 int realfps;
-bool showDebugInfo = false;
+bool showDebugInfo = true;
 coord_3d_dbl pcoord;
 coord_3d pvelocity;
 int64_t pchunkx, pchunky, pchunkz;
@@ -231,7 +231,7 @@ static void handleServer(int msg, void* _data) {
             struct server_data_setskycolor* data = _data;
             //printf("set sky color to [#%02x%02x%02x]\n", data->r, data->g, data->b);
             pthread_mutex_lock(&gfxlock);
-            newskycolor = (color){(float)data->r / 255.0, (float)data->g / 255.0, (float)data->b / 255.0};
+            newskycolor = (color){(float)data->r / 255.0, (float)data->g / 255.0, (float)data->b / 255.0, 1.0};
             setskycolor = true;
             pthread_mutex_unlock(&gfxlock);
             break;
