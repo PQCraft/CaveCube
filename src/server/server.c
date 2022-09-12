@@ -192,7 +192,7 @@ static void* servthread(void* args) {
                         outdata->ver_minor = VER_MINOR;
                         outdata->ver_patch = VER_PATCH;
                         outdata->flags = SERVER_FLAG_NOAUTH;
-                        outdata->server_str = strdup("CaveCube");
+                        outdata->server_str = strdup(PROG_NAME);
                         addMsg(&servmsgout, SERVER_COMPATINFO, outdata, msg.uuid, msg.uind);
                         break;
                     }

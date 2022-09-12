@@ -15,6 +15,9 @@
 #include <stdlib.h>
 #include <math.h>
 #include <inttypes.h>
+#include <string.h>
+
+#include <common/glue.h>
 
 #ifndef SHOWFPS
     //#define SHOWFPS
@@ -216,7 +219,7 @@ static void handleServer(int msg, void* _data) {
             printf("Server version is %s %d.%d.%d\n", data->server_str, data->ver_major, data->ver_minor, data->ver_patch);
             if (data->flags & SERVER_FLAG_NOAUTH) puts("- No authentication required");
             if (data->flags & SERVER_FLAG_PASSWD) puts("- Password protected");
-            compat = (data->ver_major == VER_MAJOR && data->ver_minor == VER_MINOR && data->ver_patch == VER_PATCH) ? 1 : -1;
+            compat = (!strcasecmp(data->server_str, PROG_NAME) && data->ver_major == VER_MAJOR && data->ver_minor == VER_MINOR && data->ver_patch == VER_PATCH) ? 1 : -1;
             break;
         }
         case SERVER_UPDATECHUNK:; {
@@ -266,7 +269,7 @@ bool doGame(char* addr, int port) {
     if (quitRequest) return false;
     puts("Server responded to ping");
     puts("Exchanging compatibility info...");
-    cliSend(CLIENT_COMPATINFO, VER_MAJOR, VER_MINOR, VER_PATCH, "CaveCube");
+    cliSend(CLIENT_COMPATINFO, VER_MAJOR, VER_MINOR, VER_PATCH, PROG_NAME);
     while (!compat && !quitRequest) {
         getInput();
         microwait(100000);

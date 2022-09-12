@@ -10,10 +10,12 @@
 
 #define VER_STR STR(VER_MAJOR) "." STR(VER_MINOR) "." STR(VER_PATCH)
 
+#define PROG_NAME "CaveCube"
+
 #ifndef SERVER
-    #define PROG_NAME "CaveCube"
+    #define FULL_PROG_NAME PROG_NAME
 #else
-    #define PROG_NAME "CaveCube server"
+    #define FULL_PROG_NAME PROG_NAME " server"
 #endif
 
 #if defined(USESDL2)
