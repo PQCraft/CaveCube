@@ -30,5 +30,4 @@ void main() {
     hsvFrag.y *= (1 + s);
     hsvFrag.z *= (1 + v);
     fragColor.rgb = hsv2rgb(hsvFrag) * mcolor;
-    fragColor.a = 1.0;
 }

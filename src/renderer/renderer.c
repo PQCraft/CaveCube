@@ -24,7 +24,7 @@
 #include "cglm/cglm.h"
 
 int MESHER_THREADS;
-int MESHER_THREADS_MAX = 2;
+int MESHER_THREADS_MAX = 1;
 
 struct renderer_info rendinf;
 //static resdata_bmd* blockmodel;
@@ -568,7 +568,7 @@ static void* meshthread(void* args) {
             uint32_t* vptr = _vptr;
             uint32_t* vptr2 = _vptr2;
             uint32_t* vptr3 = _vptr3;
-            for (int y = 255; y >= 0; --y) {
+            for (int y = 0; y < 256; ++y) {
                 pthread_mutex_lock(&uclock);
                 int64_t nx = (msg.x - cxo) + chunks->info.dist;
                 int64_t nz = chunks->info.width - ((msg.z - czo) + chunks->info.dist) - 1;
@@ -826,7 +826,7 @@ void render() {
         if (!tbuf[0][0]) {
             sprintf(
                 tbuf[0],
-                "CaveCube %d.%d.%d\n"
+                PROG_NAME " %d.%d.%d\n"
                 "OpenGL version: %s\n"
                 "GLSL version: %s\n"
                 "Vendor string: %s\n"
@@ -950,7 +950,7 @@ bool initRenderer() {
     #endif
 
     #if defined(USESDL2)
-    if (!(rendinf.window = SDL_CreateWindow("CaveCube", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 480, SDL_WINDOW_OPENGL))) {
+    if (!(rendinf.window = SDL_CreateWindow(PROG_NAME, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 480, SDL_WINDOW_OPENGL))) {
         sdlerror("initRenderer: Failed to create window");
         return false;
     }
@@ -998,7 +998,7 @@ bool initRenderer() {
     rendinf.camfar = atof(getConfigKey(config, "Renderer", "farPlane"));
 
     #if defined(USESDL2)
-    if (!(rendinf.window = SDL_CreateWindow("CaveCube", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, rendinf.win_width, rendinf.win_height, SDL_WINDOW_OPENGL))) {
+    if (!(rendinf.window = SDL_CreateWindow(PROG_NAME, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, rendinf.win_width, rendinf.win_height, SDL_WINDOW_OPENGL))) {
         sdlerror("initRenderer: Failed to create window");
         return false;
     }
@@ -1009,7 +1009,7 @@ bool initRenderer() {
         return false;
     }
     #else
-    if (!(rendinf.window = glfwCreateWindow(rendinf.win_width, rendinf.win_height, "CaveCube", NULL, NULL))) {
+    if (!(rendinf.window = glfwCreateWindow(rendinf.win_width, rendinf.win_height, PROG_NAME, NULL, NULL))) {
         fputs("initRenderer: Failed to create window\n", stderr);
         return false;
     }

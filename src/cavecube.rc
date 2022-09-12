@@ -6,7 +6,7 @@ PRODUCTVERSION VER_MAJOR,VER_MINOR,VER_PATCH,0
 {
     BLOCK "StringFileInfo" {
         BLOCK "040904E4" {
-            VALUE "ProductName", "CaveCube"
+            VALUE "ProductName", FULL_PROG_NAME
             VALUE "ProductVersion", VER_STR
             VALUE "FileVersion", VER_STR
             VALUE "FileDescription", "An in-development Minecraft/Infiniminer clone"

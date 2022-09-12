@@ -8,7 +8,6 @@ uniform int vis;
 uniform float vismul;
 uniform vec3 cam;
 uniform vec3 skycolor;
-uniform vec3 mcolor;
 
 out vec4 fragColor;
 
@@ -19,8 +18,10 @@ void main() {
     } else {
         discard;
     }
+    float mult = 31;
+    fragColor = floor(fragColor * mult);
+    fragColor /= mult;
     float mixv = clamp((distance(vec3(fragPos.x, fragPos.y, fragPos.z), vec3(cam.x, cam.y, cam.z)) - float(dist) * vismul * float(vis) * 2.0) / (16.0 * float(dist) * vismul - float(dist) * vismul * float(vis) * 2.0), 0.0, 1.0);
     fragColor.rgb *= light;
-    fragColor.rgb *= mcolor;
     fragColor = mix(fragColor, vec4(skycolor, fragColor.a), mixv);
 }
