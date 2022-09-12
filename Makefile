@@ -86,26 +86,27 @@ ifdef USEGLES
         WRFLAGS += -DUSEGLES
     endif
 endif
-ifdef USESDL2
-    CFLAGS += -DUSESDL2
-    ifdef OS
-        WRFLAGS += -DUSESDL2
-    endif
-    BINFLAGS += -lSDL2
-else
-    ifndef OS
-        BINFLAGS += -lglfw
-    else
-        BINFLAGS += -lglfw3
-    endif
-endif
 ifndef SERVER
+    ifdef USESDL2
+        CFLAGS += -DUSESDL2
+        ifdef OS
+            WRFLAGS += -DUSESDL2
+        endif
+        BINFLAGS += -lSDL2
+    else
+        ifndef OS
+            BINFLAGS += -lglfw
+        else
+            BINFLAGS += -lglfw3
+        endif
+    endif
     ifndef OS
-        BINFLAGS += -lX11 -ldl
+        BINFLAGS += -lX11
     else
         BINFLAGS += -lgdi32
     endif
 endif
+BINFLAGS += -ldl
 
 ifdef WIN32
     undefine OS
