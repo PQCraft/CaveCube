@@ -766,9 +766,9 @@ static inline uint32_t mtxtgenvert2(uint8_t chr, bool tx, bool ty) {
     return (chr << 24) | ((tx & 1) << 15) | ((ty & 1) << 14);
 }
 
-struct rendtext* meshText(int x, int y, float scale, unsigned end, char* text, uint8_t fgc, uint8_t bgc, float fam, float bam, bool fmt) {
+struct rendtext* meshText(struct rendtext* textdata, int x, int y, float scale, unsigned end, char* text, uint8_t fgc, uint8_t bgc, float fam, float bam, bool fmt) {
     (void)fmt;
-    struct rendtext* textdata = calloc(1, sizeof(*textdata));
+    if (!textdata) textdata = calloc(1, sizeof(*textdata));
     textdata->fgamult = fam;
     textdata->bgamult = bam;
     int vpsize = 256;
@@ -892,7 +892,7 @@ void render() {
             pblockx, pblocky, pblockz,
             pchunkx, pchunkz
         );
-        debugtext = meshText(0, 0, 1, rendinf.width, tbuf[0], 15, 0, 1, 0.35, false);
+        debugtext = meshText(debugtext, 0, 0, 1, rendinf.width, tbuf[0], 15, 0, 1, 0.35, false);
     }
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "dist"), chunks->info.dist);
     setUniform3f(rendinf.shaderprog, "cam", (float[]){rendinf.campos.x, rendinf.campos.y, rendinf.campos.z});
@@ -946,7 +946,7 @@ void render() {
     setShaderProg(shader_text);
     if (showDebugInfo) {
         renderText(debugtext);
-        freeTextMesh(debugtext);
+        //freeTextMesh(debugtext);
     }
     pthread_mutex_unlock(&gllock);
 }
@@ -1208,6 +1208,7 @@ bool initRenderer() {
     glEnable(GL_CULL_FACE);
     //glCullFace(GL_FRONT);
     glFrontFace(GL_CW);
+    glDisable(GL_MULTISAMPLE);
 
     glGenRenderbuffers(1, &DBUF);
     glBindRenderbuffer(GL_RENDERBUFFER, DBUF);
