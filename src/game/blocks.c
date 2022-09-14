@@ -1,3 +1,4 @@
+#include <main/main.h>
 #include "blocks.h"
 #include <common/common.h>
 #include <common/resource.h>

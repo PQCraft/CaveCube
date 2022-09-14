@@ -1,3 +1,4 @@
+#include <main/main.h>
 #include "worldgen.h"
 #include "blocks.h"
 #include <common/noise.h>

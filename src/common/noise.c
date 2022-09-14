@@ -1,3 +1,4 @@
+#include <main/main.h>
 #include "noise.h"
 #include "common.h"
 
