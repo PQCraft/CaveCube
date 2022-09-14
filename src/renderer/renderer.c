@@ -722,8 +722,8 @@ void startMesher() {
 }
 
 struct rendtextsect {
-    color fg;
-    color bg;
+    color* fg;
+    color* bg;
     unsigned vcount;
     unsigned VBO;
 };
@@ -734,6 +734,25 @@ struct rendtext {
     int sects;
     //struct rendtextsect* sectdata;
     struct rendtextsect sectdata;
+};
+
+color textcolor[16] = {
+    {0x00 / 255.0, 0x00 / 255.0, 0x00 / 255.0, 1},
+    {0x00 / 255.0, 0x00 / 255.0, 0xAA / 255.0, 1},
+    {0x00 / 255.0, 0xAA / 255.0, 0x00 / 255.0, 1},
+    {0x00 / 255.0, 0xAA / 255.0, 0xAA / 255.0, 1},
+    {0xAA / 255.0, 0x00 / 255.0, 0x00 / 255.0, 1},
+    {0xAA / 255.0, 0x00 / 255.0, 0xAA / 255.0, 1},
+    {0xAA / 255.0, 0x55 / 255.0, 0x00 / 255.0, 1},
+    {0xAA / 255.0, 0xAA / 255.0, 0xAA / 255.0, 1},
+    {0x55 / 255.0, 0x55 / 255.0, 0x55 / 255.0, 1},
+    {0x55 / 255.0, 0x55 / 255.0, 0xFF / 255.0, 1},
+    {0x55 / 255.0, 0xFF / 255.0, 0x55 / 255.0, 1},
+    {0x55 / 255.0, 0xFF / 255.0, 0xFF / 255.0, 1},
+    {0xFF / 255.0, 0x55 / 255.0, 0x55 / 255.0, 1},
+    {0xFF / 255.0, 0x55 / 255.0, 0xFF / 255.0, 1},
+    {0xFF / 255.0, 0xFF / 255.0, 0x55 / 255.0, 1},
+    {0xFF / 255.0, 0xFF / 255.0, 0xFF / 255.0, 1},
 };
 
 // data1: [16 bits: x][16 bits: y]
@@ -747,17 +766,17 @@ static inline uint32_t mtxtgenvert2(uint8_t chr, bool tx, bool ty) {
     return (chr << 24) | ((tx & 1) << 15) | ((ty & 1) << 14);
 }
 
-struct rendtext* meshText(int x, int y, float scale, unsigned end, char* text, bool fmt) {
+struct rendtext* meshText(int x, int y, float scale, unsigned end, char* text, uint8_t fgc, uint8_t bgc, float fam, float bam, bool fmt) {
     (void)fmt;
     struct rendtext* textdata = calloc(1, sizeof(*textdata));
-    textdata->fgamult = 1.0;
-    textdata->bgamult = 0.35;
+    textdata->fgamult = fam;
+    textdata->bgamult = bam;
     int vpsize = 256;
     uint32_t* _vptr = malloc(vpsize * sizeof(uint32_t));
     int vplen = 0;
     uint32_t* vptr = _vptr;
-    textdata->sectdata.fg = (color){1, 1, 1, 1};
-    textdata->sectdata.bg = (color){0, 0, 0, 1};
+    textdata->sectdata.fg = &textcolor[fgc];
+    textdata->sectdata.bg = &textcolor[bgc];
     for (int i = 0; *text; ++i) {
         if (*text == '\n') {
             x = 0;
@@ -797,8 +816,8 @@ struct rendtext* meshText(int x, int y, float scale, unsigned end, char* text, b
 void renderText(struct rendtext* text) {
     glUniform1f(glGetUniformLocation(rendinf.shaderprog, "xsize"), (float)rendinf.width);
     glUniform1f(glGetUniformLocation(rendinf.shaderprog, "ysize"), (float)rendinf.height);
-    glUniform4f(glGetUniformLocation(rendinf.shaderprog, "mcolor"), text->sectdata.fg.r, text->sectdata.fg.g, text->sectdata.fg.b, text->sectdata.fg.a * text->fgamult);
-    glUniform4f(glGetUniformLocation(rendinf.shaderprog, "bmcolor"), text->sectdata.bg.r, text->sectdata.bg.g, text->sectdata.bg.b, text->sectdata.bg.a * text->bgamult);
+    glUniform4f(glGetUniformLocation(rendinf.shaderprog, "mcolor"), text->sectdata.fg->r, text->sectdata.fg->g, text->sectdata.fg->b, text->sectdata.fg->a * text->fgamult);
+    glUniform4f(glGetUniformLocation(rendinf.shaderprog, "bmcolor"), text->sectdata.bg->r, text->sectdata.bg->g, text->sectdata.bg->b, text->sectdata.bg->a * text->bgamult);
     glBindBuffer(GL_ARRAY_BUFFER, text->sectdata.VBO);
     glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 2 * sizeof(uint32_t), (void*)(0));
     glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 2 * sizeof(uint32_t), (void*)(sizeof(uint32_t)));
@@ -806,6 +825,7 @@ void renderText(struct rendtext* text) {
 }
 
 void freeTextMesh(struct rendtext* text) {
+    glDeleteBuffers(1, &text->sectdata.VBO);
     free(text);
 }
 
@@ -838,7 +858,7 @@ void render() {
     glEnable(GL_CULL_FACE);
     glBindFramebuffer(GL_FRAMEBUFFER, FBO);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    struct rendtext* debugtext;
+    struct rendtext* debugtext = NULL;
     if (showDebugInfo) {
         static int toff = 0;
         if (!tbuf[0][0]) {
@@ -872,7 +892,7 @@ void render() {
             pblockx, pblocky, pblockz,
             pchunkx, pchunkz
         );
-        debugtext = meshText(0, 0, 1, rendinf.width, tbuf[0], false);
+        debugtext = meshText(0, 0, 1, rendinf.width, tbuf[0], 15, 0, 1, 0.35, false);
     }
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "dist"), chunks->info.dist);
     setUniform3f(rendinf.shaderprog, "cam", (float[]){rendinf.campos.x, rendinf.campos.y, rendinf.campos.z});

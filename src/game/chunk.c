@@ -1,5 +1,6 @@
 #ifndef SERVER
 
+#include <main/main.h>
 #include "chunk.h"
 #include <common/common.h>
 #include <renderer/renderer.h>

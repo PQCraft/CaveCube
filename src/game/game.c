@@ -19,10 +19,6 @@
 
 #include <common/glue.h>
 
-#ifndef SHOWFPS
-    //#define SHOWFPS
-#endif
-
 int fps;
 int realfps;
 bool showDebugInfo = true;
@@ -310,32 +306,54 @@ bool doGame(char* addr, int port) {
         if (loopdelay) microwait(loopdelay);
         float bps = 4;
         struct input_info input = getInput();
-        switch (input.single_action) {
-            case INPUT_ACTION_SINGLE_INV_0 ... INPUT_ACTION_SINGLE_INV_9:;
-                invspot = input.single_action - INPUT_ACTION_SINGLE_INV_0;
-                break;
-            case INPUT_ACTION_SINGLE_INV_NEXT:;
-                ++invspot;
-                if (invspot > 9) invspot = 0;
-                break;
-            case INPUT_ACTION_SINGLE_INV_PREV:;
-                --invspot;
-                if (invspot < 0) invspot = 9;
-                break;
-            case INPUT_ACTION_SINGLE_INVOFF_NEXT:;
-                ++invoff;
-                if (invoff > 4) invoff = 0;
-                break;
-            case INPUT_ACTION_SINGLE_INVOFF_PREV:;
-                --invoff;
-                if (invoff < 0) invoff = 4;
-                break;
-            case INPUT_ACTION_SINGLE_FULLSCR:;
-                setFullscreen(!rendinf.fullscr);
-                break;
-            case INPUT_ACTION_SINGLE_DEBUG:;
-                showDebugInfo = !showDebugInfo;
-                break;
+        {
+            switch (input.single_action) {
+                case INPUT_ACTION_SINGLE_DEBUG:;
+                    showDebugInfo = !showDebugInfo;
+                    break;
+                case INPUT_ACTION_SINGLE_FULLSCR:;
+                    setFullscreen(!rendinf.fullscr);
+                    break;
+            }
+            switch (inputMode) {
+                case INPUT_MODE_GAME:; {
+                    switch (input.single_action) {
+                        case INPUT_ACTION_SINGLE_INV_0 ... INPUT_ACTION_SINGLE_INV_9:;
+                            invspot = input.single_action - INPUT_ACTION_SINGLE_INV_0;
+                            break;
+                        case INPUT_ACTION_SINGLE_INV_NEXT:;
+                            ++invspot;
+                            if (invspot > 9) invspot = 0;
+                            break;
+                        case INPUT_ACTION_SINGLE_INV_PREV:;
+                            --invspot;
+                            if (invspot < 0) invspot = 9;
+                            break;
+                        case INPUT_ACTION_SINGLE_INVOFF_NEXT:;
+                            ++invoff;
+                            if (invoff > 4) invoff = 0;
+                            break;
+                        case INPUT_ACTION_SINGLE_INVOFF_PREV:;
+                            --invoff;
+                            if (invoff < 0) invoff = 4;
+                            break;
+                        case INPUT_ACTION_SINGLE_ESC:;
+                            setInputMode(INPUT_MODE_UI);
+                            resetInput();
+                            break;
+                    }
+                    break;
+                }
+                case INPUT_MODE_UI:; {
+                    switch (input.single_action) {
+                        case INPUT_ACTION_SINGLE_ESC:;
+                            setInputMode(INPUT_MODE_GAME);
+                            resetInput();
+                            break;
+                    }
+                    break;
+                }
+            }
         }
         bool crouch = false;
         if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_CROUCH)) {
@@ -554,9 +572,6 @@ bool doGame(char* addr, int port) {
         if (pchunky > 15) pchunky = 15;
         uint64_t curtime = altutime();
         if (curtime - fpsstarttime >= 250000) {
-            #ifdef SHOWFPS
-            printf("Rendered [%d] frames in %f seconds with a goal of [%d] frames in 1.000000 seconds.\n", fpsct, (float)(curtime - fpsstarttime) / 1000000.0, rendinf.fps);
-            #endif
             fps = round(1000000.0 / (double)((fpstime / (double)fpsct)));
             realfps = round(1000000.0 / (double)lowframe);
             fpsstarttime = curtime;

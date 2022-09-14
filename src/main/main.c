@@ -2,6 +2,10 @@
     #define SDL_MAIN_HANDLED
 #endif
 
+#include <inttypes.h>
+#include <stdlib.h>
+#include <stdio.h>
+
 #include "main.h"
 #include "version.h"
 #include <game/game.h>

@@ -81,6 +81,8 @@ input_keys input_sa[INPUT_ACTION_SINGLE__MAX] = {
     KEY('k', 'b', SDL_SCANCODE_MINUS,        0, 0, 0),
     KEY('k', 'b', SDL_SCANCODE_F11,          0, 0, 0),
     KEY('k', 'b', SDL_SCANCODE_F3,           0, 0, 0),
+    KEY('m', 'b', SDL_BUTTON(1),       0, 0, 0),
+    KEY('m', 'b', SDL_BUTTON(3),       0, 0, 0),
     #else
     KEY('k', 'b', GLFW_KEY_ESCAPE,        0, 0, 0),
     KEY('k', 'b', GLFW_KEY_I,             0, 0, 0),
@@ -100,19 +102,8 @@ input_keys input_sa[INPUT_ACTION_SINGLE__MAX] = {
     KEY('k', 'b', GLFW_KEY_MINUS,         0, 0, 0),
     KEY('k', 'b', GLFW_KEY_F11,           0, 0, 0),
     KEY('k', 'b', GLFW_KEY_F3,            0, 0, 0),
-    #endif
-};
-input_keys input_ui[] = {
-    #if defined(USESDL2)
-    KEY('k', 'b', SDL_SCANCODE_ESCAPE, 0, 0, 0),
-    KEY('m', 'b', SDL_BUTTON(1),       0, 0, 0),
-    KEY('m', 'b', SDL_BUTTON(3),       0, 0, 0),
-    KEY('k', 'b', SDL_SCANCODE_F11,    0, 0, 0),
-    #else
-    KEY('k', 'b', GLFW_KEY_ESCAPE,         0, 0, 0),
     KEY('m', 'b', GLFW_MOUSE_BUTTON_LEFT,  0, 0, 0),
     KEY('m', 'b', GLFW_MOUSE_BUTTON_RIGHT, 0, 0, 0),
-    KEY('k', 'b', GLFW_KEY_F11,            0, 0, 0),
     #endif
 };
 
@@ -131,7 +122,7 @@ bool initInput() {
     return true;
 }
 
-static int inputMode = INPUT_MODE_GAME;
+int inputMode = INPUT_MODE_GAME;
 
 void setInputMode(int mode) {
     inputMode = mode;
@@ -282,6 +273,15 @@ struct input_info getInput() {
             break;
         }
         case INPUT_MODE_UI:; {
+            if (lastsa == INPUT_ACTION_SINGLE__NONE) {
+                for (int i = 0; i < INPUT_ACTION_SINGLE__MAX; ++i) {
+                    if (keyDown(input_sa[i])) {
+                        lastsa = inf.single_action = i;
+                    }
+                }
+            } else {
+                if (!keyDown(input_sa[lastsa])) lastsa = INPUT_ACTION_SINGLE__NONE;
+            }
             break;
         }
     }

@@ -12,6 +12,7 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include <math.h>
+#include <dlfcn.h>
 #ifdef _WIN32
     #include <windows.h>
 #endif
