@@ -11,6 +11,7 @@ struct block_info {
     bool singletexoff;
     uint16_t texoff[6];
     uint16_t anict[6];
+    uint8_t anidiv;
 };
 
 extern struct block_info blockinf[256];

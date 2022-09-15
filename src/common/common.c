@@ -12,7 +12,6 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include <math.h>
-#include <dlfcn.h>
 #ifdef _WIN32
     #include <windows.h>
 #endif
@@ -20,19 +19,19 @@
 #include <common/glue.h>
 
 int getCoreCt() {
+    int corect = 1;
     #if defined(_WIN32)
         SYSTEM_INFO sysinfo;
         GetSystemInfo(&sysinfo);
-        return sysinfo.dwNumberOfProcessors;
+        corect = sysinfo.dwNumberOfProcessors;
     #elif defined(BSD) || defined(__APPLE__)
         int mib[4];
-        int corect;
         size_t len = sizeof(corect);
         mib[0] = CTL_HW;
         mib[1] = HW_AVAILCPU;
         sysctl(mib, 2, &corect, &len, NULL, 0);
     #else
-        int corect = sysconf(_SC_NPROCESSORS_ONLN);
+        corect = sysconf(_SC_NPROCESSORS_ONLN);
     #endif
     if (corect > MAX_THREADS) corect = MAX_THREADS;
     if (corect < 1) corect = 1;

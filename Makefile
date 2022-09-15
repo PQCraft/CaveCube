@@ -106,7 +106,9 @@ ifndef SERVER
         BINFLAGS += -lgdi32
     endif
 endif
-BINFLAGS += -ldl
+ifndef OS
+    BINFLAGS += -ldl
+endif
 
 ifdef WIN32
     undefine OS
@@ -172,7 +174,7 @@ $(GENSENT): $(wildcard $(SRCDIR)/*/*.c $(SRCDIR)/*/*.h) $(SRCDIR)
 ifndef OS
 	@rm -f $(OBJDIR)/.mkgen
 else
-	@if exist $(OBJDIR)\.mkgen del /Q $(OBJDIR)\.mkgen
+	@if exist "$(OBJDIR)\.mkgen" del /Q "$(OBJDIR)\.mkgen"
 endif
 	@$(MAKE) --no-print-directory -f gen.mk ${MKENV}
 ifndef OS
@@ -242,7 +244,7 @@ clean:
 ifndef OS
 	@rm -rf $(OBJDIR)
 else
-	@if exist $(OBJDIR) rmdir /S /Q $(OBJDIR)
+	@if exist "$(subst /,\,$OBJDIR)" rmdir /S /Q "$(subst /,\,$OBJDIR)"
 endif
 	@echo Removing $(BIN)...
 ifndef OS

@@ -77,7 +77,7 @@ cleanobjdir: FORCE
 ifndef OS
 	@rm -rf "$(OBJDIR)"
 else
-	@if exist "$(OBJDIR)" rmdir /S /Q "$(OBJDIR)"
+	@if exist "$(subst /,\,$(OBJDIR))" rmdir /S /Q "$(subst /,\,$(OBJDIR))"
 endif
 
 cleanoutdir: FORCE
@@ -85,7 +85,7 @@ cleanoutdir: FORCE
 ifndef OS
 	@rm -rf "$(OUTDIR)"
 else
-	@if exist "$(OUTDIR)" rmdir /S /Q "$(OUTDIR)"
+	@if exist "$(subst /,\,$(OUTDIR))" rmdir /S /Q "$(subst /,\,$(OUTDIR))"
 endif
 
 FORCE:
