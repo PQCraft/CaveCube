@@ -19,7 +19,7 @@ void initBlocks() {
         resdata_file* blockcfg = loadResource(RESOURCE_TEXTFILE, buf);
         blockinf[i].name = getInfoVarAlloc((char*)blockcfg->data, "name", "Unknown", 256);
         blockinf[i].id = getInfoVarAlloc((char*)blockcfg->data, "id", "", 256);
-        int anict = atoi(getInfoVarStatic((char*)blockcfg->data, "animation", "0", 16));
+        int anict = atoi(getInfoVarStatic((char*)blockcfg->data, "animation", "1", 16));
         blockinf[i].singletexoff = getBool(getInfoVarStatic((char*)blockcfg->data, "singletexoff", "0", 16));
         if (anict < 1) {
             blockinf[i].anict[0] = atoi(getInfoVarStatic((char*)blockcfg->data, "animation0", "0", 16));
@@ -33,6 +33,7 @@ void initBlocks() {
                 blockinf[i].anict[j] = anict;
             }
         }
+        blockinf[i].anidiv = atoi(getInfoVarStatic((char*)blockcfg->data, "animationdiv", "1", 16));
         printf("Set block %d to \"%s\" (\"%s\")\n", i, blockinf[i].name, blockinf[i].id);
         freeResource(blockcfg);
     }

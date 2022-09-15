@@ -596,7 +596,7 @@ static void* meshthread(void* args) {
                             }
                             if (bdata2[i].id == 255) continue;
                             uint32_t baseVert1 = ((x << 28) | (y << 16) | (z << 8)) & 0xF0FF0F00;
-                            uint32_t baseVert2 = ((bdata2[i].light << 28) | (bdata2[i].light << 24) | (bdata2[i].light << 20)) & 0xFFF00000;
+                            uint32_t baseVert2 = ((bdata2[i].light << 28) | (bdata2[i].light << 24) | (bdata2[i].light << 20) | blockinf[bdata.id].anidiv) & 0xFFF000FF;
                             uint32_t baseVert3 = ((blockinf[bdata.id].texoff[i] << 16) & 0xFFFF0000) | (blockinf[bdata.id].anict[i] & 0x0000FFFF);
                             if (bdata.id == water) {
                                 if (!bdata2[i].id) {
@@ -663,35 +663,43 @@ void updateChunks() {
     //uint32_t c2 = 0;
     pthread_mutex_lock(&uclock);
     for (uint32_t c = 0; !quitRequest && c < chunks->info.widthsq; ++c) {
-        if (!chunks->renddata[c].ready || !chunks->renddata[c].ready) continue;
+        if (!chunks->renddata[c].ready || !chunks->renddata[c].visible) continue;
         //if (c2 >= chunks->info.widthsq) break;
         //++c2;
+        //printf("CHUNK [%d]\n", c);
         uint32_t tmpsize = chunks->renddata[c].vcount * 3 * sizeof(uint32_t);
         uint32_t tmpsize2 = chunks->renddata[c].vcount2 * 3 * sizeof(uint32_t);
         uint32_t tmpsize3 = chunks->renddata[c].vcount3 * 3 * sizeof(uint32_t);
         if (!chunks->renddata[c].VBO) glGenBuffers(1, &chunks->renddata[c].VBO);
         if (!chunks->renddata[c].VBO2) glGenBuffers(1, &chunks->renddata[c].VBO2);
         if (!chunks->renddata[c].VBO3) glGenBuffers(1, &chunks->renddata[c].VBO3);
+        //puts("GENBUF");
         if (tmpsize) {
             glBindBuffer(GL_ARRAY_BUFFER, chunks->renddata[c].VBO);
             glBufferData(GL_ARRAY_BUFFER, tmpsize, chunks->renddata[c].vertices, GL_STATIC_DRAW);
+            //puts("BUF 1");
         }
         if (tmpsize2) {
             glBindBuffer(GL_ARRAY_BUFFER, chunks->renddata[c].VBO2);
             glBufferData(GL_ARRAY_BUFFER, tmpsize2, chunks->renddata[c].vertices2, GL_STATIC_DRAW);
+            //puts("BUF 2");
         }
         if (tmpsize3) {
             glBindBuffer(GL_ARRAY_BUFFER, chunks->renddata[c].VBO3);
             glBufferData(GL_ARRAY_BUFFER, tmpsize3, chunks->renddata[c].vertices3, GL_STATIC_DRAW);
+            //puts("BUF 3");
         }
+        //puts("BUF DONE");
         free(chunks->renddata[c].vertices);
         free(chunks->renddata[c].vertices2);
         free(chunks->renddata[c].vertices3);
+        //puts("FREE");
         chunks->renddata[c].vertices = NULL;
         chunks->renddata[c].vertices2 = NULL;
         chunks->renddata[c].vertices3 = NULL;
         chunks->renddata[c].ready = false;
         chunks->renddata[c].buffered = true;
+        //puts("DONE");
     }
     pthread_mutex_unlock(&uclock);
 }
@@ -853,7 +861,9 @@ static uint32_t rendc;
 void render() {
     pthread_mutex_lock(&gllock);
     setShaderProg(shader_block);
-    glUniform1ui(glGetUniformLocation(rendinf.shaderprog, "aniMult"), (altutime() / 16) % 65536);
+    static uint64_t aMStart = 0;
+    if (!aMStart) aMStart = altutime();
+    glUniform1ui(glGetUniformLocation(rendinf.shaderprog, "aniMult"), (aMStart - altutime()) / 10000);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glBindFramebuffer(GL_FRAMEBUFFER, FBO);
