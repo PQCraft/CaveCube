@@ -218,7 +218,9 @@ void setFullscreen(bool fullscreen) {
         rendinf.height = rendinf.full_height;
         rendinf.fps = rendinf.full_fps;
         #if defined(USESDL2)
-        SDL_GetWindowPosition(rendinf.window, &winox, &winoy);
+        if (!rendinf.fullscr) {
+            SDL_GetWindowPosition(rendinf.window, &winox, &winoy);
+        }
         SDL_SetWindowFullscreen(rendinf.window, SDL_WINDOW_FULLSCREEN_DESKTOP);
         #else
         if (!rendinf.fullscr) {
@@ -232,17 +234,17 @@ void setFullscreen(bool fullscreen) {
         rendinf.width = rendinf.win_width;
         rendinf.height = rendinf.win_height;
         rendinf.fps = rendinf.win_fps;
-        #if defined(USESDL2)
-        #else
         int twinx, twiny;
-        #endif
         if (rendinf.fullscr) {
+            uint64_t offset = altutime();
             #if defined(USESDL2)
             SDL_SetWindowFullscreen(rendinf.window, 0);
-            SDL_SetWindowPosition(rendinf.window, winox, winoy);
+            do {
+                SDL_SetWindowPosition(rendinf.window, winox, winoy);
+                SDL_GetWindowPosition(rendinf.window, &twinx, &twiny);
+            } while (altutime() - offset < 3000000 && (twinx != winox || twiny != winoy));
             #else
-            uint64_t offset = altutime();
-            glfwSetWindowMonitor(rendinf.window, NULL, 0, 0, rendinf.win_width, rendinf.win_height, rendinf.win_fps);
+            glfwSetWindowMonitor(rendinf.window, NULL, 0, 0, rendinf.win_width, rendinf.win_height, GLFW_DONT_CARE);
             do {
                 glfwSetWindowPos(rendinf.window, winox, winoy);
                 glfwGetWindowPos(rendinf.window, &twinx, &twiny);
@@ -1024,7 +1026,7 @@ bool initRenderer() {
 
     #if defined(USESDL2)
     declareConfigKey(config, "Renderer", "compositing", "true", false);
-    bool compositing = getBool(getConfigKey(config, "Renderer" "compositing"));
+    bool compositing = getBool(getConfigKey(config, "Renderer", "compositing"));
     SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
     #if defined(USEGLES)
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
@@ -1105,6 +1107,8 @@ bool initRenderer() {
         return false;
     }
     SDL_GL_SetAttribute(SDL_GL_SHARE_WITH_CURRENT_CONTEXT, 1);
+    SDL_SetHintWithPriority(SDL_HINT_MOUSE_RELATIVE_MODE_WARP, "1", SDL_HINT_OVERRIDE);
+    SDL_SetRelativeMouseMode(SDL_TRUE);
     rendinf.context = SDL_GL_CreateContext(rendinf.window);
     if (!rendinf.context) {
         sdlerror("initRenderer: Failed to create OpenGL context");

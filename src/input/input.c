@@ -77,7 +77,7 @@ input_keys input_sa[INPUT_ACTION_SINGLE__MAX] = {
     KEY('k', 'b', SDL_SCANCODE_0,            0, 0, 0),
     KEY('k', 'b', SDL_SCANCODE_RIGHTBRACKET, 'm', 'w', _SDL_SCROLL_UP),
     KEY('k', 'b', SDL_SCANCODE_LEFTBRACKET,  'm', 'w', _SDL_SCROLL_DOWN),
-    KEY('k', 'b', SDL_SCANCODE_EQUAL,        0, 0, 0),
+    KEY('k', 'b', SDL_SCANCODE_EQUALS,       0, 0, 0),
     KEY('k', 'b', SDL_SCANCODE_MINUS,        0, 0, 0),
     KEY('k', 'b', SDL_SCANCODE_F11,          0, 0, 0),
     KEY('k', 'b', SDL_SCANCODE_F3,           0, 0, 0),
@@ -146,14 +146,30 @@ void setInputMode(int mode) {
 
 #if defined(USESDL2)
 void sdlgetmouse(double* mx, double* my) {
-    static double mmx = 0, mmy = 0;
-    int imx, imy;
-    SDL_GetRelativeMouseState(&imx, &imy);
-    mmx += imx;
-    mmy += imy;
-    *mx = mmx;
-    *my = mmy;
-    SDL_WarpMouseInWindow(rendinf.window, rendinf.width / 2, rendinf.height / 2);
+    switch (inputMode) {
+        case INPUT_MODE_GAME:; {
+            static double mmx = 0, mmy = 0;
+            if (!(SDL_GetWindowFlags(rendinf.window) & SDL_WINDOW_INPUT_FOCUS)) {
+                *mx = mmx;
+                *my = mmy;
+                return;
+            }
+            int imx, imy;
+            SDL_GetRelativeMouseState(&imx, &imy);
+            mmx += imx;
+            mmy += imy;
+            *mx = mmx;
+            *my = mmy;
+            break;
+        }
+        case INPUT_MODE_UI:; {
+            int imx, imy;
+            SDL_GetMouseState(&imx, &imy);
+            *mx = imx;
+            *my = imy;
+            break;
+        }
+    }
 }
 
 static const uint8_t* sdlkeymap;
@@ -200,9 +216,11 @@ static double mxpos, mypos;
 void resetInput() {
     polltime = altutime();
     #if defined(USESDL2)
+    SDL_WarpMouseInWindow(rendinf.window, rendinf.width / 2, rendinf.height / 2);
     sdlgetmouse(&mxpos, &mypos);
     #else
     glfwPollEvents();
+    glfwSetCursorPos(rendinf.window, rendinf.width / 2, rendinf.height / 2);
     glfwGetCursorPos(rendinf.window, &mxpos, &mypos);
     #endif
     //getInput();
