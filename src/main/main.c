@@ -322,7 +322,7 @@ int main(int _argc, char** _argv) {
             if (!initRenderer()) return 1;
             printf("Starting world '%s'%s...\n", loc_opt.world, (loc_opt.lan) ? " on LAN" : "");
             int servport;
-            if ((servport = startServer(NULL, -1, (loc_opt.lan) ? loc_opt.players : 1, loc_opt.world)) < 0) {
+            if ((servport = startServer(NULL, 0, (loc_opt.lan) ? loc_opt.players : 1, loc_opt.world)) < 0) {
                 fputs("Server failed to start\n", stderr);
                 return 1;
             }

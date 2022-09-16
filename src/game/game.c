@@ -250,9 +250,8 @@ bool doGame(char* addr, int port) {
     rendinf.campos.y = 151.5;
     initInput();
     float pmult = posmult;
-    int servport = port;
     puts("Connecting to server...");
-    if (!cliConnect((addr) ? addr : "127.0.0.1", servport, handleServer)) {
+    if (!cliConnect((addr) ? addr : "127.0.0.1", port, handleServer)) {
         fputs("Failed to connect to server\n", stderr);
         return false;
     }
@@ -307,6 +306,12 @@ bool doGame(char* addr, int port) {
         float bps = 4;
         struct input_info input = getInput();
         {
+            /*
+            if (!input.focus) {
+                setInputMode(INPUT_MODE_UI);
+                resetInput();
+            }
+            */
             switch (input.single_action) {
                 case INPUT_ACTION_SINGLE_DEBUG:;
                     showDebugInfo = !showDebugInfo;

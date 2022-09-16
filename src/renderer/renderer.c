@@ -662,46 +662,35 @@ static void* meshthread(void* args) {
 }
 
 void updateChunks() {
-    //uint32_t c2 = 0;
     pthread_mutex_lock(&uclock);
     for (uint32_t c = 0; !quitRequest && c < chunks->info.widthsq; ++c) {
         if (!chunks->renddata[c].ready || !chunks->renddata[c].visible) continue;
-        //if (c2 >= chunks->info.widthsq) break;
-        //++c2;
-        //printf("CHUNK [%d]\n", c);
         uint32_t tmpsize = chunks->renddata[c].vcount * 3 * sizeof(uint32_t);
         uint32_t tmpsize2 = chunks->renddata[c].vcount2 * 3 * sizeof(uint32_t);
         uint32_t tmpsize3 = chunks->renddata[c].vcount3 * 3 * sizeof(uint32_t);
         if (!chunks->renddata[c].VBO) glGenBuffers(1, &chunks->renddata[c].VBO);
         if (!chunks->renddata[c].VBO2) glGenBuffers(1, &chunks->renddata[c].VBO2);
         if (!chunks->renddata[c].VBO3) glGenBuffers(1, &chunks->renddata[c].VBO3);
-        //puts("GENBUF");
         if (tmpsize) {
             glBindBuffer(GL_ARRAY_BUFFER, chunks->renddata[c].VBO);
             glBufferData(GL_ARRAY_BUFFER, tmpsize, chunks->renddata[c].vertices, GL_STATIC_DRAW);
-            //puts("BUF 1");
         }
         if (tmpsize2) {
             glBindBuffer(GL_ARRAY_BUFFER, chunks->renddata[c].VBO2);
             glBufferData(GL_ARRAY_BUFFER, tmpsize2, chunks->renddata[c].vertices2, GL_STATIC_DRAW);
-            //puts("BUF 2");
         }
         if (tmpsize3) {
             glBindBuffer(GL_ARRAY_BUFFER, chunks->renddata[c].VBO3);
             glBufferData(GL_ARRAY_BUFFER, tmpsize3, chunks->renddata[c].vertices3, GL_STATIC_DRAW);
-            //puts("BUF 3");
         }
-        //puts("BUF DONE");
         free(chunks->renddata[c].vertices);
         free(chunks->renddata[c].vertices2);
         free(chunks->renddata[c].vertices3);
-        //puts("FREE");
         chunks->renddata[c].vertices = NULL;
         chunks->renddata[c].vertices2 = NULL;
         chunks->renddata[c].vertices3 = NULL;
         chunks->renddata[c].ready = false;
         chunks->renddata[c].buffered = true;
-        //puts("DONE");
     }
     pthread_mutex_unlock(&uclock);
 }
