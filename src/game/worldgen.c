@@ -85,8 +85,8 @@ void genChunk(int64_t cx, int64_t cz, struct blockdata* data, int type) {
     for (int z = 0; z < 16; ++z) {
         for (int x = 0; x < 16; ++x) {
             int xzoff = z * 16 + x;
-            double cx = (double)(nx + x);
-            double cz = (double)(nz + z);
+            double cx = (double)(nx + x) - 8;
+            double cz = (double)(nz + z) - 8;
             uint8_t sliver[256];
             memset(&sliver, 0, 256);
             genSliver(type, cx, cz, sliver);

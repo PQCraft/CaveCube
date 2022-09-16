@@ -233,6 +233,7 @@ endif
 endif
 
 run: build
+	@echo Running $(BIN)...
 ifndef OS
 	@./$(BIN)
 else
