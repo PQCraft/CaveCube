@@ -202,6 +202,8 @@ struct netcxn* newCxn(int type, char* addr, int port, int obs, int ibs) {
     {unsigned long o = 1; ioctlsocket(newsock, FIONBIO, &o);}
     #endif
     struct netcxn* newinf = calloc(1, sizeof(*newinf));
+    socklen_t socklen = sizeof(*address);
+    getsockname(newsock, (struct sockaddr*)address, &socklen);
     *newinf = (struct netcxn){
         .type = type,
         .socket = newsock,
@@ -211,7 +213,7 @@ struct netcxn* newCxn(int type, char* addr, int port, int obs, int ibs) {
             .addr[1] = (address->sin_addr.s_addr >> 8) & 0xFF,
             .addr[2] = (address->sin_addr.s_addr >> 16) & 0xFF,
             .addr[3] = (address->sin_addr.s_addr >> 24) & 0xFF,
-            .port = address->sin_port
+            .port = net2host16(address->sin_port)
         }
     };
     if (type == CXN_ACTIVE) {
