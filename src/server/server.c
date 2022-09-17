@@ -366,7 +366,7 @@ static void* servnetthread(void* args) {
                         free(buf);
                         pdata[i].tmpsize = 0;
                     }
-                    if (pdata[i].ack) {
+                    if (pdata[i].ack || true) {
                         struct msgdata_msg msg;
                         if (getNextMsgForUUID(&servmsgout, &msg, pdata[i].uuid) && msg.uind == i) {
                             activity = true;
@@ -623,7 +623,7 @@ static void* clinetthread(void* args) {
             free(buf);
             tmpsize = 0;
         }
-        if (ack) {
+        if (ack || true) {
             struct msgdata_msg msg;
             if (getNextMsg(&climsgout, &msg)) {
                 activity = true;

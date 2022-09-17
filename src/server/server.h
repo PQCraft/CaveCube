@@ -19,7 +19,7 @@
 #endif
 
 #ifndef SERVER_OUTBUF_SIZE
-    #define SERVER_OUTBUF_SIZE (1 << 21)
+    #define SERVER_OUTBUF_SIZE (1 << 22)
 #endif
 
 #ifndef CLIENT_OUTBUF_SIZE
