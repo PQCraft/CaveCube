@@ -316,6 +316,7 @@ static void* servnetthread(void* args) {
                         readFromCxnBuf(pdata[i].cxn, buf, pdata[i].tmpsize);
                         int ptr = 0;
                         uint8_t tmpbyte = buf[ptr++];
+                        printf("FROM CLIENT[%d]: [%d]\n", i, tmpbyte);
                         switch (tmpbyte) {
                             case MSGTYPE_ACK:; {
                                 pdata[i].ack = true;
@@ -371,6 +372,7 @@ static void* servnetthread(void* args) {
                         if (getNextMsgForUUID(&servmsgout, &msg, pdata[i].uuid) && msg.uind == i) {
                             activity = true;
                             uint8_t tmpbyte[2] = {MSGTYPE_DATA, msg.id};
+                            printf("TO CLIENT[%d]: [%d]\n", i, msg.id);
                             writeToCxnBuf(pdata[i].cxn, tmpbyte, 2);
                             switch (msg.id) {
                                 case SERVER_COMPATINFO:; {
@@ -417,7 +419,7 @@ static void* servnetthread(void* args) {
         }
         if (activity) {
             acttime = altutime();
-        } else if (altutime() - acttime > 1000000) {
+        } else if (altutime() - acttime > 2500000) {
             microwait(500000);
         }
     }
@@ -568,6 +570,7 @@ static void* clinetthread(void* args) {
                 }
                 case MSGTYPE_DATA:; {
                     tmpbyte = buf[ptr++];
+                    printf("FROM SERVER: [%d]\n", tmpbyte);
                     switch (tmpbyte) {
                         case SERVER_PONG:; {
                             callback(SERVER_PONG, NULL);
@@ -630,6 +633,7 @@ static void* clinetthread(void* args) {
             if (getNextMsg(&climsgout, &msg)) {
                 activity = true;
                 uint8_t tmpbyte[2] = {MSGTYPE_DATA, msg.id};
+                printf("TO SERVER: [%d]\n", msg.id);
                 writeToCxnBuf(clicxn, tmpbyte, 2);
                 switch (msg.id) {
                     case CLIENT_COMPATINFO:; {
@@ -657,14 +661,14 @@ static void* clinetthread(void* args) {
                 }
                 free(msg.data);
                 #ifdef CLIENT_READACK
-                ack = false;
+                //ack = false;
                 #endif
             }
         }
         sendCxn(clicxn);
         if (activity) {
             acttime = altutime();
-        } else if (altutime() - acttime > 1000000) {
+        } else if (altutime() - acttime > 2500000) {
             microwait(500000);
         }
     }
