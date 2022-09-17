@@ -105,7 +105,7 @@ static bool getNextMsgForUUID(struct msgdata* mdata, struct msgdata_msg* msg, ui
 }
 
 enum {
-    //MSGTYPE_ACK,
+    MSGTYPE_ACK,
     MSGTYPE_DATA,
 };
 
@@ -149,7 +149,7 @@ struct player {
 struct playerdata {
     bool valid;
     uint64_t uuid;
-    //bool ack;
+    bool ack;
     int tmpsize;
     struct netcxn* cxn;
     struct player player;
@@ -231,11 +231,9 @@ static int peekCliMsgLen(struct netcxn* cxn) {
     int tmpsize = buf->dlen;
     int tmp = pCML_nbyte();
     switch (tmp) {
-        /*
         case MSGTYPE_ACK:; {
             return 1;
         }
-        */
         case MSGTYPE_DATA:; {
             tmp = pCML_nbyte();
             if (tmp < 0) return 0;
@@ -283,7 +281,7 @@ static void* servnetthread(void* args) {
                     pdata[i].valid = true;
                     static uint64_t uuid = 0;
                     pdata[i].uuid = uuid++;
-                    //pdata[i].ack = true;
+                    pdata[i].ack = true;
                     pdata[i].tmpsize = 0;
                     pdata[i].cxn = newcxn;
                     memset(&pdata[i].player, 0, sizeof(pdata[i].player));
@@ -319,12 +317,10 @@ static void* servnetthread(void* args) {
                         int ptr = 0;
                         uint8_t tmpbyte = buf[ptr++];
                         switch (tmpbyte) {
-                            /*
                             case MSGTYPE_ACK:; {
                                 pdata[i].ack = true;
                                 break;
                             }
-                            */
                             case MSGTYPE_DATA:; {
                                 void* _data = NULL;
                                 uint8_t msgdataid = buf[ptr++];
@@ -362,15 +358,15 @@ static void* servnetthread(void* args) {
                                     }
                                 }
                                 addMsg(&servmsgin, msgdataid, _data, pdata[i].uuid, i);
-                                //tmpbyte = MSGTYPE_ACK;
-                                //writeToCxnBuf(pdata[i].cxn, &tmpbyte, 1);
+                                tmpbyte = MSGTYPE_ACK;
+                                writeToCxnBuf(pdata[i].cxn, &tmpbyte, 1);
                                 break;
                             }
                         }
                         free(buf);
                         pdata[i].tmpsize = 0;
                     }
-                    /*if (pdata[i].ack || true)*/ {
+                    if (pdata[i].ack) {
                         struct msgdata_msg msg;
                         if (getNextMsgForUUID(&servmsgout, &msg, pdata[i].uuid) && msg.uind == i) {
                             activity = true;
@@ -409,7 +405,7 @@ static void* servnetthread(void* args) {
                                 }
                             }
                             if (msg.data) free(msg.data);
-                            //pdata[i].ack = false;
+                            pdata[i].ack = false;
                         }
                     }
                     sendCxn(pdata[i].cxn);
@@ -509,11 +505,9 @@ static int peekServMsgLen(struct netcxn* cxn) {
     int tmpsize = buf->dlen;
     int tmp = pSML_nbyte();
     switch (tmp) {
-        /*
         case MSGTYPE_ACK:; {
             return 1;
         }
-        */
         case MSGTYPE_DATA:; {
             tmp = pSML_nbyte();
             if (tmp < 0) return 0;
@@ -550,7 +544,7 @@ static pthread_t clinetthreadh;
 
 static void* clinetthread(void* args) {
     (void)args;
-    //bool ack = true;
+    bool ack = true;
     int tmpsize = 0;
     uint64_t acttime = altutime();
     while (true) {
@@ -566,12 +560,10 @@ static void* clinetthread(void* args) {
             int ptr = 0;
             uint8_t tmpbyte = buf[ptr++];
             switch (tmpbyte) {
-                /*
                 case MSGTYPE_ACK:; {
                     ack = true;
                     break;
                 }
-                */
                 case MSGTYPE_DATA:; {
                     tmpbyte = buf[ptr++];
                     switch (tmpbyte) {
@@ -623,15 +615,15 @@ static void* clinetthread(void* args) {
                             break;
                         }
                     }
-                    //tmpbyte = MSGTYPE_ACK;
-                    //writeToCxnBuf(clicxn, &tmpbyte, 1);
+                    tmpbyte = MSGTYPE_ACK;
+                    writeToCxnBuf(clicxn, &tmpbyte, 1);
                     break;
                 }
             }
             free(buf);
             tmpsize = 0;
         }
-        /*if (ack || true)*/ {
+        if (ack) {
             struct msgdata_msg msg;
             if (getNextMsg(&climsgout, &msg)) {
                 activity = true;
@@ -662,7 +654,7 @@ static void* clinetthread(void* args) {
                     }
                 }
                 free(msg.data);
-                //ack = false;
+                ack = false;
             }
         }
         sendCxn(clicxn);
