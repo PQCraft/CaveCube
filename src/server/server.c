@@ -316,7 +316,6 @@ static void* servnetthread(void* args) {
                         readFromCxnBuf(pdata[i].cxn, buf, pdata[i].tmpsize);
                         int ptr = 0;
                         uint8_t tmpbyte = buf[ptr++];
-                        printf("FROM CLIENT[%d]: [%d]\n", i, tmpbyte);
                         switch (tmpbyte) {
                             case MSGTYPE_ACK:; {
                                 pdata[i].ack = true;
@@ -325,6 +324,7 @@ static void* servnetthread(void* args) {
                             case MSGTYPE_DATA:; {
                                 void* _data = NULL;
                                 uint8_t msgdataid = buf[ptr++];
+                                printf("FROM CLIENT[%d]: [%d]\n", i, msgdataid);
                                 switch (msgdataid) {
                                     case CLIENT_COMPATINFO:; {
                                         struct server_data_compatinfo* data = malloc(sizeof(*data));
@@ -362,6 +362,9 @@ static void* servnetthread(void* args) {
                                 tmpbyte = MSGTYPE_ACK;
                                 writeToCxnBuf(pdata[i].cxn, &tmpbyte, 1);
                                 break;
+                            }
+                            default:; {
+                                printf("CLIENT[%d] SENT INVALID MSGTYPE: [%d]\n", i, tmpbyte);
                             }
                         }
                         free(buf);
@@ -623,6 +626,9 @@ static void* clinetthread(void* args) {
                     tmpbyte = MSGTYPE_ACK;
                     writeToCxnBuf(clicxn, &tmpbyte, 1);
                     break;
+                }
+                default:; {
+                    printf("SERVER SENT INVALID MSGTYPE: [%d]\n", tmpbyte);
                 }
             }
             free(buf);
