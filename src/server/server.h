@@ -15,7 +15,7 @@
 #endif
 
 #ifndef CLIENT_SNDBUF_SIZE
-    #define CLIENT_SNDBUF_SIZE -1
+    #define CLIENT_SNDBUF_SIZE 262144
 #endif
 
 #ifndef SERVER_OUTBUF_SIZE
