@@ -45,7 +45,6 @@ static bool startwsa() {
 #endif
 
 static int rsock(sock_t sock, void* buf, int len) {
-    if (len > 256) len = 256;
     int ret = recv(sock, buf, len, 0);
     if (SOCKERR(ret)) {
         bool cond;
