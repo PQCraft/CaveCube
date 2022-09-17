@@ -405,7 +405,9 @@ static void* servnetthread(void* args) {
                                 }
                             }
                             if (msg.data) free(msg.data);
+                            #ifdef SERVER_READACK
                             pdata[i].ack = false;
+                            #endif
                         }
                     }
                     sendCxn(pdata[i].cxn);
@@ -654,7 +656,9 @@ static void* clinetthread(void* args) {
                     }
                 }
                 free(msg.data);
+                #ifdef CLIENT_READACK
                 ack = false;
+                #endif
             }
         }
         sendCxn(clicxn);
