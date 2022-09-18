@@ -105,11 +105,11 @@ static bool getNextMsgForUUID(struct msgdata* mdata, struct msgdata_msg* msg, ui
 }
 
 enum {
-    MSGTYPE_ACK,
+    //MSGTYPE_ACK,
     MSGTYPE_DATA,
 };
 
-static int getInbufSize(struct netcxn* cxn) {
+static inline int getInbufSize(struct netcxn* cxn) {
     return cxn->inbuf->dlen;
 }
 
@@ -223,7 +223,7 @@ static void* servthread(void* args) {
 
 static struct netcxn* servcxn;
 
-#define pCML_nbyte() ({int byte; if (tmpsize > 0) {byte = buf->data[ptr]; ptr = (ptr + 1) % buf->size; --tmpsize;} else {byte = -1;}; byte;})
+/*#define pCML_nbyte() ({int byte; if (tmpsize > 0) {byte = buf->data[ptr]; ptr = (ptr + 1) % buf->size; --tmpsize;} else {byte = -1;}; byte;})
 static int peekCliMsgLen(struct netcxn* cxn) {
     struct netbuf* buf = cxn->inbuf;
     if (buf->dlen < 1) return 0;
@@ -254,14 +254,14 @@ static int peekCliMsgLen(struct netcxn* cxn) {
                 case CLIENT_GETCHUNK:; {
                     return 2 + 16;
                 }
-                default:; /*has CLIENT_PING*/ {
+                default:; {
                     return 2;
                 }
             }
         }
     }
     return 0;
-}
+}*/
 
 static pthread_t servnetthreadh;
 
@@ -308,8 +308,15 @@ static void* servnetthread(void* args) {
                     pdata[i].valid = false;
                 } else {
                     if (pdata[i].tmpsize < 1) {
-                        pdata[i].tmpsize = peekCliMsgLen(pdata[i].cxn);
-                        if (pdata[i].tmpsize > 0) activity = true;
+                        int dsize = getInbufSize(pdata[i].cxn);
+                        if (dsize >= 4) {
+                            readFromCxnBuf(pdata[i].cxn, &pdata[i].tmpsize, 4);
+                            pdata[i].tmpsize = net2host32(pdata[i].tmpsize);
+                            // TODO: Disconnect if size is larger than half of buffer
+                        }
+                        if (dsize > 0) {
+                            activity = true;
+                        }
                     } else if (getInbufSize(pdata[i].cxn) >= pdata[i].tmpsize) {
                         activity = true;
                         unsigned char* buf = malloc(pdata[i].tmpsize);
@@ -317,10 +324,10 @@ static void* servnetthread(void* args) {
                         int ptr = 0;
                         uint8_t tmpbyte = buf[ptr++];
                         switch (tmpbyte) {
-                            case MSGTYPE_ACK:; {
+                            /*case MSGTYPE_ACK:; {
                                 pdata[i].ack = true;
                                 break;
-                            }
+                            }*/
                             case MSGTYPE_DATA:; {
                                 void* _data = NULL;
                                 uint8_t msgdataid = buf[ptr++];
@@ -359,8 +366,8 @@ static void* servnetthread(void* args) {
                                     }
                                 }
                                 addMsg(&servmsgin, msgdataid, _data, pdata[i].uuid, i);
-                                tmpbyte = MSGTYPE_ACK;
-                                writeToCxnBuf(pdata[i].cxn, &tmpbyte, 1);
+                                //tmpbyte = MSGTYPE_ACK;
+                                //writeToCxnBuf(pdata[i].cxn, &tmpbyte, 1);
                                 break;
                             }
                             default:; {
@@ -376,6 +383,24 @@ static void* servnetthread(void* args) {
                             activity = true;
                             uint8_t tmpbyte[2] = {MSGTYPE_DATA, msg.id};
                             //printf("TO CLIENT[%d]: [%d]\n", i, msg.id);
+                            uint32_t msgsize = 2;
+                            switch (msg.id) {
+                                case SERVER_COMPATINFO:; {
+                                    struct server_data_compatinfo* tmpdata = msg.data;
+                                    msgsize += 2 + 2 + 2 + 1 + 2 + (uint16_t)(strlen(tmpdata->server_str));
+                                    break;
+                                }
+                                case SERVER_UPDATECHUNK:; {
+                                    msgsize += 8 + 8 + 65536 * sizeof(struct blockdata);
+                                    break;
+                                }
+                                case SERVER_SETSKYCOLOR:; {
+                                    msgsize += 1 + 1 + 1;
+                                    break;
+                                }
+                            }
+                            msgsize = host2net32(msgsize);
+                            writeToCxnBuf(pdata[i].cxn, &msgsize, 4);
                             writeToCxnBuf(pdata[i].cxn, tmpbyte, 2);
                             switch (msg.id) {
                                 case SERVER_COMPATINFO:; {
@@ -422,8 +447,8 @@ static void* servnetthread(void* args) {
         }
         if (activity) {
             acttime = altutime();
-        } else if (altutime() - acttime > 2500000) {
-            microwait(500000);
+        } else if (altutime() - acttime > 5000000) {
+            microwait(250000);
         }
     }
     return NULL;
@@ -504,7 +529,7 @@ static void (*callback)(int, void*);
 
 static struct msgdata climsgout;
 
-#define pSML_nbyte() ({int byte; if (tmpsize > 0) {byte = buf->data[ptr]; ptr = (ptr + 1) % buf->size; --tmpsize;} else {byte = -1;}; byte;})
+/*#define pSML_nbyte() ({int byte; if (tmpsize > 0) {byte = buf->data[ptr]; ptr = (ptr + 1) % buf->size; --tmpsize;} else {byte = -1;}; byte;})
 static int peekServMsgLen(struct netcxn* cxn) {
     struct netbuf* buf = cxn->inbuf;
     if (buf->dlen < 1) return 0;
@@ -538,14 +563,14 @@ static int peekServMsgLen(struct netcxn* cxn) {
                 case SERVER_SETSKYCOLOR:; {
                     return 2 + 3;
                 }
-                default:; /*has SERVER_PONG*/ {
+                default:; {
                     return 2;
                 }
             }
         }
     }
     return 0;
-}
+}*/
 
 static pthread_t clinetthreadh;
 
@@ -558,8 +583,13 @@ static void* clinetthread(void* args) {
         bool activity = false;
         recvCxn(clicxn);
         if (tmpsize < 1) {
-            tmpsize = peekServMsgLen(clicxn);
-            if (tmpsize > 0) activity = true;
+            int dsize = getInbufSize(clicxn);
+            if (dsize >= 4) {
+                readFromCxnBuf(clicxn, &tmpsize, 4);
+                tmpsize = net2host32(tmpsize);
+                // TODO: Disconnect if size is larger than half of buffer
+            }
+            if (dsize > 0) activity = true;
         } else if (getInbufSize(clicxn) >= tmpsize) {
             activity = true;
             unsigned char* buf = malloc(tmpsize);
@@ -567,10 +597,10 @@ static void* clinetthread(void* args) {
             int ptr = 0;
             uint8_t tmpbyte = buf[ptr++];
             switch (tmpbyte) {
-                case MSGTYPE_ACK:; {
+                /*case MSGTYPE_ACK:; {
                     ack = true;
                     break;
-                }
+                }*/
                 case MSGTYPE_DATA:; {
                     tmpbyte = buf[ptr++];
                     //printf("FROM SERVER: [%d]\n", tmpbyte);
@@ -623,8 +653,8 @@ static void* clinetthread(void* args) {
                             break;
                         }
                     }
-                    tmpbyte = MSGTYPE_ACK;
-                    writeToCxnBuf(clicxn, &tmpbyte, 1);
+                    //tmpbyte = MSGTYPE_ACK;
+                    //writeToCxnBuf(clicxn, &tmpbyte, 1);
                     break;
                 }
                 default:; {
@@ -640,6 +670,20 @@ static void* clinetthread(void* args) {
                 activity = true;
                 uint8_t tmpbyte[2] = {MSGTYPE_DATA, msg.id};
                 //printf("TO SERVER: [%d]\n", msg.id);
+                uint32_t msgsize = 2;
+                switch (msg.id) {
+                    case CLIENT_COMPATINFO:; {
+                        struct client_data_compatinfo* tmpdata = msg.data;
+                        msgsize += 2 + 2 + 2 + 2 + (uint16_t)(strlen(tmpdata->client_str));
+                        break;
+                    }
+                    case CLIENT_GETCHUNK:; {
+                        msgsize += 8 + 8;
+                        break;
+                    }
+                }
+                msgsize = host2net32(msgsize);
+                writeToCxnBuf(clicxn, &msgsize, 4);
                 writeToCxnBuf(clicxn, tmpbyte, 2);
                 switch (msg.id) {
                     case CLIENT_COMPATINFO:; {
