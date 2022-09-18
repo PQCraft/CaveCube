@@ -1,7 +1,7 @@
 #include <main/main.h>
 #include "network.h"
 #include <common/endian.h>
-#include <common/common.h>
+//#include <common/common.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,6 +14,7 @@
     #include <sys/ioctl.h>
     #include <sys/fcntl.h>
     #include <arpa/inet.h>
+    #include <netinet/tcp.h>
     #define PRIsock "d"
     #define SOCKINVAL(s) ((s) < 0)
     #define SOCKERR(x) ((x) < 0)
@@ -26,6 +27,7 @@
     #define PRIsock PRIu64
     #define SOCKINVAL(s) ((s) == INVALID_SOCKET)
     #define SOCKERR(x) ((x) == SOCKET_ERROR)
+    #define 
     static WSADATA wsadata;
     static WORD wsaver = MAKEWORD(2, 2);
     static bool wsainit = false;
@@ -168,13 +170,10 @@ struct netcxn* newCxn(int type, char* addr, int port, int obs, int ibs) {
     address->sin_port = host2net16(port);
     switch (type) {
         case CXN_PASSIVE:; {
-            #ifndef _WIN32
             int opt = 1;
-            setsockopt(newsock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
-            #else
-            BOOL opt = true;
-            setsockopt(newsock, SOL_SOCKET, SO_REUSEADDR, (const char*)&opt, sizeof(opt));
-            #endif
+            setsockopt(newsock, SOL_SOCKET, SO_REUSEADDR, (void*)&opt, sizeof(opt));
+            opt = 1;
+            setsockopt(newsock, IPPROTO_TCP, TCP_NODELAY, (void*)&opt, sizeof(opt));
             if (bind(newsock, (const struct sockaddr*)address, sizeof(*address))) {
                 fputs("newCxn: Failed to bind socket\n", stderr);
                 close(newsock);
@@ -188,6 +187,8 @@ struct netcxn* newCxn(int type, char* addr, int port, int obs, int ibs) {
             break;
         }
         case CXN_ACTIVE:; {
+            int opt = 1;
+            setsockopt(newsock, IPPROTO_TCP, TCP_NODELAY, (void*)&opt, sizeof(opt));
             if (connect(newsock, (struct sockaddr*)address, sizeof(*address))) {
                 fputs("newCxn: Failed to connect\n", stderr);
                 close(newsock);
