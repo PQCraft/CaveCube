@@ -19,11 +19,11 @@
 #endif
 
 #ifndef SERVER_OUTBUF_SIZE
-    #define SERVER_OUTBUF_SIZE (1 << 26)
+    #define SERVER_OUTBUF_SIZE (1 << 22)
 #endif
 
 #ifndef CLIENT_OUTBUF_SIZE
-    #define CLIENT_OUTBUF_SIZE (1 << 26)
+    #define CLIENT_OUTBUF_SIZE (1 << 18)
 #endif
 
 #ifndef SERVER_READACK
