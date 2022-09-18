@@ -113,6 +113,10 @@ static inline int getInbufSize(struct netcxn* cxn) {
     return cxn->inbuf->dlen;
 }
 
+static inline int getOutbufLeft(struct netcxn* cxn) {
+    return cxn->outbuf->size - cxn->outbuf->dlen;
+}
+
 static int maxclients = MAX_CLIENTS;
 
 static bool serveralive = false;
@@ -331,7 +335,7 @@ static void* servnetthread(void* args) {
                             case MSGTYPE_DATA:; {
                                 void* _data = NULL;
                                 uint8_t msgdataid = buf[ptr++];
-                                printf("FROM CLIENT[%d]: [%d]\n", i, msgdataid);
+                                //printf("FROM CLIENT[%d]: [%d]\n", i, msgdataid);
                                 switch (msgdataid) {
                                     case CLIENT_COMPATINFO:; {
                                         struct server_data_compatinfo* data = malloc(sizeof(*data));
@@ -382,7 +386,7 @@ static void* servnetthread(void* args) {
                         if (getNextMsgForUUID(&servmsgout, &msg, pdata[i].uuid) && msg.uind == i) {
                             activity = true;
                             uint8_t tmpbyte[2] = {MSGTYPE_DATA, msg.id};
-                            printf("TO CLIENT[%d]: [%d]\n", i, msg.id);
+                            //printf("TO CLIENT[%d]: [%d]\n", i, msg.id);
                             uint32_t msgsize = 2;
                             switch (msg.id) {
                                 case SERVER_COMPATINFO:; {
@@ -398,6 +402,10 @@ static void* servnetthread(void* args) {
                                     msgsize += 1 + 1 + 1;
                                     break;
                                 }
+                            }
+                            if (getOutbufLeft(pdata[i].cxn) < (int)msgsize) {
+                                addMsg(&servmsgout, msg.id, msg.data, msg.uuid, msg.uind);
+                                goto srv_nosend;
                             }
                             msgsize = host2net32(msgsize);
                             writeToCxnBuf(pdata[i].cxn, &msgsize, 4);
@@ -438,6 +446,7 @@ static void* servnetthread(void* args) {
                             #ifdef SERVER_READACK
                             pdata[i].ack = false;
                             #endif
+                            srv_nosend:;
                         }
                     }
                     sendCxn(pdata[i].cxn);
@@ -603,7 +612,7 @@ static void* clinetthread(void* args) {
                 }*/
                 case MSGTYPE_DATA:; {
                     tmpbyte = buf[ptr++];
-                    printf("FROM SERVER: [%d]\n", tmpbyte);
+                    //printf("FROM SERVER: [%d]\n", tmpbyte);
                     switch (tmpbyte) {
                         case SERVER_PONG:; {
                             callback(SERVER_PONG, NULL);
@@ -669,7 +678,7 @@ static void* clinetthread(void* args) {
             if (getNextMsg(&climsgout, &msg)) {
                 activity = true;
                 uint8_t tmpbyte[2] = {MSGTYPE_DATA, msg.id};
-                printf("TO SERVER: [%d]\n", msg.id);
+                //printf("TO SERVER: [%d]\n", msg.id);
                 uint32_t msgsize = 2;
                 switch (msg.id) {
                     case CLIENT_COMPATINFO:; {
