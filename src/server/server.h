@@ -31,7 +31,7 @@
 #endif
 
 #ifndef CLIENT_READACK
-    #define CLIENT_READACK
+    //#define CLIENT_READACK
 #endif
 
 enum {
