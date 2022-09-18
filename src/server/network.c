@@ -1,7 +1,7 @@
 #include <main/main.h>
 #include "network.h"
 #include <common/endian.h>
-//#include <common/common.h>
+#include <common/common.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,7 +47,10 @@ static bool startwsa() {
 #endif
 
 static int rsock(sock_t sock, void* buf, int len) {
+    //puts("RECV...");
+    //uint64_t t = altutime();
     int ret = recv(sock, buf, len, 0);
+    //if (ret > 0) printf("RECV: [%d]: [%"PRIu64"]\n", ret, altutime() - t);
     if (SOCKERR(ret)) {
         bool cond;
         #ifndef _WIN32
@@ -173,7 +176,7 @@ struct netcxn* newCxn(int type, char* addr, int port, int obs, int ibs) {
             int opt = 1;
             setsockopt(newsock, SOL_SOCKET, SO_REUSEADDR, (void*)&opt, sizeof(opt));
             opt = 1;
-            setsockopt(newsock, IPPROTO_TCP, TCP_NODELAY, (void*)&opt, sizeof(opt));
+            setsockopt(newsock, SOL_TCP, TCP_NODELAY, (void*)&opt, sizeof(opt));
             if (bind(newsock, (const struct sockaddr*)address, sizeof(*address))) {
                 fputs("newCxn: Failed to bind socket\n", stderr);
                 close(newsock);
@@ -188,7 +191,7 @@ struct netcxn* newCxn(int type, char* addr, int port, int obs, int ibs) {
         }
         case CXN_ACTIVE:; {
             int opt = 1;
-            setsockopt(newsock, IPPROTO_TCP, TCP_NODELAY, (void*)&opt, sizeof(opt));
+            setsockopt(newsock, SOL_TCP, TCP_NODELAY, (void*)&opt, sizeof(opt));
             if (connect(newsock, (struct sockaddr*)address, sizeof(*address))) {
                 fputs("newCxn: Failed to connect\n", stderr);
                 close(newsock);
@@ -244,6 +247,8 @@ struct netcxn* acceptCxn(struct netcxn* cxn, int obs, int ibs) {
             #else
             {unsigned long o = 1; ioctlsocket(newsock, FIONBIO, &o);}
             #endif
+            int opt = 1;
+            setsockopt(newsock, SOL_TCP, TCP_NODELAY, (void*)&opt, sizeof(opt));
             struct netcxn* newinf = malloc(sizeof(*newinf));
             *newinf = (struct netcxn){
                 .type = CXN_ACTIVE,
