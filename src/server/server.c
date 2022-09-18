@@ -105,7 +105,6 @@ static bool getNextMsgForUUID(struct msgdata* mdata, struct msgdata_msg* msg, ui
 }
 
 enum {
-    //MSGTYPE_ACK,
     MSGTYPE_DATA,
 };
 
@@ -153,7 +152,6 @@ struct player {
 struct playerdata {
     bool valid;
     uint64_t uuid;
-    bool ack;
     int tmpsize;
     struct netcxn* cxn;
     struct player player;
@@ -227,46 +225,6 @@ static void* servthread(void* args) {
 
 static struct netcxn* servcxn;
 
-/*#define pCML_nbyte() ({int byte; if (tmpsize > 0) {byte = buf->data[ptr]; ptr = (ptr + 1) % buf->size; --tmpsize;} else {byte = -1;}; byte;})
-static int peekCliMsgLen(struct netcxn* cxn) {
-    struct netbuf* buf = cxn->inbuf;
-    if (buf->dlen < 1) return 0;
-    int ptr = buf->rptr;
-    int tmpsize = buf->dlen;
-    int tmp = pCML_nbyte();
-    switch (tmp) {
-        case MSGTYPE_ACK:; {
-            return 1;
-        }
-        case MSGTYPE_DATA:; {
-            tmp = pCML_nbyte();
-            if (tmp < 0) return 0;
-            switch (tmp) {
-                case CLIENT_COMPATINFO:; {
-                    for (int i = 0; i < 6; ++i) {
-                        pCML_nbyte();
-                    }
-                    tmp = pCML_nbyte();
-                    if (tmp < 0) return 0;
-                    uint16_t tmp2 = (tmp << 8) & 0xFF00;
-                    tmp = pCML_nbyte();
-                    if (tmp < 0) return 0;
-                    tmp2 |= tmp & 0xFF;
-                    //tmp2 = net2host16(tmp2);
-                    return 2 + 8 + tmp2;
-                }
-                case CLIENT_GETCHUNK:; {
-                    return 2 + 16;
-                }
-                default:; {
-                    return 2;
-                }
-            }
-        }
-    }
-    return 0;
-}*/
-
 static pthread_t servnetthreadh;
 
 static void* servnetthread(void* args) {
@@ -285,7 +243,6 @@ static void* servnetthread(void* args) {
                     pdata[i].valid = true;
                     static uint64_t uuid = 0;
                     pdata[i].uuid = uuid++;
-                    pdata[i].ack = true;
                     pdata[i].tmpsize = 0;
                     pdata[i].cxn = newcxn;
                     memset(&pdata[i].player, 0, sizeof(pdata[i].player));
@@ -328,10 +285,6 @@ static void* servnetthread(void* args) {
                         int ptr = 0;
                         uint8_t tmpbyte = buf[ptr++];
                         switch (tmpbyte) {
-                            /*case MSGTYPE_ACK:; {
-                                pdata[i].ack = true;
-                                break;
-                            }*/
                             case MSGTYPE_DATA:; {
                                 void* _data = NULL;
                                 uint8_t msgdataid = buf[ptr++];
@@ -370,8 +323,6 @@ static void* servnetthread(void* args) {
                                     }
                                 }
                                 addMsg(&servmsgin, msgdataid, _data, pdata[i].uuid, i);
-                                //tmpbyte = MSGTYPE_ACK;
-                                //writeToCxnBuf(pdata[i].cxn, &tmpbyte, 1);
                                 break;
                             }
                             default:; {
@@ -381,12 +332,11 @@ static void* servnetthread(void* args) {
                         free(buf);
                         pdata[i].tmpsize = 0;
                     }
-                    if (pdata[i].ack) {
+                    {
                         struct msgdata_msg msg;
                         if (getNextMsgForUUID(&servmsgout, &msg, pdata[i].uuid) && msg.uind == i) {
                             activity = true;
                             uint8_t tmpbyte[2] = {MSGTYPE_DATA, msg.id};
-                            //printf("TO CLIENT[%d]: [%d]\n", i, msg.id);
                             uint32_t msgsize = 2;
                             switch (msg.id) {
                                 case SERVER_COMPATINFO:; {
@@ -408,6 +358,7 @@ static void* servnetthread(void* args) {
                                 goto srv_nosend;
                             }
                             msgsize = host2net32(msgsize);
+                            printf("TO CLIENT[%d]: [%d]\n", i, msg.id);
                             writeToCxnBuf(pdata[i].cxn, &msgsize, 4);
                             writeToCxnBuf(pdata[i].cxn, tmpbyte, 2);
                             switch (msg.id) {
@@ -443,9 +394,6 @@ static void* servnetthread(void* args) {
                                 }
                             }
                             if (msg.data) free(msg.data);
-                            #ifdef SERVER_READACK
-                            pdata[i].ack = false;
-                            #endif
                             srv_nosend:;
                         }
                     }
@@ -538,54 +486,10 @@ static void (*callback)(int, void*);
 
 static struct msgdata climsgout;
 
-/*#define pSML_nbyte() ({int byte; if (tmpsize > 0) {byte = buf->data[ptr]; ptr = (ptr + 1) % buf->size; --tmpsize;} else {byte = -1;}; byte;})
-static int peekServMsgLen(struct netcxn* cxn) {
-    struct netbuf* buf = cxn->inbuf;
-    if (buf->dlen < 1) return 0;
-    int ptr = buf->rptr;
-    int tmpsize = buf->dlen;
-    int tmp = pSML_nbyte();
-    switch (tmp) {
-        case MSGTYPE_ACK:; {
-            return 1;
-        }
-        case MSGTYPE_DATA:; {
-            tmp = pSML_nbyte();
-            if (tmp < 0) return 0;
-            switch (tmp) {
-                case SERVER_COMPATINFO:; {
-                    for (int i = 0; i < 7; ++i) {
-                        pSML_nbyte();
-                    }
-                    tmp = pSML_nbyte();
-                    if (tmp < 0) return 0;
-                    uint16_t tmp2 = (tmp << 8) & 0xFF00;
-                    tmp = pSML_nbyte();
-                    if (tmp < 0) return 0;
-                    tmp2 |= tmp & 0xFF;
-                    //tmp2 = net2host16(tmp2);
-                    return 2 + 9 + tmp2;
-                }
-                case SERVER_UPDATECHUNK:; {
-                    return 2 + 16 + 65536 * sizeof(struct blockdata);
-                }
-                case SERVER_SETSKYCOLOR:; {
-                    return 2 + 3;
-                }
-                default:; {
-                    return 2;
-                }
-            }
-        }
-    }
-    return 0;
-}*/
-
 static pthread_t clinetthreadh;
 
 static void* clinetthread(void* args) {
     (void)args;
-    bool ack = true;
     int tmpsize = 0;
     uint64_t acttime = altutime();
     while (true) {
@@ -606,10 +510,6 @@ static void* clinetthread(void* args) {
             int ptr = 0;
             uint8_t tmpbyte = buf[ptr++];
             switch (tmpbyte) {
-                /*case MSGTYPE_ACK:; {
-                    ack = true;
-                    break;
-                }*/
                 case MSGTYPE_DATA:; {
                     tmpbyte = buf[ptr++];
                     //printf("FROM SERVER: [%d]\n", tmpbyte);
@@ -662,8 +562,6 @@ static void* clinetthread(void* args) {
                             break;
                         }
                     }
-                    //tmpbyte = MSGTYPE_ACK;
-                    //writeToCxnBuf(clicxn, &tmpbyte, 1);
                     break;
                 }
                 default:; {
@@ -673,7 +571,7 @@ static void* clinetthread(void* args) {
             free(buf);
             tmpsize = 0;
         }
-        if (ack) {
+        {
             struct msgdata_msg msg;
             if (getNextMsg(&climsgout, &msg)) {
                 activity = true;
@@ -690,6 +588,10 @@ static void* clinetthread(void* args) {
                         msgsize += 8 + 8;
                         break;
                     }
+                }
+                if (getOutbufLeft(clicxn) < (int)msgsize) {
+                    addMsg(&climsgout, msg.id, msg.data, msg.uuid, msg.uind);
+                    goto cli_nosend;
                 }
                 msgsize = host2net32(msgsize);
                 writeToCxnBuf(clicxn, &msgsize, 4);
@@ -718,10 +620,8 @@ static void* clinetthread(void* args) {
                         break;
                     }
                 }
-                free(msg.data);
-                #ifdef CLIENT_READACK
-                ack = false;
-                #endif
+                if (msg.data) free(msg.data);
+                cli_nosend:;
             }
         }
         sendCxn(clicxn);
