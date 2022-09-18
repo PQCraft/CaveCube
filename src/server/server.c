@@ -331,7 +331,7 @@ static void* servnetthread(void* args) {
                             case MSGTYPE_DATA:; {
                                 void* _data = NULL;
                                 uint8_t msgdataid = buf[ptr++];
-                                //printf("FROM CLIENT[%d]: [%d]\n", i, msgdataid);
+                                printf("FROM CLIENT[%d]: [%d]\n", i, msgdataid);
                                 switch (msgdataid) {
                                     case CLIENT_COMPATINFO:; {
                                         struct server_data_compatinfo* data = malloc(sizeof(*data));
@@ -382,7 +382,7 @@ static void* servnetthread(void* args) {
                         if (getNextMsgForUUID(&servmsgout, &msg, pdata[i].uuid) && msg.uind == i) {
                             activity = true;
                             uint8_t tmpbyte[2] = {MSGTYPE_DATA, msg.id};
-                            //printf("TO CLIENT[%d]: [%d]\n", i, msg.id);
+                            printf("TO CLIENT[%d]: [%d]\n", i, msg.id);
                             uint32_t msgsize = 2;
                             switch (msg.id) {
                                 case SERVER_COMPATINFO:; {
@@ -603,7 +603,7 @@ static void* clinetthread(void* args) {
                 }*/
                 case MSGTYPE_DATA:; {
                     tmpbyte = buf[ptr++];
-                    //printf("FROM SERVER: [%d]\n", tmpbyte);
+                    printf("FROM SERVER: [%d]\n", tmpbyte);
                     switch (tmpbyte) {
                         case SERVER_PONG:; {
                             callback(SERVER_PONG, NULL);
@@ -669,7 +669,7 @@ static void* clinetthread(void* args) {
             if (getNextMsg(&climsgout, &msg)) {
                 activity = true;
                 uint8_t tmpbyte[2] = {MSGTYPE_DATA, msg.id};
-                //printf("TO SERVER: [%d]\n", msg.id);
+                printf("TO SERVER: [%d]\n", msg.id);
                 uint32_t msgsize = 2;
                 switch (msg.id) {
                     case CLIENT_COMPATINFO:; {
