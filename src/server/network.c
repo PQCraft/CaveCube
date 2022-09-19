@@ -27,7 +27,6 @@
     #define PRIsock PRIu64
     #define SOCKINVAL(s) ((s) == INVALID_SOCKET)
     #define SOCKERR(x) ((x) == SOCKET_ERROR)
-    #define 
     static WSADATA wsadata;
     static WORD wsaver = MAKEWORD(2, 2);
     static bool wsainit = false;
@@ -176,7 +175,7 @@ struct netcxn* newCxn(int type, char* addr, int port, int obs, int ibs) {
             int opt = 1;
             setsockopt(newsock, SOL_SOCKET, SO_REUSEADDR, (void*)&opt, sizeof(opt));
             opt = 1;
-            setsockopt(newsock, SOL_TCP, TCP_NODELAY, (void*)&opt, sizeof(opt));
+            setsockopt(newsock, IPPROTO_TCP, TCP_NODELAY, (void*)&opt, sizeof(opt));
             if (bind(newsock, (const struct sockaddr*)address, sizeof(*address))) {
                 fputs("newCxn: Failed to bind socket\n", stderr);
                 close(newsock);
@@ -191,7 +190,7 @@ struct netcxn* newCxn(int type, char* addr, int port, int obs, int ibs) {
         }
         case CXN_ACTIVE:; {
             int opt = 1;
-            setsockopt(newsock, SOL_TCP, TCP_NODELAY, (void*)&opt, sizeof(opt));
+            setsockopt(newsock, IPPROTO_TCP, TCP_NODELAY, (void*)&opt, sizeof(opt));
             if (connect(newsock, (struct sockaddr*)address, sizeof(*address))) {
                 fputs("newCxn: Failed to connect\n", stderr);
                 close(newsock);
@@ -248,7 +247,7 @@ struct netcxn* acceptCxn(struct netcxn* cxn, int obs, int ibs) {
             {unsigned long o = 1; ioctlsocket(newsock, FIONBIO, &o);}
             #endif
             int opt = 1;
-            setsockopt(newsock, SOL_TCP, TCP_NODELAY, (void*)&opt, sizeof(opt));
+            setsockopt(newsock, IPPROTO_TCP, TCP_NODELAY, (void*)&opt, sizeof(opt));
             struct netcxn* newinf = malloc(sizeof(*newinf));
             *newinf = (struct netcxn){
                 .type = CXN_ACTIVE,
