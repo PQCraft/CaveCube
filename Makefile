@@ -245,7 +245,7 @@ clean:
 ifndef OS
 	@rm -rf $(OBJDIR)
 else
-	@if exist "$(subst /,\,$OBJDIR)" rmdir /S /Q "$(subst /,\,$OBJDIR)"
+	@if exist "$(subst /,\,$(OBJDIR))" rmdir /S /Q "$(subst /,\,$(OBJDIR))"
 endif
 	@echo Removing $(BIN)...
 ifndef OS

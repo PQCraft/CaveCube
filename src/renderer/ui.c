@@ -8,6 +8,7 @@ static int elems = 0;
 static struct ui_elem* elemdata;
 
 int newElem(int type, char* name, int parent, ...) {
+    (void)type;
     int index = -1;
     for (int i = 0; i < elems; ++i) {
         if (!elemdata[i].valid) {index = i; break;}
@@ -25,4 +26,5 @@ int newElem(int type, char* name, int parent, ...) {
     
     va_end(args);
     elemdata[index].valid = true;
+    return -1;
 }

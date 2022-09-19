@@ -2,7 +2,7 @@
 **An in-development Minecraft/Infiniminer clone**<br>
 
 ---
-[![image](https://raw.githubusercontent.com/PQCraft/PQCraft/master/Screenshot_20220709_023207.png)](#?)
+[![image](https://raw.githubusercontent.com/PQCraft/PQCraft/master/Screenshot_20220918_210819.png)](#?)
 
 ---
 ### Prerequisites
