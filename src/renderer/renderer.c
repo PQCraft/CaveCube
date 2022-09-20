@@ -639,6 +639,9 @@ static void* meshthread(void* args) {
             }
             uint64_t c = nx + nz * chunks->info.width;
             if (msg.id >= chunks->renddata[c].updateid) {
+                if (chunks->renddata[c].vertices) free(chunks->renddata[c].vertices);
+                if (chunks->renddata[c].vertices2) free(chunks->renddata[c].vertices2);
+                if (chunks->renddata[c].vertices3) free(chunks->renddata[c].vertices3);
                 chunks->renddata[c].vcount = vplen / 3;
                 chunks->renddata[c].vcount2 = vplen2 / 3;
                 chunks->renddata[c].vcount3 = vplen3 / 3;
@@ -648,6 +651,10 @@ static void* meshthread(void* args) {
                 chunks->renddata[c].ready = true;
                 chunks->renddata[c].updateid = msg.id;
                 //printf("meshed: [%"PRId64", %"PRId64"] ([%"PRId64", %"PRId64"])\n", msg.x, msg.z, nx, nz);
+            } else {
+                free(_vptr);
+                free(_vptr2);
+                free(_vptr3);
             }
             lblcontinue:;
             pthread_mutex_unlock(&uclock);
