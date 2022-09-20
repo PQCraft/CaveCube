@@ -558,8 +558,8 @@ static void* meshthread(void* args) {
                     addMsg(&chunkmsgs, msg.x - 1, msg.z - 1, msg.id, true, false);
                 }
             }
-            int vpsize = 256;
-            int vpsize2 = 256;
+            int vpsize = 1024;
+            int vpsize2 = 1024;
             int vpsize3 = 256;
             uint32_t* _vptr = malloc(vpsize * sizeof(uint32_t));
             uint32_t* _vptr2 = malloc(vpsize2 * sizeof(uint32_t));
@@ -735,7 +735,7 @@ struct rendtext {
     struct rendtextsect sectdata;
 };
 
-color textcolor[16] = {
+static color textcolor[16] = {
     {0x00 / 255.0, 0x00 / 255.0, 0x00 / 255.0, 1},
     {0x00 / 255.0, 0x00 / 255.0, 0xAA / 255.0, 1},
     {0x00 / 255.0, 0xAA / 255.0, 0x00 / 255.0, 1},
@@ -859,7 +859,7 @@ void render() {
     glEnable(GL_CULL_FACE);
     glBindFramebuffer(GL_FRAMEBUFFER, FBO);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    struct rendtext* debugtext = NULL;
+    static struct rendtext* debugtext = NULL;
     if (showDebugInfo) {
         static int toff = 0;
         if (!tbuf[0][0]) {

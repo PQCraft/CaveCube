@@ -188,7 +188,8 @@ static void* servthread(void* args) {
                         break;
                     }
                     case CLIENT_COMPATINFO:; {
-                        //struct client_data_compatinfo* data = msg.data;
+                        struct client_data_compatinfo* data = msg.data;
+                        free(data->client_str);
                         struct server_data_compatinfo* outdata = malloc(sizeof(*outdata));
                         outdata->ver_major = VER_MAJOR;
                         outdata->ver_minor = VER_MINOR;
@@ -291,7 +292,7 @@ static void* servnetthread(void* args) {
                                 //printf("FROM CLIENT[%d]: [%d]\n", i, msgdataid);
                                 switch (msgdataid) {
                                     case CLIENT_COMPATINFO:; {
-                                        struct server_data_compatinfo* data = malloc(sizeof(*data));
+                                        struct client_data_compatinfo* data = malloc(sizeof(*data));
                                         memcpy(&data->ver_major, &buf[ptr], 2);
                                         ptr += 2;
                                         data->ver_major = net2host16(data->ver_major);
@@ -305,9 +306,9 @@ static void* servnetthread(void* args) {
                                         memcpy(&tmpword, &buf[ptr], 2);
                                         ptr += 2;
                                         tmpword = net2host16(tmpword);
-                                        data->server_str = malloc((int)tmpword + 1);
-                                        memcpy(data->server_str, &buf[ptr], tmpword);
-                                        data->server_str[tmpword] = 0;
+                                        data->client_str = malloc((int)tmpword + 1);
+                                        memcpy(data->client_str, &buf[ptr], tmpword);
+                                        data->client_str[tmpword] = 0;
                                         _data = data;
                                         break;
                                     }
