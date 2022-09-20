@@ -1,8 +1,8 @@
-# CaveCube
+# <img src="https://raw.githubusercontent.com/PQCraft/CaveCube/master/extras/icon/hicolor/128x128/apps/cavecube.png" align="right" height="95"/>CaveCube
 **An in-development Minecraft/Infiniminer clone**<br>
 
 ---
-[![image](https://raw.githubusercontent.com/PQCraft/PQCraft/master/Screenshot_20220918_210819.png)](#?)
+[![](https://raw.githubusercontent.com/PQCraft/PQCraft/master/Screenshot_20220918_210819.png)](#?)
 
 ---
 ### Prerequisites
