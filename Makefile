@@ -43,9 +43,10 @@ OBJDIR := $(patsubst %/,%,$(OBJDIR))
 SRCDIR := $(patsubst %\,%,$(SRCDIR))
 OBJDIR := $(patsubst %\,%,$(OBJDIR))
 
-DIRS := $(sort $(dir $(wildcard $(SRCDIR)/*/.)))
+DIRS := $(sort $(dir $(wildcard $(SRCDIR)/*/)))
 DIRS := $(patsubst %/,%,$(DIRS))
 DIRS := $(patsubst %\,%,$(DIRS))
+DIRS := $(patsubst $(SRCDIR),,$(DIRS))
 BASEDIRS := $(notdir $(DIRS))
 
 ifdef OS
@@ -72,6 +73,9 @@ ifdef SERVER
     ifdef OS
         WRFLAGS += -DSERVER
     endif
+endif
+ifndef NOSSE
+	CFLAGS += -msse4
 endif
 
 BINFLAGS += -lm
@@ -221,7 +225,7 @@ else
 $(BIN): $(wildcard $(OBJDIR)/*/*.o)
 	@echo Building $@...
 ifdef WIN32
-	@$(WINDRES) $(WRFLAGS) -DORIG_NAME="$(BIN)" -DINT_NAME="$(BINNAME)" src/cavecube.rc -o $(OBJDIR)/rc.o
+	@$(WINDRES) $(WRFLAGS) -DORIG_NAME="$(BIN)" -DINT_NAME="$(BINNAME)" $(SRCDIR)/cavecube.rc -o $(OBJDIR)/rc.o
 	@$(CC) $^ $(OBJDIR)/rc.o $(BINFLAGS) -o $@
 else
 	@$(CC) $^ $(BINFLAGS) -o $@
