@@ -21,6 +21,9 @@ ifdef WIN32
     OS := Windows_NT
 endif
 
+ifdef NATIVE
+    CC := $(CC) -march=native -mtune=native
+endif
 ifndef DEBUG
     CC := $(CC) -flto=auto
 endif
@@ -73,9 +76,6 @@ ifdef SERVER
     ifdef OS
         WRFLAGS += -DSERVER
     endif
-endif
-ifndef NOSSE
-	CFLAGS += -msse4
 endif
 
 BINFLAGS += -lm
