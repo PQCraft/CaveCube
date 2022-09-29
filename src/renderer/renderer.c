@@ -960,7 +960,9 @@ void render() {
 }
 
 static void winch(int w, int h) {
-    resetInput();
+    if (inputMode == INPUT_MODE_GAME) {
+        resetInput();
+    }
     if (!rendinf.fullscr) {
         rendinf.win_width = w;
         rendinf.win_height = h;

@@ -285,7 +285,7 @@ bool doGame(char* addr, int port) {
     uint64_t dtime = fpsstarttime2;
     uint64_t ptime2 = fpsstarttime2;
     uint64_t dtime2 = fpsstarttime2;
-    uint64_t rendtime = ((rendinf.vsync) ? 500000 : 900000) - loopdelay;
+    uint64_t rendtime = 0; //((rendinf.vsync) ? 500000 : 900000) - loopdelay;
     uint64_t fpsstarttime = fpsstarttime2;
     int fpsct = 0;
     float yvel = 0.0;
@@ -538,8 +538,12 @@ bool doGame(char* addr, int port) {
         }
         //printf("[%d] [%d] [%d]\n", (!rendinf.vsync && !rendinf.fps), !rendinf.fps, (altutime() - fpsstarttime2) >= rendtime / rendinf.fps);
         //uint64_t et1 = altutime() - st1;
-        if ((!rendinf.vsync && !rendinf.fps) || !rendinf.fps || (altutime() - fpsstarttime2) >= rendtime / rendinf.fps) {
+        if ((!rendinf.vsync && !rendinf.fps) || !rendinf.fps || (altutime() - fpsstarttime2) >= (1000000 / rendinf.fps) - loopdelay) {
+            uint64_t dtime = (1000000 / rendinf.fps) - (altutime() - fpsstarttime2);
+            if (dtime < (1000000 / rendinf.fps)) microwait(dtime);
             //puts("render");
+            double tmp = (double)(altutime() - fpsstarttime2);
+            fpsstarttime2 = altutime();
             if (curbdata.id == 7) {
                 setVisibility(-7, 0.85);
                 setScreenMult(0.4, 0.55, 0.8);
@@ -559,10 +563,8 @@ bool doGame(char* addr, int port) {
             if (crouch) rendinf.campos.y += 0.375;
             render();
             updateScreen();
-            double tmp = (double)(altutime() - fpsstarttime2);
             fpstime += tmp;
             if (tmp > lowframe) lowframe = tmp;
-            fpsstarttime2 = altutime();
             ++fpsct;
         }
         //uint64_t et2 = altutime() - st1;
