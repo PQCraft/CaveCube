@@ -285,7 +285,6 @@ bool doGame(char* addr, int port) {
     uint64_t dtime = fpsstarttime2;
     uint64_t ptime2 = fpsstarttime2;
     uint64_t dtime2 = fpsstarttime2;
-    uint64_t rendtime = 0; //((rendinf.vsync) ? 500000 : 900000) - loopdelay;
     uint64_t fpsstarttime = fpsstarttime2;
     int fpsct = 0;
     float yvel = 0.0;
