@@ -104,6 +104,80 @@ static bool getNextMsgForUUID(struct msgdata* mdata, struct msgdata_msg* msg, ui
     return false;
 }
 
+struct timerdata_timer {
+    int event;
+    uint64_t interval;
+    uint64_t lasttime;
+    uint64_t intertime;
+};
+
+struct timerdata {
+    bool valid;
+    int size;
+    struct timerdata_timer* tmr;
+    pthread_mutex_t lock;
+};
+
+static void initTimerData(struct msgdata* tdata) {
+    tdata->valid = true;
+    tdata->size = 0;
+    tdata->msg = malloc(0);
+    pthread_mutex_init(&tdata->lock, NULL);
+}
+
+static void deinitTimerData(struct msgdata* tdata) {
+    pthread_mutex_lock(&tdata->lock);
+    tdata->valid = false;
+    free(tdata->msg);
+    pthread_mutex_unlock(&tdata->lock);
+    pthread_mutex_destroy(&tdata->lock);
+}
+
+static int addTimer(struct timerdata* tdata, int event, uint64_t interval) {
+    int index = -1;
+    pthread_mutex_lock(&tdata->lock);
+    if (tdata->valid) {
+        for (int i = 0; i < tdata->size; ++i) {
+            if (tdata->tmr[i].event < 0) {
+                index = i;
+                break;
+            }
+        }
+        if (index == -1) {
+            index = tdata->size++;
+            tdata->tmr = realloc(tdata->tmr, tdata->size * sizeof(*tdata->tmr));
+        }
+        tdata->tmr[index].event = event;
+        tdata->tmr[index].interval = interval;
+        tdata->tmr[index].lasttime = altutime();
+        tdata->tmr[index].intertime = tdata->tmr[index].lasttime + interval;
+    }
+    pthread_mutex_unlock(&tdata->lock);
+    return index;
+}
+
+static void removeTimer(struct timerdata* tdata, int i) {
+    pthread_mutex_lock(&tdata->lock);
+    if (tdata->valid) {
+        if (tdata->tmr[i].event >= 0) {
+            tdata->tmr[i].event = -1;
+            pthread_mutex_unlock(&tdata->lock);
+        }
+    }
+    pthread_mutex_unlock(&tdata->lock);
+}
+
+static pthread_t servtimerh;
+
+static void* servtimerthread(void* vargs) {
+    struct timerdata* tdata = vargs;
+    bool quit = false;
+    while (!quit) {
+        
+    }
+    return NULL;
+}
+
 enum {
     MSGTYPE_DATA,
 };
