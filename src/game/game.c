@@ -538,8 +538,10 @@ bool doGame(char* addr, int port) {
         //printf("[%d] [%d] [%d]\n", (!rendinf.vsync && !rendinf.fps), !rendinf.fps, (altutime() - fpsstarttime2) >= rendtime / rendinf.fps);
         //uint64_t et1 = altutime() - st1;
         if ((!rendinf.vsync && !rendinf.fps) || !rendinf.fps || (altutime() - fpsstarttime2) >= (1000000 / rendinf.fps) - loopdelay) {
-            uint64_t dtime = (1000000 / rendinf.fps) - (altutime() - fpsstarttime2);
-            if (dtime < (1000000 / rendinf.fps)) microwait(dtime);
+            if (rendinf.fps) {
+                uint64_t mwdtime = (1000000 / rendinf.fps) - (altutime() - fpsstarttime2);
+                if (mwdtime < (1000000 / rendinf.fps)) microwait(mwdtime);
+            }
             //puts("render");
             double tmp = (double)(altutime() - fpsstarttime2);
             fpsstarttime2 = altutime();
