@@ -327,8 +327,8 @@ int main(int _argc, char** _argv) {
                 return 1;
             }
             bool game_ecode = doGame(NULL, servport);
-            stopServer();
             quitRenderer();
+            stopServer();
             ret = !game_ecode;
             break;
         }
