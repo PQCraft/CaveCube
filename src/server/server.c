@@ -14,6 +14,7 @@
 #include <pthread.h>
 
 int SERVER_THREADS;
+static bool serveralive = false;
 
 struct msgdata_msg {
     int id;
@@ -104,10 +105,12 @@ static bool getNextMsgForUUID(struct msgdata* mdata, struct msgdata_msg* msg, ui
     return false;
 }
 
+static struct msgdata servmsgin;
+static struct msgdata servmsgout;
+
 struct timerdata_timer {
     int event;
     uint64_t interval;
-    uint64_t lasttime;
     uint64_t intertime;
 };
 
@@ -118,17 +121,17 @@ struct timerdata {
     pthread_mutex_t lock;
 };
 
-static void initTimerData(struct msgdata* tdata) {
+static void initTimerData(struct timerdata* tdata) {
     tdata->valid = true;
     tdata->size = 0;
-    tdata->msg = malloc(0);
+    tdata->tmr = malloc(0);
     pthread_mutex_init(&tdata->lock, NULL);
 }
 
-static void deinitTimerData(struct msgdata* tdata) {
+static void deinitTimerData(struct timerdata* tdata) {
     pthread_mutex_lock(&tdata->lock);
     tdata->valid = false;
-    free(tdata->msg);
+    free(tdata->tmr);
     pthread_mutex_unlock(&tdata->lock);
     pthread_mutex_destroy(&tdata->lock);
 }
@@ -149,8 +152,7 @@ static int addTimer(struct timerdata* tdata, int event, uint64_t interval) {
         }
         tdata->tmr[index].event = event;
         tdata->tmr[index].interval = interval;
-        tdata->tmr[index].lasttime = altutime();
-        tdata->tmr[index].intertime = tdata->tmr[index].lasttime + interval;
+        tdata->tmr[index].intertime = altutime() + interval;
     }
     pthread_mutex_unlock(&tdata->lock);
     return index;
@@ -171,12 +173,38 @@ static pthread_t servtimerh;
 
 static void* servtimerthread(void* vargs) {
     struct timerdata* tdata = vargs;
-    bool quit = false;
-    while (!quit) {
-        
+    while (serveralive) {
+        int64_t wait = INT64_MAX;
+        int event = -1;
+        int index = -1;
+        pthread_mutex_lock(&tdata->lock);
+        uint64_t time = altutime();
+        for (int i = 0; i < tdata->size; ++i) {
+            // find smallest wait time, wait for that time, then fire event
+            if (tdata->tmr[i].event >= 0) {
+                int64_t tdiff = (uint64_t)(tdata->tmr[i].intertime - time);
+                if (tdiff < wait) {
+                    wait = tdiff;
+                    event = tdata->tmr[i].event;
+                    index = i;
+                }
+            }
+        }
+        pthread_mutex_unlock(&tdata->lock);
+        if (event >= 0 && wait != INT64_MAX) {
+            //printf("Wait for: [%"PRId64"]\n", wait);
+            if (wait > 0) {
+                microwait(wait);
+            }
+            addMsg(&servmsgin, event, NULL, -1, -1);
+            tdata->tmr[index].intertime = altutime() + tdata->tmr[index].interval;
+            printf("Firing event [%d]: [%d]\n", index, event);
+        }
     }
     return NULL;
 }
+
+static struct timerdata servtimer;
 
 enum {
     MSGTYPE_DATA,
@@ -191,8 +219,6 @@ static inline int getOutbufLeft(struct netcxn* cxn) {
 }
 
 static int maxclients = MAX_CLIENTS;
-
-static bool serveralive = false;
 
 //static int unamemax;
 //static int server_delay;
@@ -234,8 +260,10 @@ struct playerdata {
 static struct playerdata* pdata;
 static pthread_mutex_t pdatalock;
 
-static struct msgdata servmsgin;
-static struct msgdata servmsgout;
+enum {
+    _SERVER_INTERNAL1 = 256,
+    _SERVER_INTERNAL2,
+};
 
 static int worldtype = 1;
 
@@ -506,6 +534,9 @@ int startServer(char* addr, int port, int mcli, char* world) {
     initNoiseTable(0);
     initWorldgen();
     serveralive = true;
+    initTimerData(&servtimer);
+    addTimer(&servtimer, _SERVER_INTERNAL1, 2000000);
+    addTimer(&servtimer, _SERVER_INTERNAL2, 1200000);
     #ifdef NAME_THREADS
     char name[256];
     char name2[256];
@@ -515,8 +546,14 @@ int startServer(char* addr, int port, int mcli, char* world) {
     pthread_create(&servnetthreadh, NULL, &servnetthread, NULL);
     #ifdef NAME_THREADS
     pthread_getname_np(servnetthreadh, name2, 256);
-    sprintf(name, "%s:st", name2);
+    sprintf(name, "%s:snet", name2);
     pthread_setname_np(servnetthreadh, name);
+    #endif
+    pthread_create(&servtimerh, NULL, &servtimerthread, &servtimer);
+    #ifdef NAME_THREADS
+    pthread_getname_np(servtimerh, name2, 256);
+    sprintf(name, "%s:stmr", name2);
+    pthread_setname_np(servtimerh, name);
     #endif
     for (int i = 0; i < SERVER_THREADS && i < MAX_THREADS; ++i) {
         #ifdef NAME_THREADS
@@ -540,6 +577,7 @@ void stopServer() {
         pthread_join(servpthreads[i], NULL);
     }
     pthread_join(servnetthreadh, NULL);
+    pthread_join(servtimerh, NULL);
     for (int i = 0; i < maxclients; ++i) {
         if (pdata[i].valid) {
             closeCxn(pdata[i].cxn);
@@ -547,6 +585,7 @@ void stopServer() {
     }
     closeCxn(servcxn);
     free(pdata);
+    deinitTimerData(&servtimer);
     deinitMsgData(&servmsgin);
     deinitMsgData(&servmsgout);
 }
