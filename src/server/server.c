@@ -291,14 +291,42 @@ static void* servthread(void* args) {
                     }
                     case CLIENT_COMPATINFO:; {
                         struct client_data_compatinfo* data = msg.data;
-                        free(data->client_str);
                         struct server_data_compatinfo* outdata = malloc(sizeof(*outdata));
+                        free(data->client_str);
                         outdata->ver_major = VER_MAJOR;
                         outdata->ver_minor = VER_MINOR;
                         outdata->ver_patch = VER_PATCH;
                         outdata->flags = SERVER_FLAG_NOAUTH;
                         outdata->server_str = strdup(PROG_NAME);
                         addMsg(&servmsgout, SERVER_COMPATINFO, outdata, msg.uuid, msg.uind);
+                        break;
+                    }
+                    case CLIENT_LOGININFO:; {
+                        struct client_data_logininfo* data = msg.data;
+                        struct server_data_logininfo* outdata = calloc(1, sizeof(*outdata));
+                        if (false /*purposely fail if true*/) {
+                            outdata->failed = true;
+                            outdata->reason = strdup("Debug.");
+                        } else {
+                            if (!*data->username) {
+                                outdata->failed = true;
+                                outdata->reason = strdup("Username cannot be empty.");
+                            } else if (strlen(data->username) > 31 /*TODO: make max configurable*/) {
+                                outdata->failed = true;
+                                outdata->reason = strdup("Username cannot be longer than 31 characters.");
+                            } else {
+                                pthread_mutex_lock(&pdatalock);
+                                if (pdata[msg.uind].uuid == msg.uuid) {
+                                    pdata[msg.uind].player.login = true;
+                                    pdata[msg.uind].player.username = strdup(data->username);
+                                    // TODO: handle uid and password when no NOAUTH
+                                    char addr[22];
+                                    printf("Player on %s logged in as %s", getCxnAddrStr(pdata[msg.uind].cxn, addr), pdata[msg.uind].player.username);
+                                }
+                                pthread_mutex_unlock(&pdatalock);
+                            }
+                        }
+                        addMsg(&servmsgout, SERVER_LOGININFO, outdata, msg.uuid, msg.uind);
                         break;
                     }
                     case CLIENT_GETCHUNK:; {
@@ -341,7 +369,10 @@ static void* servnetthread(void* args) {
         struct netcxn* newcxn;
         if ((newcxn = acceptCxn(servcxn, SERVER_OUTBUF_SIZE, CLIENT_OUTBUF_SIZE))) {
             activity = true;
-            printf("New connection from %s\n", getCxnAddrStr(newcxn));
+            {
+                char str[22];
+                printf("New connection from %s\n", getCxnAddrStr(newcxn, str));
+            }
             bool added = false;
             pthread_mutex_lock(&pdatalock);
             for (int i = 0; i < maxclients; ++i) {
@@ -360,7 +391,10 @@ static void* servnetthread(void* args) {
                 }
             }
             if (!added) {
-                printf("Connection to %s dropped due to client limit\n", getCxnAddrStr(newcxn));
+                {
+                    char str[22];
+                    printf("Connection to %s dropped due to client limit\n", getCxnAddrStr(newcxn, str));
+                }
                 closeCxn(newcxn);
             }
             pthread_mutex_unlock(&pdatalock);
@@ -370,7 +404,10 @@ static void* servnetthread(void* args) {
             if (pdata[i].valid) {
                 if (recvCxn(pdata[i].cxn) < 0) {
                     activity = true;
-                    printf("Connection to %s dropped due to disconnect\n", getCxnAddrStr(pdata[i].cxn));
+                    {
+                        char str[22];
+                        printf("Connection to %s dropped due to disconnect\n", getCxnAddrStr(pdata[i].cxn, str));
+                    }
                     closeCxn(pdata[i].cxn);
                     pdata[i].valid = false;
                 } else {
@@ -407,6 +444,7 @@ static void* servnetthread(void* args) {
                                         memcpy(&data->ver_patch, &buf[ptr], 2);
                                         ptr += 2;
                                         data->ver_patch = net2host16(data->ver_patch);
+                                        data->flags = buf[ptr++];
                                         uint16_t tmpword = 0;
                                         memcpy(&tmpword, &buf[ptr], 2);
                                         ptr += 2;
@@ -575,7 +613,10 @@ int startServer(char* addr, int port, int mcli, char* world) {
         pthread_setname_np(servpthreads[i], name);
         #endif
     }
-    printf("Started server on %s\n", getCxnAddrStr(servcxn));
+    {
+        char str[22];
+        printf("Started server on %s\n", getCxnAddrStr(servcxn, str));
+    }
     return port;
 }
 
@@ -709,7 +750,7 @@ static void* clinetthread(void* args) {
                 switch (msg.id) {
                     case CLIENT_COMPATINFO:; {
                         struct client_data_compatinfo* tmpdata = msg.data;
-                        msgsize += 2 + 2 + 2 + 2 + (uint16_t)(strlen(tmpdata->client_str));
+                        msgsize += 2 + 2 + 2 + 1 + 2 + (uint16_t)(strlen(tmpdata->client_str));
                         break;
                     }
                     case CLIENT_GETCHUNK:; {
@@ -734,6 +775,7 @@ static void* clinetthread(void* args) {
                         writeToCxnBuf(clicxn, &tmpword, 2);
                         tmpword = host2net16(tmpdata->ver_patch);
                         writeToCxnBuf(clicxn, &tmpword, 2);
+                        writeToCxnBuf(clicxn, &tmpdata->flags, 1);
                         tmpword = host2net16(strlen(tmpdata->client_str));
                         writeToCxnBuf(clicxn, &tmpword, 2);
                         writeToCxnBuf(clicxn, tmpdata->client_str, net2host16(tmpword));
@@ -796,6 +838,7 @@ void cliSend(int id, ...) {
             tmpdata->ver_major = va_arg(args, int);
             tmpdata->ver_minor = va_arg(args, int);
             tmpdata->ver_patch = va_arg(args, int);
+            tmpdata->flags = va_arg(args, unsigned);
             tmpdata->client_str = strdup(va_arg(args, char*));
             data = tmpdata;
             break;

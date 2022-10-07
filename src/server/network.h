@@ -63,6 +63,6 @@ int sendCxn(struct netcxn*);
 int readFromCxnBuf(struct netcxn*, void*, int);
 int writeToCxnBuf(struct netcxn*, void*, int);
 void setCxnBufSize(struct netcxn*, int, int);
-char* getCxnAddrStr(struct netcxn*);
+char* getCxnAddrStr(struct netcxn*, char*);
 
 #endif

@@ -146,7 +146,7 @@ int main(int _argc, char** _argv) {
         MAIN_STRPATH(localdir);
     }
     strcpy(configpath, localdir);
-    strcat(configpath, "cavecube.cfg");
+    strcat(configpath, "config.cfg");
     bool chconfig = false;
     #else
     strcpy(configpath, "ccserver.cfg");
@@ -319,7 +319,7 @@ int main(int _argc, char** _argv) {
             cores -= SERVER_THREADS;
             MESHER_THREADS = cores;
             if (!initServer()) return 1;
-            if (!initRenderer()) return 1;
+            if (!initRenderer() || !startRenderer()) return 1;
             printf("Starting world '%s'%s...\n", loc_opt.world, (loc_opt.lan) ? " on LAN" : "");
             int servport;
             if ((servport = startServer(NULL, 0, (loc_opt.lan) ? loc_opt.players : 1, loc_opt.world)) < 0) {
@@ -327,7 +327,7 @@ int main(int _argc, char** _argv) {
                 return 1;
             }
             bool game_ecode = doGame(NULL, servport);
-            quitRenderer();
+            stopRenderer();
             stopServer();
             ret = !game_ecode;
             break;
@@ -336,9 +336,9 @@ int main(int _argc, char** _argv) {
             cores -= 3;
             if (cores < 1) cores = 1;
             MESHER_THREADS = cores;
-            if (!initRenderer()) return 1;
+            if (!initRenderer() || !startRenderer()) return 1;
             bool game_ecode = doGame(cli_opt.addr, cli_opt.port);
-            quitRenderer();
+            stopRenderer();
             ret = !game_ecode;
             break;
         }
