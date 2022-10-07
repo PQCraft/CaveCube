@@ -11,6 +11,7 @@
 #include <errno.h>
 
 #ifndef _WIN32
+    #include <netdb.h>
     #include <sys/ioctl.h>
     #include <sys/fcntl.h>
     #include <arpa/inet.h>
@@ -168,7 +169,17 @@ struct netcxn* newCxn(int type, char* addr, int port, int obs, int ibs) {
     if (SOCKINVAL(newsock = socket(AF_INET, SOCK_STREAM, 0))) return NULL;
     struct sockaddr_in* address = calloc(1, sizeof(*address));
     address->sin_family = AF_INET;
-    address->sin_addr.s_addr = (addr) ? inet_addr(addr) : INADDR_ANY;
+    if (addr) {
+        struct hostent* hentry;
+        if (!(hentry = gethostbyname(addr))) {
+            fputs("newCxn: Failed to get IP address\n", stderr);
+            close(newsock);
+            return NULL;
+        }
+        address->sin_addr.s_addr = *((in_addr_t*)hentry->h_addr_list[0]);
+    } else {
+        address->sin_addr.s_addr = INADDR_ANY;
+    }
     address->sin_port = host2net16(port);
     switch (type) {
         case CXN_PASSIVE:; {
