@@ -123,7 +123,8 @@ extern int MESHER_THREADS;
 extern int MESHER_THREADS_MAX;
 
 bool initRenderer(void);
-void quitRenderer(void);
+bool startRenderer(void);
+void stopRenderer(void);
 void createTexture(unsigned char*, resdata_texture*);
 void destroyTexture(resdata_texture*);
 struct model* loadModel(char*, char**);

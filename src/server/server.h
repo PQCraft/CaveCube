@@ -84,6 +84,7 @@ struct client_data_compatinfo {
     uint16_t ver_major;
     uint16_t ver_minor;
     uint16_t ver_patch;
+    uint8_t flags;
     char* client_str;
 };
 
@@ -101,6 +102,10 @@ struct client_data_getchunk {
 enum {
     SERVER_FLAG_NOAUTH = 1 << 0,
     SERVER_FLAG_PASSWD = 1 << 1,
+};
+
+enum {
+    CLIENT_FLAG_CONONLY = 1 << 0,
 };
 
 extern int SERVER_THREADS;

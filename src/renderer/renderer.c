@@ -1004,23 +1004,27 @@ bool initRenderer() {
     pthread_mutex_init(&uclock, NULL);
     pthread_mutex_init(&gllock, NULL);
 
-    #if defined(USESDL2)
-    SDL_SetHint(SDL_HINT_NO_SIGNAL_HANDLERS, "1");
-    if (SDL_Init(SDL_INIT_VIDEO)) {
-        sdlerror("initRenderer: Failed to init video");
-        return false;
-    }
-    #else
-    glfwSetErrorCallback(errorcb);
-    if (!glfwInit()) return false;
-    #endif
-
     rendinf.camfov = 85;
     rendinf.camnear = 0.05;
     rendinf.camfar = 1000;
     rendinf.campos = GFX_DEFAULT_POS;
     rendinf.camrot = GFX_DEFAULT_ROT;
     //rendinf.camrot.y = 180;
+
+    return true;
+}
+
+bool startRenderer() {
+    #if defined(USESDL2)
+    SDL_SetHint(SDL_HINT_NO_SIGNAL_HANDLERS, "1");
+    if (SDL_Init(SDL_INIT_VIDEO)) {
+        sdlerror("startRenderer: Failed to init video");
+        return false;
+    }
+    #else
+    glfwSetErrorCallback(errorcb);
+    if (!glfwInit()) return false;
+    #endif
 
     #if defined(USESDL2)
     declareConfigKey(config, "Renderer", "compositing", "true", false);
@@ -1053,11 +1057,11 @@ bool initRenderer() {
 
     #if defined(USESDL2)
     if (!(rendinf.window = SDL_CreateWindow(PROG_NAME, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 480, SDL_WINDOW_OPENGL))) {
-        sdlerror("initRenderer: Failed to create window");
+        sdlerror("startRenderer: Failed to create window");
         return false;
     }
     if (SDL_GetCurrentDisplayMode(SDL_GetWindowDisplayIndex(rendinf.window), &rendinf.monitor) < 0) {
-        sdlerror("initRenderer: Failed to fetch display info");
+        sdlerror("startRenderer: Failed to fetch display info");
         return false;
     }
     rendinf.full_width = rendinf.monitor.w;
@@ -1067,7 +1071,7 @@ bool initRenderer() {
     SDL_DestroyWindow(rendinf.window);
     #else
     if (!(rendinf.monitor = glfwGetPrimaryMonitor())) {
-        fputs("initRenderer: Failed to fetch primary monitor handle\n", stderr);
+        fputs("startRenderer: Failed to fetch primary monitor handle\n", stderr);
         return false;
     }
     const GLFWvidmode* vmode = glfwGetVideoMode(rendinf.monitor);
@@ -1101,7 +1105,7 @@ bool initRenderer() {
 
     #if defined(USESDL2)
     if (!(rendinf.window = SDL_CreateWindow(PROG_NAME, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, rendinf.win_width, rendinf.win_height, SDL_WINDOW_OPENGL))) {
-        sdlerror("initRenderer: Failed to create window");
+        sdlerror("startRenderer: Failed to create window");
         return false;
     }
     SDL_GL_SetAttribute(SDL_GL_SHARE_WITH_CURRENT_CONTEXT, 1);
@@ -1109,12 +1113,12 @@ bool initRenderer() {
     SDL_SetRelativeMouseMode(SDL_TRUE);
     rendinf.context = SDL_GL_CreateContext(rendinf.window);
     if (!rendinf.context) {
-        sdlerror("initRenderer: Failed to create OpenGL context");
+        sdlerror("startRenderer: Failed to create OpenGL context");
         return false;
     }
     #else
     if (!(rendinf.window = glfwCreateWindow(rendinf.win_width, rendinf.win_height, PROG_NAME, NULL, NULL))) {
-        fputs("initRenderer: Failed to create window\n", stderr);
+        fputs("startRenderer: Failed to create window\n", stderr);
         return false;
     }
     #endif
@@ -1135,7 +1139,7 @@ bool initRenderer() {
     glproc = (GLADloadproc)glfwGetProcAddress;
     #endif
     if (!gladLoadGLLoader(glproc)) {
-        fputs("initRenderer: Failed to initialize GLAD\n", stderr);
+        fputs("startRenderer: Failed to initialize GLAD\n", stderr);
         return false;
     }
 
@@ -1146,13 +1150,13 @@ bool initRenderer() {
     #endif
     file_data* hdr = loadResource(RESOURCE_TEXTFILE, hdrpath);
     if (!hdr) {
-        fputs("initRenderer: Failed to load shader header\n", stderr);
+        fputs("startRenderer: Failed to load shader header\n", stderr);
         return false;
     }
     file_data* vs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/block/vertex.glsl");
     file_data* fs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/block/fragment.glsl");
     if (!vs || !fs || !makeShaderProg((char*)hdr->data, (char*)vs->data, (char*)fs->data, &shader_block)) {
-        fputs("initRenderer: Failed to compile block shader\n", stderr);
+        fputs("startRenderer: Failed to compile block shader\n", stderr);
         return false;
     }
     freeResource(vs);
@@ -1160,7 +1164,7 @@ bool initRenderer() {
     vs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/2D/vertex.glsl");
     fs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/2D/fragment.glsl");
     if (!vs || !fs || !makeShaderProg((char*)hdr->data, (char*)vs->data, (char*)fs->data, &shader_2d)) {
-        fputs("initRenderer: Failed to compile 2D shader\n", stderr);
+        fputs("startRenderer: Failed to compile 2D shader\n", stderr);
         return false;
     }
     freeResource(vs);
@@ -1168,7 +1172,7 @@ bool initRenderer() {
     vs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/text/vertex.glsl");
     fs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/text/fragment.glsl");
     if (!vs || !fs || !makeShaderProg((char*)hdr->data, (char*)vs->data, (char*)fs->data, &shader_text)) {
-        fputs("initRenderer: Failed to compile text shader\n", stderr);
+        fputs("startRenderer: Failed to compile text shader\n", stderr);
         return false;
     }
     freeResource(vs);
@@ -1176,7 +1180,7 @@ bool initRenderer() {
     vs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/framebuffer/vertex.glsl");
     fs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/framebuffer/fragment.glsl");
     if (!vs || !fs || !makeShaderProg((char*)hdr->data, (char*)vs->data, (char*)fs->data, &shader_framebuffer)) {
-        fputs("initRenderer: Failed to compile framebuffer shader\n", stderr);
+        fputs("startRenderer: Failed to compile framebuffer shader\n", stderr);
         return false;
     }
     freeResource(vs);
@@ -1358,7 +1362,7 @@ bool initRenderer() {
     return true;
 }
 
-void quitRenderer() {
+void stopRenderer() {
     if (mesheractive) {
         for (int i = 0; i < MESHER_THREADS && i < MESHER_THREADS_MAX; ++i) {
             pthread_join(pthreads[i], NULL);

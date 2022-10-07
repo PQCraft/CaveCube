@@ -244,6 +244,8 @@ bool doGame(char* addr, int port) {
     }
     declareConfigKey(config, "Game", "viewDist", "8", false);
     declareConfigKey(config, "Game", "loopDelay", "5000", false);
+    declareConfigKey(config, "Player", "name", "Player", false);
+    declareConfigKey(config, "Player", "skin", "", false);
     chunks = allocChunks(atoi(getConfigKey(config, "Game", "viewDist")));
     if (rendinf.fps || rendinf.vsync) loopdelay = atoi(getConfigKey(config, "Game", "loopDelay"));
     printf("Allocated chunks: [%d] [%d]\n", chunks.info.width, chunks.info.widthsq);
@@ -264,7 +266,7 @@ bool doGame(char* addr, int port) {
     if (quitRequest) return false;
     puts("Server responded to ping");
     puts("Exchanging compatibility info...");
-    cliSend(CLIENT_COMPATINFO, VER_MAJOR, VER_MINOR, VER_PATCH, PROG_NAME);
+    cliSend(CLIENT_COMPATINFO, VER_MAJOR, VER_MINOR, VER_PATCH, 0, PROG_NAME);
     while (!compat && !quitRequest) {
         getInput();
         microwait(100000);
