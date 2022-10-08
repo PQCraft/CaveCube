@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <dirent.h>
 #include <inttypes.h>
 #include <sys/stat.h>
 #include <time.h>
@@ -148,6 +149,54 @@ int isFile(char* path) {
     struct stat pathstat;
     if (stat(path, &pathstat)) return -1;
     return !(S_ISDIR(pathstat.st_mode));
+}
+
+bool rm(char* path) {
+    static int rmIndex = 0;
+    if (isFile(path)) {
+        return !remove(path);
+    }
+    char* odir = (rmIndex) ? NULL : getcwd(NULL, 0);
+    ++rmIndex;
+    if (chdir(path)) goto rm_fail;
+    DIR* cwd = opendir(".");
+    struct dirent* dir;
+    struct stat pathstat;
+    while ((dir = readdir(cwd))) {
+        if (strcmp(dir->d_name, ".") && strcmp(dir->d_name, "..")) {
+            stat(dir->d_name, &pathstat);
+            if (S_ISDIR(pathstat.st_mode)) {rm(dir->d_name);}
+            else {remove(dir->d_name);}
+        }
+    }
+    --rmIndex;
+    int ret = chdir((rmIndex) ? ".." : odir);
+    if (!rmIndex) free(odir);
+    return !rmdir(path);
+    rm_fail:;
+    --rmIndex;
+    ret = chdir((rmIndex) ? ".." : odir);
+    if (!rmIndex) free(odir);
+    ret = rmdir(path);
+    (void)ret;
+    return false;
+}
+
+bool md(char* path) {
+    char tmp[MAX_PATH];
+    char *ptr = NULL;
+    size_t len;
+    strcpy(tmp, path);
+    len = strlen(tmp);
+    if (tmp[len - 1] == '/' || tmp[len - 1] == PATHSEP) tmp[len - 1] = 0;
+    for (ptr = tmp + 1; *ptr; ++ptr) {
+        if (*ptr == '/' || *ptr == PATHSEP) {
+            *ptr = 0;
+            if (mkdir(tmp)) return false;
+            *ptr = PATHSEP;
+        }
+    }
+    return !mkdir(tmp);
 }
 
 file_data getFile(char* name, char* mode) {

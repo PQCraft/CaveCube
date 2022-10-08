@@ -16,6 +16,8 @@ typedef struct {
 #define GCBUFSIZE 32768
 
 int isFile(char*);
+bool rm(char*);
+bool md(char*);
 file_data getFile(char*, char*);
 file_data getBinFile(char*);
 file_data getTextFile(char*);
