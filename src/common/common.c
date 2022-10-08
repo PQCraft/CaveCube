@@ -183,6 +183,15 @@ bool rm(char* path) {
 }
 
 bool md(char* path) {
+    switch (isFile(path)) {
+        case 0:;
+            return true;
+            break;
+        case 1:;
+            fprintf(stderr, "'%s' is not a directory\n", path);
+            return false;
+            break;
+    }
     char tmp[MAX_PATH];
     char *ptr = NULL;
     size_t len;
@@ -192,7 +201,7 @@ bool md(char* path) {
     for (ptr = tmp + 1; *ptr; ++ptr) {
         if (*ptr == '/' || *ptr == PATHSEP) {
             *ptr = 0;
-            if (mkdir(tmp)) return false;
+            mkdir(tmp);
             *ptr = PATHSEP;
         }
     }

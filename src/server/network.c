@@ -28,6 +28,7 @@
     #define PRIsock PRIu64
     #define SOCKINVAL(s) ((s) == INVALID_SOCKET)
     #define SOCKERR(x) ((x) == SOCKET_ERROR)
+    #define in_addr_t uint32_t
     static WSADATA wsadata;
     static WORD wsaver = MAKEWORD(2, 2);
     static bool wsainit = false;
