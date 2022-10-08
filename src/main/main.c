@@ -119,56 +119,9 @@ int main(int _argc, char** _argv) {
     #endif
     argc = _argc;
     argv = _argv;
-    maindir = strdup(pathfilename(execpath()));
-    startdir = realpath(".", NULL);
-    MAIN_STRPATH(startdir);
-    #ifndef SERVER
-    {
-        #ifndef _WIN32
-        char* tmpdir = getenv("HOME");
-        char* tmpdn = ".cavecube";
-        #else
-        char* tmpdir = getenv("AppData");
-        char* tmpdn = "cavecube";
-        #endif
-        if (!altchdir(tmpdir)) return 1;
-        switch (isFile(tmpdn)) {
-            case -1:;
-                mkdir(tmpdn);
-                break;
-            case 1:;
-                fprintf(stderr, "'%s' is not a directory\n", tmpdn);
-                return 1;
-                break;
-        }
-        if (!altchdir(tmpdn)) return 1;
-        localdir = realpath(".", NULL);
-        MAIN_STRPATH(localdir);
-    }
-    strcpy(configpath, localdir);
-    strcat(configpath, "config.cfg");
-    bool chconfig = false;
-    #else
-    strcpy(configpath, "ccserver.cfg");
-    #endif
-    #if DBGLVL(1)
-    printf("Main directory: {%s}\n", maindir);
-    printf("Start directory: {%s}\n", startdir);
-    #ifndef SERVER
-    printf("Local directory: {%s}\n", localdir);
-    #endif
-    #endif
-    if (!altchdir(maindir)) return 1;
-    signal(SIGINT, sigh);
-    #ifndef _WIN32
-    signal(SIGPIPE, SIG_IGN);
-    #else
-    signal(SIGSEGV, sigsegvh);
-    #endif
-    int cores = getCoreCt();
-    if (cores < 1) cores = 1;
     #ifndef SERVER
     int gametype = -1;
+    bool chconfig = false;
     bool servopt = false;
     struct {
         char* world;
@@ -303,6 +256,47 @@ int main(int _argc, char** _argv) {
             return 1;
         }
     }
+    maindir = strdup(pathfilename(execpath()));
+    startdir = realpath(".", NULL);
+    MAIN_STRPATH(startdir);
+    #ifndef SERVER
+    {
+        #ifndef _WIN32
+        char* tmpdir = getenv("HOME");
+        #else
+        char* tmpdir = getenv("AppData");
+        #endif
+        char tmpdn[MAX_PATH] = "";
+        strcpy(tmpdn, tmpdir);
+        strcat(tmpdn, "/.cavecube");
+        if (!md(tmpdn)) return 1;
+        if (!altchdir(tmpdn)) return 1;
+        if (!md("worlds")) return 1;
+        if (!md("resources")) return 1;
+        localdir = realpath(".", NULL);
+        MAIN_STRPATH(localdir);
+    }
+    strcpy(configpath, localdir);
+    strcat(configpath, "config.cfg");
+    #else
+    strcpy(configpath, "ccserver.cfg");
+    #endif
+    #if DBGLVL(1)
+    printf("Main directory: {%s}\n", maindir);
+    printf("Start directory: {%s}\n", startdir);
+    #ifndef SERVER
+    printf("Local directory: {%s}\n", localdir);
+    #endif
+    #endif
+    if (!altchdir(maindir)) return 1;
+    signal(SIGINT, sigh);
+    #ifndef _WIN32
+    signal(SIGPIPE, SIG_IGN);
+    #else
+    signal(SIGSEGV, sigsegvh);
+    #endif
+    int cores = getCoreCt();
+    if (cores < 1) cores = 1;
     #if DBGLVL(1)
     printf("Config path: {%s}\n", configpath);
     #endif
