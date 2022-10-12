@@ -123,9 +123,9 @@ void deleteElem(int id) {
     }
     free(e->name);
     free(e->childdata);
-    for (int i = 0; i < e->properties) {
-        free(e->property[i].name);
-        free(e->property[i].value);
+    for (int i = 0; i < e->properties; ++i) {
+        free(e->propertydata[i].name);
+        free(e->propertydata[i].value);
     }
     free(e->propertydata);
 }
@@ -148,11 +148,29 @@ int getElemByName(char* name, bool reverse) {
         } else {
             if (i >= elems) break;
         }
-        //if (!strcasecmp(
+        if (elemdata[i].valid && !strcasecmp(elemdata[i].name, name)) {
+            return i;
+        }
         if (reverse) {
             --i;
         } else {
             ++i;
         }
     }
+}
+
+int* getElemsByName(char* name, int* _count) {
+    int count = 0;
+    int* output = malloc(1 * sizeof(*output));
+    output[0] = -1;
+    for (int i = 0; i < elems; ++i) {
+        if (elemdata[i].valid && !strcasecmp(elemdata[i].name, name)) {
+            ++count;
+            output = realloc(output, (count + 1) * sizeof(*output));
+            output[count - 1] = i;
+            output[count] = -1;
+        }
+    }
+    if (_count) *_count = count;
+    return output;
 }
