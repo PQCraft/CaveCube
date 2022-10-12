@@ -157,6 +157,7 @@ int getElemByName(char* name, bool reverse) {
             ++i;
         }
     }
+    return -1;
 }
 
 int* getElemsByName(char* name, int* _count) {
