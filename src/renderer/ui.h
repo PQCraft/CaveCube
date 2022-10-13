@@ -15,7 +15,7 @@ struct ui_elem_calcprop {
     int width;
     int height;
     float z;
-}
+};
 
 struct ui_elem {
     bool valid;
@@ -29,13 +29,21 @@ struct ui_elem {
     struct ui_elem_calcprop calcprop;
 };
 
-int newElem(int /*type*/, char* /*name*/, int /*parent*/, ... /*properties*/);
-void editElem(int /*id*/, char* /*name*/, int /*parent*/, ... /*properties*/);
-void deleteElem(int /*id*/);
-struct ui_elem* getElemData(int /*id*/);
-int getElemByName(char* /*name*/, bool /*reverse*/);
-int* getElemsByName(char* /*name*/, int* /*count*/);
+enum {
+    UI_ELEM_CONTAINER,
+    UI_ELEM_BOX,
+};
+
+int newUIElem(int /*type*/, char* /*name*/, int /*parent*/, ... /*properties*/);
+void editUIElem(int /*id*/, char* /*name*/, int /*parent*/, ... /*properties*/);
+void deleteUIElem(int /*id*/);
+struct ui_elem* getUIElemData(int /*id*/);
+int getUIElemByName(char* /*name*/, bool /*reverse*/);
+int* getUIElemsByName(char* /*name*/, int* /*count*/);
+void calcUIProps(void);
 
 extern float ui_scale;
+extern int ui_elems;
+extern struct ui_elem* ui_elemdata;
 
 #endif

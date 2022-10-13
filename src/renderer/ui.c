@@ -1,26 +1,29 @@
 #include "ui.h"
 
+#include "renderer.h"
+
 #include <string.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
 
-float ui_scale = 2.0;
+float ui_scale = 1.0;
 
-static int elems = 0;
-static struct ui_elem* elemdata;
+int ui_elems = 0;
+struct ui_elem* ui_elemdata;
 
-#define idValid(x) (x >= 0 && x < elem)
-#define elemValid(x) (idValid(x) && elemdata[x].valid)
+#define idValid(x) (x >= 0 && x < ui_elems)
+#define elemValid(x) (idValid(x) && ui_elemdata[x].valid)
 
-int newElem(int type, char* name, int parent, ...) {
+int newUIElem(int type, char* name, int parent, ...) {
     if (!elemValid(parent)) return -1;
     int index = -1;
-    for (int i = 0; i < elems; ++i) {
-        if (!elemdata[i].valid) {index = i; break;}
+    for (int i = 0; i < ui_elems; ++i) {
+        if (!ui_elemdata[i].valid) {index = i; break;}
     }
-    index = elems++;
-    elemdata = realloc(elemdata, elems * sizeof(*elemdata));
-    struct ui_elem* e = &elemdata[index];
+    index = ui_elems++;
+    ui_elemdata = realloc(ui_elemdata, ui_elems * sizeof(*ui_elemdata));
+    struct ui_elem* e = &ui_elemdata[index];
     memset(e, 0, sizeof(*e));
     e->type = type;
     if (name && *name) e->name = strdup(name);
@@ -43,7 +46,7 @@ int newElem(int type, char* name, int parent, ...) {
     va_end(args);
     e->valid = true;
     if (parent >= 0) {
-        struct ui_elem* p = &elemdata[parent];
+        struct ui_elem* p = &ui_elemdata[parent];
         int cindex = -1;
         for (int i = 0; i < p->children; ++i) {
             if (p->childdata[i] < 0) {cindex = i; break;}
@@ -57,9 +60,9 @@ int newElem(int type, char* name, int parent, ...) {
     return index;
 }
 
-void editElem(int id, char* name, int parent, ...) {
+void editUIElem(int id, char* name, int parent, ...) {
     if (!elemValid(id)) return;
-    struct ui_elem* e = &elemdata[id];
+    struct ui_elem* e = &ui_elemdata[id];
     if (name) {
         if (*name) {free(e->name); e->name = strdup(name);}
         else {free(e->name); e->name = NULL;}
@@ -110,12 +113,12 @@ void editElem(int id, char* name, int parent, ...) {
     va_end(args);
 }
 
-void deleteElem(int id) {
+void deleteUIElem(int id) {
     if (!elemValid(id)) return;
-    struct ui_elem* e = &elemdata[id];
+    struct ui_elem* e = &ui_elemdata[id];
     e->valid = false;
     if (elemValid(e->parent)) {
-        struct ui_elem* p = &elemdata[e->parent];
+        struct ui_elem* p = &ui_elemdata[e->parent];
         for (int i = 0; i < p->children; ++i) {
             if (p->childdata[i] == id) {
                 p->childdata[i] = -1;
@@ -124,7 +127,7 @@ void deleteElem(int id) {
         }
     }
     for (int i = 0; i < e->children; ++i) {
-        if (e->childdata[i] >= 0) deleteElem(e->childdata[i]);
+        if (e->childdata[i] >= 0) deleteUIElem(e->childdata[i]);
     }
     free(e->name);
     free(e->childdata);
@@ -135,16 +138,16 @@ void deleteElem(int id) {
     free(e->propertydata);
 }
 
-struct ui_elem* getElemData(int id) {
-    return (elemValid(id)) ? &elemdata[id] : NULL;
+struct ui_elem* getUIElemData(int id) {
+    return (elemValid(id)) ? &ui_elemdata[id] : NULL;
 }
 
-int getElemByName(char* name, bool reverse) {
+int getUIElemByName(char* name, bool reverse) {
     int i;
-    if (reverse) {i = elems - 1;} else {i = 0;}
+    if (reverse) {i = ui_elems - 1;} else {i = 0;}
     while (1) {
-        if (reverse) {if (i < 0) break;} else {if (i >= elems) break;}
-        if (elemdata[i].valid && !strcasecmp(elemdata[i].name, name)) {
+        if (reverse) {if (i < 0) break;} else {if (i >= ui_elems) break;}
+        if (ui_elemdata[i].valid && !strcasecmp(ui_elemdata[i].name, name)) {
             return i;
         }
         if (reverse) {--i;} else {++i;}
@@ -152,12 +155,12 @@ int getElemByName(char* name, bool reverse) {
     return -1;
 }
 
-int* getElemsByName(char* name, int* _count) {
+int* getUIElemsByName(char* name, int* _count) {
     int count = 0;
     int* output = malloc(1 * sizeof(*output));
     output[0] = -1;
-    for (int i = 0; i < elems; ++i) {
-        if (elemdata[i].valid && !strcasecmp(elemdata[i].name, name)) {
+    for (int i = 0; i < ui_elems; ++i) {
+        if (ui_elemdata[i].valid && !strcasecmp(ui_elemdata[i].name, name)) {
             output[count++] = i;
             output = realloc(output, (count + 1) * sizeof(*output));
             output[count] = -1;
@@ -173,6 +176,7 @@ static inline char* getProp(struct ui_elem* e, char* name) {
             if (!strcasecmp(name, e->propertydata[i].name)) return e->propertydata[i].value;
         }
     }
+    return NULL;
 }
 
 static inline float getSize(char* propval, float max) {
@@ -182,16 +186,16 @@ static inline float getSize(char* propval, float max) {
     if (suff == '%') {
         num = max * num * 0.01;
     }
+    return num;
 }
 
-static inline void calcProp(int id) {
-    if (!elemValid(id)) return;
-    struct ui_elem* e = &elemdata[id];
+static inline void calcProp(struct ui_elem* e) {
     struct ui_elem_calcprop p_prop;
     if (elemValid(e->parent)) {
-        p_prop = elemdata[e->parent].calcprop;
+        p_prop = ui_elemdata[e->parent].calcprop;
     } else {
-        p_prop = {
+        p_prop = (struct ui_elem_calcprop){
+            .hidden = false,
             .x = 0,
             .y = 0,
             .width = rendinf.width,
@@ -200,9 +204,85 @@ static inline void calcProp(int id) {
         };
     }
     {
-        char* margin_x = getProp(e, "margin_x");
-        char* margin_y = getProp(e, "margin_y");
-        p_prop.width -= (margin_x) ? atoi(margin_x) * 2 : 0;
-        p_prop.height -= (margin_y) ? atoi(margin_y) * 2 : 0;
+        char* curprop;
+        curprop = getProp(e, "margin_x");
+        if (curprop) {
+            int offset = atoi(curprop) * ui_scale;
+            p_prop.x += offset;
+            p_prop.width -= offset;
+        }
+        curprop = getProp(e, "margin_y");
+        if (curprop) {
+            int offset = atoi(curprop) * ui_scale;
+            p_prop.y += offset;
+            p_prop.height -= offset;
+        }
+        curprop = getProp(e, "width");
+        e->calcprop.width = (curprop) ? getSize(curprop, (float)p_prop.width / ui_scale) * ui_scale : 0;
+        curprop = getProp(e, "height");
+        e->calcprop.height = (curprop) ? getSize(curprop, (float)p_prop.height / ui_scale) * ui_scale : 0;
+        curprop = getProp(e, "align");
+        {
+            int ax = -1, ay = -1;
+            if (curprop) sscanf(curprop, "%d,%d", &ax, &ay);
+            switch (ax) {
+                default:;
+                    e->calcprop.x = p_prop.x;
+                    break;
+                case 0:;
+                    e->calcprop.x = (p_prop.x + p_prop.width / 2) - (e->calcprop.width + 1) / 2;
+                    break;
+                case 1:;
+                    e->calcprop.x = p_prop.x + (p_prop.width - e->calcprop.width);
+                    break;
+            }
+            switch (ay) {
+                default:;
+                    e->calcprop.y = p_prop.y;
+                    break;
+                case 0:;
+                    e->calcprop.y = (p_prop.y + p_prop.height / 2) - (e->calcprop.height + 1) / 2;
+                    break;
+                case 1:;
+                    e->calcprop.y = p_prop.y + (p_prop.height - e->calcprop.height);
+                    break;
+            }
+        }
+        curprop = getProp(e, "x_offset");
+        if (curprop) e->calcprop.x += atoi(curprop) * ui_scale;
+        curprop = getProp(e, "y_offset");
+        if (curprop) e->calcprop.y += atoi(curprop) * ui_scale;
+        curprop = getProp(e, "z");
+        e->calcprop.z = (curprop) ? atof(curprop) : p_prop.z;
+        curprop = getProp(e, "hidden");
+        e->calcprop.z = (curprop) ? getBool(curprop) : false;
     }
+}
+
+static inline void calcPropTree(struct ui_elem* e) {
+    calcProp(e);
+    for (int i = 0; i < e->children; ++i) {
+        if (idValid(e->childdata[i])) calcPropTree(&ui_elemdata[e->childdata[i]]);
+    }
+}
+
+void calcUIProps() {
+    for (int i = 0; i < ui_elems; ++i) {
+        struct ui_elem* e = &ui_elemdata[i];
+        if (e->parent < 0) calcPropTree(e);
+    }
+}
+
+static inline int validElemCt() {
+    int ct = 0;
+    for (int i = 0; i < ui_elems; ++i) {
+        ct += ui_elemdata[i].valid;
+    }
+    return ct;
+}
+
+void rendUI() {
+    calcUIProps();
+    int elemct = validElemCt();
+    
 }
