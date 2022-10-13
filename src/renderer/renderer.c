@@ -368,6 +368,9 @@ static unsigned VBO2D;
 static unsigned FBO;
 static unsigned FBTEX;
 static unsigned DBUF;
+static unsigned UIFBO;
+static unsigned UIFBTEX;
+static unsigned UIDBUF;
 
 struct chunkdata* chunks;
 
@@ -835,6 +838,10 @@ void freeTextMesh(struct rendtext* text) {
     free(text);
 }
 
+static inline void renderUI() {
+    
+}
+
 static char tbuf[1][32768];
 
 const unsigned char* glver;
@@ -1227,25 +1234,35 @@ bool startRenderer() {
     glFrontFace(GL_CW);
     glDisable(GL_MULTISAMPLE);
 
+    glGenRenderbuffers(1, &UIDBUF);
+    glBindRenderbuffer(GL_RENDERBUFFER, UIDBUF);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, rendinf.width, rendinf.height);
     glGenRenderbuffers(1, &DBUF);
     glBindRenderbuffer(GL_RENDERBUFFER, DBUF);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, rendinf.width, rendinf.height);
 
-    setShaderProg(shader_framebuffer);
-    glActiveTexture(GL_TEXTURE0);
+    glGenFramebuffers(1, &UIFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, UIFBO);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, UIDBUF);
     glGenFramebuffers(1, &FBO);
     glBindFramebuffer(GL_FRAMEBUFFER, FBO);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, DBUF);
+
+    int gltex = GL_TEXTURE0;
+
+    glActiveTexture(gltex++);
     glGenTextures(1, &FBTEX);
     glBindTexture(GL_TEXTURE_2D, FBTEX);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, rendinf.width, rendinf.height, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, FBTEX, 0);
+
+    setShaderProg(shader_framebuffer);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), 0);
     setUniform3f(rendinf.shaderprog, "mcolor", (float[]){1.0, 1.0, 1.0});
 
-    glActiveTexture(GL_TEXTURE1);
+    glActiveTexture(gltex++);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, rendinf.width, rendinf.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -1257,7 +1274,7 @@ bool startRenderer() {
     glfwSwapBuffers(rendinf.window);
     #endif
 
-    glActiveTexture(GL_TEXTURE2);
+    glActiveTexture(gltex++);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, rendinf.width, rendinf.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -1313,7 +1330,7 @@ bool startRenderer() {
     }
     setShaderProg(shader_block);
     glGenTextures(1, &texmaph);
-    glActiveTexture(GL_TEXTURE3);
+    glActiveTexture(gltex++);
     glBindTexture(GL_TEXTURE_2D_ARRAY, texmaph);
     glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, 16, 16, texmapsize, 0, GL_RGBA, GL_UNSIGNED_BYTE, texmap);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -1326,7 +1343,8 @@ bool startRenderer() {
     glBufferData(GL_ARRAY_BUFFER, sizeof(vert2D), vert2D, GL_STATIC_DRAW);
 
     setShaderProg(shader_2d);
-    glActiveTexture(GL_TEXTURE4);
+    int corsshair = gltex++;
+    glActiveTexture(corsshair);
     crosshair = loadResource(RESOURCE_TEXTURE, "game/textures/ui/crosshair.png");
     glBindTexture(GL_TEXTURE_2D, crosshair->data);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), 4);
@@ -1334,7 +1352,7 @@ bool startRenderer() {
 
     setShaderProg(shader_text);
     glGenTextures(1, &charseth);
-    glActiveTexture(GL_TEXTURE5);
+    glActiveTexture(gltex++);
     resdata_image* charset = loadResource(RESOURCE_IMAGE, "game/textures/ui/charset.png");
     glBindTexture(GL_TEXTURE_2D_ARRAY, charseth);
     glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, 8, 16, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, charset->data);
@@ -1345,7 +1363,7 @@ bool startRenderer() {
 
     setShaderProg(shader_block);
 
-    glActiveTexture(GL_TEXTURE4);
+    glActiveTexture(corsshair);
 
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
