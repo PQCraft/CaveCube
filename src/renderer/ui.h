@@ -8,6 +8,15 @@ struct ui_elem_property {
     char* value;
 };
 
+struct ui_elem_calcprop {
+    bool hidden;
+    int x;
+    int y;
+    int width;
+    int height;
+    float z;
+}
+
 struct ui_elem {
     bool valid;
     int type;
@@ -17,6 +26,7 @@ struct ui_elem {
     int* childdata;
     int properties;
     struct ui_elem_property* propertydata;
+    struct ui_elem_calcprop calcprop;
 };
 
 int newElem(int /*type*/, char* /*name*/, int /*parent*/, ... /*properties*/);
@@ -25,5 +35,7 @@ void deleteElem(int /*id*/);
 struct ui_elem* getElemData(int /*id*/);
 int getElemByName(char* /*name*/, bool /*reverse*/);
 int* getElemsByName(char* /*name*/, int* /*count*/);
+
+extern float ui_scale;
 
 #endif
