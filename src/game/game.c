@@ -303,9 +303,9 @@ bool doGame(char* addr, int port) {
     setInputMode(INPUT_MODE_GAME);
     //setSkyColor(0.5, 0.5, 0.5);
     int ui_main = newUIElem(UI_ELEM_CONTAINER, "main", -1, "width", "100%", "height", "100%", NULL);
-    int ui_box1 = newUIElem(UI_ELEM_BOX, "box1", ui_main, "width", "500", "height", "500", "align", "-1,-1", NULL);
-    int ui_box2 = newUIElem(UI_ELEM_BOX, "box2", ui_main, "width", "500", "height", "500", "align", "0,0", NULL);
-    int ui_box3 = newUIElem(UI_ELEM_BOX, "box3", ui_main, "width", "500", "height", "500", "align", "1,1", NULL);
+    /*int ui_box1 = */newUIElem(UI_ELEM_BOX, "box1", ui_main, "width", "500", "height", "500", "align", "-1,-1", NULL);
+    /*int ui_box2 = */newUIElem(UI_ELEM_BOX, "box2", ui_main, "width", "500", "height", "500", "align", "0,0", NULL);
+    /*int ui_box3 = */newUIElem(UI_ELEM_BOX, "box3", ui_main, "width", "500", "height", "500", "align", "1,1", NULL);
     while (!quitRequest) {
         uint64_t st1 = altutime();
         if (loopdelay) microwait(loopdelay);

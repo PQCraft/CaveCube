@@ -367,9 +367,12 @@ static unsigned VBO2D;
 
 static unsigned FBO;
 static unsigned FBTEX;
+static unsigned FBTEXID;
 static unsigned DBUF;
+
 static unsigned UIFBO;
 static unsigned UIFBTEX;
+static unsigned UIFBTEXID;
 static unsigned UIDBUF;
 
 struct chunkdata* chunks;
@@ -664,8 +667,8 @@ static void* meshthread(void* args) {
         }
         if (activity) {
             acttime = altutime();
-        } else if (altutime() - acttime > 3000000) {
-            microwait(500000);
+        } else if (altutime() - acttime > 1000000) {
+            microwait(100000);
         }
     }
     return NULL;
@@ -976,11 +979,22 @@ static void winch(int w, int h) {
     }
     setFullscreen(rendinf.fullscr);
     pthread_mutex_lock(&gllock);
-    glActiveTexture(GL_TEXTURE0);
+/*
+    glActiveTexture(FBTEXID);
     glBindTexture(GL_TEXTURE_2D, FBTEX);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, rendinf.width, rendinf.height, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
     glBindRenderbuffer(GL_RENDERBUFFER, DBUF);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, rendinf.width, rendinf.height);
+
+    glActiveTexture(UIFBTEXID);
+    glBindTexture(GL_TEXTURE_2D, UIFBTEX);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, rendinf.width, rendinf.height, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+    glBindRenderbuffer(GL_RENDERBUFFER, UIDBUF);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, rendinf.width, rendinf.height);
+*/
+    //glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    //glBindRenderbuffer(GL_RENDERBUFFER, 0);
+
     glViewport(0, 0, rendinf.width, rendinf.height);
     pthread_mutex_unlock(&gllock);
 }
@@ -1021,6 +1035,29 @@ bool initRenderer() {
     return true;
 }
 
+#if DBGLVL(0)
+static void oglCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* msg, const void* data) {
+    (void)data;
+    if (severity != GL_DEBUG_SEVERITY_MEDIUM && severity != GL_DEBUG_SEVERITY_HIGH) return;
+    fprintf(
+        stderr,
+        "OpenGL debug:\n"
+        " -> source: [%d]\n"
+        " -> type: [%d]\n"
+        " -> id: [%d]\n"
+        " -> severity: [%u]\n"
+        " -> len: [%u]\n"
+        " -> msg: {%s}\n",
+        source,
+        type,
+        id,
+        severity,
+        length,
+        msg
+    );
+}
+#endif
+
 bool startRenderer() {
     #if defined(USESDL2)
     SDL_SetHint(SDL_HINT_NO_SIGNAL_HANDLERS, "1");
@@ -1060,6 +1097,9 @@ bool startRenderer() {
     glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_TRUE);
     glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_TRUE);
     glfwWindowHint(GLFW_SAMPLES, 0);
+    #if DBGLVL(0)
+    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
+    #endif
     //glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     #endif
 
@@ -1150,6 +1190,11 @@ bool startRenderer() {
         fputs("startRenderer: Failed to initialize GLAD\n", stderr);
         return false;
     }
+    #if DBGLVL(0)
+    if (GL_KHR_debug) {
+        glDebugMessageCallback(oglCallback, NULL);
+    }
+    #endif
 
     #if defined(USEGLES)
     char* hdrpath = "engine/shaders/headers/OpenGL ES/header.glsl";
@@ -1234,23 +1279,31 @@ bool startRenderer() {
     glFrontFace(GL_CW);
     glDisable(GL_MULTISAMPLE);
 
+    int gltex = GL_TEXTURE0;
+
     glGenRenderbuffers(1, &UIDBUF);
     glBindRenderbuffer(GL_RENDERBUFFER, UIDBUF);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, rendinf.width, rendinf.height);
-    glGenRenderbuffers(1, &DBUF);
-    glBindRenderbuffer(GL_RENDERBUFFER, DBUF);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, rendinf.width, rendinf.height);
-
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, rendinf.width, rendinf.height);
+    UIFBTEXID = gltex++;
+    glActiveTexture(UIFBTEXID);
     glGenFramebuffers(1, &UIFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, UIFBO);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, UIDBUF);
+    glGenTextures(1, &UIFBTEX);
+    glBindTexture(GL_TEXTURE_2D, UIFBTEX);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, rendinf.width, rendinf.height, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, UIFBTEX, 0);
+
+    glGenRenderbuffers(1, &DBUF);
+    glBindRenderbuffer(GL_RENDERBUFFER, DBUF);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, rendinf.width, rendinf.height);
+    FBTEXID = gltex++;
+    glActiveTexture(FBTEXID);
     glGenFramebuffers(1, &FBO);
     glBindFramebuffer(GL_FRAMEBUFFER, FBO);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, DBUF);
-
-    int gltex = GL_TEXTURE0;
-
-    glActiveTexture(gltex++);
     glGenTextures(1, &FBTEX);
     glBindTexture(GL_TEXTURE_2D, FBTEX);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, rendinf.width, rendinf.height, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
@@ -1258,8 +1311,10 @@ bool startRenderer() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, FBTEX, 0);
 
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
     setShaderProg(shader_framebuffer);
-    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), 0);
+    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), FBTEXID - GL_TEXTURE0);
     setUniform3f(rendinf.shaderprog, "mcolor", (float[]){1.0, 1.0, 1.0});
 
     glActiveTexture(gltex++);
@@ -1329,13 +1384,13 @@ bool startRenderer() {
         }
     }
     setShaderProg(shader_block);
+    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), gltex - GL_TEXTURE0);
     glGenTextures(1, &texmaph);
     glActiveTexture(gltex++);
     glBindTexture(GL_TEXTURE_2D_ARRAY, texmaph);
     glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, 16, 16, texmapsize, 0, GL_RGBA, GL_UNSIGNED_BYTE, texmap);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), 3);
     free(texmap);
 
     glGenBuffers(1, &VBO2D);
@@ -1343,14 +1398,15 @@ bool startRenderer() {
     glBufferData(GL_ARRAY_BUFFER, sizeof(vert2D), vert2D, GL_STATIC_DRAW);
 
     setShaderProg(shader_2d);
+    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), gltex - GL_TEXTURE0);
     int corsshair = gltex++;
     glActiveTexture(corsshair);
     crosshair = loadResource(RESOURCE_TEXTURE, "game/textures/ui/crosshair.png");
     glBindTexture(GL_TEXTURE_2D, crosshair->data);
-    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), 4);
     setUniform4f(rendinf.shaderprog, "mcolor", (float[]){1.0, 1.0, 1.0, 1.0});
 
     setShaderProg(shader_text);
+    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), gltex - GL_TEXTURE0);
     glGenTextures(1, &charseth);
     glActiveTexture(gltex++);
     resdata_image* charset = loadResource(RESOURCE_IMAGE, "game/textures/ui/charset.png");
@@ -1358,7 +1414,6 @@ bool startRenderer() {
     glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, 8, 16, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, charset->data);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), 5);
     setUniform4f(rendinf.shaderprog, "mcolor", (float[]){1.0, 1.0, 1.0, 1.0});
 
     setShaderProg(shader_block);
