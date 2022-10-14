@@ -26,8 +26,8 @@ vec3 hsv2rgb(vec3 c) {
 void main() {
     fragColor = texture(texData, texCoord);
     vec3 hsvFrag = rgb2hsv(fragColor.rgb);
-    hsvFrag.x *= (1 + h);
-    hsvFrag.y *= (1 + s);
-    hsvFrag.z *= (1 + v);
+    hsvFrag.x *= (1.0 + h);
+    hsvFrag.y *= (1.0 + s);
+    hsvFrag.z *= (1.0 + v);
     fragColor.rgb = hsv2rgb(hsvFrag) * mcolor;
 }
