@@ -960,6 +960,7 @@ void render() {
     setShaderProg(shader_framebuffer);
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
     glDrawArrays(GL_TRIANGLES, 0, 6);
+    renderUI();
 
     setShaderProg(shader_text);
     if (showDebugInfo) {
@@ -1037,24 +1038,36 @@ bool initRenderer() {
 
 #if DBGLVL(0)
 static void oglCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* msg, const void* data) {
+    (void)source;
+    (void)type;
+    (void)length;
     (void)data;
-    if (severity != GL_DEBUG_SEVERITY_MEDIUM && severity != GL_DEBUG_SEVERITY_HIGH) return;
-    fprintf(
-        stderr,
-        "OpenGL debug:\n"
-        " -> source: [%d]\n"
-        " -> type: [%d]\n"
-        " -> id: [%d]\n"
-        " -> severity: [%u]\n"
-        " -> len: [%u]\n"
-        " -> msg: {%s}\n",
-        source,
-        type,
-        id,
-        severity,
-        length,
-        msg
-    );
+    bool ignore = true;
+    char* sevstr = "Unknown";
+    switch (severity) {
+        case GL_DEBUG_SEVERITY_HIGH:;
+            ignore = false;
+            sevstr = "GL_DEBUG_SEVERITY_HIGH";
+            break;
+        #if DBGLVL(1)
+        case GL_DEBUG_SEVERITY_MEDIUM:;
+            ignore = false;
+            sevstr = "GL_DEBUG_SEVERITY_MEDIUM";
+            break;
+        #endif
+        #if DBGLVL(2)
+        case GL_DEBUG_SEVERITY_LOW:;
+            ignore = false;
+            sevstr = "GL_DEBUG_SEVERITY_LOW";
+            break;
+        case GL_DEBUG_SEVERITY_NOTIFICATION:;
+            ignore = false;
+            sevstr = "GL_DEBUG_SEVERITY_NOTIFICATION";
+            break;
+        #endif
+    }
+    if (ignore) return;
+    fprintf(stderr, "OpenGL debug [%s]: [%d] {%s}\n", sevstr, id, msg);
 }
 #endif
 
@@ -1291,7 +1304,7 @@ bool startRenderer() {
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, UIDBUF);
     glGenTextures(1, &UIFBTEX);
     glBindTexture(GL_TEXTURE_2D, UIFBTEX);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, rendinf.width, rendinf.height, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, rendinf.width, rendinf.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, UIFBTEX, 0);
@@ -1311,7 +1324,7 @@ bool startRenderer() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, FBTEX, 0);
 
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    //glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     setShaderProg(shader_framebuffer);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), FBTEXID - GL_TEXTURE0);
