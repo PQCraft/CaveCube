@@ -280,9 +280,3 @@ static inline int validElemCt() {
     }
     return ct;
 }
-
-void rendUI() {
-    calcUIProps();
-    int elemct = validElemCt();
-    
-}
