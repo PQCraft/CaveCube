@@ -843,7 +843,9 @@ void freeTextMesh(struct rendtext* text) {
 }
 
 static inline void renderUI() {
-    calcUIProperties();
+    if (calcUIProperties()) {
+        //remesh ui
+    }
 }
 
 static char tbuf[1][32768];

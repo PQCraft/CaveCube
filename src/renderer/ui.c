@@ -189,12 +189,15 @@ static inline float getSize(char* propval, float max) {
     return num;
 }
 
-static inline void calcProp(struct ui_elem* e) {
+static inline bool calcProp(struct ui_elem* e) {
     struct ui_elem_calcprop p_prop;
     if (elemValid(e->parent)) {
         p_prop = ui_elemdata[e->parent].calcprop;
     } else {
+        static int scrw = -1;
+        static int scrh = -1;
         p_prop = (struct ui_elem_calcprop){
+            .changed = ((int)rendinf.width != scrw || (int)rendinf.height != scrh),
             .hidden = false,
             .x = 0,
             .y = 0,
@@ -202,8 +205,10 @@ static inline void calcProp(struct ui_elem* e) {
             .height = rendinf.height,
             .z = 0.0
         };
+        if (p_prop.changed) {scrw = rendinf.width; scrh = rendinf.height;}
     }
-    {
+    if (p_prop.changed) e->calcprop.changed = true;
+    if (e->calcprop.changed) {
         char* curprop;
         curprop = getProp(e, "margin_x");
         if (curprop) {
@@ -256,19 +261,26 @@ static inline void calcProp(struct ui_elem* e) {
         e->calcprop.z = (curprop) ? atof(curprop) : p_prop.z;
         curprop = getProp(e, "hidden");
         e->calcprop.z = (curprop) ? getBool(curprop) : false;
+        return true;
     }
+    return false;
 }
 
-static inline void calcPropTree(struct ui_elem* e) {
-    calcProp(e);
+static inline bool calcPropTree(struct ui_elem* e) {
+    bool ret = calcProp(e);
     for (int i = 0; i < e->children; ++i) {
         if (idValid(e->childdata[i])) calcPropTree(&ui_elemdata[e->childdata[i]]);
     }
+    return ret;
 }
 
-void calcUIProperties() {
+bool calcUIProperties() {
+    bool ret = false;
     for (int i = 0; i < ui_elems; ++i) {
         struct ui_elem* e = &ui_elemdata[i];
-        if (e->parent < 0) calcPropTree(e);
+        if (e->parent < 0) {
+            if (calcPropTree(e)) ret = true;
+        }
     }
+    return ret;
 }
