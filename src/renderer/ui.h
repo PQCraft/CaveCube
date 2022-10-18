@@ -9,6 +9,7 @@ struct ui_elem_property {
 };
 
 struct ui_elem_calcprop {
+    bool changed;
     bool hidden;
     int x;
     int y;
@@ -40,7 +41,7 @@ void deleteUIElem(int /*id*/);
 struct ui_elem* getUIElemData(int /*id*/);
 int getUIElemByName(char* /*name*/, bool /*reverse*/);
 int* getUIElemsByName(char* /*name*/, int* /*count*/);
-void calcUIProps(void);
+bool calcUIProperties(void);
 
 extern float ui_scale;
 extern int ui_elems;
