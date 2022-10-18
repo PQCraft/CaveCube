@@ -2,6 +2,7 @@
 
 #include <main/main.h>
 #include "renderer.h"
+#include "ui.h"
 #include "glad.h"
 #include <main/version.h>
 #include <common/common.h>
@@ -842,7 +843,7 @@ void freeTextMesh(struct rendtext* text) {
 }
 
 static inline void renderUI() {
-    
+    calcUIProperties();
 }
 
 static char tbuf[1][32768];
@@ -980,7 +981,7 @@ static void winch(int w, int h) {
     }
     setFullscreen(rendinf.fullscr);
     pthread_mutex_lock(&gllock);
-/*
+
     glActiveTexture(FBTEXID);
     glBindTexture(GL_TEXTURE_2D, FBTEX);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, rendinf.width, rendinf.height, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
@@ -992,9 +993,9 @@ static void winch(int w, int h) {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, rendinf.width, rendinf.height, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
     glBindRenderbuffer(GL_RENDERBUFFER, UIDBUF);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, rendinf.width, rendinf.height);
-*/
-    //glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    //glBindRenderbuffer(GL_RENDERBUFFER, 0);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glBindRenderbuffer(GL_RENDERBUFFER, 0);
 
     glViewport(0, 0, rendinf.width, rendinf.height);
     pthread_mutex_unlock(&gllock);

@@ -266,17 +266,9 @@ static inline void calcPropTree(struct ui_elem* e) {
     }
 }
 
-void calcUIProps() {
+void calcUIProperties() {
     for (int i = 0; i < ui_elems; ++i) {
         struct ui_elem* e = &ui_elemdata[i];
         if (e->parent < 0) calcPropTree(e);
     }
-}
-
-static inline int validElemCt() {
-    int ct = 0;
-    for (int i = 0; i < ui_elems; ++i) {
-        ct += ui_elemdata[i].valid;
-    }
-    return ct;
 }
