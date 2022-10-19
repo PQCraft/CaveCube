@@ -548,8 +548,8 @@ static void* servnetthread(void* args) {
         }
         if (activity) {
             acttime = altutime();
-        } else if (altutime() - acttime > 2500000) {
-            microwait(100000);
+        } else if (altutime() - acttime > 1500000) {
+            microwait(50000);
         }
     }
     return NULL;
@@ -798,8 +798,8 @@ static void* clinetthread(void* args) {
         sendCxn(clicxn);
         if (activity) {
             acttime = altutime();
-        } else if (altutime() - acttime > 1500000) {
-            microwait(100000);
+        } else if (altutime() - acttime > 500000) {
+            microwait(50000);
         }
     }
     return NULL;
