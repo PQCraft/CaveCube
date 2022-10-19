@@ -35,7 +35,10 @@ VER_MINOR="$(grep '#define VER_MINOR ' src/main/version.h | sed 's/#define .* //
 VER_PATCH="$(grep '#define VER_PATCH ' src/main/version.h | sed 's/#define .* //')"
 VER="${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}"
 printf "${I} ${TB}Version:${TR} [%s]\n" "${VER}"
-RELTEXT="$(sed -n '/DONE/,$p' .progress.txt | tail -n +2)"
+getreltext() {
+    sed -n '/^### DONE:$/,$p' TODO.md | tail -n +2
+}
+RELTEXT="$(getreltext)"
 printf "${I} ${TB}Release text:${TR}\n%s\n${TB}EOF${TR}\n" "${RELTEXT}"
 pause
 

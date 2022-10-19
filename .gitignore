@@ -5,11 +5,13 @@
 !resources/**
 !src/
 !src/**
+!CONTRIBUTING.md
 !gen.mk
 !LICENSE
 !Makefile
+!mkrelease.sh
 !README.md
-!update.sh
+!TODO.md
 !util.mk
 !.gitattributes
 !.gitignore
