@@ -9,4 +9,4 @@
     - Most of the time it's not really needed, and the functionality can probably be implemented locally with a bit of work
     - It will almost certainly hurt performance
     - It will increase project download size
-- Do not use any other languages besides C (no ++, no #) for anything in `src/*/`
+- Do not use any other languages besides C (no ++, no #) for anything under `src/*/`
