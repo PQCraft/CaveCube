@@ -115,8 +115,11 @@ void editUIElem(int id, char* name, int parent, ...) {
     va_end(args);
 }
 
+static bool del = false;
+
 void deleteUIElem(int id) {
     if (!elemValid(id)) return;
+    del = true;
     struct ui_elem* e = &ui_elemdata[id];
     e->valid = false;
     if (elemValid(e->parent)) {
@@ -282,7 +285,8 @@ static inline bool calcPropTree(struct ui_elem* e, bool force) {
 }
 
 bool calcUIProperties() {
-    bool ret = false;
+    bool ret = del;
+    if (del) del = false;
     for (int i = 0; i < ui_elems; ++i) {
         struct ui_elem* e = &ui_elemdata[i];
         if (e->parent < 0) {
