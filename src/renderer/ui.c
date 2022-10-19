@@ -16,12 +16,12 @@ struct ui_elem* ui_elemdata;
 #define elemValid(x) (idValid(x) && ui_elemdata[x].valid)
 
 int newUIElem(int type, char* name, int parent, ...) {
-    if (!elemValid(parent)) return -1;
     int index = -1;
     for (int i = 0; i < ui_elems; ++i) {
         if (!ui_elemdata[i].valid) {index = i; break;}
     }
     index = ui_elems++;
+    //printf("elems: [%d]\n", ui_elems);
     ui_elemdata = realloc(ui_elemdata, ui_elems * sizeof(*ui_elemdata));
     struct ui_elem* e = &ui_elemdata[index];
     memset(e, 0, sizeof(*e));
@@ -32,6 +32,7 @@ int newUIElem(int type, char* name, int parent, ...) {
     e->childdata = NULL;
     e->properties = 0;
     e->propertydata = NULL;
+    e->calcprop.changed = true;
     va_list args;
     va_start(args, parent);
     for (int i = 0; ; ++i) {
@@ -39,13 +40,13 @@ int newUIElem(int type, char* name, int parent, ...) {
         if (!name) break;
         char* val = va_arg(args, char*);
         if (!val) continue;
-        e->propertydata = realloc(e->propertydata, i * sizeof(*e->propertydata));
+        e->propertydata = realloc(e->propertydata, (i + 1) * sizeof(*e->propertydata));
         e->propertydata[i].name = strdup(name);
         e->propertydata[i].value = strdup(val);
     }
     va_end(args);
     e->valid = true;
-    if (parent >= 0) {
+    if (elemValid(parent)) {
         struct ui_elem* p = &ui_elemdata[parent];
         int cindex = -1;
         for (int i = 0; i < p->children; ++i) {
@@ -74,6 +75,7 @@ void editUIElem(int id, char* name, int parent, ...) {
         char* name = va_arg(args, char*);
         if (!name) break;
         char* val = va_arg(args, char*);
+        e->calcprop.changed = true;
         if (!val) {
             for (int i = 0; i < e->properties; ++i) {
                 if (e->propertydata[i].name && !strcasecmp(e->propertydata[i].name, name)) {
@@ -189,7 +191,7 @@ static inline float getSize(char* propval, float max) {
     return num;
 }
 
-static inline bool calcProp(struct ui_elem* e) {
+static inline bool calcProp(struct ui_elem* e, bool force) {
     struct ui_elem_calcprop p_prop;
     if (elemValid(e->parent)) {
         p_prop = ui_elemdata[e->parent].calcprop;
@@ -197,7 +199,6 @@ static inline bool calcProp(struct ui_elem* e) {
         static int scrw = -1;
         static int scrh = -1;
         p_prop = (struct ui_elem_calcprop){
-            .changed = ((int)rendinf.width != scrw || (int)rendinf.height != scrh),
             .hidden = false,
             .x = 0,
             .y = 0,
@@ -205,10 +206,13 @@ static inline bool calcProp(struct ui_elem* e) {
             .height = rendinf.height,
             .z = 0.0
         };
-        if (p_prop.changed) {scrw = rendinf.width; scrh = rendinf.height;}
+        if ((int)rendinf.width != scrw || (int)rendinf.height != scrh) {
+            scrw = rendinf.width;
+            scrh = rendinf.height;
+            force = true;
+        }
     }
-    if (p_prop.changed) e->calcprop.changed = true;
-    if (e->calcprop.changed) {
+    if (e->calcprop.changed || force) {
         char* curprop;
         curprop = getProp(e, "margin_x");
         if (curprop) {
@@ -261,15 +265,18 @@ static inline bool calcProp(struct ui_elem* e) {
         e->calcprop.z = (curprop) ? atof(curprop) : p_prop.z;
         curprop = getProp(e, "hidden");
         e->calcprop.z = (curprop) ? getBool(curprop) : false;
+        e->calcprop.changed = false;
         return true;
     }
     return false;
 }
 
-static inline bool calcPropTree(struct ui_elem* e) {
-    bool ret = calcProp(e);
-    for (int i = 0; i < e->children; ++i) {
-        if (idValid(e->childdata[i])) calcPropTree(&ui_elemdata[e->childdata[i]]);
+static inline bool calcPropTree(struct ui_elem* e, bool force) {
+    bool ret = calcProp(e, force);
+    if (ret) {
+        for (int i = 0; i < e->children; ++i) {
+            if (idValid(e->childdata[i])) calcPropTree(&ui_elemdata[e->childdata[i]], true);
+        }
     }
     return ret;
 }
@@ -279,7 +286,7 @@ bool calcUIProperties() {
     for (int i = 0; i < ui_elems; ++i) {
         struct ui_elem* e = &ui_elemdata[i];
         if (e->parent < 0) {
-            if (calcPropTree(e)) ret = true;
+            if (calcPropTree(e, false)) ret = true;
         }
     }
     return ret;

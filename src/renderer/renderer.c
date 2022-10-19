@@ -844,7 +844,9 @@ void freeTextMesh(struct rendtext* text) {
 
 static inline void renderUI() {
     if (calcUIProperties()) {
-        //remesh ui
+        #if DBGLVL(2)
+        puts("UI remesh");
+        #endif
     }
 }
 
