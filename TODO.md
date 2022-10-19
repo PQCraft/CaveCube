@@ -27,6 +27,7 @@
 - Make it so that events are not pushed again until an acknowledge (prevents overflow)
 
 ### MIGHT DO:
+- Implement bunny hopping after physics redo (resize AABB at bottom instead of top if in-air crouch)
 - Direct3D support
 - Greedy mesher in `src/renderer/renderer.c`
 

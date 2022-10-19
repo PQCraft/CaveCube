@@ -459,9 +459,8 @@ bool doGame(char* addr, int port) {
         if (onblock) {
             xcm = ((input.mov_up * sinf(yrotrad) * bps) + (input.mov_right * cosf(yrotrad) * bps))/* * mul + xcm * (1.0 - mul)*/;
             zcm = (-(input.mov_up * cosf(yrotrad) * bps) + (input.mov_right * sinf(yrotrad) * bps))/* * mul + zcm * (1.0 - mul)*/;
-            float bhoph = (float)((int)(rendinf.campos.y)) + 0.5;
-            if (rendinf.campos.y < bhoph && yvel <= 0.0) {
-                rendinf.campos.y = bhoph;
+            if (rendinf.campos.y < (float)((int)(rendinf.campos.y)) + 0.5 && yvel <= 0.0) {
+                rendinf.campos.y = (float)((int)(rendinf.campos.y)) + 0.5;
             }
             if (yvel <= 0 && (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_JUMP))) {
                 yvel = 1;
@@ -481,11 +480,6 @@ bool doGame(char* addr, int port) {
         if (!onblock) {
             if (yvel > -7.5) {
                 yvel -= 0.5 * pmult;
-                if (yvel < 2) {
-                    float tcm = (sqrt((xcm*xcm) + (zcm*zcm)) / 2.0) / 1.5;
-                    xcm *= tcm;
-                    zcm *= tcm;
-                }
             }
         }
         if (rendinf.campos.y < 2.5) rendinf.campos.y = 2.5;
