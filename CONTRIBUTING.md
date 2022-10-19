@@ -1,0 +1,12 @@
+### CONTRIBUTING GUIDE
+- Please fork the `dev` branch and not the `master` branch
+    - The `master` branch is reserved for working releases and is only updated when the version is incremented
+- Please use the coding style/format represented in the rest of the code
+- Don't contribute mallicious code
+- Try not to pull in more external dependencies unless they can be statically linked
+    - The less the amount of library binaries that need to be included, the better
+- Try not to use/add large or bloated dependencies
+    - Most of the time it's not really needed, and the functionality can probably be implemented locally with a bit of work
+    - It will almost certainly hurt performance
+    - It will increase project download size
+- Do not use any other languages besides C (no ++, no #) for anything in `src/*/`
