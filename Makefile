@@ -64,7 +64,7 @@ endif
 
 BIN := $(BINNAME)$(BINEXT)
 
-CFLAGS += -Wall -Wextra -O2
+CFLAGS += -Wall -Wextra -O2 -pthread
 ifdef DEBUG
     CFLAGS += -g -DDEBUG=$(DEBUG)
     ifdef OS
@@ -78,7 +78,7 @@ ifdef SERVER
     endif
 endif
 
-BINFLAGS += -lm
+BINFLAGS += -pthread -lm
 ifndef OS
     BINFLAGS += -lpthread
 else

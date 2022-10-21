@@ -36,7 +36,5 @@
 - 2D UI
 
 ### DONE:
-- Enabled GLFW hint to scale to DPI
-- Set GLFW multisampling hint to 0
-- Fixed OpenGLES
-- Improved thread timing
+- Disabled GLFW hint to scale to DPI
+- Added -pthread to compiler options
