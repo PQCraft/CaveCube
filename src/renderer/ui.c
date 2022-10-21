@@ -1,3 +1,5 @@
+#ifndef SERVER
+
 #include "ui.h"
 
 #include "renderer.h"
@@ -295,3 +297,5 @@ bool calcUIProperties() {
     }
     return ret;
 }
+
+#endif

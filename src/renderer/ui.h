@@ -1,3 +1,5 @@
+#ifndef SERVER
+
 #ifndef RENDERER_UI_H
 #define RENDERER_UI_H
 
@@ -46,5 +48,7 @@ bool calcUIProperties(void);
 extern float ui_scale;
 extern int ui_elems;
 extern struct ui_elem* ui_elemdata;
+
+#endif
 
 #endif

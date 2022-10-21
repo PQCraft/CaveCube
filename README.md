@@ -26,3 +26,5 @@ For example, `make USESDL2=y WIN32=y -j run` will build CaveCube for Windows wit
 ---
 ### Notes <img src="https://repology.org/badge/vertical-allrepos/cavecube.svg" alt="Packaging status" align="right"><br>
 - CaveCube can be installed on Arch Linux using the [cavecube](https://aur.archlinux.org/packages/cavecube) or [cavecube-bin](https://aur.archlinux.org/packages/cavecube-bin) package.<br>
+- The project status is written down in [TODO.md](https://github.com/PQCraft/CaveCube/blob/dev/TODO.md).<br>
+- Please read the [contributing guide](https://github.com/PQCraft/CaveCube/blob/dev/CONTRIBUTING.md) before contributing code.<br>
