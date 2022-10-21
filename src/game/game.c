@@ -369,12 +369,12 @@ bool doGame(char* addr, int port) {
         bool crouch = false;
         if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_CROUCH)) {
             crouch = true;
-            bps = 1.5;
+            bps *= 0.375;
         } else if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_RUN)) {
-            bps = 6.75;
+            bps *= 1.6875;
         }
         float speedmult = 1.0;
-        float leanmult = bps / 3.5 * (1.0 + (speedmult * 0.1));
+        float leanmult = ((bps < 10.0) ? bps : 10.0) / 3.5 * (1.0 + (speedmult * 0.1));
         bps *= speedmult;
         tmpcamrot.x += input.rot_up * input.rot_mult;
         tmpcamrot.y -= input.rot_right * input.rot_mult;

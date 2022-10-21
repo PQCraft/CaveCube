@@ -24,7 +24,8 @@ pause() {
     ask "${TB}Press enter to continue...${TR}"
 }
 _exit() {
-    local ERR="${?}"
+    local ERR="$?"
+    [[ $# -eq 0 ]] || local ERR="$1"
     err "Error ${ERR}"
     exit "${ERR}"
 }
@@ -55,7 +56,6 @@ buildrel() {
     make ${@:3} clean 1> /dev/null || _exit
     RESPONSE=""
     while ! make ${@:3} "-j${NJOBS}" 1> /dev/null; do
-    #while ! (exit 1); do
         while [[ -z "${RESPONSE}" ]]; do
             ask "${TB}Build failed. Retry?${TR} (${TB}Y${TR}es/${TB}N${TR}o/${TB}C${TR}lean): "
             case "${RESPONSE,,}" in
@@ -75,6 +75,7 @@ buildrel() {
         done
         case "${RESPONSE,,}" in
             n | no)
+                RESPONSE="n"
                 break
                 ;;
             *)
@@ -82,8 +83,9 @@ buildrel() {
                 ;;
         esac
     done
-    pkgrel || _exit
+    [[ "${RESPONSE}" == "n" ]] || pkgrel || _exit
     make ${@:3} clean 1> /dev/null || _exit
+    [[ "${RESPONSE}" == "n" ]] && _exit 1
 }
 pkgrel() { _tar "cavecube-linux.tar.gz" cavecube; }
 buildrel "game" "Linux"

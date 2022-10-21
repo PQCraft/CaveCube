@@ -32,7 +32,7 @@ struct renderer_info rendinf;
 
 static GLuint shader_block;
 static GLuint shader_2d;
-static GLuint shader_text;
+static GLuint shader_ui;
 static GLuint shader_framebuffer;
 
 static void setMat4(GLuint prog, char* name, mat4 val) {
@@ -967,7 +967,7 @@ void render() {
     glDrawArrays(GL_TRIANGLES, 0, 6);
     renderUI();
 
-    setShaderProg(shader_text);
+    setShaderProg(shader_ui);
     if (showDebugInfo) {
         renderText(debugtext);
         //freeTextMesh(debugtext);
@@ -1242,7 +1242,7 @@ bool startRenderer() {
     freeResource(fs);
     vs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/text/vertex.glsl");
     fs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/text/fragment.glsl");
-    if (!vs || !fs || !makeShaderProg((char*)hdr->data, (char*)vs->data, (char*)fs->data, &shader_text)) {
+    if (!vs || !fs || !makeShaderProg((char*)hdr->data, (char*)vs->data, (char*)fs->data, &shader_ui)) {
         fputs("startRenderer: Failed to compile text shader\n", stderr);
         return false;
     }
@@ -1268,6 +1268,11 @@ bool startRenderer() {
     printf("Vendor string: %s\n", glvend);
     glrend = glGetString(GL_RENDERER);
     printf("Renderer string: %s\n", glrend);
+    {
+        int data = 0;
+        glGetIntegerv(GL_MAX_ARRAY_TEXTURE_LAYERS, &data);
+        printf("Test: %d\n", data);
+    }
 
     #if defined(USESDL2)
     #else
@@ -1423,7 +1428,7 @@ bool startRenderer() {
     glBindTexture(GL_TEXTURE_2D, crosshair->data);
     setUniform4f(rendinf.shaderprog, "mcolor", (float[]){1.0, 1.0, 1.0, 1.0});
 
-    setShaderProg(shader_text);
+    setShaderProg(shader_ui);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), gltex - GL_TEXTURE0);
     glGenTextures(1, &charseth);
     glActiveTexture(gltex++);

@@ -30,6 +30,7 @@
 - Implement bunny hopping after physics redo (resize AABB at bottom instead of top if in-air crouch)
 - Direct3D support
 - Greedy mesher in `src/renderer/renderer.c`
+- Android support (requires that it be buildable from the command-line using `make` so it can be used in `mkrelease.sh`)
 
 ### IN-PROGRESS:
 - 2D UI
