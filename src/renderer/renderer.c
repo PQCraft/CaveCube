@@ -350,9 +350,9 @@ void updateScreen() {
     static int lv = -1;
     if (rendinf.vsync != lv) {
         #if defined(USESDL2)
-        SDL_GL_SetSwapInterval(rendinf.vsync * -1);
+        SDL_GL_SetSwapInterval(rendinf.vsync);
         #else
-        glfwSwapInterval(rendinf.vsync * -1);
+        glfwSwapInterval(rendinf.vsync);
         #endif
         lv = rendinf.vsync;
     }
@@ -387,9 +387,9 @@ static struct blockdata rendGetBlock(int32_t c, int x, int y, int z) {
     while (x > 15 && (c + 1) % chunks->info.width) {c += 1; x -= 16;}
     while (z > 15 && c >= (int)chunks->info.width) {c -= chunks->info.width; z -= 16;}
     while (z < 0 && c < (int)(chunks->info.widthsq - chunks->info.width)) {c += chunks->info.width; z += 16;}
-    if (c < 0 || x < 0 || z < 0 || x > 15 || z > 15) return (struct blockdata){255, 0, 0};
-    if (c >= (int32_t)chunks->info.widthsq || y < 0 || y > 255) return (struct blockdata){0, 0, 0};
-    if (!chunks->renddata[c].generated) return (struct blockdata){255, 0, 0};
+    if (c < 0 || x < 0 || z < 0 || x > 15 || z > 15) return (struct blockdata){255, 0, 0, 0, 0, 0};
+    if (c >= (int32_t)chunks->info.widthsq || y < 0 || y > 255) return (struct blockdata){0, 0, 0, 0, 0, 0};
+    if (!chunks->renddata[c].generated) return (struct blockdata){255, 0, 0, 0, 0, 0};
     struct blockdata ret = chunks->data[c][y * 256 + z * 16 + x];
     return ret;
 }
@@ -605,7 +605,7 @@ static void* meshthread(void* args) {
                             }
                             if (bdata2[i].id == 255) continue;
                             uint32_t baseVert1 = ((x << 28) | (y << 16) | (z << 8)) & 0xF0FF0F00;
-                            uint32_t baseVert2 = ((bdata2[i].light << 28) | (bdata2[i].light << 24) | (bdata2[i].light << 20) | blockinf[bdata.id].anidiv) & 0xFFF000FF;
+                            uint32_t baseVert2 = ((bdata2[i].light_r << 28) | (bdata2[i].light_g << 24) | (bdata2[i].light_b << 20) | blockinf[bdata.id].anidiv) & 0xFFF000FF;
                             uint32_t baseVert3 = ((blockinf[bdata.id].texoff[i] << 16) & 0xFFFF0000) | (blockinf[bdata.id].anict[i] & 0x0000FFFF);
                             if (bdata.id == water) {
                                 if (!bdata2[i].id) {
@@ -675,6 +675,8 @@ static void* meshthread(void* args) {
     return NULL;
 }
 
+static bool uchunks_slowmode = false;
+
 void updateChunks() {
     pthread_mutex_lock(&uclock);
     for (uint32_t c = 0; !quitRequest && c < chunks->info.widthsq; ++c) {
@@ -705,6 +707,7 @@ void updateChunks() {
         chunks->renddata[c].vertices3 = NULL;
         chunks->renddata[c].ready = false;
         chunks->renddata[c].buffered = true;
+        if (uchunks_slowmode) break;
     }
     pthread_mutex_unlock(&uclock);
 }
@@ -1268,11 +1271,6 @@ bool startRenderer() {
     printf("Vendor string: %s\n", glvend);
     glrend = glGetString(GL_RENDERER);
     printf("Renderer string: %s\n", glrend);
-    {
-        int data = 0;
-        glGetIntegerv(GL_MAX_ARRAY_TEXTURE_LAYERS, &data);
-        printf("Test: %d\n", data);
-    }
 
     #if defined(USESDL2)
     #else
