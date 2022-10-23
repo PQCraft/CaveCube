@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <strings.h>
 #include <stdbool.h>
 #include <errno.h>
 
@@ -276,7 +277,7 @@ struct config* openConfig(char* path) {
     return cfg;
 }
 
-static inline void writeKeys(struct config* cfg, int i, FILE* outfile) {
+static _inline void writeKeys(struct config* cfg, int i, FILE* outfile) {
     for (int j = 0; j < cfg->sectdata[i].keys; ++j) {
         fputs(cfg->sectdata[i].keydata[j].name, outfile);
         fputs(" = ", outfile);

@@ -1,8 +1,6 @@
 #ifndef MAIN_MAIN_H
 #define MAIN_MAIN_H
 
-#include "main.h"
-
 #include <common/config.h>
 
 #ifndef DEBUG
@@ -22,6 +20,8 @@
 #ifndef MAX_THREADS
     #define MAX_THREADS 32
 #endif
+
+#define _inline inline __attribute__((always_inline))
 
 extern CONFIG* config;
 extern int quitRequest;

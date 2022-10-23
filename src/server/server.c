@@ -30,14 +30,14 @@ struct msgdata {
     pthread_mutex_t lock;
 };
 
-static void initMsgData(struct msgdata* mdata) {
+static _inline void initMsgData(struct msgdata* mdata) {
     mdata->valid = true;
     mdata->size = 0;
     mdata->msg = malloc(0);
     pthread_mutex_init(&mdata->lock, NULL);
 }
 
-static void deinitMsgData(struct msgdata* mdata) {
+static _inline void deinitMsgData(struct msgdata* mdata) {
     pthread_mutex_lock(&mdata->lock);
     mdata->valid = false;
     free(mdata->msg);
@@ -45,7 +45,7 @@ static void deinitMsgData(struct msgdata* mdata) {
     pthread_mutex_destroy(&mdata->lock);
 }
 
-static void addMsg(struct msgdata* mdata, int id, void* data, uint64_t uuid, int uind) {
+static _inline void addMsg(struct msgdata* mdata, int id, void* data, uint64_t uuid, int uind) {
     pthread_mutex_lock(&mdata->lock);
     if (mdata->valid) {
         int index = -1;
@@ -67,7 +67,7 @@ static void addMsg(struct msgdata* mdata, int id, void* data, uint64_t uuid, int
     pthread_mutex_unlock(&mdata->lock);
 }
 
-static bool getNextMsg(struct msgdata* mdata, struct msgdata_msg* msg) {
+static _inline bool getNextMsg(struct msgdata* mdata, struct msgdata_msg* msg) {
     pthread_mutex_lock(&mdata->lock);
     if (mdata->valid) {
         for (int i = 0; i < mdata->size; ++i) {
@@ -86,7 +86,7 @@ static bool getNextMsg(struct msgdata* mdata, struct msgdata_msg* msg) {
     return false;
 }
 
-static bool getNextMsgForUUID(struct msgdata* mdata, struct msgdata_msg* msg, uint64_t uuid) {
+static _inline bool getNextMsgForUUID(struct msgdata* mdata, struct msgdata_msg* msg, uint64_t uuid) {
     pthread_mutex_lock(&mdata->lock);
     if (mdata->valid) {
         for (int i = 0; i < mdata->size; ++i) {
@@ -121,14 +121,14 @@ struct timerdata {
     pthread_mutex_t lock;
 };
 
-static void initTimerData(struct timerdata* tdata) {
+static _inline void initTimerData(struct timerdata* tdata) {
     tdata->valid = true;
     tdata->size = 0;
     tdata->tmr = malloc(0);
     pthread_mutex_init(&tdata->lock, NULL);
 }
 
-static void deinitTimerData(struct timerdata* tdata) {
+static _inline void deinitTimerData(struct timerdata* tdata) {
     pthread_mutex_lock(&tdata->lock);
     tdata->valid = false;
     free(tdata->tmr);
@@ -136,7 +136,7 @@ static void deinitTimerData(struct timerdata* tdata) {
     pthread_mutex_destroy(&tdata->lock);
 }
 
-static int addTimer(struct timerdata* tdata, int event, uint64_t interval) {
+static _inline int addTimer(struct timerdata* tdata, int event, uint64_t interval) {
     int index = -1;
     pthread_mutex_lock(&tdata->lock);
     if (tdata->valid) {
@@ -158,7 +158,7 @@ static int addTimer(struct timerdata* tdata, int event, uint64_t interval) {
     return index;
 }
 
-static void removeTimer(struct timerdata* tdata, int i) {
+static _inline void removeTimer(struct timerdata* tdata, int i) {
     pthread_mutex_lock(&tdata->lock);
     if (tdata->valid) {
         if (tdata->tmr[i].event >= 0) {
@@ -210,11 +210,11 @@ enum {
     MSGTYPE_DATA,
 };
 
-static inline int getInbufSize(struct netcxn* cxn) {
+static _inline int getInbufSize(struct netcxn* cxn) {
     return cxn->inbuf->dlen;
 }
 
-static inline int getOutbufLeft(struct netcxn* cxn) {
+static _inline int getOutbufLeft(struct netcxn* cxn) {
     return cxn->outbuf->size - cxn->outbuf->dlen;
 }
 

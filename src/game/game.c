@@ -33,14 +33,14 @@ static float fpsmult = 0;
 
 static struct chunkdata chunks;
 
-static inline struct blockdata getBlockF(struct chunkdata* chunks, float x, float y, float z) {
+static _inline struct blockdata getBlockF(struct chunkdata* chunks, float x, float y, float z) {
     x -= (x < 0) ? 1.0 : 0.0;
     y -= (y < 0) ? 1.0 : 0.0;
     z += (z > 0) ? 1.0 : 0.0;
     return getBlock(chunks, 0, 0, x, y, z);
 }
 
-static inline coord_3d intCoord(coord_3d in) {
+static _inline coord_3d intCoord(coord_3d in) {
     in.x -= (in.x < 0) ? 1.0 : 0.0;
     in.y -= (in.y < 0) ? 1.0 : 0.0;
     in.z += (in.z > 0) ? 1.0 : 0.0;
@@ -50,7 +50,7 @@ static inline coord_3d intCoord(coord_3d in) {
     return in;
 }
 
-static inline coord_3d_dbl w2bCoord(coord_3d_dbl in) {
+static _inline coord_3d_dbl w2bCoord(coord_3d_dbl in) {
     in.x -= (in.x < 0) ? 1.0 : 0.0;
     in.y -= (in.y < 0) ? 1.0 : 0.0;
     in.z -= (in.z < 0) ? 1.0 : 0.0;
@@ -60,15 +60,15 @@ static inline coord_3d_dbl w2bCoord(coord_3d_dbl in) {
     return in;
 }
 
-static inline float dist2(float x1, float y1, float x2, float y2) {
+static _inline float dist2(float x1, float y1, float x2, float y2) {
     return sqrt(fabs(x2 - x1) * fabs(x2 - x1) + fabs(y2 - y1) * fabs(y2 - y1));
 }
 
-static inline float distz(float x1, float y1) {
+static _inline float distz(float x1, float y1) {
     return sqrt(fabs(x1 * x1) + fabs(y1 * y1));
 }
 
-static inline bool bcollide(coord_3d bpos, coord_3d cpos) {
+static _inline bool bcollide(coord_3d bpos, coord_3d cpos) {
     if (cpos.x + 0.25 > bpos.x - 0.5 &&
         cpos.x - 0.25 < bpos.x + 0.5 &&
         cpos.z + 0.25 > bpos.z - 0.5 &&
@@ -81,7 +81,7 @@ static inline bool bcollide(coord_3d bpos, coord_3d cpos) {
 
 static bool pcaxis[4];
 
-static inline bool phitblock(coord_3d block, coord_3d boffset, coord_3d* pos) {
+static _inline bool phitblock(coord_3d block, coord_3d boffset, coord_3d* pos) {
     block.x += boffset.x;
     block.y += boffset.y;
     block.z += boffset.z;
@@ -117,7 +117,7 @@ static inline bool phitblock(coord_3d block, coord_3d boffset, coord_3d* pos) {
     return false;
 }
 
-static inline uint8_t pcollide(struct chunkdata* chunks, coord_3d* pos) {
+static _inline uint8_t pcollide(struct chunkdata* chunks, coord_3d* pos) {
     coord_3d new = *pos;
     new = intCoord(new);
     uint8_t ret = 0;
@@ -174,7 +174,7 @@ static inline uint8_t pcollide(struct chunkdata* chunks, coord_3d* pos) {
     return ret;
 }
 
-static inline void pcollidepath(struct chunkdata* chunks, coord_3d oldpos, coord_3d* pos) {
+static _inline void pcollidepath(struct chunkdata* chunks, coord_3d oldpos, coord_3d* pos) {
     float changex = pos->x - oldpos.x;
     float changez = pos->z - oldpos.z;
     float dist = distz(changex, changez);
@@ -189,7 +189,7 @@ static inline void pcollidepath(struct chunkdata* chunks, coord_3d oldpos, coord
     }
 }
 
-static inline coord_3d_dbl icoord2wcoord(coord_3d cam, int64_t cx, int64_t cz) {
+static _inline coord_3d_dbl icoord2wcoord(coord_3d cam, int64_t cx, int64_t cz) {
     coord_3d_dbl ret;
     ret.x = cx * 16 + (double)cam.x;
     ret.y = (double)cam.y - 0.5;

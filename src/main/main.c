@@ -58,7 +58,7 @@ static void sigsegvh(int sig) {
 static bool showcon;
 #endif
 
-static bool altchdir(char* path) {
+static _inline bool altchdir(char* path) {
     if (chdir(path) < 0) {fprintf(stderr, "Could not chdir into '%s'\n", path); return false;}
     return true;
 }
@@ -69,7 +69,7 @@ static bool altchdir(char* path) {
     #define SC_VAL "true"
 #endif
 
-static void commonSetup() {
+static _inline void commonSetup() {
     if (!altchdir(startdir)) exit(1);
     config = openConfig((isFile(configpath) == 1) ? configpath : NULL);
     if (!altchdir(maindir)) exit(1);
@@ -86,7 +86,7 @@ static void commonSetup() {
 #define ARG_INVALVAR(x) {fprintf(stderr, "Invalid option variable: '%s'\n", x);}
 #define ARG_INVALVARSYN() {fprintf(stderr, "Invalid option variable syntax\n");}
 
-static inline int getNextArg(char* arg) {
+static _inline int getNextArg(char* arg) {
     if (!arg || !arg[0] || arg[0] == '-') return -1;
     int i = 0;
     for (; arg[i]; ++i) {if (arg[i] == '=') break;}
