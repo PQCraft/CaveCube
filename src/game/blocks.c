@@ -34,6 +34,9 @@ void initBlocks() {
             }
         }
         blockinf[i].anidiv = atoi(getInfoVarStatic((char*)blockcfg->data, "animationdiv", "1", 16));
+        blockinf[i].light_r = atoi(getInfoVarStatic((char*)blockcfg->data, "light_r", "0", 16));
+        blockinf[i].light_g = atoi(getInfoVarStatic((char*)blockcfg->data, "light_g", "0", 16));
+        blockinf[i].light_b = atoi(getInfoVarStatic((char*)blockcfg->data, "light_b", "0", 16));
         printf("Set block %d to \"%s\" (\"%s\")\n", i, blockinf[i].name, blockinf[i].id);
         freeResource(blockcfg);
     }

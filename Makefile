@@ -64,7 +64,7 @@ endif
 
 BIN := $(BINNAME)$(BINEXT)
 
-CFLAGS += -Wall -Wextra -O2 -pthread
+CFLAGS += -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -O2 -pthread
 ifdef DEBUG
     CFLAGS += -g -DDEBUG=$(DEBUG)
     ifdef OS

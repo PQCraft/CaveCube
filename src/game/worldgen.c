@@ -4,6 +4,7 @@
 #include <common/noise.h>
 
 #include <math.h>
+#include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
 
@@ -26,7 +27,7 @@ bool initWorldgen() {
     return true;
 }
 
-static inline void genSliver(int type, double cx, double cz, uint8_t* data) {
+static _inline void genSliver(int type, double cx, double cz, uint8_t* data) {
     switch (type) {
         default:; {
             data[0] = bedrock;
@@ -93,7 +94,7 @@ void genChunk(int64_t cx, int64_t cz, struct blockdata* data, int type) {
             for (int i = 0; i < 256; ++i) {
                 struct blockdata* tdata = &data[256 * i + xzoff];
                 memset(tdata, 0, sizeof(struct blockdata));
-                *tdata = (struct blockdata){.id = sliver[i], .light_r = 15, .light_g = 15, .light_b = 13};
+                *tdata = (struct blockdata){.id = sliver[i], .light_r = 15, .light_g = 15, .light_b = 14};
             }
         }
     }

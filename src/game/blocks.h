@@ -12,6 +12,9 @@ struct block_info {
     uint16_t texoff[6];
     uint16_t anict[6];
     uint8_t anidiv;
+    uint8_t light_r:4;
+    uint8_t light_g:4;
+    uint8_t light_b:4;
 };
 
 extern struct block_info blockinf[256];
