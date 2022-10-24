@@ -20,7 +20,7 @@ void initNoiseTable(int s) {
     }
 }
 
-static _inline int64_t noise2(int t, int64_t x, int64_t y) {
+static force_inline int64_t noise2(int t, int64_t x, int64_t y) {
     int64_t yindex = (y + SEED) % 256;
     if (yindex < 0) yindex += 256;
     int64_t xindex = (hash[t][yindex] + x) % 256;
@@ -28,11 +28,11 @@ static _inline int64_t noise2(int t, int64_t x, int64_t y) {
     return hash[t][xindex];
 }
 
-static _inline double lin_inter(double x, double y, double s) {
+static force_inline double lin_inter(double x, double y, double s) {
     return x + s * (y - x);
 }
 
-static _inline double smooth_inter(double x, double y, double s) {
+static force_inline double smooth_inter(double x, double y, double s) {
     return lin_inter(x, y, s * s * (3 - 2 * s));
 }
 

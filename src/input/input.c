@@ -175,7 +175,7 @@ void sdlgetmouse(double* mx, double* my) {
 static const uint8_t* sdlkeymap;
 #endif
 
-static _inline bool _keyDown(int device, int type, int key) {
+static force_inline bool _keyDown(int device, int type, int key) {
     switch (device) {
         case 'k':; {
             switch (type) {

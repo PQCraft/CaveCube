@@ -35,23 +35,23 @@ static GLuint shader_2d;
 static GLuint shader_ui;
 static GLuint shader_framebuffer;
 
-static _inline void setMat4(GLuint prog, char* name, mat4 val) {
+static force_inline void setMat4(GLuint prog, char* name, mat4 val) {
     glUniformMatrix4fv(glGetUniformLocation(prog, name), 1, GL_FALSE, *val);
 }
 
-static _inline void setUniform2f(GLuint prog, char* name, float val[2]) {
+static force_inline void setUniform2f(GLuint prog, char* name, float val[2]) {
     glUniform2f(glGetUniformLocation(prog, name), val[0], val[1]);
 }
 
-static _inline void setUniform3f(GLuint prog, char* name, float val[3]) {
+static force_inline void setUniform3f(GLuint prog, char* name, float val[3]) {
     glUniform3f(glGetUniformLocation(prog, name), val[0], val[1], val[2]);
 }
 
-static _inline void setUniform4f(GLuint prog, char* name, float val[4]) {
+static force_inline void setUniform4f(GLuint prog, char* name, float val[4]) {
     glUniform4f(glGetUniformLocation(prog, name), val[0], val[1], val[2], val[3]);
 }
 
-static _inline void setShaderProg(GLuint s) {
+static force_inline void setShaderProg(GLuint s) {
     rendinf.shaderprog = s;
     glUseProgram(rendinf.shaderprog);
 }
@@ -94,7 +94,7 @@ struct frustum {
 
 static struct frustum __attribute__((aligned (32))) frust;
 
-static _inline void normFrustPlane(struct frustum* frust, int plane) {
+static force_inline void normFrustPlane(struct frustum* frust, int plane) {
 	float len = sqrtf(frust->planes[plane][0] * frust->planes[plane][0] + frust->planes[plane][1] * frust->planes[plane][1] + frust->planes[plane][2] * frust->planes[plane][2]);
 	for (int i = 0; i < 4; i++) {
 		frust->planes[plane][i] /= len;
@@ -103,7 +103,7 @@ static _inline void normFrustPlane(struct frustum* frust, int plane) {
 
 static float __attribute__((aligned (32))) cf_clip[16];
 
-static _inline void calcFrust(struct frustum* frust, float* proj, float* view) {
+static force_inline void calcFrust(struct frustum* frust, float* proj, float* view) {
 	cf_clip[0] = view[0] * proj[0] + view[1] * proj[4] + view[2] * proj[8] + view[3] * proj[12];
 	cf_clip[1] = view[0] * proj[1] + view[1] * proj[5] + view[2] * proj[9] + view[3] * proj[13];
 	cf_clip[2] = view[0] * proj[2] + view[1] * proj[6] + view[2] * proj[10] + view[3] * proj[14];
@@ -152,7 +152,7 @@ static _inline void calcFrust(struct frustum* frust, float* proj, float* view) {
 	normFrustPlane(frust, 5);
 }
 
-static _inline bool isVisible(struct frustum* frust, float ax, float ay, float az, float bx, float by, float bz) {
+static force_inline bool isVisible(struct frustum* frust, float ax, float ay, float az, float bx, float by, float bz) {
 	for (int i = 0; i < 6; i++) {
 		if ((frust->planes[i][0] * ax + frust->planes[i][1] * ay + frust->planes[i][2] * az + frust->planes[i][3] <= 0.0) &&
 		    (frust->planes[i][0] * bx + frust->planes[i][1] * ay + frust->planes[i][2] * az + frust->planes[i][3] <= 0.0) &&
@@ -257,7 +257,7 @@ void setFullscreen(bool fullscreen) {
     //updateCam();
 }
 
-static _inline bool makeShaderProg(char* hdrtext, char* _vstext, char* _fstext, GLuint* p) {
+static force_inline bool makeShaderProg(char* hdrtext, char* _vstext, char* _fstext, GLuint* p) {
     if (!_vstext || !_fstext) return false;
     bool retval = true;
     char* vstext = malloc(strlen(hdrtext) + strlen(_vstext) + 1);
@@ -382,7 +382,7 @@ void setMeshChunks(void* vdata) {
     chunks = vdata;
 }
 
-static _inline struct blockdata rendGetBlock(int32_t c, int x, int y, int z) {
+static force_inline struct blockdata rendGetBlock(int32_t c, int x, int y, int z) {
     while (x < 0 && c % chunks->info.width) {c -= 1; x += 16;}
     while (x > 15 && (c + 1) % chunks->info.width) {c += 1; x -= 16;}
     while (z > 15 && c >= (int)chunks->info.width) {c -= chunks->info.width; z -= 16;}
@@ -426,7 +426,7 @@ struct msgdata {
     uint64_t id;
 };
 
-static _inline void initMsgData(struct msgdata* mdata) {
+static force_inline void initMsgData(struct msgdata* mdata) {
     mdata->valid = true;
     mdata->size = 0;
     mdata->msg = malloc(0);
@@ -443,7 +443,7 @@ static void deinitMsgData(struct msgdata* mdata) {
 }
 */
 
-static _inline void addMsg(struct msgdata* mdata, int64_t x, int64_t z, uint64_t id, bool dep, bool full) {
+static force_inline void addMsg(struct msgdata* mdata, int64_t x, int64_t z, uint64_t id, bool dep, bool full) {
     pthread_mutex_lock(&mdata->lock);
     if (mdata->valid) {
         int index = -1;
@@ -483,7 +483,7 @@ void setMeshChunkOff(int64_t x, int64_t z) {
     czo = z;
 }
 
-static _inline bool getNextMsg(struct msgdata* mdata, struct msgdata_msg* msg) {
+static force_inline bool getNextMsg(struct msgdata* mdata, struct msgdata_msg* msg) {
     pthread_mutex_lock(&mdata->lock);
     if (mdata->valid) {
         for (int i = 0; i < mdata->size; ++i) {
@@ -774,15 +774,15 @@ static color textcolor[16] = {
 // data1: [16 bits: x][16 bits: y]
 // data2: [8 bits: char][8 bits: reserved][1 bit: texture x][1 bit: texture y][14: reserved]
 
-static _inline uint32_t mtxtgenvert1(int16_t x, int16_t y) {
+static force_inline uint32_t mtxtgenvert1(int16_t x, int16_t y) {
     return (x << 16) | y;
 }
 
-static _inline uint32_t mtxtgenvert2(uint8_t chr, bool tx, bool ty) {
+static force_inline uint32_t mtxtgenvert2(uint8_t chr, bool tx, bool ty) {
     return (chr << 24) | ((tx & 1) << 15) | ((ty & 1) << 14);
 }
 
-static _inline struct rendtext* meshText(struct rendtext* textdata, int x, int y, float scale, unsigned end, char* text, uint8_t fgc, uint8_t bgc, float fam, float bam, bool fmt) {
+static force_inline struct rendtext* meshText(struct rendtext* textdata, int x, int y, float scale, unsigned end, char* text, uint8_t fgc, uint8_t bgc, float fam, float bam, bool fmt) {
     (void)fmt;
     if (!textdata) textdata = calloc(1, sizeof(*textdata));
     textdata->fgamult = fam;
@@ -829,7 +829,7 @@ static _inline struct rendtext* meshText(struct rendtext* textdata, int x, int y
     return textdata;
 }
 
-static _inline void renderText(struct rendtext* text) {
+static force_inline void renderText(struct rendtext* text) {
     glUniform1f(glGetUniformLocation(rendinf.shaderprog, "xsize"), (float)rendinf.width);
     glUniform1f(glGetUniformLocation(rendinf.shaderprog, "ysize"), (float)rendinf.height);
     glUniform4f(glGetUniformLocation(rendinf.shaderprog, "mcolor"), text->sectdata.fg->r, text->sectdata.fg->g, text->sectdata.fg->b, text->sectdata.fg->a * text->fgamult);
@@ -840,12 +840,12 @@ static _inline void renderText(struct rendtext* text) {
     glDrawArrays(GL_TRIANGLES, 0, text->sectdata.vcount);
 }
 
-static _inline void freeTextMesh(struct rendtext* text) {
+static force_inline void freeTextMesh(struct rendtext* text) {
     glDeleteBuffers(1, &text->sectdata.VBO);
     free(text);
 }
 
-static _inline void renderUI() {
+static force_inline void renderUI() {
     if (calcUIProperties()) {
         #if DBGLVL(2)
         puts("UI remesh");
@@ -860,7 +860,7 @@ const unsigned char* glslver;
 const unsigned char* glvend;
 const unsigned char* glrend;
 
-static _inline coord_3d_dbl intCoord_dbl(coord_3d_dbl in) {
+static force_inline coord_3d_dbl intCoord_dbl(coord_3d_dbl in) {
     in.x -= (in.x < 0) ? 1.0 : 0.0;
     in.y -= (in.y < 0) ? 1.0 : 0.0;
     in.z += (in.z > 0) ? 1.0 : 0.0;

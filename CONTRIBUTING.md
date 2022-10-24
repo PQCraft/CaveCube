@@ -1,37 +1,77 @@
 ### CONTRIBUTING GUIDE
 - Please fork the `dev` branch and not the `master` branch
     - The `master` branch is reserved for working releases and is only updated when the version is incremented
-- Please use the coding style/format represented in the rest of the code and 4 spaces for tabbing<br>
-    Example:
-    ```c
-    int main(int argc, char** argv) {
-        // variations of 'if' statements 
-        if (cond1) {
-            do_something();
-        } else {
-            something_else();
-        }
-        if (cond2) a_function(&var, sizeof(var));
-        if (cond3) {
-            some_func(argc, argv[0], var, var2, var3, &out);
-            #if DBGLVL(3)
-            printf("argv0: {%s}, out: [%d]\n", argv[0], out);
-            #endif
-        }
-        if (cond4) {f1(); f2();}
-        if (cond5) f3();
-        else f4();
-        if (cond6) {f5();}
-        else {f6();}
-        // nested 'for'
-        for (int i = 0; i < 256; ++i) {
-            for (int j = 0; j < 16; ++j) {
-                func(i, j);
+- Please use the coding style/format represented in the rest of the code:<br>
+    - Use 4-space tabbing and put the pointer asterisks in the type (`void* ptr` instead of `void *ptr`)
+        ```c
+        // char** argv instead of char **argv
+        int main(int argc, char** argv) {
+            // variations of 'if' statements 
+            if (cond1) {
+                do_something();
+            } else {
+                something_else();
             }
+            if (cond2) a_function(&var, sizeof(var));
+            if (cond3) {
+                some_func(argc, argv[0], var, var2, var3, &out);
+                #if DBGLVL(3)
+                printf("argv0: {%s}, out: [%d]\n", argv[0], out);
+                #endif
+            }
+            if (cond4) {f1(); f2();}
+            if (cond5) f3();
+            else f4();
+            if (cond6) {f5();}
+            else {f6();}
+            // nested 'for'
+            for (int i = 0; i < 256; ++i) {
+                for (int j = 0; j < 16; ++j) {
+                    func(i, j);
+                }
+            }
+            return 0;
         }
-        return 0;
-    }
-    ``` 
+        ``` 
+    - Try not to split lines until around a 140-150 character width
+    - Write in C99 (this is now enforced with `-std=c99`; POSIX and GNU extensions are enabled due to `-D_DEFAULT_SOURCE -D_GNU_SOURCE`)
+    - For headers (.h), use the following layout:
+        ```c
+        #ifndef [FOLDER]_[BASE FILENAME]_H
+        #define [FOLDER]_[BASE FILENAME]_H
+        
+        [Local includes]
+        
+        [System includes]
+        
+        [Macro definitons (use newline to seperate groups of macros)]
+        
+        [Typedefs, structs, and enums (seperate with newline)]
+        
+        [More macro definitons (use newline to seperate groups of macros)]
+        
+        [Function declarations]
+        
+        [Extern variable declarations]
+        
+        #endif
+        ```
+    - For code (.c), the following layout is recommended:
+        ```c
+        #include <main/main.h>
+        #include "[BASE FILENAME].h"
+        [More local includes]
+        
+        [System includes]
+        
+        [Macro definitons (use newline to seperate groups of macros)]
+        
+        [Typedefs, structs, and enums (seperate with newline)]
+        
+        [More macro definitons (use newline to seperate groups of macros)]
+        
+        [Code]
+        ```
 - Don't contribute mallicious code
 - Try not to pull in more external dependencies unless they can be statically linked
     - The less the amount of library binaries that need to be included, the better

@@ -27,7 +27,7 @@ bool initWorldgen() {
     return true;
 }
 
-static _inline void genSliver(int type, double cx, double cz, uint8_t* data) {
+static force_inline void genSliver(int type, double cx, double cz, uint8_t* data) {
     switch (type) {
         default:; {
             data[0] = bedrock;
