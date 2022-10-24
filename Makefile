@@ -2,18 +2,15 @@ ifndef OS
     ifndef WIN32
         CC ?= gcc
         STRIP ?= strip
-        OBJCOPY ?= objcopy
         WINDRES ?= true
     else
         CC = x86_64-w64-mingw32-gcc
         STRIP = x86_64-w64-mingw32-strip
-        OBJCOPY = x86_64-w64-mingw32-objcopy
         WINDRES = x86_64-w64-mingw32-windres
     endif
 else
     CC = gcc
     STRIP = strip
-    OBJCOPY = objcopy
     WINDRES = windres
 endif
 
@@ -232,7 +229,6 @@ else
 endif
 ifndef DEBUG
 	@$(STRIP) --strip-all $@
-	@$(OBJCOPY) -w --remove-section ".note*" $@
 endif
 endif
 
