@@ -35,7 +35,7 @@
 #endif
 
 #ifdef _WIN32
-static _inline bool startwsa() {
+static force_inline bool startwsa() {
     if (wsainit) return true;
     int wsaerror;
     if ((wsaerror = WSAStartup(wsaver, &wsadata))) {
@@ -47,7 +47,7 @@ static _inline bool startwsa() {
 }
 #endif
 
-static _inline int rsock(sock_t sock, void* buf, int len) {
+static force_inline int rsock(sock_t sock, void* buf, int len) {
     //puts("RECV...");
     //uint64_t t = altutime();
     int ret = recv(sock, buf, len, 0);
@@ -70,7 +70,7 @@ static _inline int rsock(sock_t sock, void* buf, int len) {
     return ret;
 }
 
-static _inline int wsock(sock_t sock, void* buf, int len) {
+static force_inline int wsock(sock_t sock, void* buf, int len) {
     int ret = send(sock, buf, len, 0);
     if (SOCKERR(ret)) {
         bool cond;
@@ -88,19 +88,19 @@ static _inline int wsock(sock_t sock, void* buf, int len) {
     return ret;
 }
 
-static _inline struct netbuf* allocBuf(int size) {
+static force_inline struct netbuf* allocBuf(int size) {
     struct netbuf* buf = calloc(1, sizeof(struct netbuf));
     buf->size = size;
     buf->data = malloc(size);
     return buf;
 }
 
-static _inline void freeBuf(struct netbuf* buf) {
+static force_inline void freeBuf(struct netbuf* buf) {
     free(buf->data);
     free(buf);
 }
 
-static _inline int writeDataToBuf(struct netbuf* buf, unsigned char* data, int size) {
+static force_inline int writeDataToBuf(struct netbuf* buf, unsigned char* data, int size) {
     if (size < 1) return 0;
     if (buf->dlen + size > buf->size) {
         size = buf->size - buf->dlen;
@@ -114,7 +114,7 @@ static _inline int writeDataToBuf(struct netbuf* buf, unsigned char* data, int s
     return size;
 }
 
-static _inline int writeBufToData(struct netbuf* buf, unsigned char* data, int size) {
+static force_inline int writeBufToData(struct netbuf* buf, unsigned char* data, int size) {
     if (size > buf->dlen) size = buf->dlen;
     if (size < 1) return 0;
     for (int i = 0; i < size; ++i) {
@@ -125,7 +125,7 @@ static _inline int writeBufToData(struct netbuf* buf, unsigned char* data, int s
     return size;
 }
 
-static _inline int writeSockToBuf(struct netbuf* buf, sock_t sock, int size) {
+static force_inline int writeSockToBuf(struct netbuf* buf, sock_t sock, int size) {
     if (size < 0) return 0;
     if (buf->dlen + size > buf->size) {
         size = buf->size - buf->dlen;
@@ -146,7 +146,7 @@ static _inline int writeSockToBuf(struct netbuf* buf, sock_t sock, int size) {
     return ret;
 }
 
-static _inline int writeBufToSock(struct netbuf* buf, sock_t sock) {
+static force_inline int writeBufToSock(struct netbuf* buf, sock_t sock) {
     int size = buf->dlen;
     if (size < 1) return 0;
     unsigned char* data = malloc(size);

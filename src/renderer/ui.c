@@ -177,7 +177,7 @@ int* getUIElemsByName(char* name, int* _count) {
     return output;
 }
 
-static _inline char* getProp(struct ui_elem* e, char* name) {
+static force_inline char* getProp(struct ui_elem* e, char* name) {
     for (int i = 0; i < e->properties; ++i) {
         if (e->propertydata[i].name && e->propertydata[i].value && *e->propertydata[i].value) {
             if (!strcasecmp(name, e->propertydata[i].name)) return e->propertydata[i].value;
@@ -186,7 +186,7 @@ static _inline char* getProp(struct ui_elem* e, char* name) {
     return NULL;
 }
 
-static _inline float getSize(char* propval, float max) {
+static force_inline float getSize(char* propval, float max) {
     float num = 0;
     char suff = 0;
     sscanf(propval, "%f%c", &num, &suff);
@@ -196,7 +196,7 @@ static _inline float getSize(char* propval, float max) {
     return num;
 }
 
-static _inline bool calcProp(struct ui_elem* e, bool force) {
+static force_inline bool calcProp(struct ui_elem* e, bool force) {
     struct ui_elem_calcprop p_prop;
     if (elemValid(e->parent)) {
         p_prop = ui_elemdata[e->parent].calcprop;
