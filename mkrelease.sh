@@ -90,11 +90,11 @@ buildrel() {
 pkgrel() { _tar "cavecube-linux.tar.gz" cavecube; }
 buildrel "game" "Linux"
 pkgrel() { _zip "cavecube-windows.zip" cavecube.exe; }
-buildrel "game" "Windows" WIN32=y
+buildrel "game" "Windows" WINCROSS=y
 pkgrel() { _tar "cavecube-server-linux.tar.gz" ccserver; }
 buildrel "server" "Linux" SERVER=y
 pkgrel() { _zip "cavecube-server-windows.zip" ccserver.exe; }
-buildrel "server" "Windows" SERVER=y WIN32=y
+buildrel "server" "Windows" SERVER=y WINCROSS=y
 inf "Making cavecube-data.zip..."
 _zip "cavecube-data.zip" extras/ resources/
 pause

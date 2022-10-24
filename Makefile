@@ -1,5 +1,5 @@
 ifndef OS
-    ifndef WIN32
+    ifndef WINCROSS
         CC ?= gcc
         STRIP ?= strip
         WINDRES ?= true
@@ -14,7 +14,7 @@ else
     WINDRES = windres
 endif
 
-ifdef WIN32
+ifdef WINCROSS
     OS := Windows_NT
 endif
 
@@ -25,11 +25,23 @@ ifndef DEBUG
     CC := $(CC) -flto=auto
 endif
 
+empty :=
+space := ${empty} ${empty}
+${space} := ${space}
+
 SRCDIR ?= src
 ifndef OS
-    PLATFORM := nix
+    PLATFORM := $(subst ${ },_,$(subst /,_,$(shell uname -s)_$(shell uname -m)))
 else
-    PLATFORM := win
+    ifndef WINCROSS
+        ifeq ($(shell echo %PROGRAMFILES(x86)%),)
+            PLATFORM := Windows_x86
+        else
+            PLATFORM := Windows_x86_64
+        endif
+    else
+        PLATFORM := $(subst ${ },_,Windows_Cross_$(shell uname -m))
+    endif
 endif
 ifndef SERVER
     MODULE := game
@@ -111,7 +123,7 @@ ifndef OS
     BINFLAGS += -ldl
 endif
 
-ifdef WIN32
+ifdef WINCROSS
     undefine OS
 endif
 
@@ -127,14 +139,14 @@ endif
 ifdef USESDL2
     MKENVMOD += USESDL2=y
 endif
-ifdef WIN32
-    MKENVMOD += WIN32=y
+ifdef WINCROSS
+    MKENVMOD += WINCROSS=y
 endif
 
 GENSENT = $(OBJDIR)/.mkgen
 
 ifdef OS
-    WIN32=y
+    WINCROSS=y
 endif
 
 ifndef OS
@@ -221,7 +233,7 @@ $(BIN):
 else
 $(BIN): $(wildcard $(OBJDIR)/*/*.o)
 	@echo Building $@...
-ifdef WIN32
+ifdef WINCROSS
 	@$(WINDRES) $(WRFLAGS) -DORIG_NAME="$(BIN)" -DINT_NAME="$(BINNAME)" $(SRCDIR)/cavecube.rc -o $(OBJDIR)/rc.o
 	@$(CC) $^ $(OBJDIR)/rc.o $(BINFLAGS) -o $@
 else
