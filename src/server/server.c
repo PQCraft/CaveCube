@@ -566,17 +566,17 @@ int startServer(char* addr, int port, int mcli, char* world) {
         return -1;
     }
     serveralive = true;
-    puts("- Initializing connection...");
+    puts("  Initializing connection...");
     port = servcxn->info.port;
     setCxnBufSize(servcxn, SERVER_SNDBUF_SIZE, CLIENT_SNDBUF_SIZE);
     pdata = calloc(maxclients, sizeof(*pdata));
     initMsgData(&servmsgin);
     initMsgData(&servmsgout);
-    puts("- Initializing noise...");
+    puts("  Initializing noise...");
     setRandSeed(0, 32464);
     initNoiseTable(0);
     initWorldgen();
-    puts("- Initializing timer and events...");
+    puts("  Initializing timer and events...");
     initTimerData(&servtimer);
     addTimer(&servtimer, _SERVER_INTERNAL1, 2000000);
     addTimer(&servtimer, _SERVER_INTERNAL2, 1200000);
@@ -586,14 +586,14 @@ int startServer(char* addr, int port, int mcli, char* world) {
     name[0] = 0;
     name2[0] = 0;
     #endif
-    puts("- Starting server network thread...");
+    puts("  Starting server network thread...");
     pthread_create(&servnetthreadh, NULL, &servnetthread, NULL);
     #ifdef NAME_THREADS
     pthread_getname_np(servnetthreadh, name2, 256);
     sprintf(name, "%s:snet", name2);
     pthread_setname_np(servnetthreadh, name);
     #endif
-    puts("- Starting server timer thread...");
+    puts("  Starting server timer thread...");
     pthread_create(&servtimerh, NULL, &servtimerthread, &servtimer);
     #ifdef NAME_THREADS
     pthread_getname_np(servtimerh, name2, 256);
@@ -605,7 +605,7 @@ int startServer(char* addr, int port, int mcli, char* world) {
         name[0] = 0;
         name2[0] = 0;
         #endif
-        printf("- Starting server thread [%d]...\n", i);
+        printf("  Starting server thread [%d]...\n", i);
         pthread_create(&servpthreads[i], NULL, &servthread, (void*)(intptr_t)i);
         #ifdef NAME_THREADS
         pthread_getname_np(servpthreads[i], name2, 256);
@@ -624,21 +624,21 @@ void stopServer() {
     puts("Stopping server...");
     serveralive = false;
     for (int i = 0; i < SERVER_THREADS && i < MAX_THREADS; ++i) {
-        printf("- Waiting for server thread [%d]...\n", i);
+        printf("  Waiting for server thread [%d]...\n", i);
         pthread_join(servpthreads[i], NULL);
     }
-    puts("- Waiting for server network thread...");
+    puts("  Waiting for server network thread...");
     pthread_join(servnetthreadh, NULL);
-    puts("- Waiting for server timer thread...");
+    puts("  Waiting for server timer thread...");
     pthread_join(servtimerh, NULL);
-    puts("- Closing connections...");
+    puts("  Closing connections...");
     for (int i = 0; i < maxclients; ++i) {
         if (pdata[i].valid) {
             closeCxn(pdata[i].cxn);
         }
     }
     closeCxn(servcxn);
-    puts("- Cleaning up...");
+    puts("  Cleaning up...");
     free(pdata);
     deinitTimerData(&servtimer);
     deinitMsgData(&servmsgin);

@@ -295,6 +295,7 @@ bool doGame(char* addr, int port) {
     float zcm = 0.0;
     int invspot = 0;
     int invoff = 0;
+    int blocksub = 0;
     setMeshChunks(&chunks);
     startMesher();
     setRandSeed(8, altutime());
@@ -335,18 +336,29 @@ bool doGame(char* addr, int port) {
                         case INPUT_ACTION_SINGLE_INV_NEXT:;
                             ++invspot;
                             if (invspot > 9) invspot = 0;
+                            blocksub = 0;
                             break;
                         case INPUT_ACTION_SINGLE_INV_PREV:;
                             --invspot;
                             if (invspot < 0) invspot = 9;
+                            blocksub = 0;
                             break;
                         case INPUT_ACTION_SINGLE_INVOFF_NEXT:;
                             ++invoff;
                             if (invoff > 4) invoff = 0;
+                            blocksub = 0;
                             break;
                         case INPUT_ACTION_SINGLE_INVOFF_PREV:;
                             --invoff;
                             if (invoff < 0) invoff = 4;
+                            blocksub = 0;
+                            break;
+                        case INPUT_ACTION_SINGLE_VARIANT_NEXT:;
+                            ++blocksub;
+                            break;
+                        case INPUT_ACTION_SINGLE_VARIANT_PREV:;
+                            --blocksub;
+                            if (blocksub < 0) blocksub = 0;
                             break;
                         case INPUT_ACTION_SINGLE_ESC:;
                             setInputMode(INPUT_MODE_UI);
@@ -524,7 +536,9 @@ bool doGame(char* addr, int port) {
                 if ((altutime() - ptime2) >= 125000 && blockid && blockid != 7 && (!blockid2 || blockid2 == 7)) {
                     ptime2 = altutime();
                     int blocknum = invspot + 1 + invoff * 10;
-                    if (blockinf[blocknum].id) setBlock(&chunks, 0, 0, lastblockx, lastblocky, lastblockz, (struct blockdata){blocknum, 0, 0, 0, 0, 0, 0, 0});
+                    if (blockinf[blocknum].id && blockinf[blocknum].data[blocksub].id) {
+                        setBlock(&chunks, 0, 0, lastblockx, lastblocky, lastblockz, (struct blockdata){blocknum, blocksub, 0, 0, 0, 0, 0, 0});
+                    }
                 }
             placehold = true;
         } else {
