@@ -4,9 +4,15 @@ ifndef OS
         STRIP ?= strip
         WINDRES ?= true
     else
-        CC = x86_64-w64-mingw32-gcc
-        STRIP = x86_64-w64-mingw32-strip
-        WINDRES = x86_64-w64-mingw32-windres
+        ifndef M32
+            CC = x86_64-w64-mingw32-gcc
+            STRIP = x86_64-w64-mingw32-strip
+            WINDRES = x86_64-w64-mingw32-windres
+        else
+            CC = i686-w64-mingw32-gcc
+            STRIP = i686-w64-mingw32-strip
+            WINDRES = i686-w64-mingw32-windres
+        endif
     endif
 else
     CC = gcc
@@ -21,8 +27,13 @@ endif
 ifdef NATIVE
     CC := $(CC) -march=native -mtune=native
 endif
+ifdef M32
+    CC := $(CC) -m32
+endif
 ifndef DEBUG
-    CC := $(CC) -flto=auto
+    ifndef NOLTO
+        CC := $(CC) -flto=auto
+    endif
 endif
 
 empty :=
@@ -31,7 +42,11 @@ ${space} := ${space}
 
 SRCDIR ?= src
 ifndef OS
-    PLATFORM := $(subst ${ },_,$(subst /,_,$(shell uname -s)_$(shell uname -m)))
+    ifndef M32
+        PLATFORM := $(subst ${ },_,$(subst /,_,$(shell uname -s)_$(shell uname -m)))
+    else
+        PLATFORM := $(subst ${ },_,$(subst /,_,$(shell i386 uname -s)_$(shell i386 uname -m)))
+    endif
 else
     ifndef WINCROSS
         ifeq ($(shell echo %PROGRAMFILES(x86)%),)
@@ -40,7 +55,11 @@ else
             PLATFORM := Windows_x86_64
         endif
     else
-        PLATFORM := $(subst ${ },_,Windows_Cross_$(shell uname -m))
+        ifndef M32
+            PLATFORM := $(subst ${ },_,Windows_Cross_$(shell uname -m))
+        else
+            PLATFORM := $(subst ${ },_,Windows_Cross_$(shell i386 uname -m))
+        endif
     endif
 endif
 ifndef SERVER
@@ -84,6 +103,12 @@ ifdef SERVER
     CFLAGS += -DSERVER
     ifdef OS
         WRFLAGS += -DSERVER
+    endif
+endif
+ifdef M32
+    CFLAGS += -DM32
+    ifdef OS
+        WRFLAGS += -DM32
     endif
 endif
 

@@ -387,9 +387,9 @@ static force_inline struct blockdata rendGetBlock(int32_t c, int x, int y, int z
     while (x > 15 && (c + 1) % chunks->info.width) {c += 1; x -= 16;}
     while (z > 15 && c >= (int)chunks->info.width) {c -= chunks->info.width; z -= 16;}
     while (z < 0 && c < (int)(chunks->info.widthsq - chunks->info.width)) {c += chunks->info.width; z += 16;}
-    if (c < 0 || x < 0 || z < 0 || x > 15 || z > 15) return (struct blockdata){255, 0, 0, 0, 0, 0};
-    if (c >= (int32_t)chunks->info.widthsq || y < 0 || y > 255) return (struct blockdata){0, 0, 0, 0, 0, 0};
-    if (!chunks->renddata[c].generated) return (struct blockdata){255, 0, 0, 0, 0, 0};
+    if (c < 0 || x < 0 || z < 0 || x > 15 || z > 15) return (struct blockdata){255, 0, 0, 0, 0, 0, 0, 0};
+    if (c >= (int32_t)chunks->info.widthsq || y < 0 || y > 255) return (struct blockdata){0, 0, 0, 0, 0, 0, 0, 0};
+    if (!chunks->renddata[c].generated) return (struct blockdata){255, 0, 0, 0, 0, 0, 0, 0};
     struct blockdata ret = chunks->data[c][y * 256 + z * 16 + x];
     return ret;
 }

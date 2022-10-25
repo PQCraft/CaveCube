@@ -5,11 +5,11 @@
 !resources/**
 !src/
 !src/**
+!*.sh
 !CONTRIBUTING.md
 !gen.mk
 !LICENSE
 !Makefile
-!mkrelease.sh
 !README.md
 !TODO.md
 !util.mk

@@ -524,7 +524,7 @@ bool doGame(char* addr, int port) {
                 if ((altutime() - ptime2) >= 125000 && blockid && blockid != 7 && (!blockid2 || blockid2 == 7)) {
                     ptime2 = altutime();
                     int blocknum = invspot + 1 + invoff * 10;
-                    if (blockinf[blocknum].id) setBlock(&chunks, 0, 0, lastblockx, lastblocky, lastblockz, (struct blockdata){blocknum, 0, 0, 0, 0, 0});
+                    if (blockinf[blocknum].id) setBlock(&chunks, 0, 0, lastblockx, lastblocky, lastblockz, (struct blockdata){blocknum, 0, 0, 0, 0, 0, 0, 0});
                 }
             placehold = true;
         } else {
@@ -535,7 +535,7 @@ bool doGame(char* addr, int port) {
             if (!destroyhold || (altutime() - dtime) >= 500000)
                 if ((altutime() - dtime2) >= 125000 && blockid && blockid != 7 && (!blockid2 || blockid2 == 7)) {
                     dtime2 = altutime();
-                    setBlock(&chunks, 0, 0, blockx, blocky, blockz, (struct blockdata){0, 0, 0, 0, 0, 0});
+                    setBlock(&chunks, 0, 0, blockx, blocky, blockz, (struct blockdata){0, 0, 0, 0, 0, 0, 0, 0});
                 }
             destroyhold = true;
         } else {
