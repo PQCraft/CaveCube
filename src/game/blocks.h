@@ -4,11 +4,11 @@
 #include <inttypes.h>
 #include <stdbool.h>
 
-struct block_info {
+struct blockinfo_data {
     char* name;
     char* id;
-    int transparency;
-    bool singletexoff;
+    int8_t transparency;
+    uint8_t singletexoff;
     uint16_t texoff[6];
     uint16_t anict[6];
     uint8_t anidiv;
@@ -17,9 +17,15 @@ struct block_info {
     uint8_t light_b:4;
 };
 
-extern struct block_info blockinf[256];
+struct blockinfo {
+    char* id;
+    struct blockinfo_data data[64];
+};
+
+extern struct blockinfo blockinf[256];
 
 void initBlocks(void);
 int blockNoFromID(char*);
+int blockSubNoFromID(int, char*);
 
 #endif

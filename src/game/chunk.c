@@ -78,7 +78,9 @@ void setBlock(struct chunkdata* data, int cx, int cz, int x, int y, int z, struc
     if (cx >= (int)data->info.width || cz >= (int)data->info.width) return;
     int32_t c = cx + cz * data->info.width;
     if (!data->renddata[c].generated) return;
-    data->data[c][y * 256 + z * 16 + x].id = bdata.id;
+    int32_t off = y * 256 + z * 16 + x;
+    data->data[c][off].id = bdata.id;
+    data->data[c][off].subid = bdata.subid;
     updateChunk((int64_t)((int64_t)(cx) - data->info.dist + cxo), (int64_t)((int64_t)(-cz) + data->info.dist + czo), false);
     pthread_mutex_unlock(&uclock);
 }

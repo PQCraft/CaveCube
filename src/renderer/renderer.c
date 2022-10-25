@@ -591,7 +591,7 @@ static void* meshthread(void* args) {
                 for (int z = 0; z < 16; ++z) {
                     for (int x = 0; x < 16; ++x) {
                         bdata = rendGetBlock(c, x, y, z);
-                        if (!bdata.id || !blockinf[bdata.id].id) continue;
+                        if (!bdata.id || !blockinf[bdata.id].id || !blockinf[bdata.id].data[bdata.subid].id) continue;
                         bdata2[0] = rendGetBlock(c, x, y + 1, z);
                         bdata2[1] = rendGetBlock(c, x + 1, y, z);
                         bdata2[2] = rendGetBlock(c, x, y, z + 1);
@@ -600,13 +600,13 @@ static void* meshthread(void* args) {
                         bdata2[5] = rendGetBlock(c, x, y, z - 1);
                         for (int i = 0; i < 6; ++i) {
                             if (bdata2[i].id && blockinf[bdata2[i].id].id) {
-                                if (!blockinf[bdata2[i].id].transparency) continue;
-                                if (blockinf[bdata.id].transparency && (bdata.id == bdata2[i].id)) continue;
+                                if (!blockinf[bdata2[i].id].data[bdata2[i].subid].transparency) continue;
+                                if (blockinf[bdata.id].data[bdata.subid].transparency && (bdata.id == bdata2[i].id)) continue;
                             }
                             if (bdata2[i].id == 255) continue;
                             uint32_t baseVert1 = ((x << 28) | (y << 16) | (z << 8)) & 0xF0FF0F00;
-                            uint32_t baseVert2 = ((bdata2[i].light_r << 28) | (bdata2[i].light_g << 24) | (bdata2[i].light_b << 20) | blockinf[bdata.id].anidiv) & 0xFFF000FF;
-                            uint32_t baseVert3 = ((blockinf[bdata.id].texoff[i] << 16) & 0xFFFF0000) | (blockinf[bdata.id].anict[i] & 0x0000FFFF);
+                            uint32_t baseVert2 = ((bdata2[i].light_r << 28) | (bdata2[i].light_g << 24) | (bdata2[i].light_b << 20) | blockinf[bdata.id].data[bdata.subid].anidiv) & 0xFFF000FF;
+                            uint32_t baseVert3 = ((blockinf[bdata.id].data[bdata.subid].texoff[i] << 16) & 0xFFFF0000) | (blockinf[bdata.id].data[bdata.subid].anict[i] & 0x0000FFFF);
                             if (bdata.id == water) {
                                 if (!bdata2[i].id) {
                                     for (int j = 0; j < 6; ++j) {
@@ -1365,43 +1365,45 @@ bool startRenderer() {
     texmap = malloc(texmapsize * 1024);
     char* tmpbuf = malloc(4096);
     for (int i = 1; i < 255; ++i) {
-        sprintf(tmpbuf, "game/textures/blocks/%d/", i);
-        if (resourceExists(tmpbuf) == -1) {
-            break;
-        }
-        //printf("loading block [%d]...\n", i);
-        for (int j = 0; j < 6; ++j) {
-            sprintf(tmpbuf, "game/textures/blocks/%d/%d.png", i, j);
+        for (int s = 0; s < 64; ++s) {
+            sprintf(tmpbuf, "game/textures/blocks/%d/%d/", i, s);
             if (resourceExists(tmpbuf) == -1) {
-                if (j == 1) {
-                    for (int k = 0; k < 5; ++k) {
-                        blockinf[i].texoff[1 + k] = blockinf[i].texoff[0];
-                    }
-                } else if (j == 3) {
-                    for (int k = 0; k < 3; ++k) {
-                        blockinf[i].texoff[3 + k] = blockinf[i].texoff[0 + k];
-                    }
-                }
                 break;
             }
-            if (j > 0 && blockinf[i].singletexoff) {
-                blockinf[i].texoff[j] = blockinf[i].texoff[0];
-            } else {
-                blockinf[i].texoff[j] = texmapsize;
-            }
-            resdata_image* img = loadResource(RESOURCE_IMAGE, tmpbuf);
-            for (int j = 3; j < 1024; j += 4) {
-                if (img->data[j] < 255) {
-                    blockinf[i].transparency = 1;
-                    //printf("! [%d]: [%u]\n", i, (uint8_t)img->data[j]);
+            //printf("loading block [%d]:[%d]...\n", i, s);
+            for (int j = 0; j < 6; ++j) {
+                sprintf(tmpbuf, "game/textures/blocks/%d/%d/%d.png", i, s, j);
+                if (resourceExists(tmpbuf) == -1) {
+                    if (j == 1) {
+                        for (int k = 0; k < 5; ++k) {
+                            blockinf[i].data[s].texoff[1 + k] = blockinf[i].data[s].texoff[0];
+                        }
+                    } else if (j == 3) {
+                        for (int k = 0; k < 3; ++k) {
+                            blockinf[i].data[s].texoff[3 + k] = blockinf[i].data[s].texoff[0 + k];
+                        }
+                    }
                     break;
                 }
+                if (j > 0 && blockinf[i].data[s].singletexoff) {
+                    blockinf[i].data[s].texoff[j] = blockinf[i].data[s].texoff[0];
+                } else {
+                    blockinf[i].data[s].texoff[j] = texmapsize;
+                }
+                resdata_image* img = loadResource(RESOURCE_IMAGE, tmpbuf);
+                for (int k = 3; k < 1024; k += 4) {
+                    if (img->data[k] < 255) {
+                        blockinf[i].data[s].transparency = 1;
+                        //printf("! [%d]: [%u]\n", i, (uint8_t)img->data[j]);
+                        break;
+                    }
+                }
+                //printf("adding texture {%s} at offset [%u] of map [%d]...\n", tmpbuf, texmapsize * 1024, i);
+                texmap = realloc(texmap, (texmapsize + 1) * 1024);
+                memcpy(texmap + texmapsize * 1024, img->data, 1024);
+                ++texmapsize;
+                freeResource(img);
             }
-            //printf("adding texture {%s} at offset [%u] of map [%d]...\n", tmpbuf, mapoff, i);
-            texmap = realloc(texmap, (texmapsize + 1) * 1024);
-            memcpy(texmap + texmapsize * 1024, img->data, 1024);
-            ++texmapsize;
-            freeResource(img);
         }
     }
     setShaderProg(shader_block);
@@ -1448,7 +1450,6 @@ bool startRenderer() {
     glEnableVertexAttribArray(2);
 
     water = blockNoFromID("water");
-    blockinf[water].transparency = 1;
 
     free(tmpbuf);
 
