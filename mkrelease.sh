@@ -30,6 +30,11 @@ _exit() {
     exit "${ERR}"
 }
 
+_tar() { rm -f "${1}"; tar -zc -f "${1}" ${@:2} 1> /dev/null; }
+_zip() { rm -f "${1}"; zip -r -9 "${1}" ${@:2} 1> /dev/null; }
+
+if ! (return 0 2>/dev/null); then
+
 tsk "Getting info..."
 VER_MAJOR="$(grep '#define VER_MAJOR ' src/main/version.h | sed 's/#define .* //')"
 VER_MINOR="$(grep '#define VER_MINOR ' src/main/version.h | sed 's/#define .* //')"
@@ -44,59 +49,9 @@ printf "${I} ${TB}Release text:${TR}\n%s\n${TB}EOF${TR}\n" "${RELTEXT}"
 pause
 
 tsk "Building..."
-NJOBS=""
-#NJOBS="$(nproc)"
-rm -rf cavecube*.tar.gz cavecube*.zip
-_tar() { rm -f "${1}"; tar -zc -f "${1}" ${@:2} 1> /dev/null; }
-_zip() { rm -f "${1}"; zip -r -9 "${1}" ${@:2} 1> /dev/null; }
-buildrel() {
-    local TYPE="${1}"
-    local OS="${2}"
-    inf "Building ${TYPE} for ${OS}..."
-    make ${@:3} clean 1> /dev/null || _exit
-    RESPONSE=""
-    while ! make ${@:3} "-j${NJOBS}" 1> /dev/null; do
-        while [[ -z "${RESPONSE}" ]]; do
-            ask "${TB}Build failed. Retry?${TR} (${TB}Y${TR}es/${TB}N${TR}o/${TB}C${TR}lean): "
-            case "${RESPONSE,,}" in
-                y | yes)
-                    break
-                    ;;
-                n | no)
-                    break
-                    ;;
-                c | clean)
-                    make ${@:3} clean 1> /dev/null || _exit
-                    ;;
-                *)
-                    RESPONSE=""
-                    ;;
-            esac
-        done
-        case "${RESPONSE,,}" in
-            n | no)
-                RESPONSE="n"
-                break
-                ;;
-            *)
-                RESPONSE=""
-                ;;
-        esac
-    done
-    [[ "${RESPONSE}" == "n" ]] || pkgrel || _exit
-    make ${@:3} clean 1> /dev/null || _exit
-    [[ "${RESPONSE}" == "n" ]] && _exit 1
-}
-pkgrel() { _tar "cavecube-linux.tar.gz" cavecube; }
-buildrel "game" "Linux"
-pkgrel() { _zip "cavecube-windows.zip" cavecube.exe; }
-buildrel "game" "Windows" WINCROSS=y
-pkgrel() { _tar "cavecube-server-linux.tar.gz" ccserver; }
-buildrel "server" "Linux" SERVER=y
-pkgrel() { _zip "cavecube-server-windows.zip" ccserver.exe; }
-buildrel "server" "Windows" SERVER=y WINCROSS=y
-inf "Making cavecube-data.zip..."
-_zip "cavecube-data.zip" extras/ resources/
+./build.sh || _exit
+inf "Making cavecube_data.zip..."
+_zip "cavecube_data.zip" extras/ resources/
 pause
 
 tsk "Pushing..."
@@ -135,5 +90,7 @@ rm -rf cavecube*.tar.gz cavecube*.zip
 
 tsk "Done"
 exit
+
+fi
 
 }

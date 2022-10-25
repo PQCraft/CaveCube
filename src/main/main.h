@@ -4,17 +4,13 @@
 #include <common/config.h>
 
 #ifndef DEBUG
-    #define DEBUG 0
+    #define DEBUG -1
 #endif
 
 #define DBGLVL(x) (DEBUG >= (x))
 
-#if DBGLVL(1)
+#if DBGLVL(0)
     #define NAME_THREADS
-#endif
-
-#ifdef NAME_THREADS
-    #define _GNU_SOURCE
 #endif
 
 #ifndef MAX_THREADS

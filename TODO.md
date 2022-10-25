@@ -38,3 +38,6 @@
 ### DONE:
 - Disabled GLFW hint to scale to DPI
 - Added -pthread to compiler options
+- Split build script from `mkrelease.sh` to a separate file (`build.sh`)
+- Build for 32-bit architectures and redo naming scheme
+- Redid block data format
