@@ -19,7 +19,9 @@ void initBlocks() {
         resdata_file* blockcfg = loadResource(RESOURCE_TEXTFILE, buf);
         blockinf[i].id = getInfoVarAlloc((char*)blockcfg->data, "id", "", 256);
         freeResource(blockcfg);
+        #if DBGLVL(1)
         printf("Block #%d: id \"%s\"\n", i, blockinf[i].id);
+        #endif
         for (int j = 0; j < 64; ++j) {
             blockinf[i].data[j].id = NULL;
             sprintf(buf, "game/data/blocks/%d/%d.inf", i, j);
@@ -46,7 +48,9 @@ void initBlocks() {
             blockinf[i].data[j].light_g = atoi(getInfoVarStatic((char*)varcfg->data, "light_g", "0", 16));
             blockinf[i].data[j].light_b = atoi(getInfoVarStatic((char*)varcfg->data, "light_b", "0", 16));
             freeResource(varcfg);
+            #if DBGLVL(1)
             printf("  Variant #%d: id \"%s\", name \"%s\"\n", j, blockinf[i].data[j].id, blockinf[i].data[j].name);
+            #endif
         }
     }
 }

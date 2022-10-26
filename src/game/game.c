@@ -332,6 +332,7 @@ bool doGame(char* addr, int port) {
                     switch (input.single_action) {
                         case INPUT_ACTION_SINGLE_INV_0 ... INPUT_ACTION_SINGLE_INV_9:;
                             invspot = input.single_action - INPUT_ACTION_SINGLE_INV_0;
+                            blocksub = 0;
                             break;
                         case INPUT_ACTION_SINGLE_INV_NEXT:;
                             ++invspot;
