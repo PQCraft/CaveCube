@@ -10,6 +10,7 @@ struct blockinfo_data {
     int8_t transparency;
     uint8_t singletexoff;
     uint16_t texoff[6];
+    char* texoffstr[6];
     uint16_t anict[6];
     uint8_t anidiv;
     uint8_t light_r:4;

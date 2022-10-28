@@ -25,6 +25,7 @@
     - Add event for running physics
     - Add event for handling game logic
 - Make it so that events are not pushed again until an acknowledge (prevents overflow)
+- Add arbitrary textures to texture loader and block config
 
 ### MIGHT DO:
 - Implement bunny hopping after physics redo (resize AABB at bottom instead of top if in-air crouch)
@@ -36,8 +37,3 @@
 - 2D UI
 
 ### DONE:
-- Disabled GLFW hint to scale to DPI
-- Added -pthread to compiler options
-- Split build script from `mkrelease.sh` to a separate file (`build.sh`)
-- Build for 32-bit architectures and redo naming scheme
-- Redid block data format

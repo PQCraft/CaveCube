@@ -1,2 +1,8 @@
 name=Furnace
-id=active
+id=inactive
+tex0=.0
+tex1=.0
+tex2=.0
+tex3=.0
+tex4=.0
+tex5=.1

@@ -1360,7 +1360,6 @@ bool startRenderer() {
     texture_t charseth;
 
     //puts("creating texture map...");
-    //TODO: change map format and add mapoffset var to block info
     int texmapsize = 0;
     texmap = malloc(texmapsize * 1024);
     char* tmpbuf = malloc(4096);
