@@ -63,6 +63,7 @@ int blockNoFromID(char* id) {
 }
 
 int blockSubNoFromID(int block, char* id) {
+    if (!*id) return 0;
     for (int i = 0; i < 64; ++i) {
         if (blockinf[block].data[i].id && !strcasecmp(id, blockinf[block].data[i].id)) return i;
     }

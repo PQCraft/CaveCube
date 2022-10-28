@@ -1,5 +1,6 @@
 name=Light
 id=on
+texa=.0
 light_r=8
 light_g=8
 light_b=9

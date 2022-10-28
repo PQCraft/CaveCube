@@ -9,6 +9,7 @@
 #include <inttypes.h>
 
 static uint8_t stone;
+static uint8_t stone_cobble;
 static uint8_t dirt;
 static uint8_t grass_block;
 static uint8_t gravel;
@@ -18,6 +19,7 @@ static uint8_t bedrock;
 
 bool initWorldgen() {
     stone = blockNoFromID("stone");
+    stone_cobble = blockSubNoFromID(stone, "cobble");
     dirt = blockNoFromID("dirt");
     grass_block = blockNoFromID("grass_block");
     gravel = blockNoFromID("gravel");
@@ -27,18 +29,18 @@ bool initWorldgen() {
     return true;
 }
 
-static force_inline void genSliver(int type, double cx, double cz, uint8_t* data) {
+static force_inline void genSliver(int type, double cx, double cz, struct blockdata* data) {
     switch (type) {
         default:; {
-            data[0] = bedrock;
-            data[1] = stone;
-            data[2] = dirt;
-            data[3] = grass_block;
+            data[0].id = bedrock;
+            data[1].id = stone;
+            data[2].id = dirt;
+            data[3].id = grass_block;
             break;
         }
         case 1:; {
             for (int y = 0; y < 65; ++y) {
-                data[y] = water;
+                data[y].id = water;
             }
             double p0 = tanhf(nperlin2d(0, cx, cz, 0.006675, 5));
             if (p0 < 0) p0 *= 0.5;
@@ -68,12 +70,16 @@ static force_inline void genSliver(int type, double cx, double cz, uint8_t* data
                 uint8_t b1 = (c1) ? ((c2) ? gravel : sand) : dirt;
                 uint8_t b2 = (c1) ? ((c2) ? gravel : sand) : ((y < 64) ? dirt : grass_block);
                 uint8_t blockid = (y < hi) ? ((y < hi - (3 - round(fabs(p4) * 2))) ? stone : b1) : b2;
-                data[y] = blockid;
+                data[y].id = blockid;
+                if (blockid == stone) {
+                    int n1 = noise2d((8 + y) % 16, cx * y - y, cz * y * y);
+                    if (!(n1 % 4)) data[y].subid = stone_cobble;
+                }
             }
             int n0 = noise2d(8, cx, cz);
-            data[0] = bedrock;
-            if (!(n0 % 2) || !(n0 % 3)) data[1] = bedrock;
-            if (!(n0 % 4)) data[2] = bedrock;
+            data[0].id = bedrock;
+            if (!(n0 % 2) || !(n0 % 3)) data[1].id = bedrock;
+            if (!(n0 % 4)) data[2].id = bedrock;
             break;
         }
     }
@@ -88,13 +94,13 @@ void genChunk(int64_t cx, int64_t cz, struct blockdata* data, int type) {
             int xzoff = z * 16 + x;
             double cx = (double)(nx + x) - 8;
             double cz = (double)(nz + z) - 8;
-            uint8_t sliver[256];
-            memset(&sliver, 0, 256);
+            struct blockdata sliver[256];
+            memset(&sliver, 0, sizeof(sliver));
             genSliver(type, cx, cz, sliver);
             for (int i = 0; i < 256; ++i) {
                 struct blockdata* tdata = &data[256 * i + xzoff];
                 memset(tdata, 0, sizeof(struct blockdata));
-                *tdata = (struct blockdata){.id = sliver[i], .light_r = 15, .light_g = 15, .light_b = 14};
+                *tdata = (struct blockdata){.id = sliver[i].id, .subid = sliver[i].subid, .light_r = 15, .light_g = 15, .light_b = 14};
             }
         }
     }
