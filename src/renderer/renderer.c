@@ -1370,25 +1370,11 @@ bool startRenderer() {
                 break;
             }
             //printf("loading block [%d]:[%d]...\n", i, s);
-            for (int j = 0; j < 6; ++j) {
+            for (int j = 0; j < 32; ++j) {
                 sprintf(tmpbuf, "game/textures/blocks/%d/%d/%d.png", i, s, j);
-                if (resourceExists(tmpbuf) == -1) {
-                    if (j == 1) {
-                        for (int k = 0; k < 5; ++k) {
-                            blockinf[i].data[s].texoff[1 + k] = blockinf[i].data[s].texoff[0];
-                        }
-                    } else if (j == 3) {
-                        for (int k = 0; k < 3; ++k) {
-                            blockinf[i].data[s].texoff[3 + k] = blockinf[i].data[s].texoff[0 + k];
-                        }
-                    }
-                    break;
-                }
-                if (j > 0 && blockinf[i].data[s].singletexoff) {
-                    blockinf[i].data[s].texoff[j] = blockinf[i].data[s].texoff[0];
-                } else {
-                    blockinf[i].data[s].texoff[j] = texmapsize;
-                }
+                if (resourceExists(tmpbuf) == -1) break;
+                if (j == 0) blockinf[i].data[s].texstart = texmapsize;
+                ++blockinf[i].data[s].texcount;
                 resdata_image* img = loadResource(RESOURCE_IMAGE, tmpbuf);
                 for (int k = 3; k < 1024; k += 4) {
                     if (img->data[k] < 255) {
@@ -1402,6 +1388,48 @@ bool startRenderer() {
                 memcpy(texmap + texmapsize * 1024, img->data, 1024);
                 ++texmapsize;
                 freeResource(img);
+            }
+        }
+    }
+    {
+        char tmpstr[256];
+        int texture;
+        for (int i = 1; i < 255; ++i) {
+            if (!blockinf[i].id) continue;
+            for (int j = 0; j < 64; ++j) {
+                if (!blockinf[i].data[j].id) continue;
+                for (int k = 0; k < 6; ++k) {
+                    char* texstr = blockinf[i].data[j].texstr[k];
+                    char c = *texstr;
+                    texture = blockinf[i].data[j].texstart;
+                    switch (c) {
+                        case '.':; {
+                            texture += atoi(&texstr[1]);
+                            break;
+                        }
+                        case '$':; {
+                            int stroff = 1;
+                            stroff += readStrUntil(&texstr[1], '.', tmpstr) + 1;
+                            int vtexid = blockSubNoFromID(i, tmpstr);
+                            if (vtexid >= 0) texture = blockinf[i].data[vtexid].texstart;
+                            texture += atoi(&texstr[stroff]);
+                            break;
+                        }
+                        case '@':; {
+                            int stroff = 1;
+                            stroff += readStrUntil(&texstr[1], '.', tmpstr) + 1;
+                            int btexid = blockNoFromID(tmpstr);
+                            if (btexid >= 0) {
+                                stroff += readStrUntil(&texstr[stroff], '.', tmpstr) + 1;
+                                int vtexid = blockSubNoFromID(btexid, tmpstr);
+                                if (vtexid >= 0) texture = blockinf[btexid].data[vtexid].texstart;
+                            }
+                            texture += atoi(&texstr[stroff]);
+                            break;
+                        }
+                    }
+                    blockinf[i].data[j].texoff[k] = texture;
+                }
             }
         }
     }

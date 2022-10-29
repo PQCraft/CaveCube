@@ -520,3 +520,14 @@ char* spCharToStr(char c) {
     }
     return str;
 }
+
+int readStrUntil(char* input, char c, char* output) {
+    int size = 0;
+    while (*input && *input != c) {
+        *output++ = *input;
+        ++input;
+        ++size;
+    }
+    *output = 0;
+    return size;
+}

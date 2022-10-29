@@ -29,8 +29,25 @@ void initBlocks() {
             resdata_file* varcfg = loadResource(RESOURCE_TEXTFILE, buf);
             blockinf[i].data[j].name = getInfoVarAlloc((char*)varcfg->data, "name", "Unknown", 256);
             blockinf[i].data[j].id = getInfoVarAlloc((char*)varcfg->data, "id", "", 256);
+            {
+                char* texa = getInfoVarAlloc((char*)varcfg->data, "texa", ".0", 256);
+                char* texm[3] = {
+                    getInfoVarAlloc((char*)varcfg->data, "texm0", texa, 256),
+                    getInfoVarAlloc((char*)varcfg->data, "texm1", texa, 256),
+                    getInfoVarAlloc((char*)varcfg->data, "texm2", texa, 256)
+                };
+                free(texa);
+                blockinf[i].data[j].texstr[0] = getInfoVarAlloc((char*)varcfg->data, "tex0", texm[0], 256);
+                blockinf[i].data[j].texstr[1] = getInfoVarAlloc((char*)varcfg->data, "tex1", texm[1], 256);
+                blockinf[i].data[j].texstr[2] = getInfoVarAlloc((char*)varcfg->data, "tex2", texm[2], 256);
+                blockinf[i].data[j].texstr[3] = getInfoVarAlloc((char*)varcfg->data, "tex3", texm[0], 256);
+                blockinf[i].data[j].texstr[4] = getInfoVarAlloc((char*)varcfg->data, "tex4", texm[1], 256);
+                blockinf[i].data[j].texstr[5] = getInfoVarAlloc((char*)varcfg->data, "tex5", texm[2], 256);
+                free(texm[0]);
+                free(texm[1]);
+                free(texm[2]);
+            }
             int anict = atoi(getInfoVarStatic((char*)varcfg->data, "animation", "1", 16));
-            blockinf[i].data[j].singletexoff = getBool(getInfoVarStatic((char*)varcfg->data, "singletexoff", "0", 16));
             if (anict < 1) {
                 blockinf[i].data[j].anict[0] = atoi(getInfoVarStatic((char*)varcfg->data, "animation0", "0", 16));
                 blockinf[i].data[j].anict[1] = atoi(getInfoVarStatic((char*)varcfg->data, "animation1", "0", 16));
@@ -51,6 +68,13 @@ void initBlocks() {
             #if DBGLVL(1)
             printf("  Variant #%d: id \"%s\", name \"%s\"\n", j, blockinf[i].data[j].id, blockinf[i].data[j].name);
             #endif
+            #if DBGLVL(1)
+            printf("    textures: {");
+            for (int k = 0; k < 6; ++k) {
+                printf("%s%s", (k > 0) ? ", " : "", blockinf[i].data[j].texstr[k]);
+            }
+            puts("}");
+            #endif
         }
     }
 }
@@ -64,6 +88,7 @@ int blockNoFromID(char* id) {
 
 int blockSubNoFromID(int block, char* id) {
     if (!*id) return 0;
+    if (block < 0 || block > 255) return -1;
     for (int i = 0; i < 64; ++i) {
         if (blockinf[block].data[i].id && !strcasecmp(id, blockinf[block].data[i].id)) return i;
     }
