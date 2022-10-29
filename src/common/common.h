@@ -40,5 +40,6 @@ char* execpath(void);
 int getCoreCt(void);
 char* spCharToStr(char);
 bool getBool(char*);
+int readStrUntil(char*, char, char*);
 
 #endif
