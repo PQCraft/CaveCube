@@ -47,14 +47,14 @@ void initBlocks() {
                 free(texm[1]);
                 free(texm[2]);
             }
-            int anict = atoi(getInfoVarStatic((char*)varcfg->data, "animation", "1", 16));
+            int anict = atoi(getInfoVarStatic((char*)varcfg->data, "animation", "0", 16));
             if (anict < 1) {
-                blockinf[i].data[j].anict[0] = atoi(getInfoVarStatic((char*)varcfg->data, "animation0", "0", 16));
-                blockinf[i].data[j].anict[1] = atoi(getInfoVarStatic((char*)varcfg->data, "animation1", "0", 16));
-                blockinf[i].data[j].anict[2] = atoi(getInfoVarStatic((char*)varcfg->data, "animation2", "0", 16));
-                blockinf[i].data[j].anict[3] = atoi(getInfoVarStatic((char*)varcfg->data, "animation3", "0", 16));
-                blockinf[i].data[j].anict[4] = atoi(getInfoVarStatic((char*)varcfg->data, "animation4", "0", 16));
-                blockinf[i].data[j].anict[5] = atoi(getInfoVarStatic((char*)varcfg->data, "animation5", "0", 16));
+                blockinf[i].data[j].anict[0] = atoi(getInfoVarStatic((char*)varcfg->data, "animation0", "1", 16));
+                blockinf[i].data[j].anict[1] = atoi(getInfoVarStatic((char*)varcfg->data, "animation1", "1", 16));
+                blockinf[i].data[j].anict[2] = atoi(getInfoVarStatic((char*)varcfg->data, "animation2", "1", 16));
+                blockinf[i].data[j].anict[3] = atoi(getInfoVarStatic((char*)varcfg->data, "animation3", "1", 16));
+                blockinf[i].data[j].anict[4] = atoi(getInfoVarStatic((char*)varcfg->data, "animation4", "1", 16));
+                blockinf[i].data[j].anict[5] = atoi(getInfoVarStatic((char*)varcfg->data, "animation5", "1", 16));
             } else {
                 for (int k = 0; k < 6; ++k) {
                     blockinf[i].data[j].anict[k] = anict;
