@@ -37,3 +37,5 @@
 - 2D UI
 
 ### DONE:
+- Improved texture system
+- Fixed block animation bug
