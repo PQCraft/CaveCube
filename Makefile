@@ -18,6 +18,9 @@ else
     CC = gcc
     STRIP = strip
     WINDRES = windres
+    ifdef MSYS2
+        undefine OS
+    endif
 endif
 
 ifdef WINCROSS
