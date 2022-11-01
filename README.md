@@ -13,7 +13,8 @@ The project status is written down in [TODO.md](https://github.com/PQCraft/CaveC
 ### Requirements
 #### Building
 GLFW or SDL2, GNU Make, and a C compiler with POSIX thread.<br>
-For Windows, the GLFW or SDL2 development binaries must be installed from their respective websites: [GLFW](https://www.glfw.org/download), [SDL2](https://www.libsdl.org/download-2.0.php).<br>
+For Windows with MinGW, the GLFW or SDL2 development binaries must be installed from their respective websites: [GLFW](https://www.glfw.org/download), [SDL2](https://www.libsdl.org/download-2.0.php).<br>
+For Windows with MSYS2, use the MINGW64 environment and install `make` for make, `mingw-w64-x86_64-gcc` for GCC, `mingw-w64-x86_64-glfw` for GLFW or `mingw-w64-x86_64-SDL2` for SDL2, and build with `MSYS2=y`.<br>
 For outdated/stable Linux distributions (such as Debian or Ubuntu), GLFW must be built from source due to the package being out of date.<br>
 #### Running
 OpenGL 3.3 or OpenGLES 3.0 support.
@@ -33,6 +34,8 @@ These variables can be combined.<br>
 For example, `make USESDL2=y WINCROSS=y -j run` will build CaveCube for Windows with SDL2 and run when compilation finishes.<br>
 <br>
 For any variables that change the object directory or binary name, you must use these flags again when running the `clean` rule in order to remove the correct files.<br>
+<br>
+When using MSYS2, the MINGW64 environment is recommended and always use `MSYS2=y` (eg. `make MSYS2=y -j`, `make MSYS2=y clean`).<br>
 
 ---
 ### Notes <img src="https://repology.org/badge/vertical-allrepos/cavecube.svg" alt="Packaging status" align="right"><br>
