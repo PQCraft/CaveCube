@@ -91,6 +91,10 @@ DIRS := $(patsubst %\,%,$(DIRS))
 DIRS := $(patsubst $(SRCDIR),,$(DIRS))
 BASEDIRS := $(notdir $(DIRS))
 
+ifdef MSYS2
+    OS := Windows_NT
+endif
+
 ifdef OS
     BINEXT := .exe
 endif
@@ -102,10 +106,6 @@ else
 endif
 
 BIN := $(BINNAME)$(BINEXT)
-
-ifdef MSYS2
-    OS := Windows_NT
-endif
 
 CFLAGS += -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -O2 -pthread
 ifdef DEBUG
