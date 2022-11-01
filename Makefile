@@ -49,10 +49,18 @@ ifndef OS
     endif
 else
     ifndef WINCROSS
-        ifeq ($(shell echo %PROGRAMFILES(x86)%),)
-            PLATFORM := Windows_x86
+        ifndef MSYS2
+            ifeq ($(shell echo %PROGRAMFILES(x86)%),)
+                PLATFORM := Windows_x86
+            else
+                PLATFORM := Windows_x86_64
+            endif
         else
-            PLATFORM := Windows_x86_64
+            ifndef M32
+                PLATFORM := $(subst ${ },_,$(subst /,_,$(shell uname -s)_$(shell uname -m)))
+            else
+                PLATFORM := $(subst ${ },_,$(subst /,_,$(shell i386 uname -s)_x86))
+            endif
         endif
     else
         ifndef M32

@@ -871,6 +871,7 @@ static force_inline coord_3d_dbl intCoord_dbl(coord_3d_dbl in) {
 }
 
 static resdata_texture* crosshair;
+static resdata_texture* uimap;
 
 static uint32_t rendc;
 
@@ -1243,8 +1244,8 @@ bool startRenderer() {
     }
     freeResource(vs);
     freeResource(fs);
-    vs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/text/vertex.glsl");
-    fs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/text/fragment.glsl");
+    vs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/ui/vertex.glsl");
+    fs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/ui/fragment.glsl");
     if (!vs || !fs || !makeShaderProg((char*)hdr->data, (char*)vs->data, (char*)fs->data, &shader_ui)) {
         fputs("startRenderer: Failed to compile text shader\n", stderr);
         return false;
@@ -1449,14 +1450,13 @@ bool startRenderer() {
 
     setShaderProg(shader_2d);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), gltex - GL_TEXTURE0);
-    int corsshair = gltex++;
-    glActiveTexture(corsshair);
+    glActiveTexture(gltex++);
     crosshair = loadResource(RESOURCE_TEXTURE, "game/textures/ui/crosshair.png");
     glBindTexture(GL_TEXTURE_2D, crosshair->data);
     setUniform4f(rendinf.shaderprog, "mcolor", (float[]){1.0, 1.0, 1.0, 1.0});
 
     setShaderProg(shader_ui);
-    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), gltex - GL_TEXTURE0);
+    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData[0]"), gltex - GL_TEXTURE0);
     glGenTextures(1, &charseth);
     glActiveTexture(gltex++);
     resdata_image* charset = loadResource(RESOURCE_IMAGE, "game/textures/ui/charset.png");
@@ -1465,10 +1465,12 @@ bool startRenderer() {
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     setUniform4f(rendinf.shaderprog, "mcolor", (float[]){1.0, 1.0, 1.0, 1.0});
+    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData[1]"), gltex - GL_TEXTURE0);
+    glActiveTexture(gltex++);
+    uimap = loadResource(RESOURCE_TEXTURE, "game/textures/ui/uimap.png");
+    //glBindTexture(GL_TEXTURE_2D, uimap->data);
 
     setShaderProg(shader_block);
-
-    glActiveTexture(corsshair);
 
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
