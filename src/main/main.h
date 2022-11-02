@@ -7,6 +7,12 @@
     #define DEBUG -1
 #endif
 
+// Debug levels:
+// =< -1: No debug (no debug symbols)
+// 0: Silent debug (debug symbols)
+// 1: Simple debug (debug symbols + print out non-constant debug text)
+// 2: Verbose debug (debug symbols + print out all debug text)
+
 #define DBGLVL(x) (DEBUG >= (x))
 
 #if DBGLVL(0)

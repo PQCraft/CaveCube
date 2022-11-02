@@ -835,8 +835,9 @@ static force_inline void renderText(struct rendtext* text) {
     glUniform4f(glGetUniformLocation(rendinf.shaderprog, "mcolor"), text->sectdata.fg->r, text->sectdata.fg->g, text->sectdata.fg->b, text->sectdata.fg->a * text->fgamult);
     glUniform4f(glGetUniformLocation(rendinf.shaderprog, "bmcolor"), text->sectdata.bg->r, text->sectdata.bg->g, text->sectdata.bg->b, text->sectdata.bg->a * text->bgamult);
     glBindBuffer(GL_ARRAY_BUFFER, text->sectdata.VBO);
-    glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 2 * sizeof(uint32_t), (void*)(0));
-    glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 2 * sizeof(uint32_t), (void*)(sizeof(uint32_t)));
+    glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 3 * sizeof(uint32_t), (void*)(0));
+    glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 3 * sizeof(uint32_t), (void*)(sizeof(uint32_t)));
+    glVertexAttribIPointer(2, 1, GL_UNSIGNED_INT, 3 * sizeof(uint32_t), (void*)(2 * sizeof(uint32_t)));
     glDrawArrays(GL_TRIANGLES, 0, text->sectdata.vcount);
 }
 
@@ -877,14 +878,7 @@ static uint32_t rendc;
 
 void render() {
     pthread_mutex_lock(&gllock);
-    setShaderProg(shader_block);
-    static uint64_t aMStart = 0;
-    if (!aMStart) aMStart = altutime();
-    glUniform1ui(glGetUniformLocation(rendinf.shaderprog, "aniMult"), (aMStart - altutime()) / 10000);
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
-    glBindFramebuffer(GL_FRAMEBUFFER, FBO);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
     static struct rendtext* debugtext = NULL;
     if (showDebugInfo) {
         static int toff = 0;
@@ -921,6 +915,20 @@ void render() {
         );
         debugtext = meshText(debugtext, 0, 0, 1, rendinf.width, tbuf[0], 15, 0, 1, 0.35, false);
     }
+    setShaderProg(shader_ui);
+    glBindFramebuffer(GL_FRAMEBUFFER, UIFBO);
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_DEPTH_TEST);
+    renderUI();
+
+    setShaderProg(shader_block);
+    static uint64_t aMStart = 0;
+    if (!aMStart) aMStart = altutime();
+    glUniform1ui(glGetUniformLocation(rendinf.shaderprog, "aniMult"), (aMStart - altutime()) / 10000);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "dist"), chunks->info.dist);
     setUniform3f(rendinf.shaderprog, "cam", (float[]){rendinf.campos.x, rendinf.campos.y, rendinf.campos.z});
     for (rendc = 0; rendc < chunks->info.widthsq; ++rendc) {
@@ -967,15 +975,13 @@ void render() {
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     setShaderProg(shader_framebuffer);
+    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), FBTEXID - GL_TEXTURE0);
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
     glDrawArrays(GL_TRIANGLES, 0, 6);
-    renderUI();
+    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), UIFBTEXID - GL_TEXTURE0);
+    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
 
-    setShaderProg(shader_ui);
-    if (showDebugInfo) {
-        renderText(debugtext);
-        //freeTextMesh(debugtext);
-    }
     pthread_mutex_unlock(&gllock);
 }
 
@@ -988,8 +994,8 @@ static void winch(int w, int h) {
         rendinf.win_height = h;
     }
     setFullscreen(rendinf.fullscr);
-    pthread_mutex_lock(&gllock);
 
+    pthread_mutex_lock(&gllock);
     glActiveTexture(FBTEXID);
     glBindTexture(GL_TEXTURE_2D, FBTEX);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, rendinf.width, rendinf.height, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
@@ -998,14 +1004,12 @@ static void winch(int w, int h) {
 
     glActiveTexture(UIFBTEXID);
     glBindTexture(GL_TEXTURE_2D, UIFBTEX);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, rendinf.width, rendinf.height, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, rendinf.width, rendinf.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
     glBindRenderbuffer(GL_RENDERBUFFER, UIDBUF);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, rendinf.width, rendinf.height);
 
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glBindRenderbuffer(GL_RENDERBUFFER, 0);
-
     glViewport(0, 0, rendinf.width, rendinf.height);
+
     pthread_mutex_unlock(&gllock);
 }
 
@@ -1336,7 +1340,6 @@ bool startRenderer() {
     //glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     setShaderProg(shader_framebuffer);
-    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), FBTEXID - GL_TEXTURE0);
     setUniform3f(rendinf.shaderprog, "mcolor", (float[]){1.0, 1.0, 1.0});
 
     glActiveTexture(gltex++);
