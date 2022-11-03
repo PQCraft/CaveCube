@@ -166,18 +166,17 @@ static force_inline bool isVisible(struct frustum* frust, float ax, float ay, fl
 	return true;
 }
 
-static float uc_fov = -1.0, uc_asp = -1.0;
-static avec3 uc_campos;
-static float uc_rotradx, uc_rotrady, uc_rotradz;
-static amat4 uc_proj;
-static amat4 uc_view;
-static avec3 uc_direction;
-static avec3 uc_up;
-static avec3 uc_front;
-static bool uc_uproj = false;
-static avec3 uc_z1z = {0.0, 1.0, 0.0};
-
 void updateCam() {
+    static float uc_fov = -1.0, uc_asp = -1.0;
+    static avec3 uc_campos;
+    static float uc_rotradx, uc_rotrady, uc_rotradz;
+    static amat4 uc_proj;
+    static amat4 uc_view;
+    static avec3 uc_direction;
+    static avec3 uc_up;
+    static avec3 uc_front;
+    static bool uc_uproj = false;
+    static avec3 uc_z1z = {0.0, 1.0, 0.0};
     if (rendinf.aspect != uc_asp) {uc_asp = rendinf.aspect; uc_uproj = true;}
     if (rendinf.camfov != uc_fov) {uc_fov = rendinf.camfov; uc_uproj = true;}
     if (uc_uproj) {
@@ -405,7 +404,6 @@ static float vert2D[] = {
 
 static pthread_t pthreads[MAX_THREADS];
 pthread_mutex_t uclock;
-pthread_mutex_t gllock;
 static uint8_t water;
 struct msgdata chunkmsgs;
 
@@ -506,21 +504,21 @@ static force_inline bool getNextMsg(struct msgdata* mdata, struct msgdata_msg* m
 }
 
 static uint32_t constBlockVert1[6][6] = {
-    {0x0000F0F3, 0x0F00F0F7, 0x0F00F006, 0x0F00F006, 0x0000F002, 0x0000F0F3}, // U
-    {0x0F00F006, 0x0F00F0F7, 0x0F0000F5, 0x0F0000F5, 0x0F000004, 0x0F00F006}, // R
-    {0x0F00F0F7, 0x0000F0F3, 0x000000F1, 0x000000F1, 0x0F0000F5, 0x0F00F0F7}, // F
-    {0x00000000, 0x0F000004, 0x0F0000F5, 0x0F0000F5, 0x000000F1, 0x00000000}, // D
-    {0x0000F0F3, 0x0000F002, 0x00000000, 0x00000000, 0x000000F1, 0x0000F0F3}, // L
-    {0x0000F002, 0x0F00F006, 0x0F000004, 0x0F000004, 0x00000000, 0x0000F002}, // B
+    {0x0000F0F3, 0x0F00F006, 0x0F00F0F7, 0x0F00F006, 0x0000F0F3, 0x0000F002}, // U
+    {0x0F00F006, 0x0F0000F5, 0x0F00F0F7, 0x0F0000F5, 0x0F00F006, 0x0F000004}, // R
+    {0x0F00F0F7, 0x000000F1, 0x0000F0F3, 0x000000F1, 0x0F00F0F7, 0x0F0000F5}, // F
+    {0x00000000, 0x0F0000F5, 0x0F000004, 0x0F0000F5, 0x00000000, 0x000000F1}, // D
+    {0x0000F0F3, 0x00000000, 0x0000F002, 0x00000000, 0x0000F0F3, 0x000000F1}, // L
+    {0x0000F002, 0x0F000004, 0x0F00F006, 0x0F000004, 0x0000F002, 0x00000000}, // B
 };
 
 static uint32_t constBlockVert2[6][6] = {
-    {0x00000000, 0x000F0200, 0x000FF300, 0x000FF300, 0x0000F100, 0x00000000}, // U
-    {0x00000000, 0x000F0200, 0x000FF300, 0x000FF300, 0x0000F100, 0x00000000}, // R
-    {0x00000000, 0x000F0200, 0x000FF300, 0x000FF300, 0x0000F100, 0x00000000}, // F
-    {0x00000000, 0x000F0200, 0x000FF300, 0x000FF300, 0x0000F100, 0x00000000}, // D
-    {0x00000000, 0x000F0200, 0x000FF300, 0x000FF300, 0x0000F100, 0x00000000}, // L
-    {0x00000000, 0x000F0200, 0x000FF300, 0x000FF300, 0x0000F100, 0x00000000}, // B
+    {0x00000000, 0x000FF300, 0x000F0200, 0x000FF300, 0x00000000, 0x0000F100}, // U
+    {0x00000000, 0x000FF300, 0x000F0200, 0x000FF300, 0x00000000, 0x0000F100}, // R
+    {0x00000000, 0x000FF300, 0x000F0200, 0x000FF300, 0x00000000, 0x0000F100}, // F
+    {0x00000000, 0x000FF300, 0x000F0200, 0x000FF300, 0x00000000, 0x0000F100}, // D
+    {0x00000000, 0x000FF300, 0x000F0200, 0x000FF300, 0x00000000, 0x0000F100}, // L
+    {0x00000000, 0x000FF300, 0x000F0200, 0x000FF300, 0x00000000, 0x0000F100}, // B
 };
 
 #define mtsetvert(_v, s, l, v, bv) {\
@@ -854,8 +852,6 @@ static force_inline void renderUI() {
     }
 }
 
-static char tbuf[1][32768];
-
 const unsigned char* glver;
 const unsigned char* glslver;
 const unsigned char* glvend;
@@ -877,10 +873,9 @@ static resdata_texture* uimap;
 static uint32_t rendc;
 
 void render() {
-    pthread_mutex_lock(&gllock);
-
     static struct rendtext* debugtext = NULL;
     if (showDebugInfo) {
+        static char tbuf[1][32768];
         static int toff = 0;
         if (!tbuf[0][0]) {
             sprintf(
@@ -981,8 +976,6 @@ void render() {
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), UIFBTEXID - GL_TEXTURE0);
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
     glDrawArrays(GL_TRIANGLES, 0, 6);
-
-    pthread_mutex_unlock(&gllock);
 }
 
 static void winch(int w, int h) {
@@ -995,22 +988,17 @@ static void winch(int w, int h) {
     }
     setFullscreen(rendinf.fullscr);
 
-    pthread_mutex_lock(&gllock);
-    glActiveTexture(FBTEXID);
     glBindTexture(GL_TEXTURE_2D, FBTEX);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, rendinf.width, rendinf.height, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
     glBindRenderbuffer(GL_RENDERBUFFER, DBUF);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, rendinf.width, rendinf.height);
 
-    glActiveTexture(UIFBTEXID);
     glBindTexture(GL_TEXTURE_2D, UIFBTEX);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, rendinf.width, rendinf.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
     glBindRenderbuffer(GL_RENDERBUFFER, UIDBUF);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, rendinf.width, rendinf.height);
 
     glViewport(0, 0, rendinf.width, rendinf.height);
-
-    pthread_mutex_unlock(&gllock);
 }
 
 #if defined(USESDL2)
@@ -1037,7 +1025,6 @@ static void errorcb(int e, const char* m) {
 
 bool initRenderer() {
     pthread_mutex_init(&uclock, NULL);
-    pthread_mutex_init(&gllock, NULL);
 
     rendinf.camfov = 85;
     rendinf.camnear = 0.05;
@@ -1302,8 +1289,10 @@ bool startRenderer() {
 
     glEnable(GL_CULL_FACE);
     //glCullFace(GL_FRONT);
-    glFrontFace(GL_CW);
+    //glFrontFace(GL_CW);
+    #if !defined(USEGLES)
     glDisable(GL_MULTISAMPLE);
+    #endif
 
     int gltex = GL_TEXTURE0;
 

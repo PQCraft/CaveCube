@@ -135,7 +135,8 @@ char* execpath() {
     scargv:;
     if (strcmp(argv[0], basefilename(argv[0]))) {
         #ifndef _WIN32
-        realpath(argv[0], epbuf);
+        char* tmp = realpath(argv[0], epbuf);
+        (void)tmp;
         #else
         _fullpath(epbuf, argv[0], MAX_PATH);
         #endif
