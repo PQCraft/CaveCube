@@ -16,9 +16,7 @@ tsk() { printf "${T} ${TB}${1}${TR}\n"; }
 ask() {
     RESPONSE=""
     printf "${Q} ${1}" >&2
-    trap 'trap - INT; kill -INT $$' INT
     read RESPONSE
-    trap - INT
 }
 pause() {
     ask "${TB}Press enter to continue...${TR}"
@@ -33,7 +31,7 @@ _exit() {
 _tar() { rm -f "${1}"; tar -zc -f "${1}" ${@:2} 1> /dev/null; }
 _zip() { rm -f "${1}"; zip -r -9 "${1}" ${@:2} 1> /dev/null; }
 
-if ! (return 0 2>/dev/null); then
+if ! (return 0 2> /dev/null); then
 
 tsk "Getting info..."
 VER_MAJOR="$(grep '#define VER_MAJOR ' src/main/version.h | sed 's/#define .* //')"

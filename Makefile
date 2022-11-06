@@ -278,11 +278,9 @@ else
 $(BIN): $(wildcard $(OBJDIR)/*/*.o)
 	@echo Building $@...
 ifdef WINCROSS
-	@$(WINDRES) $(WRFLAGS) -DORIG_NAME="$(BIN)" -DINT_NAME="$(BINNAME)" $(SRCDIR)/cavecube.rc -o $(OBJDIR)/rc.o
-	@$(CC) $^ $(OBJDIR)/rc.o $(BINFLAGS) -o $@
-else
-	@$(CC) $^ $(BINFLAGS) -o $@
+	@$(WINDRES) $(WRFLAGS) -DORIG_NAME="$(BIN)" -DINT_NAME="$(BINNAME)" $(SRCDIR)/main/version.rc -o $(OBJDIR)/main/version.o
 endif
+	@$(CC) $^ $(BINFLAGS) -o $@
 ifndef DEBUG
 	@$(STRIP) --strip-all $@
 endif

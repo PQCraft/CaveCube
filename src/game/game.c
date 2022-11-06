@@ -28,6 +28,8 @@ coord_3d pvelocity;
 int64_t pchunkx, pchunky, pchunkz;
 int pblockx, pblocky, pblockz;
 
+struct ui_data* game_ui;
+
 static float posmult = 6.5;
 static float fpsmult = 0;
 
@@ -303,10 +305,11 @@ bool doGame(char* addr, int port) {
     resetInput();
     setInputMode(INPUT_MODE_GAME);
     //setSkyColor(0.5, 0.5, 0.5);
-    int ui_main = newUIElem(UI_ELEM_CONTAINER, "main", -1, "width", "100%", "height", "100%", NULL);
-    /*int ui_box1 = */newUIElem(UI_ELEM_BOX, "box1", ui_main, "width", "500", "height", "500", "align", "-1,-1", NULL);
-    /*int ui_box2 = */newUIElem(UI_ELEM_BOX, "box2", ui_main, "width", "500", "height", "500", "align", "0,0", NULL);
-    /*int ui_box3 = */newUIElem(UI_ELEM_BOX, "box3", ui_main, "width", "500", "height", "500", "align", "1,1", NULL);
+    game_ui = allocUI();
+    int ui_main = newUIElem(game_ui, UI_ELEM_CONTAINER, "main", -1, "width", "100%", "height", "100%", NULL);
+    /*int ui_box1 = */newUIElem(game_ui, UI_ELEM_BOX, "box1", ui_main, "width", "500", "height", "500", "align", "-1,-1", NULL);
+    /*int ui_box2 = */newUIElem(game_ui, UI_ELEM_BOX, "box2", ui_main, "width", "500", "height", "500", "align", "0,0", NULL);
+    /*int ui_box3 = */newUIElem(game_ui, UI_ELEM_BOX, "box3", ui_main, "width", "500", "height", "500", "align", "1,1", NULL);
     while (!quitRequest) {
         uint64_t st1 = altutime();
         if (loopdelay) microwait(loopdelay);
@@ -618,6 +621,7 @@ bool doGame(char* addr, int port) {
         fpsmult = (double)((uint64_t)altutime() - (uint64_t)st1) / 1000000.0;
         pmult = posmult * fpsmult;
     }
+    freeUI(game_ui);
     for (int i = 0; i < 16; ++i) {
         free(tmpbuf[i]);
     }

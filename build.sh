@@ -4,7 +4,7 @@
 
 source mkrelease.sh
 
-NJOBS=""
+NJOBS="$(nproc)"
 rm -rf cavecube*.tar.gz cavecube*.zip
 buildrel() {
     local TYPE="${1}"

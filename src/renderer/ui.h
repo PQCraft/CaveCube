@@ -32,22 +32,28 @@ struct ui_elem {
     struct ui_elem_calcprop calcprop;
 };
 
+struct ui_data {
+    int count;
+    struct ui_elem* data;
+};
+
 enum {
     UI_ELEM_CONTAINER,
     UI_ELEM_BOX,
 };
 
-int newUIElem(int /*type*/, char* /*name*/, int /*parent*/, ... /*properties*/);
-void editUIElem(int /*id*/, char* /*name*/, int /*parent*/, ... /*properties*/);
-void deleteUIElem(int /*id*/);
-struct ui_elem* getUIElemData(int /*id*/);
-int getUIElemByName(char* /*name*/, bool /*reverse*/);
-int* getUIElemsByName(char* /*name*/, int* /*count*/);
-bool calcUIProperties(void);
+struct ui_data* allocUI(void);
+int newUIElem(struct ui_data*, int /*type*/, char* /*name*/, int /*parent*/, ... /*properties*/);
+void editUIElem(struct ui_data*, int /*id*/, char* /*name*/, int /*parent*/, ... /*properties*/);
+void deleteUIElem(struct ui_data*, int /*id*/);
+void clearUIElems(struct ui_data*);
+struct ui_elem* getUIElemData(struct ui_data*, int /*id*/);
+int getUIElemByName(struct ui_data*, char* /*name*/, bool /*reverse*/);
+int* getUIElemsByName(struct ui_data*, char* /*name*/, int* /*count*/);
+bool calcUIProperties(struct ui_data*);
+void freeUI(struct ui_data*);
 
 extern float ui_scale;
-extern int ui_elems;
-extern struct ui_elem* ui_elemdata;
 
 #endif
 

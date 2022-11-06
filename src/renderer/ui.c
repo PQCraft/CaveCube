@@ -11,21 +11,22 @@
 
 float ui_scale = 1.0;
 
-int ui_elems = 0;
-struct ui_elem* ui_elemdata;
+#define idValid(x) (x >= 0 && x < elemdata->count)
+#define elemValid(x) (idValid(x) && elemdata->data[x].valid)
 
-#define idValid(x) (x >= 0 && x < ui_elems)
-#define elemValid(x) (idValid(x) && ui_elemdata[x].valid)
+struct ui_data* allocUI() {
+    return calloc(1, sizeof(struct ui_data));
+}
 
-int newUIElem(int type, char* name, int parent, ...) {
+int newUIElem(struct ui_data* elemdata, int type, char* name, int parent, ...) {
     int index = -1;
-    for (int i = 0; i < ui_elems; ++i) {
-        if (!ui_elemdata[i].valid) {index = i; break;}
+    for (int i = 0; i < elemdata->count; ++i) {
+        if (!elemdata->data[i].valid) {index = i; break;}
     }
-    index = ui_elems++;
-    //printf("elems: [%d]\n", ui_elems);
-    ui_elemdata = realloc(ui_elemdata, ui_elems * sizeof(*ui_elemdata));
-    struct ui_elem* e = &ui_elemdata[index];
+    index = elemdata->count++;
+    //printf("elems: [%d]\n", elemdata->count);
+    elemdata->data = realloc(elemdata->data, elemdata->count * sizeof(*elemdata->data));
+    struct ui_elem* e = &elemdata->data[index];
     memset(e, 0, sizeof(*e));
     e->type = type;
     if (name && *name) e->name = strdup(name);
@@ -49,7 +50,7 @@ int newUIElem(int type, char* name, int parent, ...) {
     va_end(args);
     e->valid = true;
     if (elemValid(parent)) {
-        struct ui_elem* p = &ui_elemdata[parent];
+        struct ui_elem* p = &elemdata->data[parent];
         int cindex = -1;
         for (int i = 0; i < p->children; ++i) {
             if (p->childdata[i] < 0) {cindex = i; break;}
@@ -63,9 +64,9 @@ int newUIElem(int type, char* name, int parent, ...) {
     return index;
 }
 
-void editUIElem(int id, char* name, int parent, ...) {
+void editUIElem(struct ui_data* elemdata, int id, char* name, int parent, ...) {
     if (!elemValid(id)) return;
-    struct ui_elem* e = &ui_elemdata[id];
+    struct ui_elem* e = &elemdata->data[id];
     if (name) {
         if (*name) {free(e->name); e->name = strdup(name);}
         else {free(e->name); e->name = NULL;}
@@ -119,13 +120,13 @@ void editUIElem(int id, char* name, int parent, ...) {
 
 static bool del = false;
 
-void deleteUIElem(int id) {
+void deleteUIElem(struct ui_data* elemdata, int id) {
     if (!elemValid(id)) return;
     del = true;
-    struct ui_elem* e = &ui_elemdata[id];
+    struct ui_elem* e = &elemdata->data[id];
     e->valid = false;
     if (elemValid(e->parent)) {
-        struct ui_elem* p = &ui_elemdata[e->parent];
+        struct ui_elem* p = &elemdata->data[e->parent];
         for (int i = 0; i < p->children; ++i) {
             if (p->childdata[i] == id) {
                 p->childdata[i] = -1;
@@ -134,7 +135,7 @@ void deleteUIElem(int id) {
         }
     }
     for (int i = 0; i < e->children; ++i) {
-        if (e->childdata[i] >= 0) deleteUIElem(e->childdata[i]);
+        if (e->childdata[i] >= 0) deleteUIElem(elemdata, e->childdata[i]);
     }
     free(e->name);
     free(e->childdata);
@@ -145,16 +146,24 @@ void deleteUIElem(int id) {
     free(e->propertydata);
 }
 
-struct ui_elem* getUIElemData(int id) {
-    return (elemValid(id)) ? &ui_elemdata[id] : NULL;
+void clearUIElems(struct ui_data* elemdata) {
+    for (int i = 0; i < elemdata->count; ++i) {
+        if (elemdata->data[i].parent < 0) {
+            deleteUIElem(elemdata, i);
+        }
+    }
 }
 
-int getUIElemByName(char* name, bool reverse) {
+struct ui_elem* getUIElemData(struct ui_data* elemdata, int id) {
+    return (elemValid(id)) ? &elemdata->data[id] : NULL;
+}
+
+int getUIElemByName(struct ui_data* elemdata, char* name, bool reverse) {
     int i;
-    if (reverse) {i = ui_elems - 1;} else {i = 0;}
+    if (reverse) {i = elemdata->count - 1;} else {i = 0;}
     while (1) {
-        if (reverse) {if (i < 0) break;} else {if (i >= ui_elems) break;}
-        if (ui_elemdata[i].valid && !strcasecmp(ui_elemdata[i].name, name)) {
+        if (reverse) {if (i < 0) break;} else {if (i >= elemdata->count) break;}
+        if (elemdata->data[i].valid && !strcasecmp(elemdata->data[i].name, name)) {
             return i;
         }
         if (reverse) {--i;} else {++i;}
@@ -162,12 +171,12 @@ int getUIElemByName(char* name, bool reverse) {
     return -1;
 }
 
-int* getUIElemsByName(char* name, int* _count) {
+int* getUIElemsByName(struct ui_data* elemdata, char* name, int* _count) {
     int count = 0;
     int* output = malloc(1 * sizeof(*output));
     output[0] = -1;
-    for (int i = 0; i < ui_elems; ++i) {
-        if (ui_elemdata[i].valid && !strcasecmp(ui_elemdata[i].name, name)) {
+    for (int i = 0; i < elemdata->count; ++i) {
+        if (elemdata->data[i].valid && !strcasecmp(elemdata->data[i].name, name)) {
             output[count++] = i;
             output = realloc(output, (count + 1) * sizeof(*output));
             output[count] = -1;
@@ -196,10 +205,10 @@ static force_inline float getSize(char* propval, float max) {
     return num;
 }
 
-static force_inline bool calcProp(struct ui_elem* e, bool force) {
+static force_inline bool calcProp(struct ui_data* elemdata, struct ui_elem* e, bool force) {
     struct ui_elem_calcprop p_prop;
     if (elemValid(e->parent)) {
-        p_prop = ui_elemdata[e->parent].calcprop;
+        p_prop = elemdata->data[e->parent].calcprop;
     } else {
         static int scrw = -1;
         static int scrh = -1;
@@ -276,26 +285,31 @@ static force_inline bool calcProp(struct ui_elem* e, bool force) {
     return false;
 }
 
-static inline bool calcPropTree(struct ui_elem* e, bool force) {
-    bool ret = calcProp(e, force);
+static inline bool calcPropTree(struct ui_data* elemdata, struct ui_elem* e, bool force) {
+    bool ret = calcProp(elemdata, e, force);
     if (ret) {
         for (int i = 0; i < e->children; ++i) {
-            if (idValid(e->childdata[i])) calcPropTree(&ui_elemdata[e->childdata[i]], true);
+            if (idValid(e->childdata[i])) calcPropTree(elemdata, &elemdata->data[e->childdata[i]], true);
         }
     }
     return ret;
 }
 
-bool calcUIProperties() {
+bool calcUIProperties(struct ui_data* elemdata) {
     bool ret = del;
     if (del) del = false;
-    for (int i = 0; i < ui_elems; ++i) {
-        struct ui_elem* e = &ui_elemdata[i];
+    for (int i = 0; i < elemdata->count; ++i) {
+        struct ui_elem* e = &elemdata->data[i];
         if (e->parent < 0) {
-            if (calcPropTree(e, false)) ret = true;
+            if (calcPropTree(elemdata, e, false)) ret = true;
         }
     }
     return ret;
+}
+
+void freeUI(struct ui_data* elemdata) {
+    clearUIElems(elemdata);
+    free(elemdata);
 }
 
 #endif

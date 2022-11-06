@@ -844,8 +844,8 @@ static force_inline void freeTextMesh(struct rendtext* text) {
     free(text);
 }
 
-static force_inline void renderUI() {
-    if (calcUIProperties()) {
+static force_inline void renderUI(struct ui_data* data) {
+    if (calcUIProperties(data)) {
         #if DBGLVL(2)
         puts("UI remesh");
         #endif
@@ -914,7 +914,7 @@ void render() {
     glBindFramebuffer(GL_FRAMEBUFFER, UIFBO);
     glDisable(GL_CULL_FACE);
     glDisable(GL_DEPTH_TEST);
-    renderUI();
+    renderUI(game_ui);
 
     setShaderProg(shader_block);
     static uint64_t aMStart = 0;
@@ -991,12 +991,12 @@ static void winch(int w, int h) {
     glBindTexture(GL_TEXTURE_2D, FBTEX);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, rendinf.width, rendinf.height, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
     glBindRenderbuffer(GL_RENDERBUFFER, DBUF);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, rendinf.width, rendinf.height);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, rendinf.width, rendinf.height);
 
     glBindTexture(GL_TEXTURE_2D, UIFBTEX);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, rendinf.width, rendinf.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
     glBindRenderbuffer(GL_RENDERBUFFER, UIDBUF);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, rendinf.width, rendinf.height);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, rendinf.width, rendinf.height);
 
     glViewport(0, 0, rendinf.width, rendinf.height);
 }
@@ -1036,7 +1036,9 @@ bool initRenderer() {
     return true;
 }
 
-#if DBGLVL(0)
+#if defined(_WIN32) && !defined(_WIN64)
+__attribute__((stdcall))
+#endif
 static void oglCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* msg, const void* data) {
     (void)source;
     (void)type;
@@ -1069,7 +1071,6 @@ static void oglCallback(GLenum source, GLenum type, GLuint id, GLenum severity, 
     if (ignore) return;
     fprintf(stderr, "OpenGL debug [%s]: [%d] {%s}\n", sevstr, id, msg);
 }
-#endif
 
 bool startRenderer() {
     #if defined(USESDL2)
@@ -1110,9 +1111,7 @@ bool startRenderer() {
     glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_TRUE);
     glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_FALSE);
     glfwWindowHint(GLFW_SAMPLES, 0);
-    #if DBGLVL(0)
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
-    #endif
     //glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     #endif
 
@@ -1203,11 +1202,9 @@ bool startRenderer() {
         fputs("startRenderer: Failed to initialize GLAD\n", stderr);
         return false;
     }
-    #if DBGLVL(0)
     if (GL_KHR_debug) {
         glDebugMessageCallback(oglCallback, NULL);
     }
-    #endif
 
     #if defined(USEGLES)
     char* hdrpath = "engine/shaders/headers/OpenGL ES/header.glsl";
@@ -1298,7 +1295,7 @@ bool startRenderer() {
 
     glGenRenderbuffers(1, &UIDBUF);
     glBindRenderbuffer(GL_RENDERBUFFER, UIDBUF);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, rendinf.width, rendinf.height);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, rendinf.width, rendinf.height);
     UIFBTEXID = gltex++;
     glActiveTexture(UIFBTEXID);
     glGenFramebuffers(1, &UIFBO);

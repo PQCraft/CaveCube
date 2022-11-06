@@ -331,7 +331,7 @@ void setCxnBufSize(struct netcxn* cxn, int tx, int rx) {
 }
 
 char* getCxnAddrStr(struct netcxn* cxn, char* str) {
-    if (!str) str = malloc(22);
+    if (!str) str = malloc(32);
     sprintf(str, "%"PRIu8".%"PRIu8".%"PRIu8".%"PRIu8":%"PRIu16"", cxn->info.addr[0], cxn->info.addr[1], cxn->info.addr[2], cxn->info.addr[3], cxn->info.port);
     return str;
 }
