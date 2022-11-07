@@ -4,10 +4,10 @@
 ---
 <div align="center">
 <img src="https://img.shields.io/github/languages/top/PQCraft/CaveCube?label=%20&logo=C" alt="Language"/>
-<img src="https://img.shields.io/github/license/PQCraft/CaveCube?label=%20" alt="License"/>
+<img src="https://img.shields.io/github/license/PQCraft/CaveCube?label=License" alt="License"/>
 <img src="https://img.shields.io/github/v/release/PQCraft/CaveCube?display_name=release&label=Latest%20release" alt="Latest release"/>
-<img src="https://img.shields.io/github/downloads/PQCraft/CaveCube/latest/total?color=blue&label=Downloads%20%28latest%20release%29&logo=github" alt="Downloads (latest release)"/>
-<img src="https://img.shields.io/github/downloads/PQCraft/CaveCube/total?color=blue&label=Downloads%20%28total%29&logo=github" alt="Downloads (total)"/>
+<img src="https://img.shields.io/github/downloads/PQCraft/CaveCube/latest/total?color=blue&label=Downloads&logo=github" alt="Downloads"/>
+<img src="https://img.shields.io/github/downloads/PQCraft/CaveCube/total?color=blue&label=Total%20downloads&logo=github" alt="Total downloads"/>
 <img src="https://img.shields.io/github/issues/PQCraft/CaveCube?label=Issues" alt="Issues"/>
 <img src="https://img.shields.io/github/issues-pr/PQCraft/CaveCube?label=Pull%20requests" alt="Pull requests"/>
 </div>
