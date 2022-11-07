@@ -26,6 +26,7 @@
     - Add event for handling game logic
 - Make it so that events are not pushed again until an acknowledge (prevents overflow)
 - Add MSYS2 support to Makefile
+- Make a translator to allow connecting to older servers (once there is a stable protocol)
 
 ### MIGHT DO:
 - Implement bunny hopping after physics redo (resize AABB at bottom instead of top if in-air crouch)
