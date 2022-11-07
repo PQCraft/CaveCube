@@ -3,13 +3,13 @@
 
 ---
 <div align="center">
-<a HREF=""><img src="https://img.shields.io/github/languages/top/PQCraft/CaveCube?label=%20&logo=C" alt="Language"/></a>
-<a HREF=""><img src="https://img.shields.io/github/license/PQCraft/CaveCube?label=License" alt="License"/></a>
-<a HREF=""><img src="https://img.shields.io/github/v/release/PQCraft/CaveCube?display_name=release&label=Latest%20release" alt="Latest release"/></a>
-<a HREF=""><img src="https://img.shields.io/github/downloads/PQCraft/CaveCube/latest/total?color=blue&label=Downloads&logo=github" alt="Downloads"/></a>
-<a HREF=""><img src="https://img.shields.io/github/downloads/PQCraft/CaveCube/total?color=blue&label=Total%20downloads&logo=github" alt="Total downloads"/></a>
-<a HREF=""><img src="https://img.shields.io/github/issues/PQCraft/CaveCube?label=Issues" alt="Issues"/></a>
-<a HREF=""><img src="https://img.shields.io/github/issues-pr/PQCraft/CaveCube?label=Pull%20requests" alt="Pull requests"/></a>
+<a HREF="#?"><img src="https://img.shields.io/github/languages/top/PQCraft/CaveCube?label=%20&logo=C" alt="Language"/></a>
+<a HREF="#?"><img src="https://img.shields.io/github/license/PQCraft/CaveCube?label=License" alt="License"/></a>
+<a HREF="#?"><img src="https://img.shields.io/github/v/release/PQCraft/CaveCube?display_name=release&label=Latest%20release" alt="Latest release"/></a>
+<a HREF="#?"><img src="https://img.shields.io/github/downloads/PQCraft/CaveCube/latest/total?color=blue&label=Downloads&logo=github" alt="Downloads"/></a>
+<a HREF="#?"><img src="https://img.shields.io/github/downloads/PQCraft/CaveCube/total?color=blue&label=Total%20downloads&logo=github" alt="Total downloads"/></a>
+<a HREF="#?"><img src="https://img.shields.io/github/issues/PQCraft/CaveCube?label=Issues" alt="Issues"/></a>
+<a HREF="#?"><img src="https://img.shields.io/github/issues-pr/PQCraft/CaveCube?label=Pull%20requests" alt="Pull requests"/></a>
 </div>
 
 [![](https://raw.githubusercontent.com/PQCraft/PQCraft/master/Screenshot_20220918_210819.png)](#?)
