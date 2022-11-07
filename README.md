@@ -2,6 +2,14 @@
 **An in-development Minecraft/Infiniminer clone**<br>
 
 ---
+<div align="center">
+<img src="https://img.shields.io/github/license/PQCraft/CaveCube?label=License" alt="License"/>
+<img src="https://img.shields.io/github/v/release/PQCraft/CaveCube?display_name=release&label=Latest%20release" alt="Latest release"/>
+<img src="https://img.shields.io/github/repo-size/PQCraft/CaveCube?label=Repo%20size&logo=github" alt="Repo size"/>
+<img src="https://img.shields.io/github/downloads/PQCraft/CaveCube/latest/total?color=blue&label=Downloads%20%28latest%20release%29&logo=github" alt="Downloads (latest release)"/>
+<img src="https://img.shields.io/github/downloads/PQCraft/CaveCube/total?color=blue&label=Downloads%20%28total%29&logo=github" alt="Downloads (total)"/>
+</div>
+
 [![](https://raw.githubusercontent.com/PQCraft/PQCraft/master/Screenshot_20220918_210819.png)](#?)
 
 ---
@@ -38,5 +46,5 @@ For any variables that change the object directory or binary name, you must use 
 When using MSYS2, the MINGW64 environment is recommended and always use `MSYS2=y` (eg. `make MSYS2=y -j`, `make MSYS2=y clean`).<br>
 
 ---
-### Notes <img src="https://repology.org/badge/vertical-allrepos/cavecube.svg" alt="Packaging status" align="right"><br>
+### Notes <img src="https://repology.org/badge/vertical-allrepos/cavecube.svg" alt="Packaging status" align="right"/><br>
 - CaveCube can be installed on Arch Linux using the [cavecube](https://aur.archlinux.org/packages/cavecube) or [cavecube-bin](https://aur.archlinux.org/packages/cavecube-bin) package.<br>
