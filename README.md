@@ -5,7 +5,7 @@
 <div align="center">
 <a HREF="#?"><img src="https://img.shields.io/github/languages/top/PQCraft/CaveCube?label=%20&logo=C" alt="Language"/></a>
 <a HREF="#?"><img src="https://img.shields.io/github/license/PQCraft/CaveCube?label=License" alt="License"/></a>
-<a HREF="#?"><img src="https://img.shields.io/github/v/release/PQCraft/CaveCube?display_name=release&label=Latest%20release" alt="Latest release"/></a>
+<a HREF="#?"><img src="https://img.shields.io/badge/dynamic/json?color=blue&label=Latest%20release&query=tag_name&url=https%3A%2F%2Fapi.github.com%2Frepos%2FPQCraft%2FCaveCube%2Freleases%2Flatest" alt="Latest release"/></a>
 <a HREF="#?"><img src="https://img.shields.io/github/downloads/PQCraft/CaveCube/latest/total?color=blue&label=Downloads&logo=github" alt="Downloads"/></a>
 <a HREF="#?"><img src="https://img.shields.io/github/downloads/PQCraft/CaveCube/total?color=blue&label=Total%20downloads&logo=github" alt="Total downloads"/></a>
 <a HREF="#?"><img src="https://img.shields.io/github/issues/PQCraft/CaveCube?label=Issues" alt="Issues"/></a>
