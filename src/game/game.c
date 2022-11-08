@@ -1,4 +1,4 @@
-#ifndef SERVER
+#if MODULEID == MODULEID_GAME
 
 #include <main/main.h>
 #include "game.h"

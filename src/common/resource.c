@@ -85,7 +85,7 @@ void* makeResource(int type, char* path) {
             break;
         }
         case RESOURCE_TEXTURE:; {
-            #ifndef SERVER
+            #if MODULEID == MODULEID_GAME
             resdata_texture* texturedata = data = calloc(1, sizeof(resdata_texture));
             unsigned char* idata = stbi_load(path, &texturedata->width, &texturedata->height, &texturedata->channels, STBI_rgb_alpha);
             texturedata->channels = 4;
@@ -146,7 +146,7 @@ void freeResStub(resentry* ent) {
             break;
         }
         case RESOURCE_TEXTURE:; {
-            #ifndef SERVER
+            #if MODULEID == MODULEID_GAME
             destroyTexture((resdata_texture*)ent->data);
             #endif
             break;

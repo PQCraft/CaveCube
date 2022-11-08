@@ -11,12 +11,9 @@
 #define VER_STR STR(VER_MAJOR) "." STR(VER_MINOR) "." STR(VER_PATCH)
 
 #define PROG_NAME "CaveCube"
+#define MODULE_NAME STR(MODULE)
 
-#ifndef SERVER
-    #define FULL_PROG_NAME PROG_NAME
-#else
-    #define FULL_PROG_NAME PROG_NAME " server"
-#endif
+#define FULL_PROG_NAME PROG_NAME " " MODULE_NAME
 
 #if defined(USESDL2)
     #define IO_ABST "SDL2"

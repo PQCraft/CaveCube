@@ -58,15 +58,15 @@ pkgrel() { _zip "cavecube_game_windows_i686.zip" cavecube.exe; }
 buildrel "game" "Windows i686" M32=y WINCROSS=y
 # Server: Linux x86_64
 pkgrel() { _tar "cavecube_server_linux_x86_64.tar.gz" ccserver; }
-buildrel "server" "Linux x86_64" SERVER=y
+buildrel "server" "Linux x86_64" MODULE=server
 # Server: Linux i686
 pkgrel() { _tar "cavecube_server_linux_i686.tar.gz" ccserver; }
-buildrel "server" "Linux i686" M32=y SERVER=y
+buildrel "server" "Linux i686" M32=y MODULE=server
 # Server: Windows x86_64
 pkgrel() { _zip "cavecube_server_windows_x86_64.zip" ccserver.exe; }
-buildrel "server" "Windows x86_64" SERVER=y WINCROSS=y
+buildrel "server" "Windows x86_64" MODULE=server WINCROSS=y
 # Server: Windows i686
 pkgrel() { _zip "cavecube_server_windows_i686.zip" ccserver.exe; }
-buildrel "server" "Windows i686" M32=y SERVER=y WINCROSS=y
+buildrel "server" "Windows i686" M32=y MODULE=server WINCROSS=y
 
 }

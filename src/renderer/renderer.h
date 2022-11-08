@@ -1,4 +1,4 @@
-#ifndef SERVER
+#if MODULEID == MODULEID_GAME
 
 #ifndef RENDERER_RENDERER_H
 

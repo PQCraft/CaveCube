@@ -1,4 +1,4 @@
-#ifndef SERVER
+#if MODULEID == MODULEID_GAME
 
 #ifndef INPUT_INPUT_H
 #define INPUT_INPUT_H

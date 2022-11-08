@@ -1,3 +1,17 @@
+MODULE ?= game
+
+MODULECFLAGS := -DMODULEID_GAME=0 -DMODULEID_SERVER=1 -DMODULEID_TOOLBOX=2
+ifeq ($(MODULE),game)
+    MODULEID := 0
+else ifeq ($(MODULE),server)
+    MODULEID := 1
+else
+    .PHONY: error
+    error:
+		@echo Invalid module: $(MODULE)
+		@exit 1
+endif
+
 ifndef OS
     ifndef WINCROSS
         CC ?= gcc
@@ -73,11 +87,6 @@ else
         endif
     endif
 endif
-ifndef SERVER
-    MODULE := game
-else
-    MODULE := server
-endif
 OBJDIR ?= obj/$(MODULE)/$(PLATFORM)
 
 SRCDIR := $(patsubst %/,%,$(SRCDIR))
@@ -99,7 +108,7 @@ ifdef OS
     BINEXT := .exe
 endif
 
-ifndef SERVER
+ifeq ($(MODULE),game)
     BINNAME := cavecube
 else
     BINNAME := ccserver
@@ -108,16 +117,14 @@ endif
 BIN := $(BINNAME)$(BINEXT)
 
 CFLAGS += -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -O2 -pthread
+CFLAGS += $(MODULECFLAGS) -DMODULEID=$(MODULEID) -DMODULE=$(MODULE)
+ifdef OS
+    WRFLAGS += $(MODULECFLAGS) -DMODULE=$(MODULEID)
+endif
 ifdef DEBUG
     CFLAGS += -g -DDEBUG=$(DEBUG)
     ifdef OS
         WRFLAGS += -DDEBUG=$(DEBUG)
-    endif
-endif
-ifdef SERVER
-    CFLAGS += -DSERVER
-    ifdef OS
-        WRFLAGS += -DSERVER
     endif
 endif
 ifdef M32
@@ -139,7 +146,7 @@ ifdef USEGLES
         WRFLAGS += -DUSEGLES
     endif
 endif
-ifndef SERVER
+ifeq ($(MODULE),game)
     ifdef USESDL2
         CFLAGS += -DUSESDL2
         ifdef OS
@@ -171,14 +178,11 @@ ifdef WINCROSS
     undefine OS
 endif
 
-MKENV = NAME="$@" SRCDIR="$(SRCDIR)" OBJDIR="$(OBJDIR)" UTILMK="util.mk" CC="$(CC)" CFLAGS="$(CFLAGS)" BASEDIRS="$(BASEDIRS)"
+MKENV = NAME="$@" MODULE="$(MODULE)" SRCDIR="$(SRCDIR)" OBJDIR="$(OBJDIR)" UTILMK="util.mk" CC="$(CC)" CFLAGS="$(CFLAGS)" BASEDIRS="$(BASEDIRS)"
 MKENV2 = NAME="$@" CC="$(CC)" CFLAGS="$(CFLAGS) -I../../$(SRCDIR)" SRCDIR="../../$(SRCDIR)" OBJDIR="../../$(OBJDIR)" UTILMK="../../util.mk"
 MKENVSUB = CC="$(CC)" BINFLAGS="$(BINFLAGS)" OBJDIR="$(OBJDIR)"
 ifdef DEBUG
     MKENVMOD += DEBUG="$(DEBUG)"
-endif
-ifdef SERVER
-    MKENVMOD += SERVER=y
 endif
 ifdef USESDL2
     MKENVMOD += USESDL2=y

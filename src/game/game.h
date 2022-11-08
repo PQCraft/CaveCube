@@ -1,4 +1,4 @@
-#ifndef SERVER
+#if MODULEID == MODULEID_GAME
 
 #ifndef GAME_GAME_H
 #define GAME_GAME_H
