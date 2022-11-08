@@ -22,7 +22,7 @@ struct chunkinfo {
     uint32_t widthsq;
 };
 
-#ifndef SERVER
+#if MODULEID == MODULEID_GAME
 struct chunkdata {
     struct chunkinfo info;
     struct blockdata** data;

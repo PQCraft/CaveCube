@@ -646,7 +646,7 @@ void stopServer() {
     puts("Server stopped");
 }
 
-#ifndef SERVER
+#if MODULEID == MODULEID_GAME
 
 #include <stdarg.h>
 

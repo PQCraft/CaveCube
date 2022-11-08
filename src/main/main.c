@@ -63,7 +63,7 @@ static force_inline bool altchdir(char* path) {
     return true;
 }
 
-#ifndef SERVER
+#if MODULEID == MODULEID_GAME
     #define SC_VAL "false"
 #else
     #define SC_VAL "true"
@@ -119,7 +119,7 @@ int main(int _argc, char** _argv) {
     #endif
     argc = _argc;
     argv = _argv;
-    #ifndef SERVER
+    #if MODULEID == MODULEID_GAME
     int gametype = -1;
     bool chconfig = false;
     bool servopt = false;
@@ -163,7 +163,7 @@ int main(int _argc, char** _argv) {
                 puts("    help - Shows the help text.");
                 puts("    version - Shows the version information.");
                 puts("    config[=FILE] - Changes the configuration file to FILE.");
-                #ifndef SERVER
+                #if MODULEID == MODULEID_GAME
                 puts("    world[=NAME] - Starts a local game on the world named NAME.");
                 puts("        {w|world}=NAME - Sets the world name to start to NAME.");
                 puts("        {pl|players}=AMOUNT - Changes the maximum amount of players to AMOUNT.");
@@ -195,13 +195,13 @@ int main(int _argc, char** _argv) {
                         break;
                 }
                 strcpy(configpath, val);
-                #ifndef SERVER
+                #if MODULEID == MODULEID_GAME
                 chconfig = true;
                 #endif
                 #if DBGLVL(1)
                 printf("Changed config to '%s'\n", configpath);
                 #endif
-            #ifndef SERVER
+            #if MODULEID == MODULEID_GAME
             } else if (!strcmp(name, "world")) {
                 if (gametype >= 0 && gametype != 0) {ARG_INVALSYN(); return 1;}
                 gametype = 0;
@@ -231,7 +231,7 @@ int main(int _argc, char** _argv) {
             #endif
             } else if (servopt || !strcmp(name, "server")) {
                 if (val) {ARG_INVALSYN(); return 1;}
-                #ifndef SERVER
+                #if MODULEID == MODULEID_GAME
                 if (gametype >= 0 && gametype != 2) {ARG_INVALSYN(); return 1;}
                 gametype = 2;
                 #endif
@@ -259,7 +259,7 @@ int main(int _argc, char** _argv) {
     maindir = strdup(pathfilename(execpath()));
     startdir = realpath(".", NULL);
     MAIN_STRPATH(startdir);
-    #ifndef SERVER
+    #if MODULEID == MODULEID_GAME
     {
         #ifndef _WIN32
         char* tmpdir = getenv("HOME");
@@ -284,7 +284,7 @@ int main(int _argc, char** _argv) {
     #if DBGLVL(1)
     printf("Main directory: {%s}\n", maindir);
     printf("Start directory: {%s}\n", startdir);
-    #ifndef SERVER
+    #if MODULEID == MODULEID_GAME
     printf("Local directory: {%s}\n", localdir);
     #endif
     #endif
@@ -304,7 +304,7 @@ int main(int _argc, char** _argv) {
     #ifdef _WIN32
     if (owncon && showcon) ShowWindow(GetConsoleWindow(), SW_SHOW);
     #endif
-    #ifndef SERVER
+    #if MODULEID == MODULEID_GAME
     switch (gametype) {
         default:; {
             cores -= 4;
@@ -362,14 +362,14 @@ int main(int _argc, char** _argv) {
     pause();
     stopServer();
     #endif
-    #ifndef SERVER
+    #if MODULEID == MODULEID_GAME
     if (!altchdir(startdir)) return 1;
     if (!chconfig && config->changed) if (!writeConfig(config, configpath)) return 1;
     #endif
     closeConfig(config);
     free(maindir);
     free(startdir);
-    #ifndef SERVER
+    #if MODULEID == MODULEID_GAME
     free(localdir);
     #endif
     return ret;
