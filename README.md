@@ -3,7 +3,7 @@
 
 ---
 <div align="center">
-<a HREF="#?"><img src="https://img.shields.io/github/languages/top/PQCraft/CaveCube?color=informational&label=%20&logo=C" alt="Language"/></a>
+<a HREF="#?"><img src="https://img.shields.io/github/languages/top/PQCraft/CaveCube?color=blue&label=%20&logo=C" alt="Language"/></a>
 <a HREF="#?"><img src="https://img.shields.io/github/license/PQCraft/CaveCube?color=informational&label=License" alt="License"/></a>
 <a HREF="#?"><img src="https://img.shields.io/badge/dynamic/json?color=informational&label=Latest%20release&query=tag_name&url=https%3A%2F%2Fapi.github.com%2Frepos%2FPQCraft%2FCaveCube%2Freleases%2Flatest" alt="Latest release"/></a>
 <a HREF="#?"><img src="https://img.shields.io/github/downloads/PQCraft/CaveCube/latest/total?color=informational&label=Downloads&logo=github" alt="Downloads"/></a>
