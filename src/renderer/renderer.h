@@ -105,6 +105,12 @@ struct chunk_renddata {
     bool visible:1;
 };
 
+struct ui_renddata {
+    unsigned VBO;
+    uint32_t vcount;
+    uint32_t* vertices;
+}
+
 enum {
     SPACE_NORMAL,
     SPACE_UNDERWATER,
