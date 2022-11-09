@@ -30,6 +30,7 @@ struct ui_elem {
     int properties;
     struct ui_elem_property* propertydata;
     struct ui_elem_calcprop calcprop;
+    struct ui_renddata renddata;
 };
 
 struct ui_data {

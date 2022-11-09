@@ -845,6 +845,7 @@ static force_inline void freeTextMesh(struct rendtext* text) {
 }
 
 static force_inline void renderUI(struct ui_data* data) {
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     if (calcUIProperties(data)) {
         #if DBGLVL(2)
         puts("UI remesh");
