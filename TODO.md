@@ -1,31 +1,32 @@
 ### NEED TO DO:
-- Redo BMD to CCM (delete `src/bmd/` and add `src/ccm/`)
-    - Add parts, model types (3D, BLOCK, 2D, etc), and data types (VERT, ANI, AABB, etc)
-- 3D model rendering in `src/renderer/renderer.c`
-- Audio (probably SDL_Mixer) in `src/audio/`
-- Redo worldgen in `src/game/worldgen.(c|h)`
-    - Add structures to worldgen (trees, buildings, etc)
-    - Generate values for height, spikes, details, moisture, and structures
-- Implement gameplay in `src/server/game.(c|h)`
-- Implement extensions in `src/main/extmgr.(c|h)` using libdl
-- Add AABB collision in `src/physics/collision.(c|h)`
+- Add physics in `src/physics/`
     - Use ticks https://gafferongames.com/post/fix_your_timestep/ and add interpolation
+    - Add AABB collision in `collision.(c|h)`
+    - Add raycasting in `raycasting.(c|h)`
+- Redo everything in chunk.c
+- Ensure that every function that does block operations takes a non-inverted z
 - Redo doGame() and remove loopDelay
     - Remove collision spaghetti
-    - Remove delta time crust
-    - Clean up math stuff
-    - Fix block ray cast
+    - Use physics code for collision and raycasting
 - Make updateChunks() use a message list
-- Make server ask for and handle player's positions
-- Implement world saves in `src/server/saves.(c|h)`
-- Implement server chunk cache/pool
-- Smoothen out head tilts
 - Add some server events
     - Add event for collecting player info
     - Add event for running physics
     - Add event for handling game logic
 - Make it so that events are not pushed again until an acknowledge (prevents overflow)
-- Add MSYS2 support to Makefile
+- Make server ask for and handle player's positions
+- Implement server chunk cache/pool
+- Implement world saves in `src/server/saves.(c|h)`
+- Redo BMD to CCM (delete `src/bmd/` and add `src/ccm/`)
+    - Add parts, model types (3D, BLOCK, 2D, etc), and data types (VERT, ANI, AABB, etc)
+- 3D model rendering in `src/renderer/renderer.c`
+- Audio (probably miniaudio or SDL_Mixer) in `src/audio/`
+- Redo worldgen in `src/game/worldgen.(c|h)`
+    - Add structures to worldgen (trees, buildings, etc)
+    - Generate values for height, spikes, details, moisture, and structures
+- Implement gameplay in `src/server/game.(c|h)`
+- Implement extensions in `src/main/extmgr.(c|h)` using libdl
+- Smoothen out head tilts
 - Make a translator to allow connecting to older servers (once there is a stable protocol)
 
 ### MIGHT DO:
@@ -40,3 +41,5 @@
 ### DONE:
 - Improved texture system
 - Fixed block animation bug
+- Added MSYS2 support to Makefile (`MSYS2=y`)
+- Makefile now uses `COMPONENT=[...]`

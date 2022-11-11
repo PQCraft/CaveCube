@@ -30,11 +30,9 @@ struct chunkdata {
 };
 
 struct chunkdata allocChunks(uint32_t);
-void reqChunks(struct chunkdata*, int64_t, int64_t);
-void writeChunk(struct chunkdata*, int64_t, int64_t, struct blockdata*);
-void moveChunks(struct chunkdata*, int, int);
-struct blockdata getBlock(struct chunkdata*, int, int, int, int, int);
-void setBlock(struct chunkdata*, int, int, int, int, int, struct blockdata);
+void moveChunks(struct chunkdata*, int64_t, int64_t, int, int);
+struct blockdata getBlock(struct chunkdata*, int64_t, int64_t, int, int, int);
+void setBlock(struct chunkdata*, int64_t, int64_t, int, int, int, struct blockdata);
 #endif
 
 #endif

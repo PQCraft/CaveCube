@@ -15,7 +15,9 @@ float ui_scale = 1.0;
 #define elemValid(x) (idValid(x) && elemdata->data[x].valid)
 
 struct ui_data* allocUI() {
-    return calloc(1, sizeof(struct ui_data));
+    struct ui_data* data = calloc(1, sizeof(*data));
+    glGenBuffers(1, &data->renddata.VBO);
+    return data;
 }
 
 int newUIElem(struct ui_data* elemdata, int type, char* name, int parent, ...) {
@@ -309,6 +311,8 @@ bool calcUIProperties(struct ui_data* elemdata) {
 
 void freeUI(struct ui_data* elemdata) {
     clearUIElems(elemdata);
+    //free(elemdata->renddata.vertices);
+    glDeleteBuffers(1, &elemdata->renddata.VBO);
     free(elemdata);
 }
 
