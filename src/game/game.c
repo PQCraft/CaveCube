@@ -28,12 +28,60 @@ coord_3d pvelocity;
 int64_t pchunkx, pchunky, pchunkz;
 int pblockx, pblocky, pblockz;
 
-struct ui_data* game_ui;
+struct ui_data* game_ui[4];
 
 static float posmult = 6.5;
 static float fpsmult = 0;
 
 static struct chunkdata chunks;
+
+static int64_t cxo = 0, czo = 0;
+
+static force_inline void writeChunk(struct chunkdata* chunks, int64_t x, int64_t z, struct blockdata* data) {
+    pthread_mutex_lock(&uclock);
+    int64_t nx = (x - cxo) + chunks->info.dist;
+    int64_t nz = chunks->info.width - ((z - czo) + chunks->info.dist) - 1;
+    if (nx < 0 || nz < 0 || nx >= chunks->info.width || nz >= chunks->info.width) {
+        pthread_mutex_unlock(&uclock);
+        return;
+    }
+    uint32_t coff = nx + nz * chunks->info.width;
+    //printf("writing chunk to [%"PRId64", %"PRId64"] ([%"PRId64", %"PRId64"])\n", nx, nz, x, z);
+    memcpy(chunks->data[coff], data, 65536 * sizeof(struct blockdata));
+    //chunks->renddata[coff].updated = false;
+    updateChunk(x, z, true);
+    chunks->renddata[coff].generated = true;
+    pthread_mutex_unlock(&uclock);
+}
+
+static force_inline void reqChunks(struct chunkdata* chunks, int64_t xo, int64_t zo) {
+    /*
+    static bool init = false;
+    if (!init) {
+        pthread_mutex_init(&cidlock, NULL);
+        init = true;
+    }
+    */
+    pthread_mutex_lock(&uclock);
+    cxo = xo;
+    czo = zo;
+    setMeshChunkOff(xo, zo);
+    //printf("set [%u]\n", cid);
+    pthread_mutex_unlock(&uclock);
+    for (int i = 0; i <= (int)chunks->info.dist; ++i) {
+        for (int z = -i; z <= i; ++z) {
+            for (int x = -i; x <= i; ++x) {
+                if (abs(z) == i || (abs(z) != i && abs(x) == i)) {
+                    uint32_t coff = (z + chunks->info.dist) * chunks->info.width + (x + chunks->info.dist);
+                    if (!chunks->renddata[coff].generated) {
+                        //printf("REQ [%"PRId64", %"PRId64"]\n", (int64_t)((int64_t)(x) + xo), (int64_t)((int64_t)(-z) + zo));
+                        cliSend(CLIENT_GETCHUNK, (int64_t)((int64_t)(x) + xo), (int64_t)((int64_t)(-z) + zo));
+                    }
+                }
+            }
+        }
+    }
+}
 
 static force_inline struct blockdata getBlockF(struct chunkdata* chunks, float x, float y, float z) {
     x -= (x < 0) ? 1.0 : 0.0;
@@ -305,11 +353,13 @@ bool doGame(char* addr, int port) {
     resetInput();
     setInputMode(INPUT_MODE_GAME);
     //setSkyColor(0.5, 0.5, 0.5);
-    game_ui = allocUI();
-    int ui_main = newUIElem(game_ui, UI_ELEM_CONTAINER, "main", -1, "width", "100%", "height", "100%", NULL);
-    /*int ui_box1 = */newUIElem(game_ui, UI_ELEM_BOX, "box1", ui_main, "width", "500", "height", "500", "align", "-1,-1", NULL);
-    /*int ui_box2 = */newUIElem(game_ui, UI_ELEM_BOX, "box2", ui_main, "width", "500", "height", "500", "align", "0,0", NULL);
-    /*int ui_box3 = */newUIElem(game_ui, UI_ELEM_BOX, "box3", ui_main, "width", "500", "height", "500", "align", "1,1", NULL);
+    for (int i = 0; i < 4; ++i) {
+        game_ui[i] = allocUI();
+    }
+    int ui_main = newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_CONTAINER, "main", -1, "width", "100%", "height", "100%", NULL);
+    /*int ui_box1 = */newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_BOX, "box1", ui_main, "width", "500", "height", "500", "align", "-1,-1", NULL);
+    /*int ui_box2 = */newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_BOX, "box2", ui_main, "width", "500", "height", "500", "align", "0,0", NULL);
+    /*int ui_box3 = */newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_BOX, "box3", ui_main, "width", "500", "height", "500", "align", "1,1", NULL);
     while (!quitRequest) {
         uint64_t st1 = altutime();
         if (loopdelay) microwait(loopdelay);
@@ -449,7 +499,7 @@ bool doGame(char* addr, int port) {
         }
         if (cmx || cmz || first) {
             first = false;
-            moveChunks(&chunks, cmx, cmz);
+            moveChunks(&chunks, cx, cz, cmx, cmz);
             reqChunks(&chunks, cx, cz);
             pchunkx = cx;
             pchunkz = cz;
@@ -541,7 +591,7 @@ bool doGame(char* addr, int port) {
                     ptime2 = altutime();
                     int blocknum = invspot + 1 + invoff * 10;
                     if (blockinf[blocknum].id && blockinf[blocknum].data[blocksub].id) {
-                        setBlock(&chunks, 0, 0, lastblockx, lastblocky, lastblockz, (struct blockdata){blocknum, blocksub, 0, 0, 0, 0, 0, 0});
+                        setBlock(&chunks, cx, cz, lastblockx, lastblocky, lastblockz, (struct blockdata){blocknum, blocksub, 0, 0, 0, 0, 0, 0});
                     }
                 }
             placehold = true;
@@ -553,7 +603,7 @@ bool doGame(char* addr, int port) {
             if (!destroyhold || (altutime() - dtime) >= 500000)
                 if ((altutime() - dtime2) >= 125000 && blockid && blockid != 7 && (!blockid2 || blockid2 == 7)) {
                     dtime2 = altutime();
-                    setBlock(&chunks, 0, 0, blockx, blocky, blockz, (struct blockdata){0, 0, 0, 0, 0, 0, 0, 0});
+                    setBlock(&chunks, cx, cz, blockx, blocky, blockz, (struct blockdata){0, 0, 0, 0, 0, 0, 0, 0});
                 }
             destroyhold = true;
         } else {
@@ -621,7 +671,9 @@ bool doGame(char* addr, int port) {
         fpsmult = (double)((uint64_t)altutime() - (uint64_t)st1) / 1000000.0;
         pmult = posmult * fpsmult;
     }
-    freeUI(game_ui);
+    for (int i = 0; i < 4; ++i) {
+        freeUI(game_ui[i]);
+    }
     for (int i = 0; i < 16; ++i) {
         free(tmpbuf[i]);
     }

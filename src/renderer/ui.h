@@ -3,6 +3,8 @@
 #ifndef RENDERER_UI_H
 #define RENDERER_UI_H
 
+#include "renderer.h"
+
 #include <stdbool.h>
 
 struct ui_elem_property {
@@ -30,12 +32,12 @@ struct ui_elem {
     int properties;
     struct ui_elem_property* propertydata;
     struct ui_elem_calcprop calcprop;
-    struct ui_renddata renddata;
 };
 
 struct ui_data {
     int count;
     struct ui_elem* data;
+    struct ui_renddata renddata;
 };
 
 enum {

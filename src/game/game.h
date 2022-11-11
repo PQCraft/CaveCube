@@ -7,6 +7,13 @@
 
 #include <stdbool.h>
 
+enum {
+    UILAYER_SERVER,  // For server UI (inventory, block-specific menus, etc.)
+    UILAYER_CLIENT,  // For client UI (chat, hotbar, etc.)
+    UILAYER_DBGINF,  // For debug info
+    UILAYER_INGAME,  // For in-game menu (pressing Esc while in a game)
+};
+
 bool doGame(char*, int);
 
 extern int fps;
@@ -17,7 +24,7 @@ extern coord_3d pvelocity;
 extern int64_t pchunkx, pchunky, pchunkz;
 extern int pblockx, pblocky, pblockz;
 
-extern struct ui_data* game_ui;
+extern struct ui_data* game_ui[4];
 
 #endif
 

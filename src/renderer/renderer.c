@@ -750,100 +750,6 @@ struct rendtext {
     struct rendtextsect sectdata;
 };
 
-static color textcolor[16] = {
-    {0x00 / 255.0, 0x00 / 255.0, 0x00 / 255.0, 1},
-    {0x00 / 255.0, 0x00 / 255.0, 0xAA / 255.0, 1},
-    {0x00 / 255.0, 0xAA / 255.0, 0x00 / 255.0, 1},
-    {0x00 / 255.0, 0xAA / 255.0, 0xAA / 255.0, 1},
-    {0xAA / 255.0, 0x00 / 255.0, 0x00 / 255.0, 1},
-    {0xAA / 255.0, 0x00 / 255.0, 0xAA / 255.0, 1},
-    {0xAA / 255.0, 0x55 / 255.0, 0x00 / 255.0, 1},
-    {0xAA / 255.0, 0xAA / 255.0, 0xAA / 255.0, 1},
-    {0x55 / 255.0, 0x55 / 255.0, 0x55 / 255.0, 1},
-    {0x55 / 255.0, 0x55 / 255.0, 0xFF / 255.0, 1},
-    {0x55 / 255.0, 0xFF / 255.0, 0x55 / 255.0, 1},
-    {0x55 / 255.0, 0xFF / 255.0, 0xFF / 255.0, 1},
-    {0xFF / 255.0, 0x55 / 255.0, 0x55 / 255.0, 1},
-    {0xFF / 255.0, 0x55 / 255.0, 0xFF / 255.0, 1},
-    {0xFF / 255.0, 0xFF / 255.0, 0x55 / 255.0, 1},
-    {0xFF / 255.0, 0xFF / 255.0, 0xFF / 255.0, 1},
-};
-
-// data1: [16 bits: x][16 bits: y]
-// data2: [8 bits: char][8 bits: reserved][1 bit: texture x][1 bit: texture y][14: reserved]
-
-static force_inline uint32_t mtxtgenvert1(int16_t x, int16_t y) {
-    return (x << 16) | y;
-}
-
-static force_inline uint32_t mtxtgenvert2(uint8_t chr, bool tx, bool ty) {
-    return (chr << 24) | ((tx & 1) << 15) | ((ty & 1) << 14);
-}
-
-static force_inline struct rendtext* meshText(struct rendtext* textdata, int x, int y, float scale, unsigned end, char* text, uint8_t fgc, uint8_t bgc, float fam, float bam, bool fmt) {
-    (void)fmt;
-    if (!textdata) textdata = calloc(1, sizeof(*textdata));
-    textdata->fgamult = fam;
-    textdata->bgamult = bam;
-    int vpsize = 256;
-    uint32_t* _vptr = malloc(vpsize * sizeof(uint32_t));
-    int vplen = 0;
-    uint32_t* vptr = _vptr;
-    textdata->sectdata.fg = &textcolor[fgc];
-    textdata->sectdata.bg = &textcolor[bgc];
-    for (int i = 0; *text; ++i) {
-        if (*text == '\n') {
-            x = 0;
-            y += 16;
-        } else {
-            int16_t x1, y1, x2, y2;
-            x1 = round((float)x * scale);
-            y1 = round((float)y * scale);
-            x2 = round((float)(x + 8) * scale);
-            y2 = round((float)(y + 16) * scale);
-            unsigned char chr = (unsigned)*text;
-            mtsetvert(&_vptr, &vpsize, &vplen, &vptr, mtxtgenvert1(x1, y1));
-            mtsetvert(&_vptr, &vpsize, &vplen, &vptr, mtxtgenvert2(chr, 0, 0));
-            mtsetvert(&_vptr, &vpsize, &vplen, &vptr, mtxtgenvert1(x2, y1));
-            mtsetvert(&_vptr, &vpsize, &vplen, &vptr, mtxtgenvert2(chr, 1, 0));
-            mtsetvert(&_vptr, &vpsize, &vplen, &vptr, mtxtgenvert1(x2, y2));
-            mtsetvert(&_vptr, &vpsize, &vplen, &vptr, mtxtgenvert2(chr, 1, 1));
-            mtsetvert(&_vptr, &vpsize, &vplen, &vptr, mtxtgenvert1(x1, y1));
-            mtsetvert(&_vptr, &vpsize, &vplen, &vptr, mtxtgenvert2(chr, 0, 0));
-            mtsetvert(&_vptr, &vpsize, &vplen, &vptr, mtxtgenvert1(x2, y2));
-            mtsetvert(&_vptr, &vpsize, &vplen, &vptr, mtxtgenvert2(chr, 1, 1));
-            mtsetvert(&_vptr, &vpsize, &vplen, &vptr, mtxtgenvert1(x1, y2));
-            mtsetvert(&_vptr, &vpsize, &vplen, &vptr, mtxtgenvert2(chr, 0, 1));
-            x += 8;
-            if ((x + 8.0) * scale > end) {x = 0; y += 16;}
-        }
-        ++text;
-    }
-    if (!textdata->sectdata.VBO) glGenBuffers(1, &textdata->sectdata.VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, textdata->sectdata.VBO);
-    glBufferData(GL_ARRAY_BUFFER, vplen * sizeof(uint32_t), _vptr, GL_STATIC_DRAW);
-    textdata->sectdata.vcount = vplen / 2;
-    free(_vptr);
-    return textdata;
-}
-
-static force_inline void renderText(struct rendtext* text) {
-    glUniform1f(glGetUniformLocation(rendinf.shaderprog, "xsize"), (float)rendinf.width);
-    glUniform1f(glGetUniformLocation(rendinf.shaderprog, "ysize"), (float)rendinf.height);
-    glUniform4f(glGetUniformLocation(rendinf.shaderprog, "mcolor"), text->sectdata.fg->r, text->sectdata.fg->g, text->sectdata.fg->b, text->sectdata.fg->a * text->fgamult);
-    glUniform4f(glGetUniformLocation(rendinf.shaderprog, "bmcolor"), text->sectdata.bg->r, text->sectdata.bg->g, text->sectdata.bg->b, text->sectdata.bg->a * text->bgamult);
-    glBindBuffer(GL_ARRAY_BUFFER, text->sectdata.VBO);
-    glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 3 * sizeof(uint32_t), (void*)(0));
-    glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 3 * sizeof(uint32_t), (void*)(sizeof(uint32_t)));
-    glVertexAttribIPointer(2, 1, GL_UNSIGNED_INT, 3 * sizeof(uint32_t), (void*)(2 * sizeof(uint32_t)));
-    glDrawArrays(GL_TRIANGLES, 0, text->sectdata.vcount);
-}
-
-static force_inline void freeTextMesh(struct rendtext* text) {
-    glDeleteBuffers(1, &text->sectdata.VBO);
-    free(text);
-}
-
 static force_inline void renderUI(struct ui_data* data) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     if (calcUIProperties(data)) {
@@ -874,7 +780,6 @@ static resdata_texture* uimap;
 static uint32_t rendc;
 
 void render() {
-    static struct rendtext* debugtext = NULL;
     if (showDebugInfo) {
         static char tbuf[1][32768];
         static int toff = 0;
@@ -909,22 +814,18 @@ void render() {
             pblockx, pblocky, pblockz,
             pchunkx, pchunkz
         );
-        debugtext = meshText(debugtext, 0, 0, 1, rendinf.width, tbuf[0], 15, 0, 1, 0.35, false);
     }
-    setShaderProg(shader_ui);
-    glBindFramebuffer(GL_FRAMEBUFFER, UIFBO);
-    glDisable(GL_CULL_FACE);
-    glDisable(GL_DEPTH_TEST);
-    renderUI(game_ui);
 
     setShaderProg(shader_block);
+    glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+    glClearColor(sky.r, sky.g, sky.b, 1);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glEnable(GL_BLEND);
     static uint64_t aMStart = 0;
     if (!aMStart) aMStart = altutime();
     glUniform1ui(glGetUniformLocation(rendinf.shaderprog, "aniMult"), (aMStart - altutime()) / 10000);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
-    glBindFramebuffer(GL_FRAMEBUFFER, FBO);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "dist"), chunks->info.dist);
     setUniform3f(rendinf.shaderprog, "cam", (float[]){rendinf.campos.x, rendinf.campos.y, rendinf.campos.z});
     for (rendc = 0; rendc < chunks->info.widthsq; ++rendc) {
@@ -960,8 +861,8 @@ void render() {
         glDrawArrays(GL_TRIANGLES, 0, chunks->renddata[rendc].vcount3);
     }
     glDepthMask(true);
+
     glDisable(GL_CULL_FACE);
-    glDisable(GL_DEPTH_TEST);
     setShaderProg(shader_2d);
     glBindBuffer(GL_ARRAY_BUFFER, VBO2D);
     glUniform1f(glGetUniformLocation(rendinf.shaderprog, "xratio"), ((float)(crosshair->width)) / (float)rendinf.width);
@@ -969,14 +870,28 @@ void render() {
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
     glDrawArrays(GL_TRIANGLES, 0, 6);
 
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
     setShaderProg(shader_framebuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glDisable(GL_DEPTH_TEST);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), FBTEXID - GL_TEXTURE0);
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), UIFBTEXID - GL_TEXTURE0);
-    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glClearColor(0, 0, 0, 0);
+    for (int i = 0; i < 4; ++i) {
+        setShaderProg(shader_ui);
+        glBindFramebuffer(GL_FRAMEBUFFER, UIFBO);
+        glEnable(GL_DEPTH_TEST);
+        glDisable(GL_BLEND);
+        renderUI(game_ui[i]);
+        setShaderProg(shader_framebuffer);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glDisable(GL_DEPTH_TEST);
+        glEnable(GL_BLEND);
+        glBindBuffer(GL_ARRAY_BUFFER, VBO2D);
+        glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+    }
 }
 
 static void winch(int w, int h) {
@@ -1467,6 +1382,7 @@ bool startRenderer() {
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
+    glEnableVertexAttribArray(3);
 
     water = blockNoFromID("water");
 
