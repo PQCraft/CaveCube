@@ -57,6 +57,7 @@ void clearUIElems(struct ui_data*);
 struct ui_elem* getUIElemData(struct ui_data*, int /*id*/);
 int getUIElemByName(struct ui_data*, char* /*name*/, bool /*reverse*/);
 int* getUIElemsByName(struct ui_data*, char* /*name*/, int* /*count*/);
+char* getUIElemProperty(struct ui_elem*, char* /*name*/);
 bool calcUIProperties(struct ui_data*);
 void freeUI(struct ui_data*);
 

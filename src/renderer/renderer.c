@@ -1038,6 +1038,12 @@ void render() {
     }
 }
 
+void updateUIScale() {
+    int x = rendinf.width / 800 + 1;
+    int y = rendinf.height / 600 + 1;
+    ui_scale = (x < y) ? x : y;
+}
+
 static void winch(int w, int h) {
     if (inputMode == INPUT_MODE_GAME) {
         resetInput();
@@ -1059,8 +1065,9 @@ static void winch(int w, int h) {
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, rendinf.width, rendinf.height);
 
     setShaderProg(shader_ui);
-    setUniform1f(rendinf.shaderprog, "xsize", rendinf.width);
-    setUniform1f(rendinf.shaderprog, "ysize", rendinf.height);
+    updateUIScale();
+    setUniform1f(rendinf.shaderprog, "xsize", rendinf.width / ui_scale);
+    setUniform1f(rendinf.shaderprog, "ysize", rendinf.height / ui_scale);
 
     glViewport(0, 0, rendinf.width, rendinf.height);
 }
@@ -1512,8 +1519,9 @@ bool startRenderer() {
     setShaderProg(shader_ui);
     syncTextColors();
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "fontTexData"), gltex - GL_TEXTURE0);
-    setUniform1f(rendinf.shaderprog, "xsize", rendinf.width);
-    setUniform1f(rendinf.shaderprog, "ysize", rendinf.height);
+    updateUIScale();
+    setUniform1f(rendinf.shaderprog, "xsize", rendinf.width / ui_scale);
+    setUniform1f(rendinf.shaderprog, "ysize", rendinf.height / ui_scale);
     glGenTextures(1, &charseth);
     glActiveTexture(gltex++);
     resdata_image* charset = loadResource(RESOURCE_IMAGE, "game/textures/ui/charset.png");
