@@ -107,8 +107,7 @@ struct chunk_renddata {
 
 struct ui_renddata {
     unsigned VBO;
-    //uint32_t vcount;
-    //uint32_t* vertices;
+    uint32_t vcount;
 };
 
 enum {

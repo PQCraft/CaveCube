@@ -7,6 +7,9 @@
 
 #include <stdbool.h>
 
+#define isUIIdValid(elemdata, x) (x >= 0 && x < elemdata->count)
+#define isUIElemValid(elemdata, x) (isUIIdValid(elemdata, x) && elemdata->data[x].valid)
+
 struct ui_elem_property {
     char* name;
     char* value;
@@ -15,11 +18,11 @@ struct ui_elem_property {
 struct ui_elem_calcprop {
     bool changed;
     bool hidden;
-    int x;
-    int y;
+    int16_t x;
+    int16_t y;
     int width;
     int height;
-    float z;
+    int8_t z;
 };
 
 struct ui_elem {

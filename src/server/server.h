@@ -26,14 +26,6 @@
     #define CLIENT_OUTBUF_SIZE (1 << 18)
 #endif
 
-#ifndef SERVER_READACK
-    //#define SERVER_READACK
-#endif
-
-#ifndef CLIENT_READACK
-    //#define CLIENT_READACK
-#endif
-
 enum {
     SERVER__MIN = -1,
     SERVER_PONG,

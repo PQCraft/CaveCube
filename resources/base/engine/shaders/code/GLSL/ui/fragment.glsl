@@ -2,16 +2,16 @@ in vec2 texCoord;
 in float texNum;
 in vec4 mcolor;
 in vec4 bmcolor;
-flat in uint texIndex;
-uniform sampler2DArray texData[2];
+flat in uint elemType;
+uniform sampler2DArray fontTexData;
 
 out vec4 fragColor;
 
 void main() {
-    if (bool(texIndex)) {
-        fragColor = mcolor * texture(texData[1], vec3(texCoord, texNum));
+    if (elemType == uint(1)) {
+        fragColor = mcolor * texture(fontTexData, vec3(texCoord, texNum));
+        fragColor = mix(bmcolor, fragColor, fragColor.a);
     } else {
-        fragColor = mcolor * texture(texData[0], vec3(texCoord, texNum));
+        fragColor = mcolor;
     }
-    fragColor = mix(bmcolor, fragColor, fragColor.a);
 }
