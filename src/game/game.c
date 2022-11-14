@@ -73,7 +73,7 @@ static force_inline void reqChunks(struct chunkdata* chunks, int64_t xo, int64_t
             for (int x = -i; x <= i; ++x) {
                 if (abs(z) == i || (abs(z) != i && abs(x) == i)) {
                     uint32_t coff = (z + chunks->info.dist) * chunks->info.width + (x + chunks->info.dist);
-                    if (!chunks->renddata[coff].generated) {
+                    if (!chunks->renddata[coff].generated/* && !chunks->renddata[coff].requested*/) {
                         //printf("REQ [%"PRId64", %"PRId64"]\n", (int64_t)((int64_t)(x) + xo), (int64_t)((int64_t)(-z) + zo));
                         cliSend(CLIENT_GETCHUNK, (int64_t)((int64_t)(x) + xo), (int64_t)((int64_t)(-z) + zo));
                     }
@@ -357,9 +357,9 @@ bool doGame(char* addr, int port) {
         game_ui[i] = allocUI();
     }
     int ui_main = newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_CONTAINER, "main", -1, "width", "100%", "height", "100%", NULL);
-    /*int ui_box1 = */newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_BOX, "box1", ui_main, "width", "500", "height", "500", "align", "-1,-1", NULL);
-    /*int ui_box2 = */newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_BOX, "box2", ui_main, "width", "500", "height", "500", "align", "0,0", NULL);
-    /*int ui_box3 = */newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_BOX, "box3", ui_main, "width", "500", "height", "500", "align", "1,1", NULL);
+    /*int ui_box1 = */newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_BOX, "box1", ui_main, "width", "400", "height", "300", "align", "-1,-1", NULL);
+    /*int ui_box2 = */newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_BOX, "box2", ui_main, "width", "400", "height", "300", "align", "0,0", NULL);
+    /*int ui_box3 = */newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_BOX, "box3", ui_main, "width", "400", "height", "300", "align", "1,1", NULL);
     while (!quitRequest) {
         uint64_t st1 = altutime();
         if (loopdelay) microwait(loopdelay);

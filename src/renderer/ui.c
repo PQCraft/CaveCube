@@ -11,8 +11,8 @@
 
 float ui_scale = 1.0;
 
-#define idValid(x) (x >= 0 && x < elemdata->count)
-#define elemValid(x) (idValid(x) && elemdata->data[x].valid)
+#define idValid(x) isUIIdValid(elemdata, x)
+#define elemValid(x) isUIElemValid(elemdata, x)
 
 struct ui_data* allocUI() {
     struct ui_data* data = calloc(1, sizeof(*data));
@@ -26,7 +26,6 @@ int newUIElem(struct ui_data* elemdata, int type, char* name, int parent, ...) {
         if (!elemdata->data[i].valid) {index = i; break;}
     }
     index = elemdata->count++;
-    //printf("elems: [%d]\n", elemdata->count);
     elemdata->data = realloc(elemdata->data, elemdata->count * sizeof(*elemdata->data));
     struct ui_elem* e = &elemdata->data[index];
     memset(e, 0, sizeof(*e));
@@ -48,6 +47,7 @@ int newUIElem(struct ui_data* elemdata, int type, char* name, int parent, ...) {
         e->propertydata = realloc(e->propertydata, (i + 1) * sizeof(*e->propertydata));
         e->propertydata[i].name = strdup(name);
         e->propertydata[i].value = strdup(val);
+        ++e->properties;
     }
     va_end(args);
     e->valid = true;
@@ -220,7 +220,7 @@ static force_inline bool calcProp(struct ui_data* elemdata, struct ui_elem* e, b
             .y = 0,
             .width = rendinf.width,
             .height = rendinf.height,
-            .z = 0.0
+            .z = 0
         };
         if ((int)rendinf.width != scrw || (int)rendinf.height != scrh) {
             scrw = rendinf.width;
@@ -251,10 +251,10 @@ static force_inline bool calcProp(struct ui_data* elemdata, struct ui_elem* e, b
             int ax = -1, ay = -1;
             if (curprop) sscanf(curprop, "%d,%d", &ax, &ay);
             switch (ax) {
-                default:;
+                case -1:;
                     e->calcprop.x = p_prop.x;
                     break;
-                case 0:;
+                default:;
                     e->calcprop.x = (p_prop.x + p_prop.width / 2) - (e->calcprop.width + 1) / 2;
                     break;
                 case 1:;
@@ -262,10 +262,10 @@ static force_inline bool calcProp(struct ui_data* elemdata, struct ui_elem* e, b
                     break;
             }
             switch (ay) {
-                default:;
+                case -1:;
                     e->calcprop.y = p_prop.y;
                     break;
-                case 0:;
+                default:;
                     e->calcprop.y = (p_prop.y + p_prop.height / 2) - (e->calcprop.height + 1) / 2;
                     break;
                 case 1:;
@@ -278,9 +278,9 @@ static force_inline bool calcProp(struct ui_data* elemdata, struct ui_elem* e, b
         curprop = getProp(e, "y_offset");
         if (curprop) e->calcprop.y += atoi(curprop) * ui_scale;
         curprop = getProp(e, "z");
-        e->calcprop.z = (curprop) ? atof(curprop) : p_prop.z;
+        e->calcprop.z = (curprop) ? atoi(curprop) : p_prop.z;
         curprop = getProp(e, "hidden");
-        e->calcprop.z = (curprop) ? getBool(curprop) : false;
+        e->calcprop.hidden = (curprop) ? getBool(curprop) : false;
         e->calcprop.changed = false;
         return true;
     }
@@ -311,7 +311,6 @@ bool calcUIProperties(struct ui_data* elemdata) {
 
 void freeUI(struct ui_data* elemdata) {
     clearUIElems(elemdata);
-    //free(elemdata->renddata.vertices);
     glDeleteBuffers(1, &elemdata->renddata.VBO);
     free(elemdata);
 }

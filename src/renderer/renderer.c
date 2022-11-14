@@ -39,6 +39,10 @@ static force_inline void setMat4(GLuint prog, char* name, mat4 val) {
     glUniformMatrix4fv(glGetUniformLocation(prog, name), 1, GL_FALSE, *val);
 }
 
+static force_inline void setUniform1f(GLuint prog, char* name, float val) {
+    glUniform1f(glGetUniformLocation(prog, name), val);
+}
+
 static force_inline void setUniform2f(GLuint prog, char* name, float val[2]) {
     glUniform2f(glGetUniformLocation(prog, name), val[0], val[1]);
 }
@@ -522,9 +526,11 @@ static uint32_t constBlockVert2[6][6] = {
 };
 
 #define mtsetvert(_v, s, l, v, bv) {\
-    bool r = false;\
-    while (*l >= *s) {*s *= 2; r = true;}\
-    if (r) {*_v = realloc(*_v, *s * sizeof(**_v)); *v = *_v + *l;}\
+    if (*l >= *s) {\
+        *s *= 2;\
+        *_v = realloc(*_v, *s * sizeof(**_v));\
+        *v = *_v + *l;\
+    }\
     **v = bv;\
     ++*v; ++*l;\
 }
@@ -735,28 +741,143 @@ void startMesher() {
     }
 }
 
-struct rendtextsect {
-    color* fg;
-    color* bg;
-    unsigned vcount;
-    unsigned VBO;
+static float textColor[16][3] = {
+    {0x00 / 255.0, 0x00 / 255.0, 0x00 / 255.0},
+    {0x00 / 255.0, 0x00 / 255.0, 0xAA / 255.0},
+    {0x00 / 255.0, 0xAA / 255.0, 0x00 / 255.0},
+    {0x00 / 255.0, 0xAA / 255.0, 0xAA / 255.0},
+    {0xAA / 255.0, 0x00 / 255.0, 0x00 / 255.0},
+    {0xAA / 255.0, 0x00 / 255.0, 0xAA / 255.0},
+    {0xAA / 255.0, 0x55 / 255.0, 0x00 / 255.0},
+    {0xAA / 255.0, 0xAA / 255.0, 0xAA / 255.0},
+    {0x55 / 255.0, 0x55 / 255.0, 0x55 / 255.0},
+    {0x55 / 255.0, 0x55 / 255.0, 0xFF / 255.0},
+    {0x55 / 255.0, 0xFF / 255.0, 0x55 / 255.0},
+    {0x55 / 255.0, 0xFF / 255.0, 0xFF / 255.0},
+    {0xFF / 255.0, 0x55 / 255.0, 0x55 / 255.0},
+    {0xFF / 255.0, 0x55 / 255.0, 0xFF / 255.0},
+    {0xFF / 255.0, 0xFF / 255.0, 0x55 / 255.0},
+    {0xFF / 255.0, 0xFF / 255.0, 0xFF / 255.0},
 };
 
-struct rendtext {
-    float fgamult;
-    float bgamult;
-    int sects;
-    //struct rendtextsect* sectdata;
-    struct rendtextsect sectdata;
+static inline void syncTextColors() {
+    setShaderProg(shader_ui);
+    setUniform3f(rendinf.shaderprog, "textColor[0]", textColor[0]);
+    setUniform3f(rendinf.shaderprog, "textColor[1]", textColor[1]);
+    setUniform3f(rendinf.shaderprog, "textColor[2]", textColor[2]);
+    setUniform3f(rendinf.shaderprog, "textColor[3]", textColor[3]);
+    setUniform3f(rendinf.shaderprog, "textColor[4]", textColor[4]);
+    setUniform3f(rendinf.shaderprog, "textColor[5]", textColor[5]);
+    setUniform3f(rendinf.shaderprog, "textColor[6]", textColor[6]);
+    setUniform3f(rendinf.shaderprog, "textColor[7]", textColor[7]);
+    setUniform3f(rendinf.shaderprog, "textColor[8]", textColor[8]);
+    setUniform3f(rendinf.shaderprog, "textColor[9]", textColor[9]);
+    setUniform3f(rendinf.shaderprog, "textColor[10]", textColor[10]);
+    setUniform3f(rendinf.shaderprog, "textColor[11]", textColor[11]);
+    setUniform3f(rendinf.shaderprog, "textColor[12]", textColor[12]);
+    setUniform3f(rendinf.shaderprog, "textColor[13]", textColor[13]);
+    setUniform3f(rendinf.shaderprog, "textColor[14]", textColor[14]);
+    setUniform3f(rendinf.shaderprog, "textColor[15]", textColor[15]);
+}
+
+// ui elem: [16 bits: x][16 bits: y]
+// ui elem: [1 bit: 0][23 bits: reserved][8 bits: z]
+// ui elem: [8 bits: r][8 bits: g][8 bits: b][8 bits: a]
+
+// text:    [16 bits: x][16 bits: y]
+// text:    [1 bit: 1][5 bits: reserved][1 bit: texture x][1 bit: texture y][8 bits: reserved][8 bits: text char][8 bits: z]
+// text:    [8 bits: fgc alpha][8 bits: bgc alpha][4 bits: text fgc][4 bits: text bgc][8 bits: reserved]
+
+struct meshdata {
+    int s;
+    int l;
+    uint32_t* _v;
+    uint32_t* v;
 };
+
+#define writeuielemvert(md, x, y, z, r, g, b, a) {\
+    mtsetvert(&md->_v, &md->s, &md->l, &md->v, (((x) << 16) & 0xFFFF0000) | ((y) & 0xFFFF));\
+    mtsetvert(&md->_v, &md->s, &md->l, &md->v, ((z) & 0xFF));\
+    mtsetvert(&md->_v, &md->s, &md->l, &md->v, (((r) << 24) & 0xFF000000) | (((g) << 16) & 0xFF0000) | (((b) << 8) & 0xFF00) | ((a) & 0xFF));\
+}
+
+#define writeuitextvert(md, x, y, z, c, tx, ty, fgc, bgc, fga, bga) {\
+    mtsetvert(&md->_v, &md->s, &md->l, &md->v, (((x) << 16) & 0xFFFF0000) | ((y) & 0xFFFF));\
+    mtsetvert(&md->_v, &md->s, &md->l, &md->v, 0x80000000 | (((tx) << 25) & 0x2000000) | (((tx) << 24) & 0x1000000) | (((c) << 8) & 0xFF00) | ((z) & 0xFF));\
+    mtsetvert(&md->_v, &md->s, &md->l, &md->v, (((fga) << 24) & 0xFF000000) | (((bga) << 16) & 0xFF0000) | (((fgc) << 12) & 0xF000) | (((bgc) << 8) & 0xF00));\
+}
+
+#define writeuielemrect(md, x0, y0, x1, y1, z, r, g, b, a) {\
+    writeuielemvert(md, x0, y0, z, r, g, b, a);\
+    writeuielemvert(md, x0, y1, z, r, g, b, a);\
+    writeuielemvert(md, x1, y0, z, r, g, b, a);\
+    writeuielemvert(md, x1, y0, z, r, g, b, a);\
+    writeuielemvert(md, x0, y1, z, r, g, b, a);\
+    writeuielemvert(md, x1, y1, z, r, g, b, a);\
+}
+
+#define writeuitextchar(md, x0, y0, x1, y1, z, c, fgc, bgc, fga, bga) {\
+    writeuitextvert(md, x0, y0, z, c, 0, 0, fgc, bgc, fga, bga);\
+    writeuitextvert(md, x0, y1, z, c, 0, 1, fgc, bgc, fga, bga);\
+    writeuitextvert(md, x1, y0, z, c, 1, 0, fgc, bgc, fga, bga);\
+    writeuitextvert(md, x1, y0, z, c, 1, 0, fgc, bgc, fga, bga);\
+    writeuitextvert(md, x0, y1, z, c, 0, 1, fgc, bgc, fga, bga);\
+    writeuitextvert(md, x1, y1, z, c, 1, 1, fgc, bgc, fga, bga);\
+}
+
+static force_inline void meshUIElem(struct meshdata* md, struct ui_elem* e) {
+    switch (e->type) {
+        case UI_ELEM_BOX:; {
+            writeuielemrect(
+                md,
+                e->calcprop.x, e->calcprop.y,
+                e->calcprop.x + e->calcprop.width, e->calcprop.y + e->calcprop.height,
+                e->calcprop.z,
+                127, 127, 127, 127
+            );
+        }
+    }
+}
+
+static inline void meshUIElemTree(struct meshdata* md, struct ui_data* elemdata, struct ui_elem* e) {
+    if (e->calcprop.hidden) return;
+    meshUIElem(md, e);
+    for (int i = 0; i < e->children; ++i) {
+        if (isUIIdValid(elemdata, e->childdata[i])) meshUIElemTree(md, elemdata, &elemdata->data[e->childdata[i]]);
+    }
+}
+
+static force_inline void meshUIElems(struct meshdata* md, struct ui_data* elemdata) {
+    for (int i = 0; i < elemdata->count; ++i) {
+        struct ui_elem* e = &elemdata->data[i];
+        if (e->parent < 0 && !e->calcprop.hidden) {
+            meshUIElemTree(md, elemdata, e);
+        }
+    }
+}
 
 static force_inline void renderUI(struct ui_data* data) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glBindBuffer(GL_ARRAY_BUFFER, data->renddata.VBO);
     if (calcUIProperties(data)) {
         #if DBGLVL(2)
         puts("UI remesh");
         #endif
+        struct meshdata mdata;
+        mdata.s = 64;
+        mdata._v = malloc(mdata.s * sizeof(uint32_t));
+        mdata.l = 0;
+        mdata.v = mdata._v;
+        meshUIElems(&mdata, data);
+        glBufferData(GL_ARRAY_BUFFER, mdata.l * sizeof(uint32_t), mdata._v, GL_STATIC_DRAW);
+        data->renddata.vcount = mdata.l / 3;
+        free(mdata._v);
     }
+    glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 3 * sizeof(uint32_t), (void*)(0));
+    glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 3 * sizeof(uint32_t), (void*)(sizeof(uint32_t)));
+    glVertexAttribIPointer(2, 1, GL_UNSIGNED_INT, 3 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * 2));
+    glDrawArrays(GL_TRIANGLES, 0, data->renddata.vcount);
+    //printf("[%d] triangles\n", data->renddata.vcount);
 }
 
 const unsigned char* glver;
@@ -775,7 +896,6 @@ static force_inline coord_3d_dbl intCoord_dbl(coord_3d_dbl in) {
 }
 
 static resdata_texture* crosshair;
-static resdata_texture* uimap;
 
 static uint32_t rendc;
 
@@ -881,8 +1001,9 @@ void render() {
     for (int i = 0; i < 4; ++i) {
         setShaderProg(shader_ui);
         glBindFramebuffer(GL_FRAMEBUFFER, UIFBO);
-        glEnable(GL_DEPTH_TEST);
+        //glEnable(GL_DEPTH_TEST);
         glDisable(GL_BLEND);
+        //printf("renderUI[%d]\n", i);
         renderUI(game_ui[i]);
         setShaderProg(shader_framebuffer);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -913,6 +1034,10 @@ static void winch(int w, int h) {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, rendinf.width, rendinf.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
     glBindRenderbuffer(GL_RENDERBUFFER, UIDBUF);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, rendinf.width, rendinf.height);
+
+    setShaderProg(shader_ui);
+    setUniform1f(rendinf.shaderprog, "xsize", rendinf.width);
+    setUniform1f(rendinf.shaderprog, "ysize", rendinf.height);
 
     glViewport(0, 0, rendinf.width, rendinf.height);
 }
@@ -1361,7 +1486,10 @@ bool startRenderer() {
     setUniform4f(rendinf.shaderprog, "mcolor", (float[]){1.0, 1.0, 1.0, 1.0});
 
     setShaderProg(shader_ui);
-    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData[0]"), gltex - GL_TEXTURE0);
+    syncTextColors();
+    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "fontTexData"), gltex - GL_TEXTURE0);
+    setUniform1f(rendinf.shaderprog, "xsize", rendinf.width);
+    setUniform1f(rendinf.shaderprog, "ysize", rendinf.height);
     glGenTextures(1, &charseth);
     glActiveTexture(gltex++);
     resdata_image* charset = loadResource(RESOURCE_IMAGE, "game/textures/ui/charset.png");
@@ -1369,11 +1497,6 @@ bool startRenderer() {
     glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, 8, 16, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, charset->data);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    setUniform4f(rendinf.shaderprog, "mcolor", (float[]){1.0, 1.0, 1.0, 1.0});
-    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData[1]"), gltex - GL_TEXTURE0);
-    glActiveTexture(gltex++);
-    uimap = loadResource(RESOURCE_TEXTURE, "game/textures/ui/uimap.png");
-    //glBindTexture(GL_TEXTURE_2D, uimap->data);
 
     setShaderProg(shader_block);
 
@@ -1382,7 +1505,6 @@ bool startRenderer() {
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
-    glEnableVertexAttribArray(3);
 
     water = blockNoFromID("water");
 
