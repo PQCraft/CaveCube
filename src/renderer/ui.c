@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
-float ui_scale = 1.0;
+float ui_scale = 2.0;
 
 #define idValid(x) isUIIdValid(elemdata, x)
 #define elemValid(x) isUIElemValid(elemdata, x)
@@ -197,6 +197,10 @@ static force_inline char* getProp(struct ui_elem* e, char* name) {
     return NULL;
 }
 
+char* getUIElemProperty(struct ui_elem* e, char* name) {
+    return getProp(e, name);
+}
+
 static force_inline float getSize(char* propval, float max) {
     float num = 0;
     char suff = 0;
@@ -218,8 +222,8 @@ static force_inline bool calcProp(struct ui_data* elemdata, struct ui_elem* e, b
             .hidden = false,
             .x = 0,
             .y = 0,
-            .width = rendinf.width,
-            .height = rendinf.height,
+            .width = rendinf.width / ui_scale,
+            .height = rendinf.height / ui_scale,
             .z = 0
         };
         if ((int)rendinf.width != scrw || (int)rendinf.height != scrh) {
@@ -243,9 +247,9 @@ static force_inline bool calcProp(struct ui_data* elemdata, struct ui_elem* e, b
             p_prop.height -= offset;
         }
         curprop = getProp(e, "width");
-        e->calcprop.width = (curprop) ? getSize(curprop, (float)p_prop.width / ui_scale) * ui_scale : 0;
+        e->calcprop.width = (curprop) ? getSize(curprop, (float)p_prop.width) : 0;
         curprop = getProp(e, "height");
-        e->calcprop.height = (curprop) ? getSize(curprop, (float)p_prop.height / ui_scale) * ui_scale : 0;
+        e->calcprop.height = (curprop) ? getSize(curprop, (float)p_prop.height) : 0;
         curprop = getProp(e, "align");
         {
             int ax = -1, ay = -1;
