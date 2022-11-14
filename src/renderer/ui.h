@@ -46,6 +46,7 @@ struct ui_data {
 enum {
     UI_ELEM_CONTAINER,
     UI_ELEM_BOX,
+    UI_ELEM_FANCYBOX,
 };
 
 struct ui_data* allocUI(void);
