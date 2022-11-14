@@ -357,9 +357,13 @@ bool doGame(char* addr, int port) {
         game_ui[i] = allocUI();
     }
     int ui_main = newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_CONTAINER, "main", -1, "width", "100%", "height", "100%", NULL);
-    /*int ui_box1 = */newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_FANCYBOX, "box1", ui_main, "width", "400", "height", "300", "align", "-1,-1", NULL);
-    /*int ui_box2 = */newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_FANCYBOX, "box2", ui_main, "width", "400", "height", "300", "align", "0,0", NULL);
-    /*int ui_box3 = */newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_FANCYBOX, "box3", ui_main, "width", "400", "height", "300", "align", "1,1", NULL);
+    int ui_box1 = newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_FANCYBOX, "box1", ui_main, "width", "400", "height", "300", "align", "-1,-1", NULL);
+    int ui_box2 = newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_FANCYBOX, "box2", ui_main, "width", "400", "height", "300", "align", "0,0", "alpha", "0.5", NULL);
+    int ui_box3 = newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_FANCYBOX, "box3", ui_main, "width", "400", "height", "300", "align", "1,1", NULL);
+    editUIElem(game_ui[UILAYER_CLIENT], ui_box1, NULL, "text", "Box 1", NULL);
+    editUIElem(game_ui[UILAYER_CLIENT], ui_box2, NULL, "text", "Box 2 | Here is some long text to test the wrapping code. Here is some more sample/test text.", NULL);
+    editUIElem(game_ui[UILAYER_CLIENT], ui_box3, NULL, "text", "Box 3: Test text", NULL);
+
     while (!quitRequest) {
         uint64_t st1 = altutime();
         if (loopdelay) microwait(loopdelay);

@@ -826,41 +826,44 @@ struct meshdata {
 }
 
 static force_inline void meshUIElem(struct meshdata* md, struct ui_elem* e) {
-    switch (e->type) {
-        case UI_ELEM_BOX:; {
-            writeuielemrect(
-                md,
-                e->calcprop.x, e->calcprop.y,
-                e->calcprop.x + e->calcprop.width, e->calcprop.y + e->calcprop.height,
-                e->calcprop.z,
-                127, 127, 127, 127
-            );
-            break;
+    struct ui_elem_calcprop* p = &e->calcprop;
+    int s = ui_scale;
+    char* curprop;
+    {
+        uint8_t alpha = 255;
+        curprop = getUIElemProperty(e, "alpha");
+        if (curprop) alpha = 255.0 * atof(curprop);
+        switch (e->type) {
+            case UI_ELEM_BOX:; {
+                writeuielemrect(md, p->x, p->y, p->x + p->width, p->y + p->height, p->z, 127, 127, 127, alpha);
+                break;
+            }
+            case UI_ELEM_FANCYBOX:; {
+                writeuielemrect(md, p->x, p->y + s, p->x + p->width, p->y + p->height - s, p->z, 63, 63, 63, alpha);
+                writeuielemrect(md, p->x + s, p->y, p->x + p->width - s, p->y + p->height, p->z, 63, 63, 63, alpha);
+                writeuielemrect(md, p->x + s, p->y + s, p->x + p->width - s, p->y + p->height - s, p->z, 127, 127, 127, alpha);
+                break;
+            }
         }
-        case UI_ELEM_FANCYBOX:; {
-            writeuielemrect(
-                md,
-                e->calcprop.x, e->calcprop.y + 1,
-                e->calcprop.x + e->calcprop.width, e->calcprop.y + e->calcprop.height - 1,
-                e->calcprop.z,
-                63, 63, 63, 127
-            );
-            writeuielemrect(
-                md,
-                e->calcprop.x + 1, e->calcprop.y,
-                e->calcprop.x + e->calcprop.width - 1, e->calcprop.y + e->calcprop.height,
-                e->calcprop.z,
-                63, 63, 63, 127
-            );
-            writeuielemrect(
-                md,
-                e->calcprop.x + 1, e->calcprop.y + 1,
-                e->calcprop.x + e->calcprop.width - 1, e->calcprop.y + e->calcprop.height - 1,
-                e->calcprop.z,
-                127, 127, 127, 127
-            );
-            break;
-        }
+    }
+    char* text = getUIElemProperty(e, "text");
+    if (text) {
+        int ax = 0, ay = 0;
+        curprop = getUIElemProperty(e, "text_align");
+        if (curprop) sscanf(curprop, "%d,%d", &ax, &ay);
+        uint8_t fgc = 15;
+        curprop = getUIElemProperty(e, "text_fgc");
+        if (curprop) sscanf(curprop, "%d,%d", &ax, &ay);
+        uint8_t bgc = 0;
+        curprop = getUIElemProperty(e, "text_fgc");
+        if (curprop) sscanf(curprop, "%d,%d", &ax, &ay);
+        uint8_t fga = 255;
+        curprop = getUIElemProperty(e, "text_fga");
+        if (curprop) fga = 255.0 * atof(curprop);
+        uint8_t bga = 0;
+        curprop = getUIElemProperty(e, "text_bga");
+        if (curprop) bga = 255.0 * atof(curprop);
+        
     }
 }
 
@@ -1066,8 +1069,8 @@ static void winch(int w, int h) {
 
     setShaderProg(shader_ui);
     updateUIScale();
-    setUniform1f(rendinf.shaderprog, "xsize", rendinf.width / ui_scale);
-    setUniform1f(rendinf.shaderprog, "ysize", rendinf.height / ui_scale);
+    setUniform1f(rendinf.shaderprog, "xsize", rendinf.width);
+    setUniform1f(rendinf.shaderprog, "ysize", rendinf.height);
 
     glViewport(0, 0, rendinf.width, rendinf.height);
 }
@@ -1520,8 +1523,8 @@ bool startRenderer() {
     syncTextColors();
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "fontTexData"), gltex - GL_TEXTURE0);
     updateUIScale();
-    setUniform1f(rendinf.shaderprog, "xsize", rendinf.width / ui_scale);
-    setUniform1f(rendinf.shaderprog, "ysize", rendinf.height / ui_scale);
+    setUniform1f(rendinf.shaderprog, "xsize", rendinf.width);
+    setUniform1f(rendinf.shaderprog, "ysize", rendinf.height);
     glGenTextures(1, &charseth);
     glActiveTexture(gltex++);
     resdata_image* charset = loadResource(RESOURCE_IMAGE, "game/textures/ui/charset.png");

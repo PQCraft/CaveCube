@@ -66,16 +66,15 @@ int newUIElem(struct ui_data* elemdata, int type, char* name, int parent, ...) {
     return index;
 }
 
-void editUIElem(struct ui_data* elemdata, int id, char* name, int parent, ...) {
+void editUIElem(struct ui_data* elemdata, int id, char* name, ...) {
     if (!elemValid(id)) return;
     struct ui_elem* e = &elemdata->data[id];
     if (name) {
         if (*name) {free(e->name); e->name = strdup(name);}
         else {free(e->name); e->name = NULL;}
     }
-    if (elemValid(parent)) e->parent = parent;
     va_list args;
-    va_start(args, parent);
+    va_start(args, name);
     while (1) {
         char* name = va_arg(args, char*);
         if (!name) break;
@@ -120,11 +119,9 @@ void editUIElem(struct ui_data* elemdata, int id, char* name, int parent, ...) {
     va_end(args);
 }
 
-static bool del = false;
-
 void deleteUIElem(struct ui_data* elemdata, int id) {
     if (!elemValid(id)) return;
-    del = true;
+    elemdata->del = true;
     struct ui_elem* e = &elemdata->data[id];
     e->valid = false;
     if (elemValid(e->parent)) {
@@ -222,8 +219,8 @@ static force_inline bool calcProp(struct ui_data* elemdata, struct ui_elem* e, b
             .hidden = false,
             .x = 0,
             .y = 0,
-            .width = rendinf.width / ui_scale,
-            .height = rendinf.height / ui_scale,
+            .width = rendinf.width,
+            .height = rendinf.height,
             .z = 0
         };
         if ((int)rendinf.width != scrw || (int)rendinf.height != scrh) {
@@ -247,19 +244,19 @@ static force_inline bool calcProp(struct ui_data* elemdata, struct ui_elem* e, b
             p_prop.height -= offset;
         }
         curprop = getProp(e, "width");
-        e->calcprop.width = (curprop) ? getSize(curprop, (float)p_prop.width) : 0;
+        e->calcprop.width = (curprop) ? getSize(curprop, (float)p_prop.width / ui_scale) * ui_scale : 0;
         curprop = getProp(e, "height");
-        e->calcprop.height = (curprop) ? getSize(curprop, (float)p_prop.height) : 0;
+        e->calcprop.height = (curprop) ? getSize(curprop, (float)p_prop.height / ui_scale) * ui_scale : 0;
         curprop = getProp(e, "align");
         {
-            int ax = -1, ay = -1;
+            int ax = 0, ay = 0;
             if (curprop) sscanf(curprop, "%d,%d", &ax, &ay);
             switch (ax) {
                 case -1:;
                     e->calcprop.x = p_prop.x;
                     break;
                 default:;
-                    e->calcprop.x = (p_prop.x + p_prop.width / 2) - (e->calcprop.width + 1) / 2;
+                    e->calcprop.x = ((float)p_prop.x + (float)p_prop.width / 2.0) - (float)e->calcprop.width / 2.0;
                     break;
                 case 1:;
                     e->calcprop.x = p_prop.x + (p_prop.width - e->calcprop.width);
@@ -270,7 +267,7 @@ static force_inline bool calcProp(struct ui_data* elemdata, struct ui_elem* e, b
                     e->calcprop.y = p_prop.y;
                     break;
                 default:;
-                    e->calcprop.y = (p_prop.y + p_prop.height / 2) - (e->calcprop.height + 1) / 2;
+                    e->calcprop.y = ((float)p_prop.y + (float)p_prop.height / 2.0) - (float)e->calcprop.height / 2.0;
                     break;
                 case 1:;
                     e->calcprop.y = p_prop.y + (p_prop.height - e->calcprop.height);
@@ -278,9 +275,9 @@ static force_inline bool calcProp(struct ui_data* elemdata, struct ui_elem* e, b
             }
         }
         curprop = getProp(e, "x_offset");
-        if (curprop) e->calcprop.x += atoi(curprop) * ui_scale;
+        if (curprop) e->calcprop.x += atof(curprop) * ui_scale;
         curprop = getProp(e, "y_offset");
-        if (curprop) e->calcprop.y += atoi(curprop) * ui_scale;
+        if (curprop) e->calcprop.y += atof(curprop) * ui_scale;
         curprop = getProp(e, "z");
         e->calcprop.z = (curprop) ? atoi(curprop) : p_prop.z;
         curprop = getProp(e, "hidden");
@@ -302,8 +299,8 @@ static inline bool calcPropTree(struct ui_data* elemdata, struct ui_elem* e, boo
 }
 
 bool calcUIProperties(struct ui_data* elemdata) {
-    bool ret = del;
-    if (del) del = false;
+    bool ret = elemdata->del;
+    if (ret) elemdata->del = false;
     for (int i = 0; i < elemdata->count; ++i) {
         struct ui_elem* e = &elemdata->data[i];
         if (e->parent < 0) {
