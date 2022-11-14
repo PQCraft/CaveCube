@@ -357,9 +357,9 @@ bool doGame(char* addr, int port) {
         game_ui[i] = allocUI();
     }
     int ui_main = newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_CONTAINER, "main", -1, "width", "100%", "height", "100%", NULL);
-    /*int ui_box1 = */newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_BOX, "box1", ui_main, "width", "400", "height", "300", "align", "-1,-1", NULL);
-    /*int ui_box2 = */newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_BOX, "box2", ui_main, "width", "400", "height", "300", "align", "0,0", NULL);
-    /*int ui_box3 = */newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_BOX, "box3", ui_main, "width", "400", "height", "300", "align", "1,1", NULL);
+    /*int ui_box1 = */newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_FANCYBOX, "box1", ui_main, "width", "400", "height", "300", "align", "-1,-1", NULL);
+    /*int ui_box2 = */newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_FANCYBOX, "box2", ui_main, "width", "400", "height", "300", "align", "0,0", NULL);
+    /*int ui_box3 = */newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_FANCYBOX, "box3", ui_main, "width", "400", "height", "300", "align", "1,1", NULL);
     while (!quitRequest) {
         uint64_t st1 = altutime();
         if (loopdelay) microwait(loopdelay);

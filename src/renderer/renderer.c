@@ -835,6 +835,31 @@ static force_inline void meshUIElem(struct meshdata* md, struct ui_elem* e) {
                 e->calcprop.z,
                 127, 127, 127, 127
             );
+            break;
+        }
+        case UI_ELEM_FANCYBOX:; {
+            writeuielemrect(
+                md,
+                e->calcprop.x, e->calcprop.y + 1,
+                e->calcprop.x + e->calcprop.width, e->calcprop.y + e->calcprop.height - 1,
+                e->calcprop.z,
+                63, 63, 63, 127
+            );
+            writeuielemrect(
+                md,
+                e->calcprop.x + 1, e->calcprop.y,
+                e->calcprop.x + e->calcprop.width - 1, e->calcprop.y + e->calcprop.height,
+                e->calcprop.z,
+                63, 63, 63, 127
+            );
+            writeuielemrect(
+                md,
+                e->calcprop.x + 1, e->calcprop.y + 1,
+                e->calcprop.x + e->calcprop.width - 1, e->calcprop.y + e->calcprop.height - 1,
+                e->calcprop.z,
+                127, 127, 127, 127
+            );
+            break;
         }
     }
 }
@@ -877,7 +902,6 @@ static force_inline void renderUI(struct ui_data* data) {
     glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 3 * sizeof(uint32_t), (void*)(sizeof(uint32_t)));
     glVertexAttribIPointer(2, 1, GL_UNSIGNED_INT, 3 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * 2));
     glDrawArrays(GL_TRIANGLES, 0, data->renddata.vcount);
-    //printf("[%d] triangles\n", data->renddata.vcount);
 }
 
 const unsigned char* glver;
@@ -1001,9 +1025,8 @@ void render() {
     for (int i = 0; i < 4; ++i) {
         setShaderProg(shader_ui);
         glBindFramebuffer(GL_FRAMEBUFFER, UIFBO);
-        //glEnable(GL_DEPTH_TEST);
+        glEnable(GL_DEPTH_TEST);
         glDisable(GL_BLEND);
-        //printf("renderUI[%d]\n", i);
         renderUI(game_ui[i]);
         setShaderProg(shader_framebuffer);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -1311,6 +1334,7 @@ bool startRenderer() {
     setShaderProg(shader_block);
     glViewport(0, 0, rendinf.width, rendinf.height);
     glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LEQUAL);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBlendEquation(GL_FUNC_ADD);
