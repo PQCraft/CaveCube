@@ -1039,8 +1039,8 @@ void render() {
 }
 
 void updateUIScale() {
-    int x = rendinf.width / 800 + 1;
-    int y = rendinf.height / 600 + 1;
+    int x = rendinf.width / 1280 + 1;
+    int y = rendinf.height / 960 + 1;
     ui_scale = (x < y) ? x : y;
 }
 
