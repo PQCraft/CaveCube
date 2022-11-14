@@ -41,6 +41,8 @@ struct ui_data {
     int count;
     struct ui_elem* data;
     struct ui_renddata renddata;
+    bool hidden;
+    bool del;
 };
 
 enum {
@@ -51,7 +53,7 @@ enum {
 
 struct ui_data* allocUI(void);
 int newUIElem(struct ui_data*, int /*type*/, char* /*name*/, int /*parent*/, ... /*properties*/);
-void editUIElem(struct ui_data*, int /*id*/, char* /*name*/, int /*parent*/, ... /*properties*/);
+void editUIElem(struct ui_data*, int /*id*/, char* /*name*/, ... /*properties*/);
 void deleteUIElem(struct ui_data*, int /*id*/);
 void clearUIElems(struct ui_data*);
 struct ui_elem* getUIElemData(struct ui_data*, int /*id*/);
