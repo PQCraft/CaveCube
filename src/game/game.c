@@ -356,13 +356,14 @@ bool doGame(char* addr, int port) {
     for (int i = 0; i < 4; ++i) {
         game_ui[i] = allocUI();
     }
-    int ui_main = newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_CONTAINER, "main", -1, "width", "100%", "height", "100%", NULL);
-    int ui_box1 = newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_FANCYBOX, "box1", ui_main, "width", "400", "height", "300", "align", "-1,-1", NULL);
-    int ui_box2 = newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_FANCYBOX, "box2", ui_main, "width", "400", "height", "300", "align", "0,0", "alpha", "0.5", NULL);
-    int ui_box3 = newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_FANCYBOX, "box3", ui_main, "width", "400", "height", "300", "align", "1,1", NULL);
-    editUIElem(game_ui[UILAYER_CLIENT], ui_box1, NULL, "text", "Box 1", NULL);
-    editUIElem(game_ui[UILAYER_CLIENT], ui_box2, NULL, "text", "Box 2 | Here is some long text to test the wrapping code. Here is some more sample/test text.", NULL);
-    editUIElem(game_ui[UILAYER_CLIENT], ui_box3, NULL, "text", "Box 3: Test text", NULL);
+    game_ui[UILAYER_INGAME]->hidden = getInput().focus;
+    int ui_main = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_CONTAINER, "main", -1, "width", "100%", "height", "100%", NULL);
+    int ui_box1 = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_FANCYBOX, "box1", ui_main, "width", "400", "height", "300", "align", "-1,-1", NULL);
+    int ui_box2 = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_FANCYBOX, "box2", ui_main, "width", "400", "height", "300", "align", "0,0", "alpha", "0.5", NULL);
+    int ui_box3 = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_FANCYBOX, "box3", ui_main, "width", "400", "height", "300", "align", "1,1", "alpha", "0.75", NULL);
+    editUIElem(game_ui[UILAYER_INGAME], ui_box1, NULL, "text", "Box 1", NULL);
+    editUIElem(game_ui[UILAYER_INGAME], ui_box2, NULL, "text", "Box 2 | Here is some long text to test the wrapping code. Here is some more sample/test text.", NULL);
+    editUIElem(game_ui[UILAYER_INGAME], ui_box3, NULL, "text", "Box 3: Test text", NULL);
 
     while (!quitRequest) {
         uint64_t st1 = altutime();
@@ -370,12 +371,10 @@ bool doGame(char* addr, int port) {
         float bps = 4;
         struct input_info input = getInput();
         {
-            /*
             if (!input.focus) {
                 setInputMode(INPUT_MODE_UI);
                 resetInput();
             }
-            */
             switch (input.single_action) {
                 case INPUT_ACTION_SINGLE_DEBUG:;
                     showDebugInfo = !showDebugInfo;

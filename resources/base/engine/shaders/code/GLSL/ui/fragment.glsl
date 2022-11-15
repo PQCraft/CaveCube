@@ -11,6 +11,7 @@ void main() {
     if (elemType == uint(1)) {
         fragColor = mcolor * texture(fontTexData, vec3(texCoord, texNum));
         fragColor = mix(bmcolor, fragColor, fragColor.a);
+        if (fragColor.a == 0.0) discard;
     } else {
         fragColor = mcolor;
     }

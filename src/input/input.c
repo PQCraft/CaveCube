@@ -4,6 +4,8 @@
 #include "input.h" 
 #include <common/common.h>
 #include <renderer/renderer.h>
+#include <renderer/ui.h>
+#include <game/game.h>
 
 #if defined(USESDL2)
     #include <SDL2/SDL.h>
@@ -137,6 +139,7 @@ void setInputMode(int mode) {
             #else
             glfwSetInputMode(rendinf.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
             #endif
+            if (game_ui[UILAYER_INGAME]) game_ui[UILAYER_INGAME]->hidden = true;
             break;
         default:;
             #if defined(USESDL2)
@@ -144,6 +147,7 @@ void setInputMode(int mode) {
             #else
             glfwSetInputMode(rendinf.window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
             #endif
+            if (game_ui[UILAYER_INGAME]) game_ui[UILAYER_INGAME]->hidden = false;
             break;
     }
 }
