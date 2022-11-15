@@ -43,6 +43,7 @@ struct ui_data {
     struct ui_renddata renddata;
     bool hidden;
     bool del;
+    int scale;
 };
 
 enum {

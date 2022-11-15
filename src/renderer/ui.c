@@ -9,14 +9,13 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
-float ui_scale = 2.0;
-
 #define idValid(x) isUIIdValid(elemdata, x)
 #define elemValid(x) isUIElemValid(elemdata, x)
 
 struct ui_data* allocUI() {
     struct ui_data* data = calloc(1, sizeof(*data));
     glGenBuffers(1, &data->renddata.VBO);
+    data->scale = 1;
     return data;
 }
 
@@ -233,20 +232,20 @@ static force_inline bool calcProp(struct ui_data* elemdata, struct ui_elem* e, b
         char* curprop;
         curprop = getProp(e, "margin_x");
         if (curprop) {
-            int offset = atoi(curprop) * ui_scale;
+            int offset = atoi(curprop) * elemdata->scale;
             p_prop.x += offset;
             p_prop.width -= offset;
         }
         curprop = getProp(e, "margin_y");
         if (curprop) {
-            int offset = atoi(curprop) * ui_scale;
+            int offset = atoi(curprop) * elemdata->scale;
             p_prop.y += offset;
             p_prop.height -= offset;
         }
         curprop = getProp(e, "width");
-        e->calcprop.width = (curprop) ? getSize(curprop, (float)p_prop.width / ui_scale) * ui_scale : 0;
+        e->calcprop.width = (curprop) ? getSize(curprop, (float)p_prop.width / elemdata->scale) * elemdata->scale : 0;
         curprop = getProp(e, "height");
-        e->calcprop.height = (curprop) ? getSize(curprop, (float)p_prop.height / ui_scale) * ui_scale : 0;
+        e->calcprop.height = (curprop) ? getSize(curprop, (float)p_prop.height / elemdata->scale) * elemdata->scale : 0;
         curprop = getProp(e, "align");
         {
             int ax = 0, ay = 0;
@@ -275,9 +274,9 @@ static force_inline bool calcProp(struct ui_data* elemdata, struct ui_elem* e, b
             }
         }
         curprop = getProp(e, "x_offset");
-        if (curprop) e->calcprop.x += atof(curprop) * ui_scale;
+        if (curprop) e->calcprop.x += atof(curprop) * elemdata->scale;
         curprop = getProp(e, "y_offset");
-        if (curprop) e->calcprop.y += atof(curprop) * ui_scale;
+        if (curprop) e->calcprop.y += atof(curprop) * elemdata->scale;
         curprop = getProp(e, "z");
         e->calcprop.z = (curprop) ? atoi(curprop) : p_prop.z;
         curprop = getProp(e, "hidden");
