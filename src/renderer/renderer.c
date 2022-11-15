@@ -214,6 +214,12 @@ void updateCam() {
     calcFrust(&frust, (float*)uc_proj, (float*)uc_view);
 }
 
+void updateUIScale() {
+    int x = rendinf.width / 1280 + 1;
+    int y = rendinf.height / 960 + 1;
+    ui_scale = (x < y) ? x : y;
+}
+
 void setFullscreen(bool fullscreen) {
     static int winox = -1, winoy = -1;
     if (fullscreen) {
@@ -221,6 +227,10 @@ void setFullscreen(bool fullscreen) {
         rendinf.width = rendinf.full_width;
         rendinf.height = rendinf.full_height;
         rendinf.fps = rendinf.full_fps;
+        setShaderProg(shader_ui);
+        updateUIScale();
+        setUniform1f(rendinf.shaderprog, "xsize", rendinf.width);
+        setUniform1f(rendinf.shaderprog, "ysize", rendinf.height);
         #if defined(USESDL2)
         if (!rendinf.fullscr) {
             SDL_GetWindowPosition(rendinf.window, &winox, &winoy);
@@ -238,6 +248,10 @@ void setFullscreen(bool fullscreen) {
         rendinf.width = rendinf.win_width;
         rendinf.height = rendinf.win_height;
         rendinf.fps = rendinf.win_fps;
+        setShaderProg(shader_ui);
+        updateUIScale();
+        setUniform1f(rendinf.shaderprog, "xsize", rendinf.width);
+        setUniform1f(rendinf.shaderprog, "ysize", rendinf.height);
         int twinx, twiny;
         if (rendinf.fullscr) {
             uint64_t offset = altutime();
@@ -803,7 +817,7 @@ struct meshdata {
 
 #define writeuitextvert(md, x, y, z, c, tx, ty, fgc, bgc, fga, bga) {\
     mtsetvert(&md->_v, &md->s, &md->l, &md->v, (((x) << 16) & 0xFFFF0000) | ((y) & 0xFFFF));\
-    mtsetvert(&md->_v, &md->s, &md->l, &md->v, 0x80000000 | (((tx) << 25) & 0x2000000) | (((tx) << 24) & 0x1000000) | (((c) << 8) & 0xFF00) | ((z) & 0xFF));\
+    mtsetvert(&md->_v, &md->s, &md->l, &md->v, 0x80000000 | (((tx) << 25) & 0x2000000) | (((ty) << 24) & 0x1000000) | (((c) << 8) & 0xFF00) | ((z) & 0xFF));\
     mtsetvert(&md->_v, &md->s, &md->l, &md->v, (((fga) << 24) & 0xFF000000) | (((bga) << 16) & 0xFF0000) | (((fgc) << 12) & 0xF000) | (((bgc) << 8) & 0xF00));\
 }
 
@@ -848,6 +862,7 @@ static force_inline void meshUIElem(struct meshdata* md, struct ui_elem* e) {
     }
     char* text = getUIElemProperty(e, "text");
     if (text) {
+        char* t = text;
         int ax = 0, ay = 0;
         curprop = getUIElemProperty(e, "text_align");
         if (curprop) sscanf(curprop, "%d,%d", &ax, &ay);
@@ -863,7 +878,12 @@ static force_inline void meshUIElem(struct meshdata* md, struct ui_elem* e) {
         uint8_t bga = 0;
         curprop = getUIElemProperty(e, "text_bga");
         if (curprop) bga = 255.0 * atof(curprop);
-        
+        int xoff = 0;
+        while (*t) {
+            writeuitextchar(md, p->x + xoff, p->y, p->x + (8 * s) + xoff, p->y + (16 * s), p->z, *t, fgc, bgc, fga, bga);
+            xoff += 8 * s;
+            ++t;
+        }
     }
 }
 
@@ -886,6 +906,7 @@ static force_inline void meshUIElems(struct meshdata* md, struct ui_data* elemda
 
 static force_inline void renderUI(struct ui_data* data) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    if (data->hidden) return;
     glBindBuffer(GL_ARRAY_BUFFER, data->renddata.VBO);
     if (calcUIProperties(data)) {
         #if DBGLVL(2)
@@ -1041,12 +1062,6 @@ void render() {
     }
 }
 
-void updateUIScale() {
-    int x = rendinf.width / 1280 + 1;
-    int y = rendinf.height / 960 + 1;
-    ui_scale = (x < y) ? x : y;
-}
-
 static void winch(int w, int h) {
     if (inputMode == INPUT_MODE_GAME) {
         resetInput();
@@ -1066,11 +1081,6 @@ static void winch(int w, int h) {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, rendinf.width, rendinf.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
     glBindRenderbuffer(GL_RENDERBUFFER, UIDBUF);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, rendinf.width, rendinf.height);
-
-    setShaderProg(shader_ui);
-    updateUIScale();
-    setUniform1f(rendinf.shaderprog, "xsize", rendinf.width);
-    setUniform1f(rendinf.shaderprog, "ysize", rendinf.height);
 
     glViewport(0, 0, rendinf.width, rendinf.height);
 }
