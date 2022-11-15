@@ -16,6 +16,8 @@ struct ui_data* allocUI() {
     struct ui_data* data = calloc(1, sizeof(*data));
     glGenBuffers(1, &data->renddata.VBO);
     data->scale = 1;
+    data->scrw = -1;
+    data->scrh = -1;
     return data;
 }
 
@@ -212,8 +214,6 @@ static force_inline bool calcProp(struct ui_data* elemdata, struct ui_elem* e, b
     if (elemValid(e->parent)) {
         p_prop = elemdata->data[e->parent].calcprop;
     } else {
-        static int scrw = -1;
-        static int scrh = -1;
         p_prop = (struct ui_elem_calcprop){
             .hidden = false,
             .x = 0,
@@ -222,9 +222,9 @@ static force_inline bool calcProp(struct ui_data* elemdata, struct ui_elem* e, b
             .height = rendinf.height,
             .z = 0
         };
-        if ((int)rendinf.width != scrw || (int)rendinf.height != scrh) {
-            scrw = rendinf.width;
-            scrh = rendinf.height;
+        if ((int)rendinf.width != elemdata->scrw || (int)rendinf.height != elemdata->scrh) {
+            elemdata->scrw = rendinf.width;
+            elemdata->scrh = rendinf.height;
             force = true;
         }
     }

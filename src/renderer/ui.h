@@ -44,6 +44,8 @@ struct ui_data {
     bool hidden;
     bool del;
     int scale;
+    int scrw;
+    int scrh;
 };
 
 enum {
@@ -63,8 +65,6 @@ int* getUIElemsByName(struct ui_data*, char* /*name*/, int* /*count*/);
 char* getUIElemProperty(struct ui_elem*, char* /*name*/);
 bool calcUIProperties(struct ui_data*);
 void freeUI(struct ui_data*);
-
-extern float ui_scale;
 
 #endif
 
