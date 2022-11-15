@@ -215,9 +215,12 @@ void updateCam() {
 }
 
 void updateUIScale() {
-    int x = rendinf.width / 1280 + 1;
-    int y = rendinf.height / 960 + 1;
-    ui_scale = (x < y) ? x : y;
+    int x = rendinf.width / 1200 + 1;
+    int y = rendinf.height / 900 + 1;
+    int s = (x < y) ? x : y;
+    if (game_ui[UILAYER_SERVER]) game_ui[UILAYER_SERVER]->scale = s;
+    if (game_ui[UILAYER_CLIENT]) game_ui[UILAYER_CLIENT]->scale = s;
+    if (game_ui[UILAYER_INGAME]) game_ui[UILAYER_INGAME]->scale = s;
 }
 
 void setFullscreen(bool fullscreen) {
@@ -839,9 +842,9 @@ struct meshdata {
     writeuitextvert(md, x1, y1, z, c, 1, 1, fgc, bgc, fga, bga);\
 }
 
-static force_inline void meshUIElem(struct meshdata* md, struct ui_elem* e) {
+static force_inline void meshUIElem(struct meshdata* md, struct ui_data* elemdata, struct ui_elem* e) {
     struct ui_elem_calcprop* p = &e->calcprop;
-    int s = ui_scale;
+    int s = elemdata->scale;
     char* curprop;
     {
         uint8_t alpha = 255;
@@ -868,20 +871,27 @@ static force_inline void meshUIElem(struct meshdata* md, struct ui_elem* e) {
         if (curprop) sscanf(curprop, "%d,%d", &ax, &ay);
         uint8_t fgc = 15;
         curprop = getUIElemProperty(e, "text_fgc");
-        if (curprop) sscanf(curprop, "%d,%d", &ax, &ay);
+        if (curprop) fgc = atoi(curprop);
         uint8_t bgc = 0;
-        curprop = getUIElemProperty(e, "text_fgc");
-        if (curprop) sscanf(curprop, "%d,%d", &ax, &ay);
+        curprop = getUIElemProperty(e, "text_bgc");
+        if (curprop) bgc = atoi(curprop);
         uint8_t fga = 255;
         curprop = getUIElemProperty(e, "text_fga");
         if (curprop) fga = 255.0 * atof(curprop);
         uint8_t bga = 0;
         curprop = getUIElemProperty(e, "text_bga");
         if (curprop) bga = 255.0 * atof(curprop);
-        int xoff = 0;
+        int x = p->x, y = p->y;
+        int end = p->x + p->width;
         while (*t) {
-            writeuitextchar(md, p->x + xoff, p->y, p->x + (8 * s) + xoff, p->y + (16 * s), p->z, *t, fgc, bgc, fga, bga);
-            xoff += 8 * s;
+            if (*t == '\n') {
+                x = 0;
+                y += 16;
+            } else {
+                writeuitextchar(md, x, y, x + 8 * s, y + 16 * s, p->z, *t, fgc, bgc, fga, bga);
+                x += 8 * s;
+                if ((x + 8 * s) > end) {x = p->x; y += 16 * s;}
+            }
             ++t;
         }
     }
@@ -889,7 +899,7 @@ static force_inline void meshUIElem(struct meshdata* md, struct ui_elem* e) {
 
 static inline void meshUIElemTree(struct meshdata* md, struct ui_data* elemdata, struct ui_elem* e) {
     if (e->calcprop.hidden) return;
-    meshUIElem(md, e);
+    meshUIElem(md, elemdata, e);
     for (int i = 0; i < e->children; ++i) {
         if (isUIIdValid(elemdata, e->childdata[i])) meshUIElemTree(md, elemdata, &elemdata->data[e->childdata[i]]);
     }
@@ -946,11 +956,21 @@ static force_inline coord_3d_dbl intCoord_dbl(coord_3d_dbl in) {
 static resdata_texture* crosshair;
 
 static uint32_t rendc;
+static int dbgtextuih = -1;
 
 void render() {
     if (showDebugInfo) {
         static char tbuf[1][32768];
         static int toff = 0;
+        if (game_ui[UILAYER_DBGINF] && dbgtextuih == -1) {
+            dbgtextuih = newUIElem(
+                game_ui[UILAYER_DBGINF], UI_ELEM_CONTAINER, "debugText", -1,
+                "width", "100%", "height", "100%",
+                "text_align", "-1,-1", "text_fgc", "14", "text_bga", "0.5",
+                "text", "[Please wait...]",
+                NULL
+            );
+        }
         if (!tbuf[0][0]) {
             sprintf(
                 tbuf[0],
@@ -982,6 +1002,7 @@ void render() {
             pblockx, pblocky, pblockz,
             pchunkx, pchunkz
         );
+        editUIElem(game_ui[UILAYER_DBGINF], dbgtextuih, NULL, "text", tbuf, NULL);
     }
 
     setShaderProg(shader_block);
@@ -1532,7 +1553,6 @@ bool startRenderer() {
     setShaderProg(shader_ui);
     syncTextColors();
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "fontTexData"), gltex - GL_TEXTURE0);
-    updateUIScale();
     setUniform1f(rendinf.shaderprog, "xsize", rendinf.width);
     setUniform1f(rendinf.shaderprog, "ysize", rendinf.height);
     glGenTextures(1, &charseth);
