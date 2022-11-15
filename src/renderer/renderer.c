@@ -221,6 +221,7 @@ void updateUIScale() {
     if (game_ui[UILAYER_SERVER]) game_ui[UILAYER_SERVER]->scale = s;
     if (game_ui[UILAYER_CLIENT]) game_ui[UILAYER_CLIENT]->scale = s;
     if (game_ui[UILAYER_INGAME]) game_ui[UILAYER_INGAME]->scale = s;
+    //printf("Scale UI to [%d] (%dx%d)\n", s, rendinf.width, rendinf.height);
 }
 
 void setFullscreen(bool fullscreen) {
@@ -1002,7 +1003,7 @@ void render() {
             pblockx, pblocky, pblockz,
             pchunkx, pchunkz
         );
-        editUIElem(game_ui[UILAYER_DBGINF], dbgtextuih, NULL, "text", tbuf, NULL);
+        if (game_ui[UILAYER_DBGINF]) editUIElem(game_ui[UILAYER_DBGINF], dbgtextuih, NULL, "text", tbuf, NULL);
     }
 
     setShaderProg(shader_block);
@@ -1072,6 +1073,7 @@ void render() {
         glBindFramebuffer(GL_FRAMEBUFFER, UIFBO);
         glEnable(GL_DEPTH_TEST);
         glDisable(GL_BLEND);
+        //printf("renderUI(game_ui[%d])\n", i);
         renderUI(game_ui[i]);
         setShaderProg(shader_framebuffer);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
