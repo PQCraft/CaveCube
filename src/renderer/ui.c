@@ -282,6 +282,14 @@ static force_inline bool calcProp(struct ui_data* elemdata, struct ui_elem* e, b
         curprop = getProp(e, "hidden");
         e->calcprop.hidden = (curprop) ? getBool(curprop) : false;
         e->calcprop.changed = false;
+        e->calcprop.a = 255;
+        curprop = getUIElemProperty(e, "alpha");
+        if (curprop) e->calcprop.a = 255.0 * atof(curprop);
+        e->calcprop.r = 127;
+        e->calcprop.g = 127;
+        e->calcprop.b = 127;
+        curprop = getUIElemProperty(e, "color");
+        if (curprop) sscanf(curprop, "#%02hhx%02hhx%02hhx", &e->calcprop.r, &e->calcprop.g, &e->calcprop.b);
         return true;
     }
     return false;

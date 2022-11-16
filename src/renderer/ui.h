@@ -23,6 +23,10 @@ struct ui_elem_calcprop {
     int width;
     int height;
     int8_t z;
+    uint8_t r;
+    uint8_t g;
+    uint8_t b;
+    uint8_t a;
 };
 
 struct ui_elem {
