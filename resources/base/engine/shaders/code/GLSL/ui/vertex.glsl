@@ -21,7 +21,7 @@ flat out uint elemType;
 void main() {
     float x = float(int(-32768) * int((data1 >> 31) & uint(1)) + int((data1 >> 16) & uint(32767))) / xsize;
     float y = float(int(-32768) * int((data1 >> 15) & uint(1)) + int(data1 & uint(32767))) / ysize;
-    float z = float(int(-128) * int((data2 >> 7) & uint(1)) + int(data2 & uint(127)));
+    float z = 1.0 - (float(int(-128) * int((data2 >> 7) & uint(1)) + int(data2 & uint(127))) / 256.0 + 0.5);
     gl_Position = vec4(x * 2.0 - 1.0, 1.0 - y * 2.0, z, 1.0);
     if ((elemType = ((data2 >> 31) & uint(1))) == uint(1)) {
         texNum = float((data2 >> 8) & uint(255));

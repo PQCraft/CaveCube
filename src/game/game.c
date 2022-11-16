@@ -358,10 +358,10 @@ bool doGame(char* addr, int port) {
     }
     game_ui[UILAYER_DBGINF]->hidden = !showDebugInfo;
     game_ui[UILAYER_INGAME]->hidden = getInput().focus;
-    int ui_main = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BOX, "main", -1, "width", "100%", "height", "100%", "color", "#000000", "alpha", "0.25", NULL);
-    int ui_box1 = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_FANCYBOX, "box1", ui_main, "width", "400", "height", "300", "align", "1,-1", "alpha", "0.5", NULL);
-    int ui_box2 = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_FANCYBOX, "box2", ui_main, "width", "400", "height", "300", "align", "0,0", NULL);
-    int ui_box3 = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_FANCYBOX, "box3", ui_main, "width", "400", "height", "300", "align", "-1,1", "alpha", "0.75", NULL);
+    int ui_main = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BOX, "main", -1, "width", "100%", "height", "100%", "color", "#000000", "alpha", "0.25", "z", "-100", NULL);
+    int ui_box1 = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_FANCYBOX, "box1", ui_main, "width", "400", "height", "300", "align", "1,-1", "alpha", "0.5", "z", "1", NULL);
+    int ui_box2 = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_FANCYBOX, "box2", ui_main, "width", "400", "height", "300", "align", "0,0", "z", "0", NULL);
+    int ui_box3 = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_FANCYBOX, "box3", ui_main, "width", "400", "height", "300", "align", "-1,1", "alpha", "0.75", "z", "-1", NULL);
     editUIElem(game_ui[UILAYER_INGAME], ui_box1, NULL, "text", "Box 1", NULL);
     editUIElem(game_ui[UILAYER_INGAME], ui_box2, NULL, "text",
         "Box 2 | Here is a bit of text to test the wrapping code. "
