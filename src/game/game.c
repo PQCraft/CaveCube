@@ -364,13 +364,13 @@ bool doGame(char* addr, int port) {
     int ui_box3 = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_FANCYBOX, "box3", ui_main, "width", "400", "height", "300", "align", "-1,1", "alpha", "0.75", NULL);
     editUIElem(game_ui[UILAYER_INGAME], ui_box1, NULL, "text", "Box 1", NULL);
     editUIElem(game_ui[UILAYER_INGAME], ui_box2, NULL, "text",
-        "Box 2 | Here is some long text to test the wrapping code. "
+        "Box 2 | Here is a bit of text to test the wrapping code. "
         "Here is some more sample/test text. "
         "The quick brown fox jumps over the lazy dog. "
         "the quick brown fox jumps over the lazy dog. "
         "THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG. "
-        "`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?"
-    , NULL);
+        "`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?",
+    "text_align", "0,0", NULL);
     editUIElem(game_ui[UILAYER_INGAME], ui_box3, NULL, "text", "Box 3: Test text", NULL);
 
     setFullscreen(rendinf.fullscr);
