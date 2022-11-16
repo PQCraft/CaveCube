@@ -358,7 +358,7 @@ bool doGame(char* addr, int port) {
     }
     game_ui[UILAYER_DBGINF]->hidden = !showDebugInfo;
     game_ui[UILAYER_INGAME]->hidden = getInput().focus;
-    int ui_main = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_CONTAINER, "main", -1, "width", "100%", "height", "100%", NULL);
+    int ui_main = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BOX, "main", -1, "width", "100%", "height", "100%", "color", "#000000", "alpha", "0.25", NULL);
     int ui_box1 = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_FANCYBOX, "box1", ui_main, "width", "400", "height", "300", "align", "1,-1", "alpha", "0.5", NULL);
     int ui_box2 = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_FANCYBOX, "box2", ui_main, "width", "400", "height", "300", "align", "0,0", NULL);
     int ui_box3 = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_FANCYBOX, "box3", ui_main, "width", "400", "height", "300", "align", "-1,1", "alpha", "0.75", NULL);
@@ -659,7 +659,7 @@ bool doGame(char* addr, int port) {
         if (pchunky < 0) pchunky = 0;
         if (pchunky > 15) pchunky = 15;
         uint64_t curtime = altutime();
-        if (curtime - fpsstarttime >= 250000) {
+        if (curtime - fpsstarttime >= 150000) {
             fps = round(1000000.0 / (double)((fpstime / (double)fpsct)));
             realfps = round(1000000.0 / (double)lowframe);
             fpsstarttime = curtime;

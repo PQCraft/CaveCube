@@ -73,9 +73,14 @@ void setSkyColor(float r, float g, float b) {
     //setUniform3f(rendinf.shaderprog, "skycolor", (float[]){r, g, b});
 }
 
+static color screenmult;
+
 void setScreenMult(float r, float g, float b) {
-    setShaderProg(shader_framebuffer);
-    setUniform3f(rendinf.shaderprog, "mcolor", (float[]){r, g, b});
+    screenmult.r = r;
+    screenmult.g = g;
+    screenmult.b = b;
+    //setShaderProg(shader_framebuffer);
+    //setUniform3f(rendinf.shaderprog, "mcolor", (float[]){r, g, b});
 }
 
 void setVisibility(int vis, float vismul) {
@@ -851,15 +856,20 @@ static force_inline void meshUIElem(struct meshdata* md, struct ui_data* elemdat
         uint8_t alpha = 255;
         curprop = getUIElemProperty(e, "alpha");
         if (curprop) alpha = 255.0 * atof(curprop);
+        uint8_t r = 127;
+        uint8_t g = 127;
+        uint8_t b = 127;
+        curprop = getUIElemProperty(e, "color");
+        if (curprop) sscanf(curprop, "#%02hhx%02hhx%02hhx", &r, &g, &b);
         switch (e->type) {
             case UI_ELEM_BOX:; {
-                writeuielemrect(md, p->x, p->y, p->x + p->width, p->y + p->height, p->z, 127, 127, 127, alpha);
+                writeuielemrect(md, p->x, p->y, p->x + p->width, p->y + p->height, p->z, r, g, b, alpha);
                 break;
             }
             case UI_ELEM_FANCYBOX:; {
-                writeuielemrect(md, p->x, p->y + s, p->x + p->width, p->y + p->height - s, p->z, 63, 63, 63, alpha);
-                writeuielemrect(md, p->x + s, p->y, p->x + p->width - s, p->y + p->height, p->z, 63, 63, 63, alpha);
-                writeuielemrect(md, p->x + s, p->y + s, p->x + p->width - s, p->y + p->height - s, p->z, 127, 127, 127, alpha);
+                writeuielemrect(md, p->x, p->y + s, p->x + p->width, p->y + p->height - s, p->z, r / 2, g / 2, b / 2, alpha);
+                writeuielemrect(md, p->x + s, p->y, p->x + p->width - s, p->y + p->height, p->z, r / 2, g / 2, b / 2, alpha);
+                writeuielemrect(md, p->x + s, p->y + s, p->x + p->width - s, p->y + p->height - s, p->z, r, g, b, alpha);
                 break;
             }
         }
@@ -915,14 +925,11 @@ static force_inline void meshUIElems(struct meshdata* md, struct ui_data* elemda
     }
 }
 
-static force_inline void renderUI(struct ui_data* data) {
+static force_inline bool renderUI(struct ui_data* data) {
+    if (data->hidden) return false;
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    if (data->hidden) return;
     glBindBuffer(GL_ARRAY_BUFFER, data->renddata.VBO);
     if (calcUIProperties(data)) {
-        #if DBGLVL(2)
-        puts("UI remesh");
-        #endif
         struct meshdata mdata;
         mdata.s = 64;
         mdata._v = malloc(mdata.s * sizeof(uint32_t));
@@ -933,10 +940,12 @@ static force_inline void renderUI(struct ui_data* data) {
         data->renddata.vcount = mdata.l / 3;
         free(mdata._v);
     }
+    if (!data->renddata.vcount) return false;
     glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 3 * sizeof(uint32_t), (void*)(0));
     glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 3 * sizeof(uint32_t), (void*)(sizeof(uint32_t)));
     glVertexAttribIPointer(2, 1, GL_UNSIGNED_INT, 3 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * 2));
     glDrawArrays(GL_TRIANGLES, 0, data->renddata.vcount);
+    return true;
 }
 
 const unsigned char* glver;
@@ -1064,24 +1073,27 @@ void render() {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glDisable(GL_DEPTH_TEST);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), FBTEXID - GL_TEXTURE0);
+    setUniform3f(rendinf.shaderprog, "mcolor", (float[]){screenmult.r, screenmult.g, screenmult.b});
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), UIFBTEXID - GL_TEXTURE0);
+    setUniform3f(rendinf.shaderprog, "mcolor", (float[]){1, 1, 1});
     glClearColor(0, 0, 0, 0);
     for (int i = 0; i < 4; ++i) {
         setShaderProg(shader_ui);
         glBindFramebuffer(GL_FRAMEBUFFER, UIFBO);
         glEnable(GL_DEPTH_TEST);
         glDisable(GL_BLEND);
-        //printf("renderUI(game_ui[%d])\n", i);
-        renderUI(game_ui[i]);
-        setShaderProg(shader_framebuffer);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glDisable(GL_DEPTH_TEST);
-        glEnable(GL_BLEND);
-        glBindBuffer(GL_ARRAY_BUFFER, VBO2D);
-        glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+        if (renderUI(game_ui[i])) {
+            //printf("renderUI(game_ui[%d])\n", i);
+            setShaderProg(shader_framebuffer);
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            glDisable(GL_DEPTH_TEST);
+            glEnable(GL_BLEND);
+            glBindBuffer(GL_ARRAY_BUFFER, VBO2D);
+            glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
+        }
     }
 }
 
