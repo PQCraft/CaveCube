@@ -848,28 +848,26 @@ struct meshdata {
     writeuitextvert(md, x1, y1, z, c, 1, 1, fgc, bgc, fga, bga);\
 }
 
+struct muie_textline {
+    int width;
+    int chars;
+    char* ptr;
+};
+
 static force_inline void meshUIElem(struct meshdata* md, struct ui_data* elemdata, struct ui_elem* e) {
     struct ui_elem_calcprop* p = &e->calcprop;
     int s = elemdata->scale;
     char* curprop;
     {
-        uint8_t alpha = 255;
-        curprop = getUIElemProperty(e, "alpha");
-        if (curprop) alpha = 255.0 * atof(curprop);
-        uint8_t r = 127;
-        uint8_t g = 127;
-        uint8_t b = 127;
-        curprop = getUIElemProperty(e, "color");
-        if (curprop) sscanf(curprop, "#%02hhx%02hhx%02hhx", &r, &g, &b);
         switch (e->type) {
             case UI_ELEM_BOX:; {
-                writeuielemrect(md, p->x, p->y, p->x + p->width, p->y + p->height, p->z, r, g, b, alpha);
+                writeuielemrect(md, p->x, p->y, p->x + p->width, p->y + p->height, p->z, p->r, p->g, p->b, p->a);
                 break;
             }
             case UI_ELEM_FANCYBOX:; {
-                writeuielemrect(md, p->x, p->y + s, p->x + p->width, p->y + p->height - s, p->z, r / 2, g / 2, b / 2, alpha);
-                writeuielemrect(md, p->x + s, p->y, p->x + p->width - s, p->y + p->height, p->z, r / 2, g / 2, b / 2, alpha);
-                writeuielemrect(md, p->x + s, p->y + s, p->x + p->width - s, p->y + p->height - s, p->z, r, g, b, alpha);
+                writeuielemrect(md, p->x, p->y + s, p->x + p->width, p->y + p->height - s, p->z, p->r / 2, p->g / 2, p->b / 2, p->a);
+                writeuielemrect(md, p->x + s, p->y, p->x + p->width - s, p->y + p->height, p->z, p->r / 2, p->g / 2, p->b / 2, p->a);
+                writeuielemrect(md, p->x + s, p->y + s, p->x + p->width - s, p->y + p->height - s, p->z, p->r, p->g, p->b, p->a);
                 break;
             }
         }
@@ -892,18 +890,59 @@ static force_inline void meshUIElem(struct meshdata* md, struct ui_data* elemdat
         uint8_t bga = 0;
         curprop = getUIElemProperty(e, "text_bga");
         if (curprop) bga = 255.0 * atof(curprop);
-        int x = p->x, y = p->y;
         int end = p->x + p->width;
-        while (*t) {
-            if (*t == '\n') {
-                x = 0;
-                y += 16;
-            } else {
-                writeuitextchar(md, x, y, x + 8 * s, y + 16 * s, p->z, *t, fgc, bgc, fga, bga);
-                x += 8 * s;
-                if ((x + 8 * s) > end) {x = p->x; y += 16 * s;}
+        static int tcw = 8, tch = 16;
+        int lines = 1;
+        struct muie_textline* tdata = calloc(lines, sizeof(*tdata));
+        {
+            int l = 0;
+            #define nextline(p) {\
+                tdata = realloc(tdata, (++lines) * sizeof(*tdata));\
+                ++l;\
+                memset(&tdata[l], 0, sizeof(*tdata));\
+                tdata[l].ptr = (p);\
             }
-            ++t;
+            tdata[0].ptr = t;
+            while (*t) {
+                /*if (*t == ' ') {
+                } else if (*t == '\n') {
+                } else*/ {
+                    tdata[l].width += tcw * s;
+                    ++tdata[l].chars;
+                }
+                ++t;
+            }
+        }
+        {
+            int x, y;
+            switch (ay) {
+                case -1:;
+                    y = p->y;
+                    break;
+                default:;
+                    y = ((float)p->y + (float)p->height / 2.0) - (float)(lines * tch * s) / 2.0;
+                    break;
+                case 1:;
+                    y = p->y + (p->height - lines * tch * s);
+                    break;
+            }
+            for (int i = 0; i < lines; ++i) {
+                switch (ax) {
+                    case -1:;
+                        x = p->x;
+                        break;
+                    default:;
+                        x = ((float)p->x + (float)p->width / 2.0) - (float)tdata[i].width / 2.0;
+                        break;
+                    case 1:;
+                        x = end - tdata[i].width;
+                        break;
+                }
+                for (int j = 0; j < tdata[i].chars; ++j) {
+                    writeuitextchar(md, x, y, x + tcw * s, y + tch * s, p->z, tdata[i].ptr[j], fgc, bgc, fga, bga);
+                    x += tcw * s;
+                }
+            }
         }
     }
 }
