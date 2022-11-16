@@ -230,17 +230,17 @@ static force_inline bool calcProp(struct ui_data* elemdata, struct ui_elem* e, b
     }
     if (e->calcprop.changed || force) {
         char* curprop;
-        curprop = getProp(e, "margin_x");
+        curprop = getProp(e, "margin");
         if (curprop) {
-            int offset = atoi(curprop) * elemdata->scale;
-            p_prop.x += offset;
-            p_prop.width -= offset;
-        }
-        curprop = getProp(e, "margin_y");
-        if (curprop) {
-            int offset = atoi(curprop) * elemdata->scale;
-            p_prop.y += offset;
-            p_prop.height -= offset;
+            int ox = 0;
+            int oy = 0;
+            sscanf(curprop, "%d,%d", &ox, &oy);
+            ox *= elemdata->scale;
+            oy *= elemdata->scale;
+            p_prop.x += ox;
+            p_prop.width -= ox * 2;
+            p_prop.y += oy;
+            p_prop.height -= oy * 2;
         }
         curprop = getProp(e, "width");
         e->calcprop.width = (curprop) ? getSize(curprop, (float)p_prop.width / elemdata->scale) * elemdata->scale : 0;
