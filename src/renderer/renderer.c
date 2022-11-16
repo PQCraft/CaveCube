@@ -897,17 +897,34 @@ static force_inline void meshUIElem(struct meshdata* md, struct ui_data* elemdat
         {
             int l = 0;
             #define nextline(p) {\
-                tdata = realloc(tdata, (++lines) * sizeof(*tdata));\
-                ++l;\
-                memset(&tdata[l], 0, sizeof(*tdata));\
-                tdata[l].ptr = (p);\
+                if (*p) {\
+                    tdata = realloc(tdata, (++lines) * sizeof(*tdata));\
+                    ++l;\
+                    memset(&tdata[l], 0, sizeof(*tdata));\
+                    tdata[l].ptr = (p);\
+                }\
             }
             tdata[0].ptr = t;
             while (*t) {
-                /*if (*t == ' ') {
+                if (*t == ' ') {
+                    int tmpw = tdata[l].width + tcw * s;
+                    for (int i = 1; t[i] && t[i] != ' ' && t[i] != '\n'; ++i) {
+                        tmpw += tcw * s;
+                    }
+                    if (tmpw > p->width) {
+                        nextline(t + 1);
+                    } else {
+                        tdata[l].width += tcw * s;
+                        ++tdata[l].chars;
+                    }
                 } else if (*t == '\n') {
-                } else*/ {
+                    nextline(t + 1);
+                } else {
                     tdata[l].width += tcw * s;
+                    if (tdata[l].width > p->width) {
+                        tdata[l].width -= tcw * s;
+                        nextline(t);
+                    }
                     ++tdata[l].chars;
                 }
                 ++t;
@@ -942,6 +959,7 @@ static force_inline void meshUIElem(struct meshdata* md, struct ui_data* elemdat
                     writeuitextchar(md, x, y, x + tcw * s, y + tch * s, p->z, tdata[i].ptr[j], fgc, bgc, fga, bga);
                     x += tcw * s;
                 }
+                y += tch * s;
             }
         }
     }
