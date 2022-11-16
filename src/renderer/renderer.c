@@ -236,10 +236,6 @@ void setFullscreen(bool fullscreen) {
         rendinf.width = rendinf.full_width;
         rendinf.height = rendinf.full_height;
         rendinf.fps = rendinf.full_fps;
-        setShaderProg(shader_ui);
-        updateUIScale();
-        setUniform1f(rendinf.shaderprog, "xsize", rendinf.width);
-        setUniform1f(rendinf.shaderprog, "ysize", rendinf.height);
         #if defined(USESDL2)
         if (!rendinf.fullscr) {
             SDL_GetWindowPosition(rendinf.window, &winox, &winoy);
@@ -257,10 +253,6 @@ void setFullscreen(bool fullscreen) {
         rendinf.width = rendinf.win_width;
         rendinf.height = rendinf.win_height;
         rendinf.fps = rendinf.win_fps;
-        setShaderProg(shader_ui);
-        updateUIScale();
-        setUniform1f(rendinf.shaderprog, "xsize", rendinf.width);
-        setUniform1f(rendinf.shaderprog, "ysize", rendinf.height);
         int twinx, twiny;
         if (rendinf.fullscr) {
             uint64_t offset = altutime();
@@ -280,6 +272,10 @@ void setFullscreen(bool fullscreen) {
         }
         rendinf.fullscr = false;
     }
+    setShaderProg(shader_ui);
+    updateUIScale();
+    setUniform1f(rendinf.shaderprog, "xsize", rendinf.width);
+    setUniform1f(rendinf.shaderprog, "ysize", rendinf.height);
     //updateCam();
 }
 
@@ -890,6 +886,18 @@ static force_inline void meshUIElem(struct meshdata* md, struct ui_data* elemdat
         uint8_t bga = 0;
         curprop = getUIElemProperty(e, "text_bga");
         if (curprop) bga = 255.0 * atof(curprop);
+        curprop = getUIElemProperty(e, "text_margin");
+        int mx = 0;
+        int my = 0;
+        if (curprop) {
+            sscanf(curprop, "%d,%d", &mx, &my);
+            mx *= s;
+            my *= s;
+            p->x += mx;
+            p->width -= mx * 2;
+            p->y += my;
+            p->height -= my * 2;
+        }
         int end = p->x + p->width;
         static int tcw = 8, tch = 16;
         int lines = 1;
@@ -906,9 +914,9 @@ static force_inline void meshUIElem(struct meshdata* md, struct ui_data* elemdat
             }
             tdata[0].ptr = t;
             while (*t) {
-                if (*t == ' ') {
+                if (*t == ' ' || *t == '\t') {
                     int tmpw = tdata[l].width + tcw * s;
-                    for (int i = 1; t[i] && t[i] != ' ' && t[i] != '\n'; ++i) {
+                    for (int i = 1; t[i] && t[i] != ' ' && t[i] != '\t' && t[i] != '\n'; ++i) {
                         tmpw += tcw * s;
                     }
                     if (tmpw > p->width) {
@@ -952,7 +960,7 @@ static force_inline void meshUIElem(struct meshdata* md, struct ui_data* elemdat
                         x = ((float)p->x + (float)p->width / 2.0) - (float)tdata[i].width / 2.0;
                         break;
                     case 1:;
-                        x = end - tdata[i].width;
+                        x = (end - tdata[i].width);
                         break;
                 }
                 for (int j = 0; j < tdata[i].chars; ++j) {
@@ -962,6 +970,10 @@ static force_inline void meshUIElem(struct meshdata* md, struct ui_data* elemdat
                 y += tch * s;
             }
         }
+        p->x -= mx;
+        p->width += mx * 2;
+        p->y -= my;
+        p->height += my * 2;
     }
 }
 
