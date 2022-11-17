@@ -369,8 +369,10 @@ bool doGame(char* addr, int port) {
         "The quick brown fox jumps over the lazy dog. "
         "the quick brown fox jumps over the lazy dog. "
         "THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG. "
+        "THE\nQUICK\nBROWN\nFOX\nJUMPS\nOVER\nTHE\nLAZY\nDOG. "
+        "THE\nQUICK\nBROWN\nFOX\nJUMPS\nOVER\nTHE\nLAZY\nDOG. "
         "`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?",
-    "text_align", "-1,-1", "text_margin", "10,10", NULL);
+    "text_align", "-1,0", "text_margin", "10,10", NULL);
     editUIElem(game_ui[UILAYER_INGAME], ui_box3, NULL, "text", "Box 3: Test text", "text_margin", "10,10", NULL);
 
     setFullscreen(rendinf.fullscr);

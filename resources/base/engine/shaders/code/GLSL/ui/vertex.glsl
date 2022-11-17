@@ -7,6 +7,9 @@ layout (location = 1) in uint data2;
 layout (location = 2) in uint data3;
 // ui elem: [8 bits: r][8 bits: g][8 bits: b][8 bits: a]
 // text:    [8 bits: fgc alpha][8 bits: bgc alpha][4 bits: text fgc][4 bits: text bgc][8 bits: reserved]
+layout (location = 3) in uint data4;
+// ui elem: [32 bits: 0]
+// text:    [8 bits: left clip][8 bits: right clip][8 bits: top clip][8 bits: bottom clip]
 uniform float xsize;
 uniform float ysize;
 uniform vec3 textColor[16];
