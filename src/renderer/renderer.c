@@ -821,11 +821,11 @@ struct meshdata {
     mtsetvert(&md->_v, &md->s, &md->l, &md->v, 0);\
 }
 
-#define writeuitextvert(md, x, y, z, c, tx, ty, fgc, bgc, fga, bga, cl, cr, ct, cb) {\
+#define writeuitextvert(md, x, y, z, c, tx, ty, tmx, tmy, fgc, bgc, fga, bga) {\
     mtsetvert(&md->_v, &md->s, &md->l, &md->v, (((x) << 16) & 0xFFFF0000) | ((y) & 0xFFFF));\
-    mtsetvert(&md->_v, &md->s, &md->l, &md->v, 0x80000000 | (((tx) << 25) & 0x2000000) | (((ty) << 24) & 0x1000000) | (((c) << 8) & 0xFF00) | ((z) & 0xFF));\
+    mtsetvert(&md->_v, &md->s, &md->l, &md->v, 0x80000000 | (((c) << 8) & 0xFF00) | ((z) & 0xFF));\
     mtsetvert(&md->_v, &md->s, &md->l, &md->v, (((fga) << 24) & 0xFF000000) | (((bga) << 16) & 0xFF0000) | (((fgc) << 12) & 0xF000) | (((bgc) << 8) & 0xF00));\
-    mtsetvert(&md->_v, &md->s, &md->l, &md->v, (((cl) << 24) & 0xFF000000) | (((cr) << 16) & 0xFF0000) | (((ct) << 8) & 0xFF00) | ((cb) & 0xFF));\
+    mtsetvert(&md->_v, &md->s, &md->l, &md->v, (((tx) << 24) & 0xFF000000) | (((ty) << 16) & 0xFF0000) | (((tmx) << 8) & 0xFF00) | ((tmy) & 0xFF));\
 }
 
 #define writeuielemrect(md, x0, y0, x1, y1, z, r, g, b, a) {\
@@ -837,13 +837,13 @@ struct meshdata {
     writeuielemvert(md, x1, y1, z, r, g, b, a);\
 }
 
-#define writeuitextchar(md, x0, y0, x1, y1, z, c, fgc, bgc, fga, bga, cl, cr, ct, cb) {\
-    writeuitextvert(md, x0, y0, z, c, 0, 0, fgc, bgc, fga, bga, cl, cr, ct, cb);\
-    writeuitextvert(md, x0, y1, z, c, 0, 1, fgc, bgc, fga, bga, cl, cr, ct, cb);\
-    writeuitextvert(md, x1, y0, z, c, 1, 0, fgc, bgc, fga, bga, cl, cr, ct, cb);\
-    writeuitextvert(md, x1, y0, z, c, 1, 0, fgc, bgc, fga, bga, cl, cr, ct, cb);\
-    writeuitextvert(md, x0, y1, z, c, 0, 1, fgc, bgc, fga, bga, cl, cr, ct, cb);\
-    writeuitextvert(md, x1, y1, z, c, 1, 1, fgc, bgc, fga, bga, cl, cr, ct, cb);\
+#define writeuitextchar(md, x, y, z, ol, ot, or, ob, tmx, tmy, c, fgc, bgc, fga, bga) {\
+    writeuitextvert(md, x + ol, y + ot, z, c, ol, ot, tmx, tmy, fgc, bgc, fga, bga);\
+    writeuitextvert(md, x + ol, y + ob, z, c, ol, ob, tmx, tmy, fgc, bgc, fga, bga);\
+    writeuitextvert(md, x + or, y + ot, z, c, or, ot, tmx, tmy, fgc, bgc, fga, bga);\
+    writeuitextvert(md, x + or, y + ot, z, c, or, ot, tmx, tmy, fgc, bgc, fga, bga);\
+    writeuitextvert(md, x + ol, y + ob, z, c, ol, ob, tmx, tmy, fgc, bgc, fga, bga);\
+    writeuitextvert(md, x + or, y + ob, z, c, or, ob, tmx, tmy, fgc, bgc, fga, bga);\
 }
 
 struct muie_textline {
@@ -966,9 +966,9 @@ static force_inline void meshUIElem(struct meshdata* md, struct ui_data* elemdat
                         break;
                 }
                 for (int j = 0; j < tdata[i].chars; ++j) {
-                    if (x + tcw * s >= p->x && x <= p->x + p->width && y + tch * s >= p->y && y <= p->y + p->height) {
-                        uint8_t cl = 0, cr = 0, ct = 0, cb = 0;
-                        writeuitextchar(md, x, y, x + tcw * s, y + tch * s, p->z, tdata[i].ptr[j], fgc, bgc, fga, bga, 0, 0, 0, 0);
+                    uint8_t ol = 0, or = tcw * s, ot = 0, ob = tch * s, stcw = tcw * s, stch = tch * s;
+                    if (x + or >= p->x && x <= p->x + p->width && y + ob >= p->y && y <= p->y + p->height) {
+                        writeuitextchar(md, x, y, p->z, ol, ot, or, ob, stcw, stch, tdata[i].ptr[j], fgc, bgc, fga, bga);
                     }
                     x += tcw * s;
                 }

@@ -119,7 +119,7 @@ BIN := $(BINNAME)$(BINEXT)
 CFLAGS += -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -O2 -pthread
 CFLAGS += $(MODULECFLAGS) -DMODULEID=$(MODULEID) -DMODULE=$(MODULE)
 ifdef OS
-    WRFLAGS += $(MODULECFLAGS) -DMODULE=$(MODULEID)
+    WRFLAGS += $(MODULECFLAGS) -DMODULE=$(MODULE)
 endif
 ifdef DEBUG
     CFLAGS += -g -DDEBUG=$(DEBUG)
@@ -284,7 +284,11 @@ $(BIN): $(wildcard $(OBJDIR)/*/*.o)
 ifdef WINCROSS
 	@$(WINDRES) $(WRFLAGS) -DORIG_NAME="$(BIN)" -DINT_NAME="$(BINNAME)" $(SRCDIR)/main/version.rc -o $(OBJDIR)/main/version.o
 endif
+ifndef WINCROSS
 	@$(CC) $^ $(BINFLAGS) -o $@
+else
+	@$(CC) $(OBJDIR)/main/version.o $^ $(BINFLAGS) -o $@
+endif
 ifndef DEBUG
 	@$(STRIP) --strip-all $@
 endif
