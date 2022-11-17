@@ -360,17 +360,16 @@ bool doGame(char* addr, int port) {
     game_ui[UILAYER_INGAME]->hidden = getInput().focus;
     int ui_main = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BOX, "main", -1, "width", "100%", "height", "100%", "color", "#000000", "alpha", "0.25", "z", "-100", NULL);
     int ui_box1 = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_FANCYBOX, "box1", ui_main, "width", "400", "height", "300", "align", "1,-1", "alpha", "0.5", "z", "1", NULL);
-    int ui_box2 = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_FANCYBOX, "box2", ui_main, "width", "400", "height", "300", "align", "0,0", "z", "0", NULL);
+    int ui_box2 = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_FANCYBOX, "box2", ui_main, "width", "400", "height", "50%", "align", "0,0", "z", "0", NULL);
     int ui_box3 = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_FANCYBOX, "box3", ui_main, "width", "400", "height", "300", "align", "-1,1", "alpha", "0.75", "z", "-1", NULL);
     editUIElem(game_ui[UILAYER_INGAME], ui_box1, NULL, "text", "Box 1", "text_align", "1,1", "text_margin", "10,10", NULL);
     editUIElem(game_ui[UILAYER_INGAME], ui_box2, NULL, "text",
-        "Box 2 | Here is a bit of text to test the wrapping code. "
-        "Here is some more sample/test text. "
+        "Box 2 | Here is a bit of text to test the wrapping, alignment, and chopping code. "
         "The quick brown fox jumps over the lazy dog. "
         "the quick brown fox jumps over the lazy dog. "
-        "THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG. "
-        "THE\nQUICK\nBROWN\nFOX\nJUMPS\nOVER\nTHE\nLAZY\nDOG. "
-        "THE\nQUICK\nBROWN\nFOX\nJUMPS\nOVER\nTHE\nLAZY\nDOG. "
+        "THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG.\n"
+        "THE\nQUICK\nBROWN\nFOX\nJUMPS\nOVER\nTHE\nLAZY\nDOG.\n"
+        "THE\nQUICK\nBROWN\nFOX\nJUMPS\nOVER\nTHE\nLAZY\nDOG.\n"
         "`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?",
     "text_align", "-1,0", "text_margin", "10,10", NULL);
     editUIElem(game_ui[UILAYER_INGAME], ui_box3, NULL, "text", "Box 3: Test text", "text_margin", "10,10", NULL);

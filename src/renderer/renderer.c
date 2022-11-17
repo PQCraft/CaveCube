@@ -968,6 +968,10 @@ static force_inline void meshUIElem(struct meshdata* md, struct ui_data* elemdat
                 for (int j = 0; j < tdata[i].chars; ++j) {
                     uint8_t ol = 0, or = tcw * s, ot = 0, ob = tch * s, stcw = tcw * s, stch = tch * s;
                     if (x + or >= p->x && x <= p->x + p->width && y + ob >= p->y && y <= p->y + p->height) {
+                        //if (x + or > p->x + p->width) or -= (x + or) - (p->x + p->width);
+                        if (y + ob > p->y + p->height) ob -= (y + ob) - (p->y + p->height);
+                        //if (x + ol < p->x) ol += (p->x) - (x + or);
+                        if (y + ot < p->y) ot += (p->y) - (y + ot);
                         writeuitextchar(md, x, y, p->z, ol, ot, or, ob, stcw, stch, tdata[i].ptr[j], fgc, bgc, fga, bga);
                     }
                     x += tcw * s;
