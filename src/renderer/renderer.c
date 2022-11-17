@@ -818,12 +818,14 @@ struct meshdata {
     mtsetvert(&md->_v, &md->s, &md->l, &md->v, (((x) << 16) & 0xFFFF0000) | ((y) & 0xFFFF));\
     mtsetvert(&md->_v, &md->s, &md->l, &md->v, ((z) & 0xFF));\
     mtsetvert(&md->_v, &md->s, &md->l, &md->v, (((r) << 24) & 0xFF000000) | (((g) << 16) & 0xFF0000) | (((b) << 8) & 0xFF00) | ((a) & 0xFF));\
+    mtsetvert(&md->_v, &md->s, &md->l, &md->v, 0);\
 }
 
-#define writeuitextvert(md, x, y, z, c, tx, ty, fgc, bgc, fga, bga) {\
+#define writeuitextvert(md, x, y, z, c, tx, ty, fgc, bgc, fga, bga, cl, cr, ct, cb) {\
     mtsetvert(&md->_v, &md->s, &md->l, &md->v, (((x) << 16) & 0xFFFF0000) | ((y) & 0xFFFF));\
     mtsetvert(&md->_v, &md->s, &md->l, &md->v, 0x80000000 | (((tx) << 25) & 0x2000000) | (((ty) << 24) & 0x1000000) | (((c) << 8) & 0xFF00) | ((z) & 0xFF));\
     mtsetvert(&md->_v, &md->s, &md->l, &md->v, (((fga) << 24) & 0xFF000000) | (((bga) << 16) & 0xFF0000) | (((fgc) << 12) & 0xF000) | (((bgc) << 8) & 0xF00));\
+    mtsetvert(&md->_v, &md->s, &md->l, &md->v, (((cl) << 24) & 0xFF000000) | (((cr) << 16) & 0xFF0000) | (((ct) << 8) & 0xFF00) | ((cb) & 0xFF));\
 }
 
 #define writeuielemrect(md, x0, y0, x1, y1, z, r, g, b, a) {\
@@ -835,13 +837,13 @@ struct meshdata {
     writeuielemvert(md, x1, y1, z, r, g, b, a);\
 }
 
-#define writeuitextchar(md, x0, y0, x1, y1, z, c, fgc, bgc, fga, bga) {\
-    writeuitextvert(md, x0, y0, z, c, 0, 0, fgc, bgc, fga, bga);\
-    writeuitextvert(md, x0, y1, z, c, 0, 1, fgc, bgc, fga, bga);\
-    writeuitextvert(md, x1, y0, z, c, 1, 0, fgc, bgc, fga, bga);\
-    writeuitextvert(md, x1, y0, z, c, 1, 0, fgc, bgc, fga, bga);\
-    writeuitextvert(md, x0, y1, z, c, 0, 1, fgc, bgc, fga, bga);\
-    writeuitextvert(md, x1, y1, z, c, 1, 1, fgc, bgc, fga, bga);\
+#define writeuitextchar(md, x0, y0, x1, y1, z, c, fgc, bgc, fga, bga, cl, cr, ct, cb) {\
+    writeuitextvert(md, x0, y0, z, c, 0, 0, fgc, bgc, fga, bga, cl, cr, ct, cb);\
+    writeuitextvert(md, x0, y1, z, c, 0, 1, fgc, bgc, fga, bga, cl, cr, ct, cb);\
+    writeuitextvert(md, x1, y0, z, c, 1, 0, fgc, bgc, fga, bga, cl, cr, ct, cb);\
+    writeuitextvert(md, x1, y0, z, c, 1, 0, fgc, bgc, fga, bga, cl, cr, ct, cb);\
+    writeuitextvert(md, x0, y1, z, c, 0, 1, fgc, bgc, fga, bga, cl, cr, ct, cb);\
+    writeuitextvert(md, x1, y1, z, c, 1, 1, fgc, bgc, fga, bga, cl, cr, ct, cb);\
 }
 
 struct muie_textline {
@@ -964,7 +966,10 @@ static force_inline void meshUIElem(struct meshdata* md, struct ui_data* elemdat
                         break;
                 }
                 for (int j = 0; j < tdata[i].chars; ++j) {
-                    writeuitextchar(md, x, y, x + tcw * s, y + tch * s, p->z, tdata[i].ptr[j], fgc, bgc, fga, bga);
+                    if (x + tcw * s >= p->x && x <= p->x + p->width && y + tch * s >= p->y && y <= p->y + p->height) {
+                        uint8_t cl = 0, cr = 0, ct = 0, cb = 0;
+                        writeuitextchar(md, x, y, x + tcw * s, y + tch * s, p->z, tdata[i].ptr[j], fgc, bgc, fga, bga, 0, 0, 0, 0);
+                    }
                     x += tcw * s;
                 }
                 y += tch * s;
@@ -1006,13 +1011,14 @@ static force_inline bool renderUI(struct ui_data* data) {
         mdata.v = mdata._v;
         meshUIElems(&mdata, data);
         glBufferData(GL_ARRAY_BUFFER, mdata.l * sizeof(uint32_t), mdata._v, GL_STATIC_DRAW);
-        data->renddata.vcount = mdata.l / 3;
+        data->renddata.vcount = mdata.l / 4;
         free(mdata._v);
     }
     if (!data->renddata.vcount) return false;
-    glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 3 * sizeof(uint32_t), (void*)(0));
-    glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 3 * sizeof(uint32_t), (void*)(sizeof(uint32_t)));
-    glVertexAttribIPointer(2, 1, GL_UNSIGNED_INT, 3 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * 2));
+    glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(0));
+    glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(sizeof(uint32_t)));
+    glVertexAttribIPointer(2, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * 2));
+    glVertexAttribIPointer(3, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * 3));
     glDrawArrays(GL_TRIANGLES, 0, data->renddata.vcount);
     return true;
 }
@@ -1653,6 +1659,7 @@ bool startRenderer() {
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
+    glEnableVertexAttribArray(3);
 
     water = blockNoFromID("water");
 
