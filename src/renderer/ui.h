@@ -56,6 +56,7 @@ enum {
     UI_ELEM_CONTAINER,
     UI_ELEM_BOX,
     UI_ELEM_FANCYBOX,
+    UI_ELEM_HOTBAR,
 };
 
 struct ui_data* allocUI(void);
