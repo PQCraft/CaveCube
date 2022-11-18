@@ -242,20 +242,30 @@ static force_inline bool calcProp(struct ui_data* elemdata, struct ui_elem* e, b
             p_prop.y += oy;
             p_prop.height -= oy * 2;
         }
-        curprop = getProp(e, "width");
-        e->calcprop.width = (curprop) ? getSize(curprop, (float)p_prop.width / elemdata->scale) * elemdata->scale : 0;
-        curprop = getProp(e, "height");
-        e->calcprop.height = (curprop) ? getSize(curprop, (float)p_prop.height / elemdata->scale) * elemdata->scale : 0;
-        curprop = getProp(e, "align");
+        switch (e->type) {
+            case UI_ELEM_HOTBAR:; {
+                e->calcprop.width = 442 * elemdata->scale;
+                e->calcprop.height = 46 * elemdata->scale;
+                break;
+            }
+            default:; {
+                curprop = getProp(e, "width");
+                e->calcprop.width = (curprop) ? getSize(curprop, (float)p_prop.width / elemdata->scale) * elemdata->scale : 0;
+                curprop = getProp(e, "height");
+                e->calcprop.height = (curprop) ? getSize(curprop, (float)p_prop.height / elemdata->scale) * elemdata->scale : 0;
+                break;
+            }
+        }
         {
             int ax = 0, ay = 0;
+            curprop = getProp(e, "align");
             if (curprop) sscanf(curprop, "%d,%d", &ax, &ay);
             switch (ax) {
                 case -1:;
                     e->calcprop.x = p_prop.x;
                     break;
                 default:;
-                    e->calcprop.x = ((float)p_prop.x + (float)p_prop.width / 2.0) - (float)e->calcprop.width / 2.0;
+                    e->calcprop.x = roundf(((float)p_prop.x + (float)p_prop.width / 2.0) - (float)e->calcprop.width / 2.0);
                     break;
                 case 1:;
                     e->calcprop.x = p_prop.x + (p_prop.width - e->calcprop.width);
@@ -266,7 +276,7 @@ static force_inline bool calcProp(struct ui_data* elemdata, struct ui_elem* e, b
                     e->calcprop.y = p_prop.y;
                     break;
                 default:;
-                    e->calcprop.y = ((float)p_prop.y + (float)p_prop.height / 2.0) - (float)e->calcprop.height / 2.0;
+                    e->calcprop.y = roundf(((float)p_prop.y + (float)p_prop.height / 2.0) - (float)e->calcprop.height / 2.0);
                     break;
                 case 1:;
                     e->calcprop.y = p_prop.y + (p_prop.height - e->calcprop.height);

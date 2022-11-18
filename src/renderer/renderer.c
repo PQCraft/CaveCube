@@ -814,36 +814,41 @@ struct meshdata {
     uint32_t* v;
 };
 
-#define writeuielemvert(md, x, y, z, r, g, b, a) {\
-    mtsetvert(&md->_v, &md->s, &md->l, &md->v, (((x) << 16) & 0xFFFF0000) | ((y) & 0xFFFF));\
-    mtsetvert(&md->_v, &md->s, &md->l, &md->v, ((z) & 0xFF));\
-    mtsetvert(&md->_v, &md->s, &md->l, &md->v, (((r) << 24) & 0xFF000000) | (((g) << 16) & 0xFF0000) | (((b) << 8) & 0xFF00) | ((a) & 0xFF));\
-    mtsetvert(&md->_v, &md->s, &md->l, &md->v, 0);\
+static force_inline void writeuielemvert(struct meshdata* md, int x, int y, int8_t z, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
+    mtsetvert(&md->_v, &md->s, &md->l, &md->v, (((x) << 16) & 0xFFFF0000) | ((y) & 0xFFFF));
+    mtsetvert(&md->_v, &md->s, &md->l, &md->v, ((z) & 0xFF));
+    mtsetvert(&md->_v, &md->s, &md->l, &md->v, (((r) << 24) & 0xFF000000) | (((g) << 16) & 0xFF0000) | (((b) << 8) & 0xFF00) | ((a) & 0xFF));
+    mtsetvert(&md->_v, &md->s, &md->l, &md->v, 0);
 }
 
-#define writeuitextvert(md, x, y, z, c, tx, ty, tmx, tmy, fgc, bgc, fga, bga) {\
-    mtsetvert(&md->_v, &md->s, &md->l, &md->v, (((x) << 16) & 0xFFFF0000) | ((y) & 0xFFFF));\
-    mtsetvert(&md->_v, &md->s, &md->l, &md->v, 0x80000000 | (((c) << 8) & 0xFF00) | ((z) & 0xFF));\
-    mtsetvert(&md->_v, &md->s, &md->l, &md->v, (((fga) << 24) & 0xFF000000) | (((bga) << 16) & 0xFF0000) | (((fgc) << 12) & 0xF000) | (((bgc) << 8) & 0xF00));\
-    mtsetvert(&md->_v, &md->s, &md->l, &md->v, (((tx) << 24) & 0xFF000000) | (((ty) << 16) & 0xFF0000) | (((tmx) << 8) & 0xFF00) | ((tmy) & 0xFF));\
+static force_inline void writeuitextvert(struct meshdata* md, int x, int y, int8_t z,
+                                         char c, uint8_t tx, uint8_t ty, uint8_t tmx, uint8_t tmy,
+                                         uint8_t fgc, uint8_t bgc, uint8_t fga, uint8_t bga) {
+    mtsetvert(&md->_v, &md->s, &md->l, &md->v, (((x) << 16) & 0xFFFF0000) | ((y) & 0xFFFF));
+    mtsetvert(&md->_v, &md->s, &md->l, &md->v, 0x80000000 | (((c) << 8) & 0xFF00) | ((z) & 0xFF));
+    mtsetvert(&md->_v, &md->s, &md->l, &md->v, (((fga) << 24) & 0xFF000000) | (((bga) << 16) & 0xFF0000) | (((fgc) << 12) & 0xF000) | (((bgc) << 8) & 0xF00));
+    mtsetvert(&md->_v, &md->s, &md->l, &md->v, (((tx) << 24) & 0xFF000000) | (((ty) << 16) & 0xFF0000) | (((tmx) << 8) & 0xFF00) | ((tmy) & 0xFF));
 }
 
-#define writeuielemrect(md, x0, y0, x1, y1, z, r, g, b, a) {\
-    writeuielemvert(md, x0, y0, z, r, g, b, a);\
-    writeuielemvert(md, x0, y1, z, r, g, b, a);\
-    writeuielemvert(md, x1, y0, z, r, g, b, a);\
-    writeuielemvert(md, x1, y0, z, r, g, b, a);\
-    writeuielemvert(md, x0, y1, z, r, g, b, a);\
-    writeuielemvert(md, x1, y1, z, r, g, b, a);\
+static force_inline void writeuielemrect(struct meshdata* md, int x0, int y0, int x1, int y1, int8_t z, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
+    writeuielemvert(md, x0, y0, z, r, g, b, a);
+    writeuielemvert(md, x0, y1, z, r, g, b, a);
+    writeuielemvert(md, x1, y0, z, r, g, b, a);
+    writeuielemvert(md, x1, y0, z, r, g, b, a);
+    writeuielemvert(md, x0, y1, z, r, g, b, a);
+    writeuielemvert(md, x1, y1, z, r, g, b, a);
 }
 
-#define writeuitextchar(md, x, y, z, ol, ot, or, ob, tmx, tmy, c, fgc, bgc, fga, bga) {\
-    writeuitextvert(md, x + ol, y + ot, z, c, ol, ot, tmx, tmy, fgc, bgc, fga, bga);\
-    writeuitextvert(md, x + ol, y + ob, z, c, ol, ob, tmx, tmy, fgc, bgc, fga, bga);\
-    writeuitextvert(md, x + or, y + ot, z, c, or, ot, tmx, tmy, fgc, bgc, fga, bga);\
-    writeuitextvert(md, x + or, y + ot, z, c, or, ot, tmx, tmy, fgc, bgc, fga, bga);\
-    writeuitextvert(md, x + ol, y + ob, z, c, ol, ob, tmx, tmy, fgc, bgc, fga, bga);\
-    writeuitextvert(md, x + or, y + ob, z, c, or, ob, tmx, tmy, fgc, bgc, fga, bga);\
+static force_inline void writeuitextchar(struct meshdata* md, int x, int y, int z,
+                                         uint8_t ol, uint8_t ot, uint8_t or, uint8_t ob,
+                                         uint8_t tmx, uint8_t tmy, char c,
+                                         uint8_t fgc, uint8_t bgc, uint8_t fga, uint8_t bga) {
+    writeuitextvert(md, x + ol, y + ot, z, c, ol, ot, tmx, tmy, fgc, bgc, fga, bga);
+    writeuitextvert(md, x + ol, y + ob, z, c, ol, ob, tmx, tmy, fgc, bgc, fga, bga);
+    writeuitextvert(md, x + or, y + ot, z, c, or, ot, tmx, tmy, fgc, bgc, fga, bga);
+    writeuitextvert(md, x + or, y + ot, z, c, or, ot, tmx, tmy, fgc, bgc, fga, bga);
+    writeuitextvert(md, x + ol, y + ob, z, c, ol, ob, tmx, tmy, fgc, bgc, fga, bga);
+    writeuitextvert(md, x + or, y + ob, z, c, or, ob, tmx, tmy, fgc, bgc, fga, bga);
 }
 
 struct muie_textline {
@@ -867,6 +872,31 @@ static force_inline void meshUIElem(struct meshdata* md, struct ui_data* elemdat
                 writeuielemrect(md, p->x + s, p->y, p->x + p->width - s, p->y + p->height, p->z, p->r / 2, p->g / 2, p->b / 2, p->a);
                 writeuielemrect(md, p->x + s, p->y + s, p->x + p->width - s, p->y + p->height - s, p->z, p->r, p->g, p->b, p->a);
                 break;
+            }
+            case UI_ELEM_HOTBAR:; {
+                int slot = -1;
+                curprop = getUIElemProperty(e, "slot");
+                if (curprop) slot = atoi(curprop);
+                writeuielemrect(md, p->x, p->y + s, p->x + p->width, p->y + p->height - s, p->z, 63, 63, 63, p->a);
+                writeuielemrect(md, p->x + s, p->y, p->x + p->width - s, p->y + p->height, p->z, 63, 63, 63, p->a);
+                for (int i = 0; i < 10; ++i) {
+                    uint8_t r, g, b;
+                    if (i == slot) {
+                        r = 255;
+                        g = 255;
+                        b = 127;
+                    } else {
+                        r = 127;
+                        g = 127;
+                        b = 127;
+                    }
+                    writeuielemrect(
+                        md,
+                        p->x + (i * 44 + 2) * s, p->y + s * 2, p->x + ((i + 1) * 44) * s, p->y + p->height - s * 2,
+                        p->z,
+                        r, g, b, p->a / 2
+                    );
+                }
             }
         }
     }

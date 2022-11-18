@@ -247,6 +247,11 @@ static force_inline coord_3d_dbl icoord2wcoord(coord_3d cam, int64_t cx, int64_t
     return ret;
 }
 
+static force_inline void updateHotbar(int hb, int slot) {
+    char hbslot[2] = {slot + '0', 0};
+    editUIElem(game_ui[UILAYER_CLIENT], hb, NULL, "slot", hbslot, NULL);
+}
+
 static pthread_mutex_t gfxlock = PTHREAD_MUTEX_INITIALIZER;
 static bool ping = false;
 static int compat = 0;
@@ -358,21 +363,12 @@ bool doGame(char* addr, int port) {
     }
     game_ui[UILAYER_DBGINF]->hidden = !showDebugInfo;
     game_ui[UILAYER_INGAME]->hidden = getInput().focus;
+
     int ui_main = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BOX, "main", -1, "width", "100%", "height", "100%", "color", "#000000", "alpha", "0.25", "z", "-100", NULL);
-    int ui_box1 = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_FANCYBOX, "box1", ui_main, "width", "400", "height", "300", "align", "1,-1", "alpha", "0.5", "z", "1", NULL);
-    int ui_box2 = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_FANCYBOX, "box2", ui_main, "width", "400", "height", "50%", "align", "0,0", "z", "0", NULL);
-    int ui_box3 = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_FANCYBOX, "box3", ui_main, "width", "400", "height", "300", "align", "-1,1", "alpha", "0.75", "z", "-1", NULL);
-    editUIElem(game_ui[UILAYER_INGAME], ui_box1, NULL, "text", "Box 1", "text_align", "1,1", "text_margin", "10,10", NULL);
-    editUIElem(game_ui[UILAYER_INGAME], ui_box2, NULL, "text",
-        "Box 2 | Here is a bit of text to test the wrapping, alignment, and chopping code. "
-        "The quick brown fox jumps over the lazy dog. "
-        "the quick brown fox jumps over the lazy dog. "
-        "THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG.\n"
-        "THE\nQUICK\nBROWN\nFOX\nJUMPS\nOVER\nTHE\nLAZY\nDOG.\n"
-        "THE\nQUICK\nBROWN\nFOX\nJUMPS\nOVER\nTHE\nLAZY\nDOG.\n"
-        "`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?",
-    "text_align", "-1,0", "text_margin", "10,10", NULL);
-    editUIElem(game_ui[UILAYER_INGAME], ui_box3, NULL, "text", "Box 3: Test text", "text_margin", "10,10", NULL);
+    /*int ui_placeholder = */newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_FANCYBOX, "placeholder", ui_main, "width", "128", "height", "36", "text", "[Placeholder]", NULL);
+
+    int ui_hotbar = newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_HOTBAR, "hotbar", -1, "align", "0,1", "margin", "0,10", NULL);
+    updateHotbar(ui_hotbar, invspot);
 
     setFullscreen(rendinf.fullscr);
     while (!quitRequest) {
@@ -398,16 +394,19 @@ bool doGame(char* addr, int port) {
                     switch (input.single_action) {
                         case INPUT_ACTION_SINGLE_INV_0 ... INPUT_ACTION_SINGLE_INV_9:;
                             invspot = input.single_action - INPUT_ACTION_SINGLE_INV_0;
+                            updateHotbar(ui_hotbar, invspot);
                             blocksub = 0;
                             break;
                         case INPUT_ACTION_SINGLE_INV_NEXT:;
                             ++invspot;
                             if (invspot > 9) invspot = 0;
+                            updateHotbar(ui_hotbar, invspot);
                             blocksub = 0;
                             break;
                         case INPUT_ACTION_SINGLE_INV_PREV:;
                             --invspot;
                             if (invspot < 0) invspot = 9;
+                            updateHotbar(ui_hotbar, invspot);
                             blocksub = 0;
                             break;
                         case INPUT_ACTION_SINGLE_INVOFF_NEXT:;

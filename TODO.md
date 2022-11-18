@@ -1,4 +1,9 @@
 ### NEED TO DO:
+- Flesh out UI
+    - Text formatting (bold, italic, underline, and strikethrough)
+    - More UI elements (buttons, text boxes, etc)
+    - UI interaction (elem states, tooltips, etc)
+    - Add `fit_to_text` attrib
 - Add physics in `src/physics/`
     - Use ticks https://gafferongames.com/post/fix_your_timestep/ and add interpolation
     - Add AABB collision in `collision.(c|h)`
@@ -36,9 +41,9 @@
 - Android support (requires that it be buildable from the command-line using `make` so it can be used in `mkrelease.sh`)
 
 ### IN-PROGRESS:
-- 2D UI
 
 ### DONE:
+- Basic 2D UI
 - Improved texture system
 - Fixed block animation bug
 - Added MSYS2 support to Makefile (`MSYS2=y`)
