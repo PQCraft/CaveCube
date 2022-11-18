@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <math.h>
 
 #define idValid(x) isUIIdValid(elemdata, x)
 #define elemValid(x) isUIElemValid(elemdata, x)
