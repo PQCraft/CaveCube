@@ -1,9 +1,12 @@
 ### NEED TO DO:
+- Attempt to fix a small input bug
+    - When press key A, press key B, release key B, release key A, action B is fired
 - Flesh out UI
     - Text formatting (bold, italic, underline, and strikethrough)
     - More UI elements (buttons, text boxes, etc)
     - UI interaction (elem states, tooltips, etc)
-    - Add `fit_to_text` attrib
+    - Add `fit_width_to_text` and `fit_height_to_text` attrib
+    - Add items to hotbar
 - Add physics in `src/physics/`
     - Use ticks https://gafferongames.com/post/fix_your_timestep/ and add interpolation
     - Add AABB collision in `collision.(c|h)`
@@ -43,8 +46,9 @@
 ### IN-PROGRESS:
 
 ### DONE:
-- Basic 2D UI
 - Improved texture system
 - Fixed block animation bug
 - Added MSYS2 support to Makefile (`MSYS2=y`)
 - Makefile now uses `COMPONENT=[...]`
+- Fixed a Makefile bug where the Windows resource file was not being compiled in
+- Basic 2D UI
