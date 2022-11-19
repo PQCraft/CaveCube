@@ -365,7 +365,7 @@ bool doGame(char* addr, int port) {
     game_ui[UILAYER_INGAME]->hidden = getInput().focus;
 
     int ui_main = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BOX, "main", -1, "width", "100%", "height", "100%", "color", "#000000", "alpha", "0.25", "z", "-100", NULL);
-    /*int ui_placeholder = */newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_FANCYBOX, "placeholder", ui_main, "width", "128", "height", "36", "text", "[Placeholder]", NULL);
+    /*int ui_placeholder = */newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_FANCYBOX, "placeholder", ui_main, "width", "128", "height", "36", "text", "[PLACEHOLDER]", NULL);
 
     int ui_hotbar = newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_HOTBAR, "hotbar", -1, "align", "0,1", "margin", "0,10", NULL);
     updateHotbar(ui_hotbar, invspot);

@@ -304,6 +304,7 @@ struct input_info getInput() {
                 for (int i = 0; i < INPUT_ACTION_SINGLE__MAX; ++i) {
                     if (keyDown(input_sa[i])) {
                         lastsa = inf.single_action = i;
+                        break;
                     }
                 }
             } else {

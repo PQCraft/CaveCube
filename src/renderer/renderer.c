@@ -1073,6 +1073,7 @@ static force_inline bool renderUI(struct ui_data* data) {
         free(mdata._v);
     }
     if (!data->renddata.vcount) return false;
+    setUniform1f(rendinf.shaderprog, "scale", data->scale);
     glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(0));
     glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(sizeof(uint32_t)));
     glVertexAttribIPointer(2, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * 2));
