@@ -62,6 +62,7 @@ endif
 define COMPC
 	@$(ccmsg)
 	@$(CC) $(CFLAGS) $< -Wuninitialized -c -o $@
+	@$(cdmsg)
 endef
 
 SNAME := $(NAME):

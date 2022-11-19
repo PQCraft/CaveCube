@@ -1,6 +1,4 @@
 ### NEED TO DO:
-- Attempt to fix a small input bug
-    - When press key A, press key B, release key B, release key A, action B is fired
 - Flesh out UI
     - Text formatting (bold, italic, underline, and strikethrough)
     - More UI elements (buttons, text boxes, etc)
@@ -46,9 +44,4 @@
 ### IN-PROGRESS:
 
 ### DONE:
-- Improved texture system
-- Fixed block animation bug
-- Added MSYS2 support to Makefile (`MSYS2=y`)
-- Makefile now uses `COMPONENT=[...]`
-- Fixed a Makefile bug where the Windows resource file was not being compiled in
-- Basic 2D UI
+- Fixed an input bug on GLFW

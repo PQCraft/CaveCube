@@ -27,6 +27,7 @@ struct ui_elem_calcprop {
     uint8_t g;
     uint8_t b;
     uint8_t a;
+    int state;
 };
 
 struct ui_elem {
@@ -57,6 +58,8 @@ enum {
     UI_ELEM_BOX,
     UI_ELEM_FANCYBOX,
     UI_ELEM_HOTBAR,
+    UI_ELEM_ITEMGRID,
+    UI_ELEM_BUTTON,
 };
 
 struct ui_data* allocUI(void);

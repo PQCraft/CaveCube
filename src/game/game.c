@@ -369,7 +369,12 @@ bool doGame(char* addr, int port) {
 
     int ui_hotbar = newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_HOTBAR, "hotbar", -1, "align", "0,1", "margin", "0,10", NULL);
     updateHotbar(ui_hotbar, invspot);
-
+#if 0
+    int ui_inv_main = newUIElem(game_ui[UILAYER_SERVER], UI_ELEM_BOX, "main", -1, "width", "100%", "height", "100%", "color", "#000000", "alpha", "0.25", "z", "-100", NULL);
+    int ui_inventory = newUIElem(game_ui[UILAYER_SERVER], UI_ELEM_FANCYBOX, "inventory", ui_inv_main, "width", "474", "height", "360", NULL);
+    /*int ui_inv_grid = */newUIElem(game_ui[UILAYER_SERVER], UI_ELEM_ITEMGRID, "inv_grid", ui_inventory, "width", "10", "height", "4", "align", "0,1", "margin", "0,16", "y_offset", "-62", NULL);
+    /*int ui_inv_hb = */newUIElem(game_ui[UILAYER_SERVER], UI_ELEM_ITEMGRID, "inv_hotbar", ui_inventory, "width", "10", "height", "1", "align", "0,1", "margin", "0,16", NULL);
+#endif
     setFullscreen(rendinf.fullscr);
     while (!quitRequest) {
         uint64_t st1 = altutime();
@@ -377,7 +382,7 @@ bool doGame(char* addr, int port) {
         float bps = 4;
         struct input_info input = getInput();
         {
-            if (!input.focus) {
+            if (!input.focus && inputMode != INPUT_MODE_UI) {
                 setInputMode(INPUT_MODE_UI);
                 resetInput();
             }
