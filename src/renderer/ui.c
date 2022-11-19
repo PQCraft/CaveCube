@@ -249,6 +249,15 @@ static force_inline bool calcProp(struct ui_data* elemdata, struct ui_elem* e, b
                 e->calcprop.height = 46 * elemdata->scale;
                 break;
             }
+            case UI_ELEM_ITEMGRID:; {
+                curprop = getProp(e, "width");
+                e->calcprop.width = (curprop) ? atoi(curprop) : 1;
+                curprop = getProp(e, "height");
+                e->calcprop.height = (curprop) ? atoi(curprop) : 1;
+                e->calcprop.width = (e->calcprop.width * 44 + 2) * elemdata->scale;
+                e->calcprop.height = (e->calcprop.height * 44 + 2) * elemdata->scale;
+                break;
+            }
             default:; {
                 curprop = getProp(e, "width");
                 e->calcprop.width = (curprop) ? getSize(curprop, (float)p_prop.width / elemdata->scale) * elemdata->scale : 0;
@@ -301,6 +310,8 @@ static force_inline bool calcProp(struct ui_data* elemdata, struct ui_elem* e, b
         e->calcprop.b = 127;
         curprop = getUIElemProperty(e, "color");
         if (curprop) sscanf(curprop, "#%02hhx%02hhx%02hhx", &e->calcprop.r, &e->calcprop.g, &e->calcprop.b);
+        curprop = getUIElemProperty(e, "state");
+        e->calcprop.state = (curprop) ? atoi(curprop) : 0;
         return true;
     }
     return false;

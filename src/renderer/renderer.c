@@ -897,6 +897,30 @@ static force_inline void meshUIElem(struct meshdata* md, struct ui_data* elemdat
                         r, g, b, p->a / 2
                     );
                 }
+                break;
+            }
+            case UI_ELEM_ITEMGRID:; {
+                writeuielemrect(md, p->x, p->y + s, p->x + p->width, p->y + p->height - s, p->z, 63, 63, 63, p->a);
+                writeuielemrect(md, p->x + s, p->y, p->x + p->width - s, p->y + p->height, p->z, 63, 63, 63, p->a);
+                curprop = getUIElemProperty(e, "width");
+                int width = (curprop) ? atoi(curprop) : 1;
+                curprop = getUIElemProperty(e, "height");
+                int height = (curprop) ? atoi(curprop) : 1;
+                for (int y = 0; y < height; ++y) {
+                    for (int x = 0; x < width; ++x) {
+                        writeuielemrect(
+                            md,
+                            p->x + (x * 44 + 2) * s, p->y + (y * 44 + 2) * s, p->x + ((x + 1) * 44) * s, p->y + ((y + 1) * 44) * s,
+                            p->z,
+                            140, 140, 140, p->a
+                        );
+                    }
+                }
+                break;
+            }
+            case UI_ELEM_BUTTON:; {
+                
+                break;
             }
         }
     }
@@ -1392,7 +1416,7 @@ bool startRenderer() {
     rendinf.camfar = atof(getConfigKey(config, "Renderer", "farPlane"));
 
     #if defined(USESDL2)
-    if (!(rendinf.window = SDL_CreateWindow(PROG_NAME, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, rendinf.win_width, rendinf.win_height, SDL_WINDOW_OPENGL))) {
+    if (!(rendinf.window = SDL_CreateWindow(PROG_NAME, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, rendinf.win_width, rendinf.win_height, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE))) {
         sdlerror("startRenderer: Failed to create window");
         return false;
     }
@@ -1414,10 +1438,6 @@ bool startRenderer() {
     SDL_GL_MakeCurrent(rendinf.window, rendinf.context);
     #else
     glfwMakeContextCurrent(rendinf.window);
-    #endif
-    #if defined(USESDL2)
-    #else
-    glfwSetInputMode(rendinf.window, GLFW_STICKY_KEYS, GLFW_TRUE);
     #endif
 
     GLADloadproc glproc;
