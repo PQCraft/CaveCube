@@ -138,7 +138,7 @@ void updateScreen(void);
 void setMeshChunks(void*);
 void updateChunks(void);
 void startMesher(void);
-void updateChunk(int64_t, int64_t, bool);
+void updateChunk(int64_t, int64_t, int);
 void setMeshChunkOff(int64_t, int64_t);
 void render(void);
 void setSkyColor(float, float, float);
