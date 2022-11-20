@@ -3,7 +3,7 @@ layout (location = 0) in uint data1;
 // text:    [16 bits: x][16 bits: y]
 layout (location = 1) in uint data2;
 // ui elem: [1 bit: 0][23 bits: reserved][8 bits: z]
-// text:    [1 bit: 1][4 bits: reserved][1 bit: strikethrough][1 bit: underline][1 bit: italic][1 bit: bold][8 bits: reserved (16-bit charset maybe)][8 bits: text char][8 bits: z]
+// text:    [1 bit: 1][3 bits: reserved][1 bit: strikethrough][1 bit: underline][1 bit: italic][1 bit: bold][8 bits: reserved (16-bit charset maybe)][8 bits: text char][8 bits: z]
 layout (location = 2) in uint data3;
 // ui elem: [8 bits: r][8 bits: g][8 bits: b][8 bits: a]
 // text:    [8 bits: fgc alpha][8 bits: bgc alpha][4 bits: text fgc][4 bits: text bgc][8 bits: reserved]

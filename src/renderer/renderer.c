@@ -433,7 +433,7 @@ struct msgdata chunkmsgs;
 struct msgdata_msg {
     bool valid;
     bool dep;
-    bool full;
+    int lvl;
     int64_t x;
     int64_t z;
     uint64_t id;
@@ -464,7 +464,7 @@ static void deinitMsgData(struct msgdata* mdata) {
 }
 */
 
-static force_inline void addMsg(struct msgdata* mdata, int64_t x, int64_t z, uint64_t id, bool dep, bool full) {
+static force_inline void addMsg(struct msgdata* mdata, int64_t x, int64_t z, uint64_t id, bool dep, int lvl) {
     pthread_mutex_lock(&mdata->lock);
     if (mdata->valid) {
         int index = -1;
@@ -484,7 +484,7 @@ static force_inline void addMsg(struct msgdata* mdata, int64_t x, int64_t z, uin
         //printf("adding [%d]/[%d]\n", index + 1, mdata->size);
         mdata->msg[index].valid = true;
         mdata->msg[index].dep = dep;
-        mdata->msg[index].full = full;
+        mdata->msg[index].lvl = lvl;
         mdata->msg[index].x = x;
         mdata->msg[index].z = z;
         mdata->msg[index].id = (dep) ? id : mdata->id++;
@@ -493,8 +493,8 @@ static force_inline void addMsg(struct msgdata* mdata, int64_t x, int64_t z, uin
     pthread_mutex_unlock(&mdata->lock);
 }
 
-void updateChunk(int64_t x, int64_t z, bool full) {
-    addMsg(&chunkmsgs, x, z, 0, false, full);
+void updateChunk(int64_t x, int64_t z, int updatelvl) {
+    addMsg(&chunkmsgs, x, z, 0, false, updatelvl);
 }
 
 static int64_t cxo, czo;
@@ -511,7 +511,7 @@ static force_inline bool getNextMsg(struct msgdata* mdata, struct msgdata_msg* m
             if (mdata->msg[i].valid) {
                 msg->valid = mdata->msg[i].valid;
                 msg->dep = mdata->msg[i].dep;
-                msg->full = mdata->msg[i].full;
+                msg->lvl = mdata->msg[i].lvl;
                 msg->x = mdata->msg[i].x;
                 msg->z = mdata->msg[i].z;
                 msg->id = mdata->msg[i].id;
@@ -576,18 +576,6 @@ static void* meshthread(void* args) {
                 if (msg.id < chunks->renddata[c].updateid) {goto lblcontinue;}
             }
             pthread_mutex_unlock(&uclock);
-            if (!msg.dep) {
-                addMsg(&chunkmsgs, msg.x, msg.z + 1, msg.id, true, false);
-                addMsg(&chunkmsgs, msg.x, msg.z - 1, msg.id, true, false);
-                addMsg(&chunkmsgs, msg.x + 1, msg.z, msg.id, true, false);
-                addMsg(&chunkmsgs, msg.x - 1, msg.z, msg.id, true, false);
-                if (msg.full) {
-                    addMsg(&chunkmsgs, msg.x + 1, msg.z + 1, msg.id, true, false);
-                    addMsg(&chunkmsgs, msg.x + 1, msg.z - 1, msg.id, true, false);
-                    addMsg(&chunkmsgs, msg.x - 1, msg.z + 1, msg.id, true, false);
-                    addMsg(&chunkmsgs, msg.x - 1, msg.z - 1, msg.id, true, false);
-                }
-            }
             int vpsize = 1024;
             int vpsize2 = 1024;
             int vpsize3 = 256;
@@ -680,6 +668,20 @@ static void* meshthread(void* args) {
                 chunks->renddata[c].vertices3 = _vptr3;
                 chunks->renddata[c].ready = true;
                 chunks->renddata[c].updateid = msg.id;
+                if (!msg.dep) {
+                    if (msg.lvl >= 1) {
+                        addMsg(&chunkmsgs, msg.x, msg.z + 1, msg.id, true, 0);
+                        addMsg(&chunkmsgs, msg.x, msg.z - 1, msg.id, true, 0);
+                        addMsg(&chunkmsgs, msg.x + 1, msg.z, msg.id, true, 0);
+                        addMsg(&chunkmsgs, msg.x - 1, msg.z, msg.id, true, 0);
+                        if (msg.lvl >= 2) {
+                            addMsg(&chunkmsgs, msg.x + 1, msg.z + 1, msg.id, true, 0);
+                            addMsg(&chunkmsgs, msg.x + 1, msg.z - 1, msg.id, true, 0);
+                            addMsg(&chunkmsgs, msg.x - 1, msg.z + 1, msg.id, true, 0);
+                            addMsg(&chunkmsgs, msg.x - 1, msg.z - 1, msg.id, true, 0);
+                        }
+                    }
+                }
                 //printf("meshed: [%"PRId64", %"PRId64"] ([%"PRId64", %"PRId64"])\n", msg.x, msg.z, nx, nz);
             } else {
                 free(_vptr);
@@ -823,9 +825,9 @@ static force_inline void writeuielemvert(struct meshdata* md, int x, int y, int8
 
 static force_inline void writeuitextvert(struct meshdata* md, int x, int y, int8_t z,
                                          char c, uint8_t tx, uint8_t ty, uint8_t tmx, uint8_t tmy,
-                                         uint8_t fgc, uint8_t bgc, uint8_t fga, uint8_t bga) {
+                                         uint8_t fgc, uint8_t bgc, uint8_t fga, uint8_t bga, uint8_t attrib) {
     mtsetvert(&md->_v, &md->s, &md->l, &md->v, (((x) << 16) & 0xFFFF0000) | ((y) & 0xFFFF));
-    mtsetvert(&md->_v, &md->s, &md->l, &md->v, 0x80000000 | (((c) << 8) & 0xFF00) | ((z) & 0xFF));
+    mtsetvert(&md->_v, &md->s, &md->l, &md->v, 0x80000000 | (((attrib) << 24) & 0xF000000) | (((c) << 8) & 0xFF00) | ((z) & 0xFF));
     mtsetvert(&md->_v, &md->s, &md->l, &md->v, (((fga) << 24) & 0xFF000000) | (((bga) << 16) & 0xFF0000) | (((fgc) << 12) & 0xF000) | (((bgc) << 8) & 0xF00));
     mtsetvert(&md->_v, &md->s, &md->l, &md->v, (((tx) << 24) & 0xFF000000) | (((ty) << 16) & 0xFF0000) | (((tmx) << 8) & 0xFF00) | ((tmy) & 0xFF));
 }
@@ -841,14 +843,14 @@ static force_inline void writeuielemrect(struct meshdata* md, int x0, int y0, in
 
 static force_inline void writeuitextchar(struct meshdata* md, int x, int y, int z,
                                          uint8_t ol, uint8_t ot, uint8_t or, uint8_t ob,
-                                         uint8_t tmx, uint8_t tmy, char c,
+                                         uint8_t tmx, uint8_t tmy, char c, uint8_t attrib,
                                          uint8_t fgc, uint8_t bgc, uint8_t fga, uint8_t bga) {
-    writeuitextvert(md, x + ol, y + ot, z, c, ol, ot, tmx, tmy, fgc, bgc, fga, bga);
-    writeuitextvert(md, x + ol, y + ob, z, c, ol, ob, tmx, tmy, fgc, bgc, fga, bga);
-    writeuitextvert(md, x + or, y + ot, z, c, or, ot, tmx, tmy, fgc, bgc, fga, bga);
-    writeuitextvert(md, x + or, y + ot, z, c, or, ot, tmx, tmy, fgc, bgc, fga, bga);
-    writeuitextvert(md, x + ol, y + ob, z, c, ol, ob, tmx, tmy, fgc, bgc, fga, bga);
-    writeuitextvert(md, x + or, y + ob, z, c, or, ob, tmx, tmy, fgc, bgc, fga, bga);
+    writeuitextvert(md, x + ol, y + ot, z, c, ol, ot, tmx, tmy, fgc, bgc, fga, bga, attrib);
+    writeuitextvert(md, x + ol, y + ob, z, c, ol, ob, tmx, tmy, fgc, bgc, fga, bga, attrib);
+    writeuitextvert(md, x + or, y + ot, z, c, or, ot, tmx, tmy, fgc, bgc, fga, bga, attrib);
+    writeuitextvert(md, x + or, y + ot, z, c, or, ot, tmx, tmy, fgc, bgc, fga, bga, attrib);
+    writeuitextvert(md, x + ol, y + ob, z, c, ol, ob, tmx, tmy, fgc, bgc, fga, bga, attrib);
+    writeuitextvert(md, x + or, y + ob, z, c, or, ob, tmx, tmy, fgc, bgc, fga, bga, attrib);
 }
 
 struct muie_textline {
@@ -954,6 +956,15 @@ static force_inline void meshUIElem(struct meshdata* md, struct ui_data* elemdat
             p->y += my;
             p->height -= my * 2;
         }
+        uint8_t attrib = 0;
+        curprop = getUIElemProperty(e, "text_bold");
+        if (curprop) attrib |= getBool(curprop);
+        curprop = getUIElemProperty(e, "text_italic");
+        if (curprop) attrib |= getBool(curprop) << 1;
+        curprop = getUIElemProperty(e, "text_underline");
+        if (curprop) attrib |= getBool(curprop) << 2;
+        curprop = getUIElemProperty(e, "text_strikethrough");
+        if (curprop) attrib |= getBool(curprop) << 3;
         int end = p->x + p->width;
         static int tcw = 8, tch = 16;
         int lines = 1;
@@ -997,36 +1008,24 @@ static force_inline void meshUIElem(struct meshdata* md, struct ui_data* elemdat
         {
             int x, y;
             switch (ay) {
-                case -1:;
-                    y = p->y;
-                    break;
-                default:;
-                    y = ((float)p->y + (float)p->height / 2.0) - (float)(lines * tch * s) / 2.0;
-                    break;
-                case 1:;
-                    y = p->y + (p->height - lines * tch * s);
-                    break;
+                case -1:; y = p->y; break;
+                default:; y = ((float)p->y + (float)p->height / 2.0) - (float)(lines * tch * s) / 2.0; break;
+                case 1:; y = p->y + (p->height - lines * tch * s); break;
             }
             for (int i = 0; i < lines; ++i) {
                 switch (ax) {
-                    case -1:;
-                        x = p->x;
-                        break;
-                    default:;
-                        x = ((float)p->x + (float)p->width / 2.0) - (float)tdata[i].width / 2.0;
-                        break;
-                    case 1:;
-                        x = (end - tdata[i].width);
-                        break;
+                    case -1:; x = p->x; break;
+                    default:; x = ((float)p->x + (float)p->width / 2.0) - (float)tdata[i].width / 2.0; break;
+                    case 1:; x = (end - tdata[i].width); break;
                 }
                 for (int j = 0; j < tdata[i].chars; ++j) {
                     uint8_t ol = 0, or = tcw * s, ot = 0, ob = tch * s, stcw = tcw * s, stch = tch * s;
-                    if (x + or >= p->x && x <= p->x + p->width && y + ob >= p->y && y <= p->y + p->height) {
+                    if (/*x + or >= p->x && x <= p->x + p->width &&*/ y + ob >= p->y && y <= p->y + p->height) {
                         //if (x + or > p->x + p->width) or -= (x + or) - (p->x + p->width);
                         if (y + ob > p->y + p->height) ob -= (y + ob) - (p->y + p->height);
                         //if (x + ol < p->x) ol += (p->x) - (x + or);
                         if (y + ot < p->y) ot += (p->y) - (y + ot);
-                        writeuitextchar(md, x, y, p->z, ol, ot, or, ob, stcw, stch, tdata[i].ptr[j], fgc, bgc, fga, bga);
+                        writeuitextchar(md, x, y, p->z, ol, ot, or, ob, stcw, stch, tdata[i].ptr[j], attrib, fgc, bgc, fga, bga);
                     }
                     x += tcw * s;
                 }

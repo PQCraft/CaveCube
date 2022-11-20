@@ -1,6 +1,5 @@
 ### NEED TO DO:
 - Flesh out UI
-    - Text formatting (bold, italic, underline, and strikethrough)
     - More UI elements (buttons, text boxes, etc)
     - UI interaction (elem states, tooltips, etc)
     - Add `fit_width_to_text` and `fit_height_to_text` attrib
@@ -45,3 +44,5 @@
 
 ### DONE:
 - Fixed an input bug on GLFW
+- Chunk update bugfix
+- UI text formatting

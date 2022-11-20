@@ -49,7 +49,7 @@ static force_inline void writeChunk(struct chunkdata* chunks, int64_t x, int64_t
     //printf("writing chunk to [%"PRId64", %"PRId64"] ([%"PRId64", %"PRId64"])\n", nx, nz, x, z);
     memcpy(chunks->data[coff], data, 65536 * sizeof(struct blockdata));
     //chunks->renddata[coff].updated = false;
-    updateChunk(x, z, true);
+    updateChunk(x, z, 1);
     chunks->renddata[coff].generated = true;
     pthread_mutex_unlock(&uclock);
 }
