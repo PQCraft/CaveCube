@@ -4,8 +4,8 @@ in float texOffset;
 in vec3 light;
 uniform sampler2DArray texData;
 uniform int dist;
-uniform int vis;
-uniform float vismul;
+uniform float fogNear;
+uniform float fogFar;
 uniform vec3 cam;
 uniform vec3 skycolor;
 
@@ -18,7 +18,9 @@ void main() {
     } else {
         discard;
     }
-    float mixv = clamp((distance(vec3(fragPos.x, fragPos.y, fragPos.z), vec3(cam.x, cam.y, cam.z)) - float(dist) * vismul * float(vis) * 2.0) / (16.0 * float(dist) * vismul - float(dist) * vismul * float(vis) * 2.0), 0.0, 1.0);
+    float fogdist = distance(fragPos.xyz, cam.xyz);
+    float fogdmin = (float(dist) * 16.0 - 8.0) * fogNear;
+    float fogdmax = (float(dist) * 16.0 - 8.0) * fogFar;
     fragColor.rgb *= light;
-    fragColor = mix(fragColor, vec4(skycolor, fragColor.a), mixv);
+    fragColor = mix(fragColor, vec4(skycolor, fragColor.a), 1.0 - clamp((fogdmax - fogdist) / (fogdmax - fogdmin), 0.0, 1.0));
 }
