@@ -83,13 +83,13 @@ void setScreenMult(float r, float g, float b) {
     //setUniform3f(rendinf.shaderprog, "mcolor", (float[]){r, g, b});
 }
 
-void setVisibility(int vis, float vismul) {
+void setVisibility(float near, float far) {
     setShaderProg(shader_block);
-    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "vis"), vis);
-    glUniform1f(glGetUniformLocation(rendinf.shaderprog, "vismul"), vismul);
+    glUniform1f(glGetUniformLocation(rendinf.shaderprog, "fogNear"), near);
+    glUniform1f(glGetUniformLocation(rendinf.shaderprog, "fogFar"), far);
     //setShaderProg(shader_3d);
-    //glUniform1i(glGetUniformLocation(rendinf.shaderprog, "vis"), vis);
-    //glUniform1f(glGetUniformLocation(rendinf.shaderprog, "vismul"), vismul);
+    //glUniform1f(glGetUniformLocation(rendinf.shaderprog, "fogNear"), near);
+    //glUniform1f(glGetUniformLocation(rendinf.shaderprog, "fogFar"), far);
 }
 
 #define avec2 vec2 __attribute__((aligned (32)))

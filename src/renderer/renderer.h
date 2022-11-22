@@ -143,7 +143,7 @@ void setMeshChunkOff(int64_t, int64_t);
 void render(void);
 void setSkyColor(float, float, float);
 void setScreenMult(float, float, float);
-void setVisibility(int, float);
+void setVisibility(float, float);
 void setFullscreen(bool);
 #if defined(USESDL2)
 void sdlreszevent(int, int);
