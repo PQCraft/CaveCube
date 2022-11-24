@@ -249,7 +249,7 @@ static force_inline coord_3d_dbl icoord2wcoord(coord_3d cam, int64_t cx, int64_t
 
 static force_inline void updateHotbar(int hb, int slot) {
     char hbslot[2] = {slot + '0', 0};
-    editUIElem(game_ui[UILAYER_CLIENT], hb, NULL, "slot", hbslot, NULL);
+    editUIElem(game_ui[UILAYER_CLIENT], hb, NULL, -1, "slot", hbslot, NULL);
 }
 
 static pthread_mutex_t gfxlock = PTHREAD_MUTEX_INITIALIZER;
@@ -364,16 +364,16 @@ bool doGame(char* addr, int port) {
     game_ui[UILAYER_DBGINF]->hidden = !showDebugInfo;
     game_ui[UILAYER_INGAME]->hidden = getInput().focus;
 
-    int ui_main = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BOX, "main", -1, "width", "100%", "height", "100%", "color", "#000000", "alpha", "0.25", "z", "-100", NULL);
-    /*int ui_placeholder = */newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_FANCYBOX, "placeholder", ui_main, "width", "128", "height", "36", "text", "[Placeholder]", NULL);
+    int ui_main = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BOX, "main", -1, -1, "width", "100%", "height", "100%", "color", "#000000", "alpha", "0.25", "z", "-100", NULL);
+    /*int ui_placeholder = */newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_FANCYBOX, "placeholder", ui_main, -1, "width", "128", "height", "36", "text", "[Placeholder]", NULL);
 
-    int ui_hotbar = newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_HOTBAR, "hotbar", -1, "align", "0,1", "margin", "0,10", NULL);
+    int ui_hotbar = newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_HOTBAR, "hotbar", -1, -1, "align", "0,1", "margin", "0,10", NULL);
     updateHotbar(ui_hotbar, invspot);
 #if 0
-    int ui_inv_main = newUIElem(game_ui[UILAYER_SERVER], UI_ELEM_BOX, "main", -1, "width", "100%", "height", "100%", "color", "#000000", "alpha", "0.25", "z", "-100", NULL);
-    int ui_inventory = newUIElem(game_ui[UILAYER_SERVER], UI_ELEM_FANCYBOX, "inventory", ui_inv_main, "width", "474", "height", "360", NULL);
-    /*int ui_inv_grid = */newUIElem(game_ui[UILAYER_SERVER], UI_ELEM_ITEMGRID, "inv_grid", ui_inventory, "width", "10", "height", "4", "align", "0,1", "margin", "0,16", "y_offset", "-62", NULL);
-    /*int ui_inv_hb = */newUIElem(game_ui[UILAYER_SERVER], UI_ELEM_ITEMGRID, "inv_hotbar", ui_inventory, "width", "10", "height", "1", "align", "0,1", "margin", "0,16", NULL);
+    int ui_inv_main = newUIElem(game_ui[UILAYER_SERVER], UI_ELEM_BOX, "main", -1, -1, "width", "100%", "height", "100%", "color", "#000000", "alpha", "0.25", "z", "-100", NULL);
+    int ui_inventory = newUIElem(game_ui[UILAYER_SERVER], UI_ELEM_FANCYBOX, "inventory", ui_inv_main, -1, "width", "474", "height", "360", NULL);
+    int ui_inv_hb = newUIElem(game_ui[UILAYER_SERVER], UI_ELEM_ITEMGRID, "inv_hotbar", ui_inventory, -1, "width", "10", "height", "1", "align", "0,1", "margin", "0,16", NULL);
+    /*int ui_inv_grid = */newUIElem(game_ui[UILAYER_SERVER], UI_ELEM_ITEMGRID, "inv_grid", ui_inventory, ui_inv_hb, "width", "10", "height", "4", "align", "0,1", "margin", "0,16", NULL);
 #endif
     setFullscreen(rendinf.fullscr);
     while (!quitRequest) {
@@ -642,7 +642,7 @@ bool doGame(char* addr, int port) {
                 setScreenMult(0.4, 0.55, 0.8);
             } else {
                 setVisibility(0.5, 1.0);
-                setScreenMult(1, 1, 1);
+                setScreenMult(1.0, 1.0, 1.0);
             }
             pthread_mutex_lock(&gfxlock);
             if (setskycolor) {

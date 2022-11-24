@@ -105,11 +105,19 @@ static force_inline bool getNextMsgForUUID(struct msgdata* mdata, struct msgdata
     return false;
 }
 
-static struct msgdata servmsgin;
-static struct msgdata servmsgout;
+enum {
+    MSG_PRIO_LOW,
+    MSG_PRIO_NORMAL,
+    MSG_PRIO_HIGH,
+    MSG_PRIO__MAX,
+};
+
+static struct msgdata servmsgin[3];
+static struct msgdata servmsgout[3];
 
 struct timerdata_timer {
     int event;
+    int priority;
     uint64_t interval;
     uint64_t intertime;
 };
@@ -136,7 +144,7 @@ static force_inline void deinitTimerData(struct timerdata* tdata) {
     pthread_mutex_destroy(&tdata->lock);
 }
 
-static force_inline int addTimer(struct timerdata* tdata, int event, uint64_t interval) {
+static force_inline int addTimer(struct timerdata* tdata, int event, int prio, uint64_t interval) {
     int index = -1;
     pthread_mutex_lock(&tdata->lock);
     if (tdata->valid) {
@@ -151,6 +159,7 @@ static force_inline int addTimer(struct timerdata* tdata, int event, uint64_t in
             tdata->tmr = realloc(tdata->tmr, tdata->size * sizeof(*tdata->tmr));
         }
         tdata->tmr[index].event = event;
+        tdata->tmr[index].priority = prio;
         tdata->tmr[index].interval = interval;
         tdata->tmr[index].intertime = altutime() + interval;
     }
@@ -196,19 +205,22 @@ static void* servtimerthread(void* vargs) {
             if (wait > 0) {
                 microwait(wait);
             }
-            //addMsg(&servmsgin, event, NULL, -1, -1);
+            pthread_mutex_lock(&tdata->lock);
+            //addMsg(&servmsgin[tdata->tmr[index].priority], event, NULL, -1, -1);
             tdata->tmr[index].intertime = altutime() + tdata->tmr[index].interval;
-            //printf("Firing event [%d]: [%d]\n", index, event);
+            printf("Firing event [%d]: [%d]\n", index, event);
+            pthread_mutex_unlock(&tdata->lock);
         }
     }
     return NULL;
 }
 
-static struct timerdata servtimer;
-
 enum {
-    MSGTYPE_DATA,
+    _SERVER_TIMER1 = 512,
+    _SERVER_TIMER2,
 };
+
+static struct timerdata servtimer;
 
 static force_inline int getInbufSize(struct netcxn* cxn) {
     return cxn->inbuf->dlen;
@@ -261,8 +273,8 @@ static struct playerdata* pdata;
 static pthread_mutex_t pdatalock;
 
 enum {
-    _SERVER_INTERNAL1 = 256,
-    _SERVER_INTERNAL2,
+    _SERVER_USERCONNECT = 256,
+    _SERVER_USERDISCONNECT,
 };
 
 static int worldtype = 1;
@@ -276,7 +288,7 @@ static void* servthread(void* args) {
     while (serveralive) {
         bool activity = false;
         struct msgdata_msg msg;
-        if (getNextMsg(&servmsgin, &msg)) {
+        if (getNextMsg(&servmsgin[MSG_PRIO_HIGH], &msg) || getNextMsg(&servmsgin[MSG_PRIO_NORMAL], &msg) || getNextMsg(&servmsgin[MSG_PRIO_LOW], &msg)) {
             activity = true;
             //printf("Received message [%d] for player handle [%d]\n", msg.id, msg.uind);
             pthread_mutex_lock(&pdatalock);
@@ -286,7 +298,7 @@ static void* servthread(void* args) {
                 //puts("Processing message...");
                 switch (msg.id) {
                     case CLIENT_PING:; {
-                        addMsg(&servmsgout, SERVER_PONG, NULL, msg.uuid, msg.uind);
+                        addMsg(&servmsgout[MSG_PRIO_NORMAL], SERVER_PONG, NULL, msg.uuid, msg.uind);
                         break;
                     }
                     case CLIENT_COMPATINFO:; {
@@ -298,7 +310,7 @@ static void* servthread(void* args) {
                         outdata->ver_patch = VER_PATCH;
                         outdata->flags = SERVER_FLAG_NOAUTH;
                         outdata->server_str = strdup(PROG_NAME);
-                        addMsg(&servmsgout, SERVER_COMPATINFO, outdata, msg.uuid, msg.uind);
+                        addMsg(&servmsgout[MSG_PRIO_HIGH], SERVER_COMPATINFO, outdata, msg.uuid, msg.uind);
                         break;
                     }
                     case CLIENT_LOGININFO:; {
@@ -326,7 +338,7 @@ static void* servthread(void* args) {
                                 pthread_mutex_unlock(&pdatalock);
                             }
                         }
-                        addMsg(&servmsgout, SERVER_LOGININFO, outdata, msg.uuid, msg.uind);
+                        addMsg(&servmsgout[MSG_PRIO_HIGH], SERVER_LOGININFO, outdata, msg.uuid, msg.uind);
                         break;
                     }
                     case CLIENT_GETCHUNK:; {
@@ -335,11 +347,21 @@ static void* servthread(void* args) {
                         outdata->x = data->x;
                         outdata->z = data->z;
                         genChunk(data->x, data->z, outdata->data, worldtype);
-                        addMsg(&servmsgout, SERVER_UPDATECHUNK, outdata, msg.uuid, msg.uind);
+                        addMsg(&servmsgout[MSG_PRIO_LOW], SERVER_UPDATECHUNK, outdata, msg.uuid, msg.uind);
+                        break;
+                    }
+                    case _SERVER_USERCONNECT:; {
+                        struct server_data_setskycolor* tmpdata = malloc(sizeof(*tmpdata));
+                        *tmpdata = (struct server_data_setskycolor){0x8A, 0xC9, 0xFF};
+                        addMsg(&servmsgout[MSG_PRIO_HIGH], SERVER_SETSKYCOLOR, tmpdata, msg.uuid, msg.uind);
+                        break;
+                    }
+                    case _SERVER_USERDISCONNECT:; {
                         break;
                     }
                     default:; {
                         activity = false;
+                        break;
                     }
                 }
                 if (msg.data) free(msg.data);
@@ -384,17 +406,13 @@ static void* servnetthread(void* args) {
                     pdata[i].cxn = newcxn;
                     memset(&pdata[i].player, 0, sizeof(pdata[i].player));
                     added = true;
-                    struct server_data_setskycolor* tmpdata = malloc(sizeof(*tmpdata));
-                    *tmpdata = (struct server_data_setskycolor){0x8A, 0xC3, 0xFF};
-                    addMsg(&servmsgout, SERVER_SETSKYCOLOR, tmpdata, pdata[i].uuid, i);
+                    addMsg(&servmsgin[MSG_PRIO_HIGH], _SERVER_USERCONNECT, NULL, pdata[i].uuid, i);
                     break;
                 }
             }
             if (!added) {
-                {
-                    char str[22];
-                    printf("Connection to %s dropped due to client limit\n", getCxnAddrStr(newcxn, str));
-                }
+                char str[22];
+                printf("Connection to %s dropped due to client limit\n", getCxnAddrStr(newcxn, str));
                 closeCxn(newcxn);
             }
             pthread_mutex_unlock(&pdatalock);
@@ -404,10 +422,8 @@ static void* servnetthread(void* args) {
             if (pdata[i].valid) {
                 if (recvCxn(pdata[i].cxn) < 0) {
                     activity = true;
-                    {
-                        char str[22];
-                        printf("Connection to %s dropped due to disconnect\n", getCxnAddrStr(pdata[i].cxn, str));
-                    }
+                    char str[22];
+                    printf("Connection to %s dropped due to disconnect\n", getCxnAddrStr(pdata[i].cxn, str));
                     closeCxn(pdata[i].cxn);
                     pdata[i].valid = false;
                 } else {
@@ -426,62 +442,59 @@ static void* servnetthread(void* args) {
                         unsigned char* buf = malloc(pdata[i].tmpsize);
                         readFromCxnBuf(pdata[i].cxn, buf, pdata[i].tmpsize);
                         int ptr = 0;
-                        uint8_t tmpbyte = buf[ptr++];
-                        switch (tmpbyte) {
-                            case MSGTYPE_DATA:; {
-                                void* _data = NULL;
-                                uint8_t msgdataid = buf[ptr++];
-                                //printf("FROM CLIENT[%d]: [%d]\n", i, msgdataid);
-                                switch (msgdataid) {
-                                    case CLIENT_COMPATINFO:; {
-                                        struct client_data_compatinfo* data = malloc(sizeof(*data));
-                                        memcpy(&data->ver_major, &buf[ptr], 2);
-                                        ptr += 2;
-                                        data->ver_major = net2host16(data->ver_major);
-                                        memcpy(&data->ver_minor, &buf[ptr], 2);
-                                        ptr += 2;
-                                        data->ver_minor = net2host16(data->ver_minor);
-                                        memcpy(&data->ver_patch, &buf[ptr], 2);
-                                        ptr += 2;
-                                        data->ver_patch = net2host16(data->ver_patch);
-                                        data->flags = buf[ptr++];
-                                        uint16_t tmpword = 0;
-                                        memcpy(&tmpword, &buf[ptr], 2);
-                                        ptr += 2;
-                                        tmpword = net2host16(tmpword);
-                                        data->client_str = malloc((int)tmpword + 1);
-                                        memcpy(data->client_str, &buf[ptr], tmpword);
-                                        data->client_str[tmpword] = 0;
-                                        _data = data;
-                                        break;
-                                    }
-                                    case CLIENT_GETCHUNK:; {
-                                        struct server_data_updatechunk* data = malloc(sizeof(*data));
-                                        memcpy(&data->x, &buf[ptr], 8);
-                                        ptr += 8;
-                                        data->x = net2host64(data->x);
-                                        memcpy(&data->z, &buf[ptr], 8);
-                                        data->z = net2host64(data->z);
-                                        _data = data;
-                                        break;
-                                    }
-                                }
-                                addMsg(&servmsgin, msgdataid, _data, pdata[i].uuid, i);
+                        void* _data = NULL;
+                        uint8_t msgdataid = buf[ptr++];
+                        int priority = MSG_PRIO_NORMAL;
+                        //printf("FROM CLIENT[%d]: [%d]\n", i, msgdataid);
+                        switch (msgdataid) {
+                            case CLIENT_COMPATINFO:; {
+                                struct client_data_compatinfo* data = malloc(sizeof(*data));
+                                memcpy(&data->ver_major, &buf[ptr], 2);
+                                ptr += 2;
+                                data->ver_major = net2host16(data->ver_major);
+                                memcpy(&data->ver_minor, &buf[ptr], 2);
+                                ptr += 2;
+                                data->ver_minor = net2host16(data->ver_minor);
+                                memcpy(&data->ver_patch, &buf[ptr], 2);
+                                ptr += 2;
+                                data->ver_patch = net2host16(data->ver_patch);
+                                data->flags = buf[ptr++];
+                                uint16_t tmpword = 0;
+                                memcpy(&tmpword, &buf[ptr], 2);
+                                ptr += 2;
+                                tmpword = net2host16(tmpword);
+                                data->client_str = malloc((int)tmpword + 1);
+                                memcpy(data->client_str, &buf[ptr], tmpword);
+                                data->client_str[tmpword] = 0;
+                                _data = data;
+                                priority = MSG_PRIO_HIGH;
                                 break;
                             }
-                            default:; {
-                                printf("CLIENT[%d] SENT INVALID MSGTYPE: [%d]\n", i, tmpbyte);
+                            case CLIENT_GETCHUNK:; {
+                                struct server_data_updatechunk* data = malloc(sizeof(*data));
+                                memcpy(&data->x, &buf[ptr], 8);
+                                ptr += 8;
+                                data->x = net2host64(data->x);
+                                memcpy(&data->z, &buf[ptr], 8);
+                                data->z = net2host64(data->z);
+                                _data = data;
+                                priority = MSG_PRIO_LOW;
+                                break;
                             }
                         }
+                        addMsg(&servmsgin[priority], msgdataid, _data, pdata[i].uuid, i);
                         free(buf);
                         pdata[i].tmpsize = 0;
                     }
                     {
                         struct msgdata_msg msg;
-                        if (getNextMsgForUUID(&servmsgout, &msg, pdata[i].uuid) && msg.uind == i) {
+                        int priority;
+                        if ((getNextMsgForUUID(&servmsgout[(priority = MSG_PRIO_HIGH)], &msg, pdata[i].uuid) ||
+                        getNextMsgForUUID(&servmsgout[(priority = MSG_PRIO_NORMAL)], &msg, pdata[i].uuid) ||
+                        getNextMsgForUUID(&servmsgout[(priority = MSG_PRIO_LOW)], &msg, pdata[i].uuid)) && msg.uind == i) {
                             activity = true;
-                            uint8_t tmpbyte[2] = {MSGTYPE_DATA, msg.id};
-                            uint32_t msgsize = 2;
+                            uint8_t tmpbyte = msg.id;
+                            uint32_t msgsize = 1;
                             switch (msg.id) {
                                 case SERVER_COMPATINFO:; {
                                     struct server_data_compatinfo* tmpdata = msg.data;
@@ -498,13 +511,13 @@ static void* servnetthread(void* args) {
                                 }
                             }
                             if (getOutbufLeft(pdata[i].cxn) < (int)msgsize) {
-                                addMsg(&servmsgout, msg.id, msg.data, msg.uuid, msg.uind);
+                                addMsg(&servmsgout[priority], msg.id, msg.data, msg.uuid, msg.uind);
                                 goto srv_nosend;
                             }
                             //printf("TO CLIENT[%d]: [%d]\n", i, msg.id);
                             msgsize = host2net32(msgsize);
                             writeToCxnBuf(pdata[i].cxn, &msgsize, 4);
-                            writeToCxnBuf(pdata[i].cxn, tmpbyte, 2);
+                            writeToCxnBuf(pdata[i].cxn, &tmpbyte, 1);
                             switch (msg.id) {
                                 case SERVER_COMPATINFO:; {
                                     struct server_data_compatinfo* tmpdata = msg.data;
@@ -570,16 +583,20 @@ int startServer(char* addr, int port, int mcli, char* world) {
     port = servcxn->info.port;
     setCxnBufSize(servcxn, SERVER_SNDBUF_SIZE, CLIENT_SNDBUF_SIZE);
     pdata = calloc(maxclients, sizeof(*pdata));
-    initMsgData(&servmsgin);
-    initMsgData(&servmsgout);
+    for (int i = 0; i < MSG_PRIO__MAX; ++i) {
+        initMsgData(&servmsgin[i]);
+    }
+    for (int i = 0; i < MSG_PRIO__MAX; ++i) {
+        initMsgData(&servmsgout[i]);
+    }
     puts("  Initializing noise...");
     setRandSeed(0, 32464);
     initNoiseTable(0);
     initWorldgen();
     puts("  Initializing timer and events...");
     initTimerData(&servtimer);
-    addTimer(&servtimer, _SERVER_INTERNAL1, 2000000);
-    addTimer(&servtimer, _SERVER_INTERNAL2, 1200000);
+    addTimer(&servtimer, _SERVER_TIMER1, MSG_PRIO_LOW, 2000000);
+    addTimer(&servtimer, _SERVER_TIMER2, MSG_PRIO_LOW, 1200000);
     #ifdef NAME_THREADS
     char name[256];
     char name2[256];
@@ -641,8 +658,12 @@ void stopServer() {
     puts("  Cleaning up...");
     free(pdata);
     deinitTimerData(&servtimer);
-    deinitMsgData(&servmsgin);
-    deinitMsgData(&servmsgout);
+    for (int i = 0; i < MSG_PRIO__MAX; ++i) {
+        deinitMsgData(&servmsgin[i]);
+    }
+    for (int i = 0; i < MSG_PRIO__MAX; ++i) {
+        deinitMsgData(&servmsgout[i]);
+    }
     puts("Server stopped");
 }
 
@@ -679,63 +700,54 @@ static void* clinetthread(void* args) {
             readFromCxnBuf(clicxn, buf, tmpsize);
             int ptr = 0;
             uint8_t tmpbyte = buf[ptr++];
+            //printf("FROM SERVER: [%d]\n", tmpbyte);
             switch (tmpbyte) {
-                case MSGTYPE_DATA:; {
-                    tmpbyte = buf[ptr++];
-                    //printf("FROM SERVER: [%d]\n", tmpbyte);
-                    switch (tmpbyte) {
-                        case SERVER_PONG:; {
-                            callback(SERVER_PONG, NULL);
-                            break;
-                        }
-                        case SERVER_COMPATINFO:; {
-                            struct server_data_compatinfo data;
-                            memcpy(&data.ver_major, &buf[ptr], 2);
-                            ptr += 2;
-                            data.ver_major = net2host16(data.ver_major);
-                            memcpy(&data.ver_minor, &buf[ptr], 2);
-                            ptr += 2;
-                            data.ver_minor = net2host16(data.ver_minor);
-                            memcpy(&data.ver_patch, &buf[ptr], 2);
-                            ptr += 2;
-                            data.ver_patch = net2host16(data.ver_patch);
-                            data.flags = buf[ptr++];
-                            uint16_t tmpword = 0;
-                            memcpy(&tmpword, &buf[ptr], 2);
-                            ptr += 2;
-                            tmpword = net2host16(tmpword);
-                            data.server_str = malloc((int)tmpword + 1);
-                            memcpy(data.server_str, &buf[ptr], tmpword);
-                            data.server_str[tmpword] = 0;
-                            callback(SERVER_COMPATINFO, &data);
-                            free(data.server_str);
-                            break;
-                        }
-                        case SERVER_UPDATECHUNK:; {
-                            struct server_data_updatechunk data;
-                            memcpy(&data.x, &buf[ptr], 8);
-                            ptr += 8;
-                            data.x = net2host64(data.x);
-                            memcpy(&data.z, &buf[ptr], 8);
-                            ptr += 8;
-                            data.z = net2host64(data.z);
-                            memcpy(data.data, &buf[ptr], 65536 * sizeof(struct blockdata));
-                            callback(SERVER_UPDATECHUNK, &data);
-                            break;
-                        }
-                        case SERVER_SETSKYCOLOR:; {
-                            struct server_data_setskycolor data;
-                            data.r = buf[ptr++];
-                            data.g = buf[ptr++];
-                            data.b = buf[ptr++];
-                            callback(SERVER_SETSKYCOLOR, &data);
-                            break;
-                        }
-                    }
+                case SERVER_PONG:; {
+                    callback(SERVER_PONG, NULL);
                     break;
                 }
-                default:; {
-                    printf("SERVER SENT INVALID MSGTYPE: [%d]\n", tmpbyte);
+                case SERVER_COMPATINFO:; {
+                    struct server_data_compatinfo data;
+                    memcpy(&data.ver_major, &buf[ptr], 2);
+                    ptr += 2;
+                    data.ver_major = net2host16(data.ver_major);
+                    memcpy(&data.ver_minor, &buf[ptr], 2);
+                    ptr += 2;
+                    data.ver_minor = net2host16(data.ver_minor);
+                    memcpy(&data.ver_patch, &buf[ptr], 2);
+                    ptr += 2;
+                    data.ver_patch = net2host16(data.ver_patch);
+                    data.flags = buf[ptr++];
+                    uint16_t tmpword = 0;
+                    memcpy(&tmpword, &buf[ptr], 2);
+                    ptr += 2;
+                    tmpword = net2host16(tmpword);
+                    data.server_str = malloc((int)tmpword + 1);
+                    memcpy(data.server_str, &buf[ptr], tmpword);
+                    data.server_str[tmpword] = 0;
+                    callback(SERVER_COMPATINFO, &data);
+                    free(data.server_str);
+                    break;
+                }
+                case SERVER_UPDATECHUNK:; {
+                    struct server_data_updatechunk data;
+                    memcpy(&data.x, &buf[ptr], 8);
+                    ptr += 8;
+                    data.x = net2host64(data.x);
+                    memcpy(&data.z, &buf[ptr], 8);
+                    ptr += 8;
+                    data.z = net2host64(data.z);
+                    memcpy(data.data, &buf[ptr], 65536 * sizeof(struct blockdata));
+                    callback(SERVER_UPDATECHUNK, &data);
+                    break;
+                }
+                case SERVER_SETSKYCOLOR:; {
+                    struct server_data_setskycolor data;
+                    data.r = buf[ptr++];
+                    data.g = buf[ptr++];
+                    data.b = buf[ptr++];
+                    callback(SERVER_SETSKYCOLOR, &data);
+                    break;
                 }
             }
             free(buf);
@@ -745,8 +757,8 @@ static void* clinetthread(void* args) {
             struct msgdata_msg msg;
             if (getNextMsg(&climsgout, &msg)) {
                 activity = true;
-                uint8_t tmpbyte[2] = {MSGTYPE_DATA, msg.id};
-                uint32_t msgsize = 2;
+                uint8_t tmpbyte = msg.id;
+                uint32_t msgsize = 1;
                 switch (msg.id) {
                     case CLIENT_COMPATINFO:; {
                         struct client_data_compatinfo* tmpdata = msg.data;
@@ -765,7 +777,7 @@ static void* clinetthread(void* args) {
                 //printf("TO SERVER: [%d]\n", msg.id);
                 msgsize = host2net32(msgsize);
                 writeToCxnBuf(clicxn, &msgsize, 4);
-                writeToCxnBuf(clicxn, tmpbyte, 2);
+                writeToCxnBuf(clicxn, &tmpbyte, 1);
                 switch (msg.id) {
                     case CLIENT_COMPATINFO:; {
                         struct client_data_compatinfo* tmpdata = msg.data;

@@ -6,6 +6,7 @@
 #include "renderer.h"
 
 #include <stdbool.h>
+#include <limits.h>
 
 #define isUIIdValid(elemdata, x) (x >= 0 && x < elemdata->count)
 #define isUIElemValid(elemdata, x) (isUIIdValid(elemdata, x) && elemdata->data[x].valid)
@@ -22,6 +23,8 @@ struct ui_elem_calcprop {
     int16_t y;
     int width;
     int height;
+    int alignx;
+    int aligny;
     int8_t z;
     uint8_t r;
     uint8_t g;
@@ -34,6 +37,7 @@ struct ui_elem {
     bool valid;
     int type;
     char* name;
+    int prev;
     int parent;
     int children;
     int* childdata;
@@ -62,9 +66,11 @@ enum {
     UI_ELEM_BUTTON,
 };
 
+#define UI_ID_DETATCH INT_MIN
+
 struct ui_data* allocUI(void);
-int newUIElem(struct ui_data*, int /*type*/, char* /*name*/, int /*parent*/, ... /*properties*/);
-void editUIElem(struct ui_data*, int /*id*/, char* /*name*/, ... /*properties*/);
+int newUIElem(struct ui_data*, int /*type*/, char* /*name*/, int /*parent*/, int /*prev*/, ... /*properties*/);
+void editUIElem(struct ui_data*, int /*id*/, char* /*name*/, int /*prev*/, ... /*properties*/);
 void deleteUIElem(struct ui_data*, int /*id*/);
 void clearUIElems(struct ui_data*);
 struct ui_elem* getUIElemData(struct ui_data*, int /*id*/);

@@ -22,7 +22,7 @@ struct ui_data* allocUI() {
     return data;
 }
 
-int newUIElem(struct ui_data* elemdata, int type, char* name, int parent, ...) {
+int newUIElem(struct ui_data* elemdata, int type, char* name, int parent, int prev, ...) {
     int index = -1;
     for (int i = 0; i < elemdata->count; ++i) {
         if (!elemdata->data[i].valid) {index = i; break;}
@@ -34,13 +34,14 @@ int newUIElem(struct ui_data* elemdata, int type, char* name, int parent, ...) {
     e->type = type;
     if (name && *name) e->name = strdup(name);
     e->parent = parent;
+    e->prev = prev;
     e->children = 0;
     e->childdata = NULL;
     e->properties = 0;
     e->propertydata = NULL;
     e->calcprop.changed = true;
     va_list args;
-    va_start(args, parent);
+    va_start(args, prev);
     for (int i = 0; ; ++i) {
         char* name = va_arg(args, char*);
         if (!name) break;
@@ -68,7 +69,7 @@ int newUIElem(struct ui_data* elemdata, int type, char* name, int parent, ...) {
     return index;
 }
 
-void editUIElem(struct ui_data* elemdata, int id, char* name, ...) {
+void editUIElem(struct ui_data* elemdata, int id, char* name, int prev, ...) {
     if (!elemValid(id)) return;
     struct ui_elem* e = &elemdata->data[id];
     if (name) {
@@ -76,7 +77,7 @@ void editUIElem(struct ui_data* elemdata, int id, char* name, ...) {
         else {free(e->name); e->name = NULL;}
     }
     va_list args;
-    va_start(args, name);
+    va_start(args, prev);
     while (1) {
         char* name = va_arg(args, char*);
         if (!name) break;
@@ -267,29 +268,32 @@ static force_inline bool calcProp(struct ui_data* elemdata, struct ui_elem* e, b
             }
         }
         {
-            int ax = 0, ay = 0;
             curprop = getProp(e, "align");
-            if (curprop) sscanf(curprop, "%d,%d", &ax, &ay);
-            switch (ax) {
+            if (curprop) sscanf(curprop, "%d,%d", &e->calcprop.alignx, &e->calcprop.aligny);
+            float x0 = p_prop.x;
+            float x1 = p_prop.x + p_prop.width;
+            switch (e->calcprop.alignx) {
                 case -1:;
-                    e->calcprop.x = p_prop.x;
+                    e->calcprop.x = x0;
                     break;
                 default:;
                     e->calcprop.x = roundf(((float)p_prop.x + (float)p_prop.width / 2.0) - (float)e->calcprop.width / 2.0);
                     break;
                 case 1:;
-                    e->calcprop.x = p_prop.x + (p_prop.width - e->calcprop.width);
+                    e->calcprop.x = x1 - e->calcprop.width;
                     break;
             }
-            switch (ay) {
+            float y0 = p_prop.y;
+            float y1 = p_prop.y + p_prop.height;
+            switch (e->calcprop.aligny) {
                 case -1:;
-                    e->calcprop.y = p_prop.y;
+                    e->calcprop.y = y0;
                     break;
                 default:;
                     e->calcprop.y = roundf(((float)p_prop.y + (float)p_prop.height / 2.0) - (float)e->calcprop.height / 2.0);
                     break;
                 case 1:;
-                    e->calcprop.y = p_prop.y + (p_prop.height - e->calcprop.height);
+                    e->calcprop.y = y1 - e->calcprop.height;
                     break;
             }
         }

@@ -4,11 +4,11 @@
     - UI interaction (elem states, tooltips, etc)
     - Add `fit_width_to_text` and `fit_height_to_text` attrib
     - Add items to hotbar
+- Redo almost everything to do with chunks/blocks
 - Add physics in `src/physics/`
     - Use ticks https://gafferongames.com/post/fix_your_timestep/ and add interpolation
     - Add AABB collision in `collision.(c|h)`
     - Add raycasting in `raycasting.(c|h)`
-- Redo everything in chunk.c
 - Ensure that every function that does block operations takes a non-inverted z
 - Redo doGame() and remove loopDelay
     - Remove collision spaghetti
