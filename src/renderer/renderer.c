@@ -1107,7 +1107,7 @@ void render() {
         static int toff = 0;
         if (game_ui[UILAYER_DBGINF] && dbgtextuih == -1) {
             dbgtextuih = newUIElem(
-                game_ui[UILAYER_DBGINF], UI_ELEM_CONTAINER, "debugText", -1,
+                game_ui[UILAYER_DBGINF], UI_ELEM_CONTAINER, "debugText", -1, -1,
                 "width", "100%", "height", "100%",
                 "text_align", "-1,-1", "text_fgc", "14", "text_bga", "0.5",
                 "text", "[Please wait...]",
@@ -1145,7 +1145,7 @@ void render() {
             pblockx, pblocky, pblockz,
             pchunkx, pchunkz
         );
-        if (game_ui[UILAYER_DBGINF]) editUIElem(game_ui[UILAYER_DBGINF], dbgtextuih, NULL, "text", tbuf, NULL);
+        if (game_ui[UILAYER_DBGINF]) editUIElem(game_ui[UILAYER_DBGINF], dbgtextuih, NULL, -1, "text", tbuf, NULL);
     }
 
     setShaderProg(shader_block);
