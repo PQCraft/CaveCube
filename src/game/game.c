@@ -369,9 +369,9 @@ bool doGame(char* addr, int port) {
 
     int ui_hotbar = newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_HOTBAR, "hotbar", -1, -1, "align", "0,1", "margin", "0,10", NULL);
     updateHotbar(ui_hotbar, invspot);
-#if 0
+#if 1
     int ui_inv_main = newUIElem(game_ui[UILAYER_SERVER], UI_ELEM_BOX, "main", -1, -1, "width", "100%", "height", "100%", "color", "#000000", "alpha", "0.25", "z", "-100", NULL);
-    int ui_inventory = newUIElem(game_ui[UILAYER_SERVER], UI_ELEM_FANCYBOX, "inventory", ui_inv_main, -1, "width", "474", "height", "360", NULL);
+    int ui_inventory = newUIElem(game_ui[UILAYER_SERVER], UI_ELEM_FANCYBOX, "inventory", ui_inv_main, -1, "width", "332", "height", "360", NULL);
     int ui_inv_hb = newUIElem(game_ui[UILAYER_SERVER], UI_ELEM_ITEMGRID, "inv_hotbar", ui_inventory, -1, "width", "10", "height", "1", "align", "0,1", "margin", "0,16", NULL);
     /*int ui_inv_grid = */newUIElem(game_ui[UILAYER_SERVER], UI_ELEM_ITEMGRID, "inv_grid", ui_inventory, ui_inv_hb, "width", "10", "height", "4", "align", "0,1", "margin", "0,16", NULL);
 #endif

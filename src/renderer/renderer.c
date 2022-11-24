@@ -894,7 +894,7 @@ static force_inline void meshUIElem(struct meshdata* md, struct ui_data* elemdat
                     }
                     writeuielemrect(
                         md,
-                        p->x + (i * 44 + 2) * s, p->y + s * 2, p->x + ((i + 1) * 44) * s, p->y + p->height - s * 2,
+                        p->x + (i * 30 + 2) * s, p->y + s * 2, p->x + ((i + 1) * 30) * s, p->y + p->height - s * 2,
                         p->z,
                         r, g, b, p->a / 2
                     );
@@ -912,7 +912,7 @@ static force_inline void meshUIElem(struct meshdata* md, struct ui_data* elemdat
                     for (int x = 0; x < width; ++x) {
                         writeuielemrect(
                             md,
-                            p->x + (x * 44 + 2) * s, p->y + (y * 44 + 2) * s, p->x + ((x + 1) * 44) * s, p->y + ((y + 1) * 44) * s,
+                            p->x + (x * 30 + 2) * s, p->y + (y * 30 + 2) * s, p->x + ((x + 1) * 30) * s, p->y + ((y + 1) * 30) * s,
                             p->z,
                             140, 140, 140, p->a
                         );

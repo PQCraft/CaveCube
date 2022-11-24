@@ -230,6 +230,11 @@ static force_inline bool calcProp(struct ui_data* elemdata, struct ui_elem* e, b
             force = true;
         }
     }
+    bool prev = elemValid(e->prev);
+    struct ui_elem_calcprop l_prop;
+    if (prev) {
+        l_prop = elemdata->data[e->prev].calcprop;
+    }
     if (e->calcprop.changed || force) {
         char* curprop;
         curprop = getProp(e, "margin");
@@ -246,8 +251,8 @@ static force_inline bool calcProp(struct ui_data* elemdata, struct ui_elem* e, b
         }
         switch (e->type) {
             case UI_ELEM_HOTBAR:; {
-                e->calcprop.width = 442 * elemdata->scale;
-                e->calcprop.height = 46 * elemdata->scale;
+                e->calcprop.width = 302 * elemdata->scale;
+                e->calcprop.height = 32 * elemdata->scale;
                 break;
             }
             case UI_ELEM_ITEMGRID:; {
@@ -255,8 +260,8 @@ static force_inline bool calcProp(struct ui_data* elemdata, struct ui_elem* e, b
                 e->calcprop.width = (curprop) ? atoi(curprop) : 1;
                 curprop = getProp(e, "height");
                 e->calcprop.height = (curprop) ? atoi(curprop) : 1;
-                e->calcprop.width = (e->calcprop.width * 44 + 2) * elemdata->scale;
-                e->calcprop.height = (e->calcprop.height * 44 + 2) * elemdata->scale;
+                e->calcprop.width = (e->calcprop.width * 30 + 2) * elemdata->scale;
+                e->calcprop.height = (e->calcprop.height * 30 + 2) * elemdata->scale;
                 break;
             }
             default:; {
@@ -277,7 +282,7 @@ static force_inline bool calcProp(struct ui_data* elemdata, struct ui_elem* e, b
                     e->calcprop.x = x0;
                     break;
                 default:;
-                    e->calcprop.x = roundf(((float)p_prop.x + (float)p_prop.width / 2.0) - (float)e->calcprop.width / 2.0);
+                    e->calcprop.x = roundf((float)(x0 + x1) / 2.0 - (float)e->calcprop.width / 2.0);
                     break;
                 case 1:;
                     e->calcprop.x = x1 - e->calcprop.width;
@@ -290,7 +295,7 @@ static force_inline bool calcProp(struct ui_data* elemdata, struct ui_elem* e, b
                     e->calcprop.y = y0;
                     break;
                 default:;
-                    e->calcprop.y = roundf(((float)p_prop.y + (float)p_prop.height / 2.0) - (float)e->calcprop.height / 2.0);
+                    e->calcprop.y = roundf((float)(y0 + y1) / 2.0 - (float)e->calcprop.height / 2.0);
                     break;
                 case 1:;
                     e->calcprop.y = y1 - e->calcprop.height;

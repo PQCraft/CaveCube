@@ -208,7 +208,7 @@ static void* servtimerthread(void* vargs) {
             pthread_mutex_lock(&tdata->lock);
             //addMsg(&servmsgin[tdata->tmr[index].priority], event, NULL, -1, -1);
             tdata->tmr[index].intertime = altutime() + tdata->tmr[index].interval;
-            printf("Firing event [%d]: [%d]\n", index, event);
+            //printf("Firing event [%d]: [%d]\n", index, event);
             pthread_mutex_unlock(&tdata->lock);
         }
     }
