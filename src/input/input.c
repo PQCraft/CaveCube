@@ -37,7 +37,11 @@ char* input_mov_names[] = {
     "move.forward",
     "move.backward",
     "move.left",
-    "move.right"
+    "move.right",
+    "move.lookUp",
+    "move.lookDown",
+    "move.lookLeft",
+    "move.lookRight"
 };
 char* input_ma_names[] = {
     "multi.place",
@@ -85,6 +89,10 @@ input_keys input_mov[] = {
     KEY('k', 'b', GLFW_KEY_S, 0, 0, 0),
     KEY('k', 'b', GLFW_KEY_A, 0, 0, 0),
     KEY('k', 'b', GLFW_KEY_D, 0, 0, 0),
+    KEY('m', 'm', 1, 0, 0, 0),
+    KEY(0, 0, 0, 0, 0, 0),
+    KEY(0, 0, 0, 0, 0, 0),
+    KEY('m', 'm', 0, 0, 0, 0),
     #endif
 };
 input_keys input_ma[INPUT_ACTION_MULTI__MAX] = {
@@ -209,7 +217,7 @@ bool initInput() {
     if (rawmouse && glfwRawMouseMotionSupported()) glfwSetInputMode(rendinf.window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
     char* sect = "GLFW Keybinds";
     #endif
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; i < 8; ++i) {
         writeKeyCfg(input_mov[i], sect, input_mov_names[i]);
         readKeyCfg(&input_mov[i], sect, input_mov_names[i]);
     }
@@ -279,7 +287,9 @@ void sdlgetmouse(double* mx, double* my) {
 static const uint8_t* sdlkeymap;
 #endif
 
-static force_inline bool _keyState(int device, int type, int key) {
+static double mxpos, mypos;
+
+static force_inline float _keyState(int device, int type, int key) {
     switch (device) {
         case 'k':; {
             switch (type) {
@@ -304,23 +314,60 @@ static force_inline bool _keyState(int device, int type, int key) {
                     #endif
                     break;
                 }
+                case 'm':; {
+                    static double nmxpos, nmypos;
+                    #if defined(USESDL2)
+                    sdlkeymap = SDL_GetKeyboardState(NULL);
+                    sdlgetmouse(&nmxpos, &nmypos);
+                    #else
+                    glfwGetCursorPos(rendinf.window, &nmxpos, &nmypos);
+                    #endif
+                    float ret = 0.0;
+                    switch (key) {
+                        case 0:;
+                            ret = mxpos - nmxpos;
+                            mxpos = nmxpos;
+                            break;
+                        case 1:;
+                            ret = mypos - nmypos;
+                            mypos = nmypos;
+                            break;
+                    }
+                    return ret;
+                    break;
+                }
+            }
+            break;
+        }
+        case 'g':; {
+            switch (type) {
+                case 'a':; {
+                    #if defined(USESDL2)
+                    #else
+                    GLFWgamepadstate state;
+                    for (int i = GLFW_JOYSTICK_1; i < GLFW_JOYSTICK_LAST; ++i) {
+                        if (glfwGetGamepadState(GLFW_JOYSTICK_1, &state)) {
+                            return state.axes[key];
+                        }
+                    }
+                    #endif
+                    break;
+                }
             }
             break;
         }
     }
-    return false;
+    return 0.0;
 }
 
 static force_inline float keyState(input_keys k) {
     float v1 = 0, v2 = 0;
     v1 = _keyState(k.kd1, k.kt1, k.key1);
     v2 = _keyState(k.kd1, k.kt1, k.key1);
-    return (v2 > v1) ? v2 : v1;
+    return (fabs(v2) > fabs(v1)) ? v2 : v1;
 }
 
 static uint64_t polltime;
-
-static double mxpos, mypos;
 
 void resetInput() {
     polltime = altutime();
@@ -358,27 +405,19 @@ struct input_info getInput() {
     inf.focus = glfwGetWindowAttrib(rendinf.window, GLFW_FOCUSED);
     #endif
     inf.rot_mult = rotsen * 0.15;
-    static double nmxpos, nmypos;
-    #if defined(USESDL2)
-    sdlkeymap = SDL_GetKeyboardState(NULL);
-    sdlgetmouse(&nmxpos, &nmypos);
-    #else
-    glfwGetCursorPos(rendinf.window, &nmxpos, &nmypos);
-    #endif
     switch (inputMode) {
         case INPUT_MODE_GAME:; {
-            if (inf.focus) {
-                inf.rot_right += mxpos - nmxpos;
-                inf.rot_up += mypos - nmypos;
-                //printf("[%lf, %lf] ([%lf, %lf] [%lf, %lf])\n", inf.rot_right, inf.rot_up, mxpos, mypos, nmxpos, nmypos);
-                mxpos = nmxpos;
-                mypos = nmypos;
-            }
             inf.mov_mult = ((double)((uint64_t)altutime() - (uint64_t)polltime) / (double)1000000);
             inf.mov_up += keyState(input_mov[0]);
             inf.mov_up -= keyState(input_mov[1]);
             inf.mov_right -= keyState(input_mov[2]);
             inf.mov_right += keyState(input_mov[3]);
+            //if (inf.focus) {
+                inf.rot_up += keyState(input_mov[4]);
+                inf.rot_up -= keyState(input_mov[5]);
+                inf.rot_right -= keyState(input_mov[6]);
+                inf.rot_right += keyState(input_mov[7]);
+            //}
             float mul = atan2(fabs(inf.mov_right), fabs(inf.mov_up));
             mul = fabs(1 / (cos(mul) + sin(mul)));
             inf.mov_up *= mul;
