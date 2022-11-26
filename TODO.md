@@ -46,3 +46,6 @@
 - Fixed an input bug on GLFW
 - Chunk update bugfix
 - UI text formatting
+- Made input configurable
+- Added gamepad support on GLFW
+- Added the mouse scroll wheel code
