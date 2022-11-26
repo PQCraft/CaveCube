@@ -8,8 +8,8 @@
 #include <stdbool.h>
 
 enum {
-    UILAYER_SERVER,  // For server UI (inventory, block-specific menus, etc.)
     UILAYER_CLIENT,  // For client UI (chat, hotbar, etc.)
+    UILAYER_SERVER,  // For server UI (inventory, block-specific menus, etc.)
     UILAYER_DBGINF,  // For debug info
     UILAYER_INGAME,  // For in-game menu (pressing Esc while in a game)
 };

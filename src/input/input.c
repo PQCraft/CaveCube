@@ -19,17 +19,60 @@
 
 #include <stdlib.h>
 #include <math.h>
+#include <string.h>
+#include <stdio.h>
 
 #define KEY(d1, t1, k1, d2, t2, k2) (input_keys){d1, t1, k1, d2, t2, k2}
 
 typedef struct {
-    char kd1;
-    char kt1;
+    unsigned char kd1;
+    unsigned char kt1;
     int key1;
-    char kd2;
-    char kt2;
+    unsigned char kd2;
+    unsigned char kt2;
     int key2;
 } input_keys;
+
+char* input_mov_names[] = {
+    "move.forward",
+    "move.backward",
+    "move.left",
+    "move.right"
+};
+char* input_ma_names[] = {
+    "multi.place",
+    "multi.destroy",
+    "multi.pick",
+    "multi.jump",
+    "multi.crouch",
+    "multi.run",
+    "multi.playerlist"
+};
+char* input_sa_names[] = {
+    "single.escape",
+    "single.inventory",
+    "single.invSlot0",
+    "single.invSlot1",
+    "single.invSlot2",
+    "single.invSlot3",
+    "single.invSlot4",
+    "single.invSlot5",
+    "single.invSlot6",
+    "single.invSlot7",
+    "single.invSlot8",
+    "single.invSlot9",
+    "single.invNext",
+    "single.invPrev",
+    "single.invShiftUp",
+    "single.invShiftDown",
+    "single.rotBlockX",
+    "single.rotBlockY",
+    "single.rotBlockZ",
+    "single.fullscreen",
+    "single.debug",
+    "single.leftClick",
+    "single.rightClick"
+};
 
 input_keys input_mov[] = {
     #if defined(USESDL2)
@@ -106,6 +149,7 @@ input_keys input_sa[INPUT_ACTION_SINGLE__MAX] = {
     KEY('k', 'b', GLFW_KEY_MINUS,          0, 0, 0),
     KEY('k', 'b', GLFW_KEY_R,              0, 0, 0),
     KEY('k', 'b', GLFW_KEY_F,              0, 0, 0),
+    KEY('k', 'b', GLFW_KEY_C,              0, 0, 0),
     KEY('k', 'b', GLFW_KEY_F11,            0, 0, 0),
     KEY('k', 'b', GLFW_KEY_F3,             0, 0, 0),
     KEY('m', 'b', GLFW_MOUSE_BUTTON_LEFT,  0, 0, 0),
@@ -115,6 +159,44 @@ input_keys input_sa[INPUT_ACTION_SINGLE__MAX] = {
 
 static float rotsen;
 
+static force_inline int _writeKeyCfg(char* data, unsigned char kd, unsigned char kt, int key) {
+    int off = 0;
+    switch (kd) {
+        case 0:;
+            strcpy(data, "\\0,\\0,0");
+            off += 7;
+            break;
+        default:;
+            off += sprintf(data, "%c,%c,%d", kd, kt, key);
+            break;
+    }
+    return off;
+}
+
+static force_inline void writeKeyCfg(input_keys k, char* sect, char* name) {
+    char str[256];
+    int off = _writeKeyCfg(str, k.kd1, k.kt1, k.key1);
+    str[off++] = ';';
+    _writeKeyCfg(&str[off], k.kd2, k.kt2, k.key2);
+    declareConfigKey(config, sect, name, str, false);
+}
+
+static force_inline void _readKeyCfg(char* data, unsigned char* kd, unsigned char* kt, int* key) {
+    char str[2][3];
+    sscanf(data, "%2[^,],%2[^,],%d", str[0], str[1], key);
+    if (str[0][0] == '\'' && str[0][1] == '0') *kd = 0;
+    else *kd = str[0][0];
+    if (str[1][0] == '\'' && str[1][1] == '0') *kt = 0;
+    else *kt = str[1][0];
+}
+
+static force_inline void readKeyCfg(input_keys* k, char* sect, char* name) {
+    char str[2][128];
+    sscanf(getConfigKey(config, sect, name), "%[^;];%[^;]", str[0], str[1]);
+    _readKeyCfg(str[0], &k->kd1, &k->kt1, &k->key1);
+    _readKeyCfg(str[1], &k->kd2, &k->kt2, &k->key2);
+}
+
 bool initInput() {
     declareConfigKey(config, "Input", "rotationMult", "1", false);
     declareConfigKey(config, "Input", "rawMouse", "true", false);
@@ -122,9 +204,23 @@ bool initInput() {
     bool rawmouse = getBool(getConfigKey(config, "Input", "rawMouse"));
     #if defined(USESDL2)
     if (rawmouse) SDL_SetHintWithPriority(SDL_HINT_MOUSE_RELATIVE_MODE_WARP, "1", SDL_HINT_OVERRIDE);
+    char* sect = "SDL2 Keybinds";
     #else
     if (rawmouse && glfwRawMouseMotionSupported()) glfwSetInputMode(rendinf.window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+    char* sect = "GLFW Keybinds";
     #endif
+    for (int i = 0; i < 4; ++i) {
+        writeKeyCfg(input_mov[i], sect, input_mov_names[i]);
+        readKeyCfg(&input_mov[i], sect, input_mov_names[i]);
+    }
+    for (int i = 0; i < INPUT_ACTION_MULTI__MAX - 1; ++i) {
+        writeKeyCfg(input_ma[i], sect, input_ma_names[i]);
+        readKeyCfg(&input_ma[i], sect, input_ma_names[i]);
+    }
+    for (int i = 0; i < INPUT_ACTION_SINGLE__MAX; ++i) {
+        writeKeyCfg(input_sa[i], sect, input_sa_names[i]);
+        readKeyCfg(&input_sa[i], sect, input_sa_names[i]);
+    }
     return true;
 }
 
@@ -183,7 +279,7 @@ void sdlgetmouse(double* mx, double* my) {
 static const uint8_t* sdlkeymap;
 #endif
 
-static force_inline bool _keyDown(int device, int type, int key) {
+static force_inline bool _keyState(int device, int type, int key) {
     switch (device) {
         case 'k':; {
             switch (type) {
@@ -215,7 +311,12 @@ static force_inline bool _keyDown(int device, int type, int key) {
     return false;
 }
 
-#define keyDown(x) (_keyDown(x.kd1, x.kt1, x.key1) || _keyDown(x.kd2, x.kt2, x.key2))
+static force_inline float keyState(input_keys k) {
+    float v1 = 0, v2 = 0;
+    v1 = _keyState(k.kd1, k.kt1, k.key1);
+    v2 = _keyState(k.kd1, k.kt1, k.key1);
+    return (v2 > v1) ? v2 : v1;
+}
 
 static uint64_t polltime;
 
@@ -274,41 +375,41 @@ struct input_info getInput() {
                 mypos = nmypos;
             }
             inf.mov_mult = ((double)((uint64_t)altutime() - (uint64_t)polltime) / (double)1000000);
-            if (keyDown(input_mov[0])) inf.mov_up += 1.0;
-            if (keyDown(input_mov[1])) inf.mov_up -= 1.0;
-            if (keyDown(input_mov[2])) inf.mov_right -= 1.0;
-            if (keyDown(input_mov[3])) inf.mov_right += 1.0;
+            inf.mov_up += keyState(input_mov[0]);
+            inf.mov_up -= keyState(input_mov[1]);
+            inf.mov_right -= keyState(input_mov[2]);
+            inf.mov_right += keyState(input_mov[3]);
             float mul = atan2(fabs(inf.mov_right), fabs(inf.mov_up));
             mul = fabs(1 / (cos(mul) + sin(mul)));
             inf.mov_up *= mul;
             inf.mov_right *= mul;
             for (int i = 0; i < INPUT_ACTION_MULTI__MAX; ++i) {
-                if (keyDown(input_ma[i])) {
+                if (keyState(input_ma[i]) >= 0.5) {
                     inf.multi_actions |= 1 << i;
                 }
             }
             if (lastsa == INPUT_ACTION_SINGLE__NONE) {
                 for (int i = 0; i < INPUT_ACTION_SINGLE__MAX; ++i) {
-                    if (keyDown(input_sa[i])) {
+                    if (keyState(input_sa[i]) >= 0.5) {
                         lastsa = inf.single_action = i;
                         break;
                     }
                 }
             } else {
-                if (!keyDown(input_sa[lastsa])) lastsa = INPUT_ACTION_SINGLE__NONE;
+                if (keyState(input_sa[lastsa]) < 0.5) lastsa = INPUT_ACTION_SINGLE__NONE;
             }
             break;
         }
         case INPUT_MODE_UI:; {
             if (lastsa == INPUT_ACTION_SINGLE__NONE) {
                 for (int i = 0; i < INPUT_ACTION_SINGLE__MAX; ++i) {
-                    if (keyDown(input_sa[i])) {
+                    if (keyState(input_sa[i]) >= 0.5) {
                         lastsa = inf.single_action = i;
                         break;
                     }
                 }
             } else {
-                if (!keyDown(input_sa[lastsa])) lastsa = INPUT_ACTION_SINGLE__NONE;
+                if (keyState(input_sa[lastsa]) < 0.5) lastsa = INPUT_ACTION_SINGLE__NONE;
             }
             break;
         }

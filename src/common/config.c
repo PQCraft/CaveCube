@@ -294,7 +294,23 @@ static force_inline void writeKeys(struct config* cfg, int i, FILE* outfile) {
             if (*tmpstr == '"') {
                 fputs("\\\"", outfile);
             } else if (*tmpstr == '\\') {
-                fputs("\\\\", outfile);
+                switch (*tmpstr) {
+                    case 'a':;
+                    case 'b':;
+                    case 'e':;
+                    case 'f':;
+                    case 'n':;
+                    case 'r':;
+                    case 't':;
+                    case 'v':;
+                    case '\n':;
+                    case 0:;
+                        fputs("\\\\", outfile);
+                        break;
+                    default:;
+                        fputs("\\", outfile);
+                        break;
+                }
             } else if (*tmpstr < 32 || *tmpstr > 126) {
                 switch (*tmpstr) {
                     case '\a':;
