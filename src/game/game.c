@@ -372,8 +372,8 @@ bool doGame(char* addr, int port) {
 #if 0
     int ui_inv_main = newUIElem(game_ui[UILAYER_SERVER], UI_ELEM_BOX, "main", -1, -1, "width", "100%", "height", "100%", "color", "#000000", "alpha", "0.25", "z", "-100", NULL);
     int ui_inventory = newUIElem(game_ui[UILAYER_SERVER], UI_ELEM_FANCYBOX, "inventory", ui_inv_main, -1, "width", "332", "height", "360", NULL);
-    int ui_inv_hb = newUIElem(game_ui[UILAYER_SERVER], UI_ELEM_ITEMGRID, "inv_hotbar", ui_inventory, -1, "width", "10", "height", "1", "align", "0,1", "margin", "0,6,0,16", NULL);
-    /*int ui_inv_grid = */newUIElem(game_ui[UILAYER_SERVER], UI_ELEM_ITEMGRID, "inv_grid", ui_inventory, ui_inv_hb, "width", "10", "height", "4", "align", "0,1", "margin", "0,6,0,6", NULL);
+    int ui_inv_grid = newUIElem(game_ui[UILAYER_SERVER], UI_ELEM_ITEMGRID, "inv_grid", ui_inventory, -1, "width", "10", "height", "4", "align", "0,1", "margin", "0,6,0,16", NULL);
+    /*int ui_inv_hb = */newUIElem(game_ui[UILAYER_SERVER], UI_ELEM_ITEMGRID, "inv_hotbar", ui_inventory, ui_inv_grid, "width", "10", "height", "1", "align", "0,1", "margin", "0,6,0,6", NULL);
 #endif
     setFullscreen(rendinf.fullscr);
     while (!quitRequest) {
@@ -459,8 +459,8 @@ bool doGame(char* addr, int port) {
         float speedmult = 1.0;
         float leanmult = ((bps < 10.0) ? bps : 10.0) / 3.5 * (1.0 + (speedmult * 0.1));
         bps *= speedmult;
-        tmpcamrot.x += input.rot_up * input.rot_mult;
-        tmpcamrot.y -= input.rot_right * input.rot_mult;
+        tmpcamrot.x += input.rot_up * input.rot_mult_y;
+        tmpcamrot.y -= input.rot_right * input.rot_mult_x;
         rendinf.camrot.x = tmpcamrot.x - input.mov_up * leanmult;
         if (rendinf.camrot.x > 89.99) rendinf.camrot.x = 89.99;
         if (rendinf.camrot.x < -89.99) rendinf.camrot.x = -89.99;

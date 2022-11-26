@@ -16,6 +16,7 @@ enum {
     INPUT_ACTION_MULTI_PLACE,
     INPUT_ACTION_MULTI_DESTROY,
     INPUT_ACTION_MULTI_PICK,
+    INPUT_ACTION_MULTI_ZOOM,
     INPUT_ACTION_MULTI_JUMP,
     INPUT_ACTION_MULTI_CROUCH,
     INPUT_ACTION_MULTI_RUN,
@@ -60,7 +61,8 @@ struct input_info {
     float mov_mult;
     float mov_up;
     float mov_right;
-    float rot_mult;
+    float rot_mult_x;
+    float rot_mult_y;
     float rot_up;
     float rot_right;
     int ui_mouse_x;
@@ -75,7 +77,7 @@ bool initInput(void);
 void resetInput(void);
 struct input_info getInput(void);
 
-#define INPUT_EMPTY_INFO (struct input_info){false, INPUT_ACTION_MULTI__NONE, INPUT_ACTION_SINGLE__NONE, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0, 0, 0}
+#define INPUT_EMPTY_INFO (struct input_info){false, INPUT_ACTION_MULTI__NONE, INPUT_ACTION_SINGLE__NONE, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0, 0, 0}
 
 #endif
 

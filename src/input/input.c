@@ -47,6 +47,7 @@ char* input_ma_names[] = {
     "multi.place",
     "multi.destroy",
     "multi.pick",
+    "multi.zoom",
     "multi.jump",
     "multi.crouch",
     "multi.run",
@@ -100,6 +101,7 @@ input_keys input_ma[INPUT_ACTION_MULTI__MAX] = {
     KEY('m', 'b', SDL_BUTTON(1),       0, 0, 0),
     KEY('m', 'b', SDL_BUTTON(3),       0, 0, 0),
     KEY('m', 'b', SDL_BUTTON(2),       0, 0, 0),
+    KEY('k', 'b', SDL_SCANCODE_LALT,  'k', 'b', SDL_SCANCODE_RALT),
     KEY('k', 'b', SDL_SCANCODE_SPACE,  0, 0, 0),
     KEY('k', 'b', SDL_SCANCODE_LSHIFT, 'k', 'b', SDL_SCANCODE_RSHIFT),
     KEY('k', 'b', SDL_SCANCODE_LCTRL,  'k', 'b', SDL_SCANCODE_RCTRL),
@@ -108,6 +110,7 @@ input_keys input_ma[INPUT_ACTION_MULTI__MAX] = {
     KEY('m', 'b', GLFW_MOUSE_BUTTON_LEFT,   0, 0, 0),
     KEY('m', 'b', GLFW_MOUSE_BUTTON_RIGHT,  0, 0, 0),
     KEY('m', 'b', GLFW_MOUSE_BUTTON_MIDDLE, 0, 0, 0),
+    KEY('k', 'b', GLFW_KEY_LEFT_ALT,      'k', 'b', GLFW_KEY_RIGHT_ALT),
     KEY('k', 'b', GLFW_KEY_SPACE,           0, 0, 0),
     KEY('k', 'b', GLFW_KEY_LEFT_SHIFT,      'k', 'b', GLFW_KEY_RIGHT_SHIFT),
     KEY('k', 'b', GLFW_KEY_LEFT_CONTROL,    'k', 'b', GLFW_KEY_RIGHT_CONTROL),
@@ -165,7 +168,8 @@ input_keys input_sa[INPUT_ACTION_SINGLE__MAX] = {
     #endif
 };
 
-static float rotsen;
+static float rotsenx;
+static float rotseny;
 
 static force_inline int _writeKeyCfg(char* data, unsigned char kd, unsigned char kt, int key) {
     int off = 0;
@@ -206,9 +210,11 @@ static force_inline void readKeyCfg(input_keys* k, char* sect, char* name) {
 }
 
 bool initInput() {
-    declareConfigKey(config, "Input", "rotationMult", "1", false);
+    declareConfigKey(config, "Input", "xSen", "1", false);
+    declareConfigKey(config, "Input", "ySen", "1", false);
     declareConfigKey(config, "Input", "rawMouse", "true", false);
-    rotsen = atof(getConfigKey(config, "Input", "rotationMult"));
+    rotsenx = atof(getConfigKey(config, "Input", "xSen"));
+    rotseny = atof(getConfigKey(config, "Input", "ySen"));
     bool rawmouse = getBool(getConfigKey(config, "Input", "rawMouse"));
     #if defined(USESDL2)
     if (rawmouse) SDL_SetHintWithPriority(SDL_HINT_MOUSE_RELATIVE_MODE_WARP, "1", SDL_HINT_OVERRIDE);
@@ -347,7 +353,19 @@ static force_inline float _keyState(int device, int type, int key) {
                     GLFWgamepadstate state;
                     for (int i = GLFW_JOYSTICK_1; i < GLFW_JOYSTICK_LAST; ++i) {
                         if (glfwGetGamepadState(GLFW_JOYSTICK_1, &state)) {
-                            return state.axes[key];
+                            if (fabs(state.axes[key]) >= 0.2) return state.axes[key];
+                        }
+                    }
+                    #endif
+                    break;
+                }
+                case 'b':; {
+                    #if defined(USESDL2)
+                    #else
+                    GLFWgamepadstate state;
+                    for (int i = GLFW_JOYSTICK_1; i < GLFW_JOYSTICK_LAST; ++i) {
+                        if (glfwGetGamepadState(GLFW_JOYSTICK_1, &state)) {
+                            return state.buttons[key];
                         }
                     }
                     #endif
@@ -404,7 +422,8 @@ struct input_info getInput() {
     #else
     inf.focus = glfwGetWindowAttrib(rendinf.window, GLFW_FOCUSED);
     #endif
-    inf.rot_mult = rotsen * 0.15;
+    inf.rot_mult_x = rotsenx * 0.15;
+    inf.rot_mult_y = rotseny * 0.15;
     switch (inputMode) {
         case INPUT_MODE_GAME:; {
             inf.mov_mult = ((double)((uint64_t)altutime() - (uint64_t)polltime) / (double)1000000);
@@ -423,32 +442,32 @@ struct input_info getInput() {
             inf.mov_up *= mul;
             inf.mov_right *= mul;
             for (int i = 0; i < INPUT_ACTION_MULTI__MAX; ++i) {
-                if (keyState(input_ma[i]) >= 0.5) {
+                if (keyState(input_ma[i]) >= 0.2) {
                     inf.multi_actions |= 1 << i;
                 }
             }
             if (lastsa == INPUT_ACTION_SINGLE__NONE) {
                 for (int i = 0; i < INPUT_ACTION_SINGLE__MAX; ++i) {
-                    if (keyState(input_sa[i]) >= 0.5) {
+                    if (keyState(input_sa[i]) >= 0.2) {
                         lastsa = inf.single_action = i;
                         break;
                     }
                 }
             } else {
-                if (keyState(input_sa[lastsa]) < 0.5) lastsa = INPUT_ACTION_SINGLE__NONE;
+                if (keyState(input_sa[lastsa]) < 0.2) lastsa = INPUT_ACTION_SINGLE__NONE;
             }
             break;
         }
         case INPUT_MODE_UI:; {
             if (lastsa == INPUT_ACTION_SINGLE__NONE) {
                 for (int i = 0; i < INPUT_ACTION_SINGLE__MAX; ++i) {
-                    if (keyState(input_sa[i]) >= 0.5) {
+                    if (keyState(input_sa[i]) >= 0.2) {
                         lastsa = inf.single_action = i;
                         break;
                     }
                 }
             } else {
-                if (keyState(input_sa[lastsa]) < 0.5) lastsa = INPUT_ACTION_SINGLE__NONE;
+                if (keyState(input_sa[lastsa]) < 0.2) lastsa = INPUT_ACTION_SINGLE__NONE;
             }
             break;
         }
