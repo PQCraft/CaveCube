@@ -21,10 +21,14 @@ struct ui_elem_calcprop {
     bool hidden;
     int16_t x;
     int16_t y;
-    int width;
-    int height;
-    int alignx;
-    int aligny;
+    int16_t width;
+    int16_t height;
+    int16_t marginl;
+    int16_t margint;
+    int16_t marginr;
+    int16_t marginb;
+    int8_t alignx;
+    int8_t aligny;
     int8_t z;
     uint8_t r;
     uint8_t g;

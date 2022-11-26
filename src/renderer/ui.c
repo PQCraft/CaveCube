@@ -230,24 +230,24 @@ static force_inline bool calcProp(struct ui_data* elemdata, struct ui_elem* e, b
             force = true;
         }
     }
-    bool prev = elemValid(e->prev);
-    struct ui_elem_calcprop l_prop;
-    if (prev) {
-        l_prop = elemdata->data[e->prev].calcprop;
-    }
     if (e->calcprop.changed || force) {
         char* curprop;
         curprop = getProp(e, "margin");
+        int mx0 = 0, my0 = 0, mx1 = 0, my1 = 0;
         if (curprop) {
-            int ox = 0;
-            int oy = 0;
-            sscanf(curprop, "%d,%d", &ox, &oy);
-            ox *= elemdata->scale;
-            oy *= elemdata->scale;
-            p_prop.x += ox;
-            p_prop.width -= ox * 2;
-            p_prop.y += oy;
-            p_prop.height -= oy * 2;
+            sscanf(curprop, "%d,%d,%d,%d", &mx0, &my0, &mx1, &my1);
+            mx0 *= elemdata->scale;
+            my0 *= elemdata->scale;
+            mx1 *= elemdata->scale;
+            my1 *= elemdata->scale;
+            p_prop.x += mx0;
+            p_prop.width -= mx0 + mx1;
+            p_prop.y += my0;
+            p_prop.height -= my0 + my1;
+            e->calcprop.marginl = mx0;
+            e->calcprop.margint = my0;
+            e->calcprop.marginr = mx1;
+            e->calcprop.marginb = my1;
         }
         switch (e->type) {
             case UI_ELEM_HOTBAR:; {
@@ -272,9 +272,14 @@ static force_inline bool calcProp(struct ui_data* elemdata, struct ui_elem* e, b
                 break;
             }
         }
+        bool prev = elemValid(e->prev);
+        struct ui_elem_calcprop l_prop;
+        if (prev) {
+            l_prop = elemdata->data[e->prev].calcprop;
+        }
         {
             curprop = getProp(e, "align");
-            if (curprop) sscanf(curprop, "%d,%d", &e->calcprop.alignx, &e->calcprop.aligny);
+            if (curprop) sscanf(curprop, "%hhd,%hhd", &e->calcprop.alignx, &e->calcprop.aligny);
             float x0 = p_prop.x;
             float x1 = p_prop.x + p_prop.width;
             switch (e->calcprop.alignx) {
@@ -288,8 +293,8 @@ static force_inline bool calcProp(struct ui_data* elemdata, struct ui_elem* e, b
                     e->calcprop.x = x1 - e->calcprop.width;
                     break;
             }
-            float y0 = p_prop.y;
-            float y1 = p_prop.y + p_prop.height;
+            float y0 = (prev) ? l_prop.y + l_prop.height + my0 + l_prop.marginb : p_prop.y;
+            float y1 = (prev) ? l_prop.y - my1 - l_prop.margint : p_prop.y + p_prop.height;
             switch (e->calcprop.aligny) {
                 case -1:;
                     e->calcprop.y = y0;

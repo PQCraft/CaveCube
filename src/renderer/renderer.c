@@ -864,23 +864,24 @@ static force_inline void meshUIElem(struct meshdata* md, struct ui_data* elemdat
     int s = elemdata->scale;
     char* curprop;
     {
+        int x0 = p->x, y0 = p->y, x1 = p->x + p->width, y1 = p->y + p->height;
         switch (e->type) {
             case UI_ELEM_BOX:; {
-                writeuielemrect(md, p->x, p->y, p->x + p->width, p->y + p->height, p->z, p->r, p->g, p->b, p->a);
+                writeuielemrect(md, x0, y0, x1, y1, p->z, p->r, p->g, p->b, p->a);
                 break;
             }
             case UI_ELEM_FANCYBOX:; {
-                writeuielemrect(md, p->x, p->y + s, p->x + p->width, p->y + p->height - s, p->z, p->r / 2, p->g / 2, p->b / 2, p->a);
-                writeuielemrect(md, p->x + s, p->y, p->x + p->width - s, p->y + p->height, p->z, p->r / 2, p->g / 2, p->b / 2, p->a);
-                writeuielemrect(md, p->x + s, p->y + s, p->x + p->width - s, p->y + p->height - s, p->z, p->r, p->g, p->b, p->a);
+                writeuielemrect(md, x0, y0 + s, x1, y1 - s, p->z, p->r / 2, p->g / 2, p->b / 2, p->a);
+                writeuielemrect(md, x0 + s, y0, x1 - s, y1, p->z, p->r / 2, p->g / 2, p->b / 2, p->a);
+                writeuielemrect(md, x0 + 2 * s, y0 + 2 * s, x1 - 2 * s, y1 - 2 * s, p->z, p->r, p->g, p->b, p->a);
                 break;
             }
             case UI_ELEM_HOTBAR:; {
                 int slot = -1;
                 curprop = getUIElemProperty(e, "slot");
                 if (curprop) slot = atoi(curprop);
-                writeuielemrect(md, p->x, p->y + s, p->x + p->width, p->y + p->height - s, p->z, 63, 63, 63, p->a);
-                writeuielemrect(md, p->x + s, p->y, p->x + p->width - s, p->y + p->height, p->z, 63, 63, 63, p->a);
+                writeuielemrect(md, x0, y0 + s, x1, y1 - s, p->z, 63, 63, 63, p->a);
+                writeuielemrect(md, x0 + s, y0, x1 - s, y1, p->z, 63, 63, 63, p->a);
                 for (int i = 0; i < 10; ++i) {
                     uint8_t r, g, b;
                     if (i == slot) {
@@ -894,7 +895,7 @@ static force_inline void meshUIElem(struct meshdata* md, struct ui_data* elemdat
                     }
                     writeuielemrect(
                         md,
-                        p->x + (i * 30 + 2) * s, p->y + s * 2, p->x + ((i + 1) * 30) * s, p->y + p->height - s * 2,
+                        x0 + (i * 30 + 2) * s, y0 + s * 2, x0 + ((i + 1) * 30) * s, y1 - s * 2,
                         p->z,
                         r, g, b, p->a / 2
                     );
@@ -902,8 +903,8 @@ static force_inline void meshUIElem(struct meshdata* md, struct ui_data* elemdat
                 break;
             }
             case UI_ELEM_ITEMGRID:; {
-                writeuielemrect(md, p->x, p->y + s, p->x + p->width, p->y + p->height - s, p->z, 63, 63, 63, p->a);
-                writeuielemrect(md, p->x + s, p->y, p->x + p->width - s, p->y + p->height, p->z, 63, 63, 63, p->a);
+                writeuielemrect(md, x0, y0 + s, x1, y1 - s, p->z, 63, 63, 63, p->a);
+                writeuielemrect(md, x0 + s, y0, x1 - s, y1, p->z, 63, 63, 63, p->a);
                 curprop = getUIElemProperty(e, "width");
                 int width = (curprop) ? atoi(curprop) : 1;
                 curprop = getUIElemProperty(e, "height");
@@ -912,7 +913,7 @@ static force_inline void meshUIElem(struct meshdata* md, struct ui_data* elemdat
                     for (int x = 0; x < width; ++x) {
                         writeuielemrect(
                             md,
-                            p->x + (x * 30 + 2) * s, p->y + (y * 30 + 2) * s, p->x + ((x + 1) * 30) * s, p->y + ((y + 1) * 30) * s,
+                            x0 + (x * 30 + 2) * s, y0 + (y * 30 + 2) * s, x0 + ((x + 1) * 30) * s, y0 + ((y + 1) * 30) * s,
                             p->z,
                             140, 140, 140, p->a
                         );
@@ -921,7 +922,9 @@ static force_inline void meshUIElem(struct meshdata* md, struct ui_data* elemdat
                 break;
             }
             case UI_ELEM_BUTTON:; {
-                
+                writeuielemrect(md, x0, y0 + s, x1, y1 - s, p->z, p->r / 2, p->g / 2, p->b / 2, p->a);
+                writeuielemrect(md, x0 + s, y0, x1 - s, y1, p->z, p->r / 2, p->g / 2, p->b / 2, p->a);
+                writeuielemrect(md, x0 + 2 * s,     y0 + 2 * s, x1 - 2 * s, y1 - 2 * s, p->z, p->r, p->g, p->b, p->a);
                 break;
             }
         }
