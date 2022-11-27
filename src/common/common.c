@@ -40,10 +40,20 @@ int getCoreCt() {
     return corect;
 }
 
+#ifdef _WIN32
+LARGE_INTEGER perfctfreq;
+#endif
+
 uint64_t altutime() {
-    struct timeval time1;
-    gettimeofday(&time1, NULL);
-    return time1.tv_sec * 1000000 + time1.tv_usec;
+    #ifndef _WIN32
+    struct timespec time;
+    clock_gettime(CLOCK_MONOTONIC, &time);
+    return time.tv_sec * 1000000 + time.tv_nsec / 1000;
+    #else
+    LARGE_INTEGER time;
+    QueryPerformanceCounter(&time);
+    return time.QuadPart * 1000000 / perfctfreq.QuadPart;
+    #endif
 }
 
 void microwait(uint64_t d) {
