@@ -49,3 +49,4 @@
 - Made input configurable
 - Added gamepad support on GLFW
 - Added the mouse scroll wheel code
+- Use `clock_gettime` with `CLOCK_MONOTONIC` instead of `gettimeofday` on platforms other than Windows and MacOS

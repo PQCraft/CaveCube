@@ -4,6 +4,9 @@
 #include <inttypes.h>
 #include <stddef.h>
 #include <stdbool.h>
+#ifdef _WIN32
+    #include <windows.h>
+#endif
 
 typedef struct {
     long size;
@@ -41,5 +44,9 @@ int getCoreCt(void);
 char* spCharToStr(char);
 bool getBool(char*);
 int readStrUntil(char*, char, char*);
+
+#ifdef _WIN32
+extern LARGE_INTEGER perfctfreq;
+#endif
 
 #endif

@@ -116,6 +116,7 @@ int main(int _argc, char** _argv) {
     DWORD procct = GetConsoleProcessList((LPDWORD)procs, 2);
     bool owncon = (procct < 2);
     if (owncon) ShowWindow(GetConsoleWindow(), SW_HIDE);
+    QueryPerformanceFrequency(&perfctfreq);
     #endif
     argc = _argc;
     argv = _argv;

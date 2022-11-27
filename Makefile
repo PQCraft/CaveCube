@@ -282,12 +282,12 @@ else
 $(BIN): $(wildcard $(OBJDIR)/*/*.o)
 	@echo Building $@...
 ifdef WINCROSS
-	@$(WINDRES) $(WRFLAGS) -DORIG_NAME="$(BIN)" -DINT_NAME="$(BINNAME)" $(SRCDIR)/main/version.rc -o $(OBJDIR)/main/version.o
+	@$(WINDRES) $(WRFLAGS) -DORIG_NAME="$(BIN)" -DINT_NAME="$(BINNAME)" $(SRCDIR)/main/version.rc -o $(OBJDIR)/version.o
 endif
 ifndef WINCROSS
 	@$(CC) $^ $(BINFLAGS) -o $@
 else
-	@$(CC) $(OBJDIR)/main/version.o $^ $(BINFLAGS) -o $@
+	@$(CC) $(OBJDIR)/version.o $^ $(BINFLAGS) -o $@
 endif
 ifndef DEBUG
 	@$(STRIP) --strip-all $@

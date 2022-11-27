@@ -316,7 +316,7 @@ bool doGame(char* addr, int port) {
     puts("Sending ping...");
     cliSend(CLIENT_PING);
     while (!ping && !quitRequest) {
-        getInput();
+        getInput(NULL);
         microwait(100000);
     }
     if (quitRequest) return false;
@@ -324,7 +324,7 @@ bool doGame(char* addr, int port) {
     puts("Exchanging compatibility info...");
     cliSend(CLIENT_COMPATINFO, VER_MAJOR, VER_MINOR, VER_PATCH, 0, PROG_NAME);
     while (!compat && !quitRequest) {
-        getInput();
+        getInput(NULL);
         microwait(100000);
     }
     if (compat < 0) {
@@ -332,6 +332,8 @@ bool doGame(char* addr, int port) {
         return false;
     }
     if (quitRequest) return false;
+
+    struct input_info input;
     //int64_t farlands = -((int64_t)1 << 55);
     int64_t cx = 0;
     int64_t cz = 0;
@@ -355,14 +357,16 @@ bool doGame(char* addr, int port) {
     startMesher();
     setRandSeed(8, altutime());
     coord_3d tmpcamrot = {0, 0, 0};
+
     resetInput();
     setInputMode(INPUT_MODE_GAME);
     //setSkyColor(0.5, 0.5, 0.5);
     for (int i = 0; i < 4; ++i) {
         game_ui[i] = allocUI();
     }
+    getInput(&input);
     game_ui[UILAYER_DBGINF]->hidden = !showDebugInfo;
-    game_ui[UILAYER_INGAME]->hidden = getInput().focus;
+    game_ui[UILAYER_INGAME]->hidden = input.focus;
 
     int ui_main = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BOX, "main", -1, -1, "width", "100%", "height", "100%", "color", "#000000", "alpha", "0.25", "z", "-100", NULL);
     /*int ui_placeholder = */newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON, "placeholder", ui_main, -1, "width", "128", "height", "36", "text", "[Placeholder]", NULL);
@@ -380,7 +384,7 @@ bool doGame(char* addr, int port) {
         uint64_t st1 = altutime();
         if (loopdelay) microwait(loopdelay);
         float bps = 4;
-        struct input_info input = getInput();
+        getInput(&input);
         {
             if (!input.focus && inputMode != INPUT_MODE_UI) {
                 setInputMode(INPUT_MODE_UI);

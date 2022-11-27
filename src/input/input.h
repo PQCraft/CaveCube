@@ -49,8 +49,8 @@ enum {
     INPUT_ACTION_SINGLE_ROT_Z,
     INPUT_ACTION_SINGLE_FULLSCR,
     INPUT_ACTION_SINGLE_DEBUG,
-    INPUT_ACTION_SINGLE_LCLICK,
-    INPUT_ACTION_SINGLE_RCLICK,
+    //INPUT_ACTION_SINGLE_LCLICK, // move to INPUT_ACTION_UI
+    //INPUT_ACTION_SINGLE_RCLICK, // move to INPUT_ACTION_UI
     INPUT_ACTION_SINGLE__MAX,
 };
 
@@ -75,7 +75,7 @@ extern int inputMode;
 void setInputMode(int);
 bool initInput(void);
 void resetInput(void);
-struct input_info getInput(void);
+void getInput(struct input_info*);
 
 #define INPUT_EMPTY_INFO (struct input_info){false, INPUT_ACTION_MULTI__NONE, INPUT_ACTION_SINGLE__NONE, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0, 0, 0}
 

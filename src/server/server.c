@@ -1,6 +1,6 @@
 #include <main/main.h>
-#include "server.h"
 #include "network.h"
+#include "server.h"
 #include <main/version.h>
 #include <common/common.h>
 #include <common/endian.h>
