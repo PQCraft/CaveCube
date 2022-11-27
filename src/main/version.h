@@ -3,7 +3,7 @@
 
 #define VER_MAJOR 0
 #define VER_MINOR 5
-#define VER_PATCH 1
+#define VER_PATCH 2
 
 #define _STR(x) #x
 #define STR(x) _STR(x)
