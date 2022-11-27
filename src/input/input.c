@@ -391,11 +391,6 @@ void getInput(struct input_info* _inf) {
     for (int i = GLFW_JOYSTICK_1; i < GLFW_JOYSTICK_LAST; ++i) {
         if ((glfwgp = glfwGetGamepadState(GLFW_JOYSTICK_1, &glfwgpstate))) break;
     }
-    if (glfwgp) {
-        for (int i = 0; i < 15; ++i) {
-            printf("gamepad.buttons[%d]: [%u]\n", i, glfwgpstate.buttons[i]);
-        }
-    }
     #endif
     *inf = INPUT_EMPTY_INFO;
     if (quitRequest) goto ret;
@@ -428,21 +423,18 @@ void getInput(struct input_info* _inf) {
             inf->mov_right *= mul;
             for (int i = 0; i < INPUT_ACTION_MULTI__MAX - 1; ++i) {
                 if (keyState(input_ma[i]) >= 0.2) {
-                    printf("%s\n", input_ma_names[i]);
                     inf->multi_actions |= 1 << i;
                 }
             }
             if (lastsa == INPUT_ACTION_SINGLE__NONE) {
                 for (int i = 0; i < INPUT_ACTION_SINGLE__MAX; ++i) {
                     if (keyState(input_sa[i]) >= 0.2) {
-                        printf("%s\n", input_sa_names[i]);
                         lastsa = inf->single_action = i;
                         break;
                     }
                 }
             } else {
                 if (keyState(input_sa[lastsa]) < 0.2) lastsa = INPUT_ACTION_SINGLE__NONE;
-                else printf("%s\n", input_sa_names[lastsa]);
             }
             break;
         }
