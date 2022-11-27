@@ -1,0 +1,29 @@
+[Input]
+xSen = 8
+ySen = 4
+
+[GLFW Keybinds]
+move.forward = \0,\0,0;\0,\0,0
+move.backward = g,a,1;\0,\0,0
+move.left = \0,\0,0;\0,\0,0
+move.right = g,a,0;\0,\0,0
+move.lookUp = g,a,3;\0,\0,0
+move.lookDown = \0,\0,0;\0,\0,0
+move.lookLeft = g,a,2;\0,\0,0
+move.lookRight = \0,\0,0;\0,\0,0
+multi.place = g,a,5;\0,\0,0
+multi.destroy = g,a,4;\0,\0,0
+multi.zoom = g,b,10;\0,\0,0
+multi.jump = g,b,0;\0,\0,0
+multi.crouch = g,b,9;\0,\0,0
+multi.run = g,b,5;\0,\0,0
+multi.playerlist = g,b,6;\0,\0,0
+single.escape = g,b,7;\0,\0,0
+single.inventory = g,b,4;\0,\0,0
+single.invNext = g,b,12;\0,\0,0
+single.invPrev = g,b,14;\0,\0,0
+single.invShiftUp = g,b,11;\0,\0,0
+single.invShiftDown = g,b,13;\0,\0,0
+single.rotBlockX = g,b,2;\0,\0,0
+single.rotBlockY = g,b,3;\0,\0,0
+single.rotBlockZ = g,b,1;\0,\0,0

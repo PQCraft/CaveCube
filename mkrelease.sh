@@ -82,6 +82,8 @@ updatepkg() {
 }
 updatepkg cavecube
 updatepkg cavecube-bin
+updatepkg cavecube-sdl2
+updatepkg cavecube-sdl2-bin
 
 tsk "Cleaning up..."
 rm -rf cavecube*.tar.gz cavecube*.zip

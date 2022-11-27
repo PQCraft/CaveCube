@@ -49,4 +49,5 @@
 - Made input configurable
 - Added gamepad support on GLFW
 - Added the mouse scroll wheel code
-- Use `clock_gettime` with `CLOCK_MONOTONIC` instead of `gettimeofday` on platforms other than Windows and MacOS
+- Use `clock_gettime(CLOCK_MONOTONIC...` or `QueryPerformanceCounter` instead of `gettimeofday`
+- Getting input now uses a pointer instead of returning a large struct
