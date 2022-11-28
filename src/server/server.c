@@ -24,22 +24,23 @@ struct msgdata_msg {
 };
 
 struct msgdata {
-    bool valid;
     int size;
+    int rptr;
+    int wptr;
     struct msgdata_msg* msg;
     pthread_mutex_t lock;
 };
 
 static force_inline void initMsgData(struct msgdata* mdata) {
-    mdata->valid = true;
     mdata->size = 0;
+    mdata->rptr = -1;
+    mdata->wptr = -1;
     mdata->msg = malloc(0);
     pthread_mutex_init(&mdata->lock, NULL);
 }
 
 static force_inline void deinitMsgData(struct msgdata* mdata) {
     pthread_mutex_lock(&mdata->lock);
-    mdata->valid = false;
     free(mdata->msg);
     pthread_mutex_unlock(&mdata->lock);
     pthread_mutex_destroy(&mdata->lock);
@@ -47,36 +48,32 @@ static force_inline void deinitMsgData(struct msgdata* mdata) {
 
 static force_inline void addMsg(struct msgdata* mdata, int id, void* data, uint64_t uuid, int uind) {
     pthread_mutex_lock(&mdata->lock);
-    if (mdata->valid) {
-        int index = -1;
-        for (int i = 0; i < mdata->size; ++i) {
-            if (mdata->msg[i].id < 0) {
-                index = i;
-                break;
-            }
-        }
-        if (index == -1) {
-            index = mdata->size++;
-            mdata->msg = realloc(mdata->msg, mdata->size * sizeof(*mdata->msg));
-        }
-        mdata->msg[index].id = id;
-        mdata->msg[index].data = data;
-        mdata->msg[index].uuid = uuid;
-        mdata->msg[index].uind = uind;
+    if (mdata->wptr < 0 || mdata->rptr >= mdata->size) {
+        mdata->rptr = 0;
+        mdata->size = 0;
     }
+    mdata->wptr = mdata->size++;
+    //printf("[%lu]: wptr: [%d] size: [%d]\n", (uintptr_t)mdata, mdata->wptr, mdata->size);
+    mdata->msg = realloc(mdata->msg, mdata->size * sizeof(*mdata->msg));
+    mdata->msg[mdata->wptr].id = id;
+    mdata->msg[mdata->wptr].data = data;
+    mdata->msg[mdata->wptr].uuid = uuid;
+    mdata->msg[mdata->wptr].uind = uind;
     pthread_mutex_unlock(&mdata->lock);
 }
 
 static force_inline bool getNextMsg(struct msgdata* mdata, struct msgdata_msg* msg) {
     pthread_mutex_lock(&mdata->lock);
-    if (mdata->valid) {
-        for (int i = 0; i < mdata->size; ++i) {
+    if (mdata->rptr >= 0) {
+        for (int i = mdata->rptr; i < mdata->size; ++i) {
             if (mdata->msg[i].id >= 0) {
                 msg->id = mdata->msg[i].id;
                 msg->data = mdata->msg[i].data;
                 msg->uuid = mdata->msg[i].uuid;
                 msg->uind = mdata->msg[i].uind;
                 mdata->msg[i].id = -1;
+                mdata->rptr = i + 1;
+                //printf("[%lu]: rptr: [%d] size: [%d]\n", (uintptr_t)mdata, mdata->rptr, mdata->size);
                 pthread_mutex_unlock(&mdata->lock);
                 return true;
             }
@@ -88,14 +85,16 @@ static force_inline bool getNextMsg(struct msgdata* mdata, struct msgdata_msg* m
 
 static force_inline bool getNextMsgForUUID(struct msgdata* mdata, struct msgdata_msg* msg, uint64_t uuid) {
     pthread_mutex_lock(&mdata->lock);
-    if (mdata->valid) {
-        for (int i = 0; i < mdata->size; ++i) {
+    if (mdata->rptr >= 0) {
+        for (int i = mdata->rptr; i < mdata->size; ++i) {
             if (mdata->msg[i].id >= 0 && mdata->msg[i].uuid == uuid) {
                 msg->id = mdata->msg[i].id;
                 msg->data = mdata->msg[i].data;
                 msg->uuid = mdata->msg[i].uuid;
                 msg->uind = mdata->msg[i].uind;
                 mdata->msg[i].id = -1;
+                mdata->rptr = i + 1;
+                //printf("[%lu]: rptr: [%d] size: [%d]\n", (uintptr_t)mdata, mdata->rptr, mdata->size);
                 pthread_mutex_unlock(&mdata->lock);
                 return true;
             }
@@ -120,6 +119,7 @@ struct timerdata_timer {
     int priority;
     uint64_t interval;
     uint64_t intertime;
+    bool ack;
 };
 
 struct timerdata {
@@ -218,6 +218,7 @@ static void* servtimerthread(void* vargs) {
 enum {
     _SERVER_TIMER1 = 512,
     _SERVER_TIMER2,
+    _SERVER_TICK,
 };
 
 static struct timerdata servtimer;
@@ -352,7 +353,7 @@ static void* servthread(void* args) {
                     }
                     case _SERVER_USERCONNECT:; {
                         struct server_data_setskycolor* tmpdata = malloc(sizeof(*tmpdata));
-                        *tmpdata = (struct server_data_setskycolor){0x8A, 0xC9, 0xFF};
+                        *tmpdata = (struct server_data_setskycolor){0xA0, 0xC8, 0xFF};
                         addMsg(&servmsgout[MSG_PRIO_HIGH], SERVER_SETSKYCOLOR, tmpdata, msg.uuid, msg.uind);
                         break;
                     }
@@ -579,7 +580,9 @@ int startServer(char* addr, int port, int mcli, char* world) {
         return -1;
     }
     serveralive = true;
+    #if DBGLVL(1)
     puts("  Initializing connection...");
+    #endif
     port = servcxn->info.port;
     setCxnBufSize(servcxn, SERVER_SNDBUF_SIZE, CLIENT_SNDBUF_SIZE);
     pdata = calloc(maxclients, sizeof(*pdata));
@@ -589,28 +592,37 @@ int startServer(char* addr, int port, int mcli, char* world) {
     for (int i = 0; i < MSG_PRIO__MAX; ++i) {
         initMsgData(&servmsgout[i]);
     }
+    #if DBGLVL(1)
     puts("  Initializing noise...");
+    #endif
     setRandSeed(0, 32464);
     initNoiseTable(0);
     initWorldgen();
+    #if DBGLVL(1)
     puts("  Initializing timer and events...");
+    #endif
     initTimerData(&servtimer);
     addTimer(&servtimer, _SERVER_TIMER1, MSG_PRIO_LOW, 2000000);
     addTimer(&servtimer, _SERVER_TIMER2, MSG_PRIO_LOW, 1200000);
+    addTimer(&servtimer, _SERVER_TICK, MSG_PRIO_HIGH, 50000);
     #ifdef NAME_THREADS
     char name[256];
     char name2[256];
     name[0] = 0;
     name2[0] = 0;
     #endif
+    #if DBGLVL(1)
     puts("  Starting server network thread...");
+    #endif
     pthread_create(&servnetthreadh, NULL, &servnetthread, NULL);
     #ifdef NAME_THREADS
     pthread_getname_np(servnetthreadh, name2, 256);
     sprintf(name, "%s:snet", name2);
     pthread_setname_np(servnetthreadh, name);
     #endif
+    #if DBGLVL(1)
     puts("  Starting server timer thread...");
+    #endif
     pthread_create(&servtimerh, NULL, &servtimerthread, &servtimer);
     #ifdef NAME_THREADS
     pthread_getname_np(servtimerh, name2, 256);
@@ -622,7 +634,9 @@ int startServer(char* addr, int port, int mcli, char* world) {
         name[0] = 0;
         name2[0] = 0;
         #endif
+        #if DBGLVL(1)
         printf("  Starting server thread [%d]...\n", i);
+        #endif
         pthread_create(&servpthreads[i], NULL, &servthread, (void*)(intptr_t)i);
         #ifdef NAME_THREADS
         pthread_getname_np(servpthreads[i], name2, 256);
@@ -644,18 +658,26 @@ void stopServer() {
         printf("  Waiting for server thread [%d]...\n", i);
         pthread_join(servpthreads[i], NULL);
     }
+    #if DBGLVL(1)
     puts("  Waiting for server network thread...");
+    #endif
     pthread_join(servnetthreadh, NULL);
+    #if DBGLVL(1)
     puts("  Waiting for server timer thread...");
+    #endif
     pthread_join(servtimerh, NULL);
+    #if DBGLVL(1)
     puts("  Closing connections...");
+    #endif
     for (int i = 0; i < maxclients; ++i) {
         if (pdata[i].valid) {
             closeCxn(pdata[i].cxn);
         }
     }
     closeCxn(servcxn);
+    #if DBGLVL(1)
     puts("  Cleaning up...");
+    #endif
     free(pdata);
     deinitTimerData(&servtimer);
     for (int i = 0; i < MSG_PRIO__MAX; ++i) {

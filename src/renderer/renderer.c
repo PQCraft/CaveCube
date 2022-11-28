@@ -440,16 +440,18 @@ struct msgdata_msg {
 };
 
 struct msgdata {
-    bool valid;
     int size;
+    int rptr;
+    int wptr;
     struct msgdata_msg* msg;
-    pthread_mutex_t lock;
     uint64_t id;
+    pthread_mutex_t lock;
 };
 
 static force_inline void initMsgData(struct msgdata* mdata) {
-    mdata->valid = true;
     mdata->size = 0;
+    mdata->rptr = -1;
+    mdata->wptr = -1;
     mdata->msg = malloc(0);
     pthread_mutex_init(&mdata->lock, NULL);
 }
@@ -466,30 +468,19 @@ static void deinitMsgData(struct msgdata* mdata) {
 
 static force_inline void addMsg(struct msgdata* mdata, int64_t x, int64_t z, uint64_t id, bool dep, int lvl) {
     pthread_mutex_lock(&mdata->lock);
-    if (mdata->valid) {
-        int index = -1;
-        for (int i = 0; i < mdata->size; ++i) {
-            /*if (mdata->msg[i].valid && mdata->msg[i].x == x && mdata->msg[i].z == z) {
-                printf("dup: [%"PRId64", %"PRId64"] with [%d]\n", x, z, i);
-                goto skip;
-            } else*/ if (!mdata->msg[i].valid && index == -1) {
-                index = i;
-                break;
-            }
-        }
-        if (index == -1) {
-            index = mdata->size++;
-            mdata->msg = realloc(mdata->msg, mdata->size * sizeof(*mdata->msg));
-        }
-        //printf("adding [%d]/[%d]\n", index + 1, mdata->size);
-        mdata->msg[index].valid = true;
-        mdata->msg[index].dep = dep;
-        mdata->msg[index].lvl = lvl;
-        mdata->msg[index].x = x;
-        mdata->msg[index].z = z;
-        mdata->msg[index].id = (dep) ? id : mdata->id++;
-        //skip:;
+    if (mdata->wptr < 0 || mdata->rptr >= mdata->size) {
+        mdata->rptr = 0;
+        mdata->size = 0;
     }
+    mdata->wptr = mdata->size++;
+    //printf("[%lu]: wptr: [%d] size: [%d]\n", (uintptr_t)mdata, mdata->wptr, mdata->size);
+    mdata->msg = realloc(mdata->msg, mdata->size * sizeof(*mdata->msg));
+    mdata->msg[mdata->wptr].valid = true;
+    mdata->msg[mdata->wptr].dep = dep;
+    mdata->msg[mdata->wptr].lvl = lvl;
+    mdata->msg[mdata->wptr].x = x;
+    mdata->msg[mdata->wptr].z = z;
+    mdata->msg[mdata->wptr].id = (dep) ? id : mdata->id++;
     pthread_mutex_unlock(&mdata->lock);
 }
 
@@ -506,8 +497,8 @@ void setMeshChunkOff(int64_t x, int64_t z) {
 
 static force_inline bool getNextMsg(struct msgdata* mdata, struct msgdata_msg* msg) {
     pthread_mutex_lock(&mdata->lock);
-    if (mdata->valid) {
-        for (int i = 0; i < mdata->size; ++i) {
+    if (mdata->rptr >= 0) {
+        for (int i = mdata->rptr; i < mdata->size; ++i) {
             if (mdata->msg[i].valid) {
                 msg->valid = mdata->msg[i].valid;
                 msg->dep = mdata->msg[i].dep;
@@ -516,6 +507,8 @@ static force_inline bool getNextMsg(struct msgdata* mdata, struct msgdata_msg* m
                 msg->z = mdata->msg[i].z;
                 msg->id = mdata->msg[i].id;
                 mdata->msg[i].valid = false;
+                mdata->rptr = i + 1;
+                //printf("[%lu]: rptr: [%d] size: [%d]\n", (uintptr_t)mdata, mdata->rptr, mdata->size);
                 pthread_mutex_unlock(&mdata->lock);
                 //printf("returning [%d]/[%d]\n", i + 1, mdata->size);
                 return true;
@@ -1035,6 +1028,7 @@ static force_inline void meshUIElem(struct meshdata* md, struct ui_data* elemdat
                 y += tch * s;
             }
         }
+        free(tdata);
         p->x -= mx;
         p->width += mx * 2;
         p->y -= my;
