@@ -274,6 +274,7 @@ struct config* openConfig(char* path) {
     }
     free(sect);
     cfg->changed = false;
+    freeFile(fdata);
     return cfg;
 }
 

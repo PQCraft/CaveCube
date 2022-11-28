@@ -356,6 +356,7 @@ bool calcUIProperties(struct ui_data* elemdata) {
 void freeUI(struct ui_data* elemdata) {
     clearUIElems(elemdata);
     glDeleteBuffers(1, &elemdata->renddata.VBO);
+    free(elemdata->data);
     free(elemdata);
 }
 

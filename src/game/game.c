@@ -299,7 +299,7 @@ bool doGame(char* addr, int port) {
         tmpbuf[i] = malloc(4096);
     }
     declareConfigKey(config, "Game", "viewDist", "8", false);
-    declareConfigKey(config, "Game", "loopDelay", "5000", false);
+    declareConfigKey(config, "Game", "loopDelay", "1000", false);
     declareConfigKey(config, "Player", "name", "Player", false);
     declareConfigKey(config, "Player", "skin", "", false);
     chunks = allocChunks(atoi(getConfigKey(config, "Game", "viewDist")));

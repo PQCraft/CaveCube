@@ -3,6 +3,7 @@
     - More UI elements (buttons, text boxes, etc)
     - UI interaction (elem states, tooltips, etc)
     - Add `fit_width_to_text` and `fit_height_to_text` attrib
+    - Add `text_fmt` attrib
     - Add items to hotbar
 - Redo almost everything to do with chunks/blocks
 - Add physics in `src/physics/`
@@ -43,4 +44,8 @@
 ### IN-PROGRESS:
 
 ### DONE:
-- Removed some left-over debugging code
+- Made internal messages more linear
+- Fixed memory issues
+- Updated README.md
+- Changed default loopDelay value from 5ms to 1ms
+- DEBUG=1+ is now required to print out detailed server start/stop info

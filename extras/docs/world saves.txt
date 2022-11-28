@@ -1,0 +1,25 @@
+<World name corrected for general filesystem name limitations>/
+    server/
+        players/
+            [Player ID in 16 network order hex chars]
+                <Player data>
+            ...
+        config.cfg
+            <Server config>
+    world/
+        entities/
+            [Entity ID in 16 hex chars]
+                <Entity data>
+            ...
+        chunks/
+            <Dimension text id>/
+                [<Chunk X coord in 16 network order hex chars><Chunk Z coord in 16 network order hex chars>]
+                    <Chunk data>
+                ...
+        state
+            <The state of certain vars at the time of writing the save>
+    dynamic.inf
+        <Dynamic info about the world (modification date, playtime, etc) in a format readable by common/config.c>
+    static.inf
+        <Static info about the world (name, seed, creation date, etc) in a format readable by common/config.c>
+
