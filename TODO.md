@@ -1,16 +1,16 @@
 ### NEED TO DO:
+- Redo almost everything to do with chunks/blocks
+- Ensure that every function that does block operations takes a non-inverted z
 - Flesh out UI
     - More UI elements (buttons, text boxes, etc)
     - UI interaction (elem states, tooltips, etc)
     - Add `fit_width_to_text` and `fit_height_to_text` attrib
     - Add `text_fmt` attrib
     - Add items to hotbar
-- Redo almost everything to do with chunks/blocks
 - Add physics in `src/physics/`
     - Use ticks https://gafferongames.com/post/fix_your_timestep/ and add interpolation
     - Add AABB collision in `collision.(c|h)`
     - Add raycasting in `raycasting.(c|h)`
-- Ensure that every function that does block operations takes a non-inverted z
 - Redo doGame() and remove loopDelay
     - Remove collision spaghetti
     - Use physics code for collision and raycasting

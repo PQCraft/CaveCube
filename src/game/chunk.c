@@ -16,7 +16,7 @@
 
 // TODO: burn with fire
 
-struct blockdata getBlock(struct chunkdata* data, int64_t cx, int64_t cz, int x, int y, int z) {
+struct blockdata getBlock(struct chunkdata* data, int64_t cx, int64_t cz, int64_t x, int y, int64_t z) {
     //cz *= -1;
     z *= -1;
     //printf("in: [%d, %d, %d] [%d, %d, %d]\n", cx, cy, cz, x, y, z);
@@ -38,7 +38,7 @@ struct blockdata getBlock(struct chunkdata* data, int64_t cx, int64_t cz, int x,
     return data->data[c][y * 256 + z * 16 + x];
 }
 
-void setBlock(struct chunkdata* data, int64_t ocx, int64_t ocz, int x, int y, int z, struct blockdata bdata) {
+void setBlock(struct chunkdata* data, int64_t ocx, int64_t ocz, int64_t x, int y, int64_t z, struct blockdata bdata) {
     pthread_mutex_lock(&uclock);
     int64_t cx = 0, cz = 0;
     z *= -1;
@@ -57,7 +57,7 @@ void setBlock(struct chunkdata* data, int64_t ocx, int64_t ocz, int x, int y, in
     int32_t off = y * 256 + z * 16 + x;
     data->data[c][off].id = bdata.id;
     data->data[c][off].subid = bdata.subid;
-    updateChunk(ocx, ocz, 2);
+    //updateChunk(ocx, ocz, 2);
     pthread_mutex_unlock(&uclock);
 }
 

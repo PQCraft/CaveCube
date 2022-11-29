@@ -1,1 +1,0 @@
-[32-bit: total size][1 byte: message type][...: data]
