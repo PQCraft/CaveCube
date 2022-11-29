@@ -409,9 +409,9 @@ static force_inline struct blockdata rendGetBlock(int32_t c, int x, int y, int z
     while (x > 15 && (c + 1) % chunks->info.width) {c += 1; x -= 16;}
     while (z > 15 && c >= (int)chunks->info.width) {c -= chunks->info.width; z -= 16;}
     while (z < 0 && c < (int)(chunks->info.widthsq - chunks->info.width)) {c += chunks->info.width; z += 16;}
-    if (c < 0 || x < 0 || z < 0 || x > 15 || z > 15) return (struct blockdata){255, 0, 0, 0, 0, 0, 0, 0};
-    if (c >= (int32_t)chunks->info.widthsq || y < 0 || y > 255) return (struct blockdata){0, 0, 0, 0, 0, 0, 0, 0};
-    if (!chunks->renddata[c].generated) return (struct blockdata){255, 0, 0, 0, 0, 0, 0, 0};
+    if (c < 0 || x < 0 || z < 0 || x > 15 || z > 15) return (struct blockdata){255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    if (c >= (int32_t)chunks->info.widthsq || y < 0 || y > 255) return (struct blockdata){0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    if (!chunks->renddata[c].generated) return (struct blockdata){255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     struct blockdata ret = chunks->data[c][y * 256 + z * 16 + x];
     return ret;
 }
@@ -609,8 +609,10 @@ static void* meshthread(void* args) {
                             }
                             if (bdata2[i].id == 255) continue;
                             uint32_t baseVert1 = ((x << 28) | (y << 16) | (z << 8)) & 0xF0FF0F00;
-                            uint32_t baseVert2 = ((bdata2[i].light_r << 28) | (bdata2[i].light_g << 24) | (bdata2[i].light_b << 20) | blockinf[bdata.id].data[bdata.subid].anidiv) & 0xFFF000FF;
-                            uint32_t baseVert3 = ((blockinf[bdata.id].data[bdata.subid].texoff[i] << 16) & 0xFFFF0000) | (blockinf[bdata.id].data[bdata.subid].anict[i] & 0x0000FFFF);
+                            uint32_t baseVert2 = ((bdata2[i].light_r << 28) | (bdata2[i].light_g << 24) | (bdata2[i].light_b << 20) |
+                                                 blockinf[bdata.id].data[bdata.subid].anidiv) & 0xFFF000FF;
+                            uint32_t baseVert3 = ((blockinf[bdata.id].data[bdata.subid].texoff[i] << 16) & 0xFFFF0000) |
+                                                 ((blockinf[bdata.id].data[bdata.subid].anict[i] << 8) & 0xFF00) | (bdata2[i].light_n);
                             if (bdata.id == water) {
                                 if (!bdata2[i].id) {
                                     for (int j = 0; j < 6; ++j) {
@@ -702,9 +704,9 @@ void updateChunks() {
         uint32_t tmpsize = chunks->renddata[c].vcount * 3 * sizeof(uint32_t);
         uint32_t tmpsize2 = chunks->renddata[c].vcount2 * 3 * sizeof(uint32_t);
         uint32_t tmpsize3 = chunks->renddata[c].vcount3 * 3 * sizeof(uint32_t);
-        if (!chunks->renddata[c].VBO) glGenBuffers(1, &chunks->renddata[c].VBO);
-        if (!chunks->renddata[c].VBO2) glGenBuffers(1, &chunks->renddata[c].VBO2);
-        if (!chunks->renddata[c].VBO3) glGenBuffers(1, &chunks->renddata[c].VBO3);
+        while (!chunks->renddata[c].VBO) glGenBuffers(1, &chunks->renddata[c].VBO);
+        while (!chunks->renddata[c].VBO2) glGenBuffers(1, &chunks->renddata[c].VBO2);
+        while (!chunks->renddata[c].VBO3) glGenBuffers(1, &chunks->renddata[c].VBO3);
         if (tmpsize) {
             glBindBuffer(GL_ARRAY_BUFFER, chunks->renddata[c].VBO);
             glBufferData(GL_ARRAY_BUFFER, tmpsize, chunks->renddata[c].vertices, GL_STATIC_DRAW);
@@ -1300,17 +1302,17 @@ static void oglCallback(GLenum source, GLenum type, GLuint id, GLenum severity, 
             ignore = false;
             sevstr = "GL_DEBUG_SEVERITY_HIGH";
             break;
-        #if DBGLVL(1)
         case GL_DEBUG_SEVERITY_MEDIUM:;
             ignore = false;
             sevstr = "GL_DEBUG_SEVERITY_MEDIUM";
             break;
-        #endif
-        #if DBGLVL(2)
+        #if DBGLVL(1)
         case GL_DEBUG_SEVERITY_LOW:;
             ignore = false;
             sevstr = "GL_DEBUG_SEVERITY_LOW";
             break;
+        #endif
+        #if DBGLVL(2)
         case GL_DEBUG_SEVERITY_NOTIFICATION:;
             ignore = false;
             sevstr = "GL_DEBUG_SEVERITY_NOTIFICATION";

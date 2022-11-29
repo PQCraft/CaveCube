@@ -9,6 +9,7 @@
 enum {
     INPUT_MODE_UI,
     INPUT_MODE_GAME,
+    INPUT_MODE_TEXTINPUT,
 };
 
 enum {

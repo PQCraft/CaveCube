@@ -11,9 +11,12 @@ struct __attribute__((packed)) blockdata {
     uint8_t rotx:2;
     uint8_t roty:2;
     uint8_t rotz:2;
+    uint8_t attrib:4;
     uint8_t light_r:4;
     uint8_t light_g:4;
     uint8_t light_b:4;
+    uint8_t light_n:4;
+    uint8_t charge:8;
 };
 
 struct chunkinfo {

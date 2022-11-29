@@ -12,7 +12,7 @@ struct blockinfo_data {
     uint16_t texstart;
     uint16_t texcount;
     uint16_t texoff[6];
-    uint16_t anict[6];
+    uint8_t anict[6];
     uint8_t anidiv;
     uint8_t light_r:4;
     uint8_t light_g:4;

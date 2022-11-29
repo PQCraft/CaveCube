@@ -655,7 +655,9 @@ void stopServer() {
     puts("Stopping server...");
     serveralive = false;
     for (int i = 0; i < SERVER_THREADS && i < MAX_THREADS; ++i) {
+        #if DBGLVL(1)
         printf("  Waiting for server thread [%d]...\n", i);
+        #endif
         pthread_join(servpthreads[i], NULL);
     }
     #if DBGLVL(1)
