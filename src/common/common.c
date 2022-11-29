@@ -220,6 +220,28 @@ bool md(char* path) {
     return !mkdir(tmp);
 }
 
+char** dirstack = NULL;
+int dirstackptr = 0;
+
+bool pushdir(char* dir, bool mk) {
+    if (mk && !md(dir)) return false;
+    char* cwd = getcwd(NULL, 0);
+    if (!cwd) return false;
+    if (chdir(dir)) {free(cwd); return false;}
+    dirstack = realloc(dirstack, (dirstackptr + 1) * sizeof(*dirstack));
+    dirstack[dirstackptr] = cwd;
+    ++dirstackptr;
+    return true;
+}
+
+bool popdir() {
+    --dirstackptr;
+    if (chdir(dirstack[dirstackptr])) {++dirstackptr; return false;}
+    free(dirstack[dirstackptr]);
+    dirstack = realloc(dirstack, (dirstackptr + 1) * sizeof(*dirstack));
+    return true;
+}
+
 file_data getFile(char* name, char* mode) {
     struct stat fnst;
     memset(&fnst, 0, sizeof(struct stat));

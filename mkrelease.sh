@@ -28,8 +28,10 @@ _exit() {
     exit "${ERR}"
 }
 
-_tar() { rm -f "${1}"; tar -zc -f "${1}" ${@:2} 1> /dev/null; }
-_zip() { rm -f "${1}"; zip -r -9 "${1}" ${@:2} 1> /dev/null; }
+_tar() { rm -f "${1}"; tar --transform 's/.*\///g' -zc -f "${1}" ${@:2} 1> /dev/null; }
+_zip() { rm -f "${1}"; zip -j -r -9 "${1}" ${@:2} 1> /dev/null; }
+_tar_r() { rm -f "${1}"; tar -zc -f "${1}" ${@:2} 1> /dev/null; }
+_zip_r() { rm -f "${1}"; zip -r -9 "${1}" ${@:2} 1> /dev/null; }
 
 if ! (return 0 2> /dev/null); then
 
@@ -49,7 +51,7 @@ pause
 tsk "Building..."
 ./build.sh || _exit
 inf "Making cavecube_data.zip..."
-_zip "cavecube_data.zip" extras/ resources/
+_zip_r "cavecube_data.zip" extras/ resources/
 pause
 
 tsk "Pushing..."

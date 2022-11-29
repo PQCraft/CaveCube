@@ -24,7 +24,7 @@ struct blockdata getBlock(struct chunkdata* data, int64_t cx, int64_t cz, int x,
     cz += data->info.dist;
     x += 8;
     z += 8;
-    if (cx < 0 || cz < 0 || y < 0 || y > 255 || cx >= (int)data->info.width || cz >= (int)data->info.width ) return (struct blockdata){0, 0, 0, 0, 0, 0, 0, 0};
+    if (cx < 0 || cz < 0 || y < 0 || y > 255 || cx >= (int)data->info.width || cz >= (int)data->info.width ) return (struct blockdata){0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     int32_t c = cx + cz * data->info.width;
     while (x < 0 && c % data->info.width) {c -= 1; x += 16;}
     while (x > 15 && (c + 1) % data->info.width) {c += 1; x -= 16;}
@@ -33,8 +33,8 @@ struct blockdata getBlock(struct chunkdata* data, int64_t cx, int64_t cz, int x,
     cx = c % data->info.width;
     cz = c / data->info.width % data->info.width;
     //printf("resolved: [%d, %d, %d] [%d, %d, %d]\n", cx, cy, cz, x, y, z);
-    if (c < 0 || c >= (int32_t)data->info.widthsq || x < 0 || z < 0 || x > 15 || z > 15) return (struct blockdata){0, 0, 0, 0, 0, 0, 0, 0};
-    if (!data->renddata[c].generated) return (struct blockdata){255, 0, 0, 0, 0, 0, 0, 0};
+    if (c < 0 || c >= (int32_t)data->info.widthsq || x < 0 || z < 0 || x > 15 || z > 15) return (struct blockdata){0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    if (!data->renddata[c].generated) return (struct blockdata){255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     return data->data[c][y * 256 + z * 16 + x];
 }
 

@@ -44,8 +44,3 @@
 ### IN-PROGRESS:
 
 ### DONE:
-- Made internal messages more linear
-- Fixed memory issues
-- Updated README.md
-- Changed default loopDelay value from 5ms to 1ms
-- DEBUG=1+ is now required to print out detailed server start/stop info

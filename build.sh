@@ -71,10 +71,10 @@ buildrel "game" "Linux x86_64 using SDL2" USESDL2=y
 pkgrel() { _tar "cavecube_game_sdl2_linux_i686.tar.gz" cavecube; }
 buildrel "game" "Linux i686 using SDL2" USESDL2=y M32=y
 # Game: Windows x86_64 SDL2
-pkgrel() { _zip "cavecube_game_sdl2_windows_x86_64.zip" cavecube.exe; }
+pkgrel() { _zip "cavecube_game_sdl2_windows_x86_64.zip" cavecube.exe lib/windows/x86_64/SDL2.dll; }
 buildrel "game" "Windows x86_64 using SDL2" WINCROSS=y USESDL2=y
 # Game: Windows i686 SDL2
-pkgrel() { _zip "cavecube_game_sdl2_windows_i686.zip" cavecube.exe; }
+pkgrel() { _zip "cavecube_game_sdl2_windows_i686.zip" cavecube.exe lib/windows/i686/SDL2.dll; }
 buildrel "game" "Windows i686 using SDL2" WINCROSS=y USESDL2=y M32=y
 
 ##############
