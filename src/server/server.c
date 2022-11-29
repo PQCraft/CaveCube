@@ -351,6 +351,23 @@ static void* servthread(void* args) {
                         addMsg(&servmsgout[MSG_PRIO_LOW], SERVER_UPDATECHUNK, outdata, msg.uuid, msg.uind);
                         break;
                     }
+                    case CLIENT_SETBLOCK:; {
+                        struct client_data_setblock* data = msg.data;
+                        //printf("!!! [%"PRId64", %d, %"PRId64"]\n", data->x, data->y, data->z);
+                        pthread_mutex_lock(&pdatalock);
+                        for (int i = 0; i < maxclients; ++i) {
+                            if (pdata[i].valid) {
+                                struct server_data_setblock* tmpdata = malloc(sizeof(*tmpdata));
+                                tmpdata->x = data->x;
+                                tmpdata->z = data->z;
+                                tmpdata->y = data->y;
+                                tmpdata->data = data->data;
+                                addMsg(&servmsgout[MSG_PRIO_NORMAL], SERVER_SETBLOCK, tmpdata, pdata[i].uuid, i);
+                            }
+                        }
+                        pthread_mutex_unlock(&pdatalock);
+                        break;
+                    }
                     case _SERVER_USERCONNECT:; {
                         struct server_data_setskycolor* tmpdata = malloc(sizeof(*tmpdata));
                         *tmpdata = (struct server_data_setskycolor){0xA0, 0xC8, 0xFF};
@@ -472,7 +489,7 @@ static void* servnetthread(void* args) {
                                 break;
                             }
                             case CLIENT_GETCHUNK:; {
-                                struct server_data_updatechunk* data = malloc(sizeof(*data));
+                                struct client_data_getchunk* data = malloc(sizeof(*data));
                                 memcpy(&data->x, &buf[ptr], 8);
                                 ptr += 8;
                                 data->x = net2host64(data->x);
@@ -480,6 +497,20 @@ static void* servnetthread(void* args) {
                                 data->z = net2host64(data->z);
                                 _data = data;
                                 priority = MSG_PRIO_LOW;
+                                break;
+                            }
+                            case CLIENT_SETBLOCK:; {
+                                struct client_data_setblock* data = malloc(sizeof(*data));
+                                memcpy(&data->x, &buf[ptr], 8);
+                                ptr += 8;
+                                data->x = net2host64(data->x);
+                                memcpy(&data->z, &buf[ptr], 8);
+                                ptr += 8;
+                                data->z = net2host64(data->z);
+                                memcpy(&data->y, &buf[ptr], 1);
+                                ptr += 1;
+                                memcpy(&data->data, &buf[ptr], sizeof(struct blockdata));
+                                _data = data;
                                 break;
                             }
                         }
@@ -508,6 +539,10 @@ static void* servnetthread(void* args) {
                                 }
                                 case SERVER_SETSKYCOLOR:; {
                                     msgsize += 1 + 1 + 1;
+                                    break;
+                                }
+                                case SERVER_SETBLOCK:; {
+                                    msgsize += 8 + 8 + 1 + sizeof(struct blockdata);
                                     break;
                                 }
                             }
@@ -549,6 +584,17 @@ static void* servnetthread(void* args) {
                                     writeToCxnBuf(pdata[i].cxn, &tmpdata->r, 1);
                                     writeToCxnBuf(pdata[i].cxn, &tmpdata->g, 1);
                                     writeToCxnBuf(pdata[i].cxn, &tmpdata->b, 1);
+                                    break;
+                                }
+                                case SERVER_SETBLOCK:; {
+                                    struct server_data_setblock* tmpdata = msg.data;
+                                    uint64_t tmpqword = host2net64(tmpdata->x);
+                                    writeToCxnBuf(pdata[i].cxn, &tmpqword, 8);
+                                    tmpqword = host2net64(tmpdata->z);
+                                    writeToCxnBuf(pdata[i].cxn, &tmpqword, 8);
+                                    writeToCxnBuf(pdata[i].cxn, &tmpdata->y, 1);
+                                    writeToCxnBuf(pdata[i].cxn, &tmpdata->data, sizeof(struct blockdata));
+                                    break;
                                 }
                             }
                             if (msg.data) free(msg.data);
@@ -563,7 +609,7 @@ static void* servnetthread(void* args) {
         if (activity) {
             acttime = altutime();
         } else if (altutime() - acttime > 1500000) {
-            microwait(50000);
+            microwait(5000);
         }
     }
     return NULL;
@@ -773,6 +819,20 @@ static void* clinetthread(void* args) {
                     callback(SERVER_SETSKYCOLOR, &data);
                     break;
                 }
+                case SERVER_SETBLOCK:; {
+                    struct server_data_setblock data;
+                    memcpy(&data.x, &buf[ptr], 8);
+                    ptr += 8;
+                    data.x = net2host64(data.x);
+                    memcpy(&data.z, &buf[ptr], 8);
+                    ptr += 8;
+                    data.z = net2host64(data.z);
+                    memcpy(&data.y, &buf[ptr], 1);
+                    ptr += 1;
+                    memcpy(&data.data, &buf[ptr], sizeof(struct blockdata));
+                    callback(SERVER_SETBLOCK, &data);
+                    break;
+                }
             }
             free(buf);
             tmpsize = 0;
@@ -791,6 +851,10 @@ static void* clinetthread(void* args) {
                     }
                     case CLIENT_GETCHUNK:; {
                         msgsize += 8 + 8;
+                        break;
+                    }
+                    case CLIENT_SETBLOCK:; {
+                        msgsize += 8 + 8 + 1 + sizeof(struct blockdata);
                         break;
                     }
                 }
@@ -824,6 +888,16 @@ static void* clinetthread(void* args) {
                         writeToCxnBuf(clicxn, &tmpqword, 8);
                         tmpqword = host2net64(tmpdata->z);
                         writeToCxnBuf(clicxn, &tmpqword, 8);
+                        break;
+                    }
+                    case CLIENT_SETBLOCK:; {
+                        struct client_data_setblock* tmpdata = msg.data;
+                        uint64_t tmpqword = host2net64(tmpdata->x);
+                        writeToCxnBuf(clicxn, &tmpqword, 8);
+                        tmpqword = host2net64(tmpdata->z);
+                        writeToCxnBuf(clicxn, &tmpqword, 8);
+                        writeToCxnBuf(clicxn, &tmpdata->y, 1);
+                        writeToCxnBuf(clicxn, &tmpdata->data, sizeof(struct blockdata));
                         break;
                     }
                 }
@@ -883,6 +957,15 @@ void cliSend(int id, ...) {
             struct client_data_getchunk* tmpdata = malloc(sizeof(*tmpdata));
             tmpdata->x = va_arg(args, int64_t);
             tmpdata->z = va_arg(args, int64_t);
+            data = tmpdata;
+            break;
+        }
+        case CLIENT_SETBLOCK:; {
+            struct client_data_setblock* tmpdata = malloc(sizeof(*tmpdata));
+            tmpdata->x = va_arg(args, int64_t);
+            tmpdata->y = va_arg(args, int);
+            tmpdata->z = va_arg(args, int64_t);
+            tmpdata->data = va_arg(args, struct blockdata);
             data = tmpdata;
             break;
         }

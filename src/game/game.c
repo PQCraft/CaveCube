@@ -252,6 +252,12 @@ static force_inline void updateHotbar(int hb, int slot) {
     editUIElem(game_ui[UILAYER_CLIENT], hb, NULL, -1, "slot", hbslot, NULL);
 }
 
+//#define mod(x, n) (((x) % (n) + (n)) % (n))
+
+//int64_t farlands = -((int64_t)1 << 55);
+int64_t cx = 0;
+int64_t cz = 0;
+
 static pthread_mutex_t gfxlock = PTHREAD_MUTEX_INITIALIZER;
 static bool ping = false;
 static int compat = 0;
@@ -286,6 +292,13 @@ static void handleServer(int msg, void* _data) {
             newskycolor = (color){(float)data->r / 255.0, (float)data->g / 255.0, (float)data->b / 255.0, 1.0};
             setskycolor = true;
             pthread_mutex_unlock(&gfxlock);
+            break;
+        }
+        case SERVER_SETBLOCK:; {
+            struct server_data_setblock* data = _data;
+            //printf("set block at [%"PRId64", %d, %"PRId64"] ([%"PRId64", %"PRId64"]) to [%d]\n", data->x - cx * 16, data->y, -data->z - cz * 16, (data->x + 8) / 16, (data->z + 8) / 16, data->data.id);
+            setBlock(&chunks, 0, 0, data->x - cx * 16, data->y, -data->z + cz * 16, data->data);
+            updateChunk((data->x + 8) / 16, (data->z + 8) / 16, 2);
             break;
         }
     }
@@ -334,9 +347,6 @@ bool doGame(char* addr, int port) {
     if (quitRequest) return false;
 
     struct input_info input;
-    //int64_t farlands = -((int64_t)1 << 55);
-    int64_t cx = 0;
-    int64_t cz = 0;
     //genChunks(&chunks, cx, cz);
     double fpstime = 0;
     double lowframe = 1000000.0 / (double)rendinf.disphz;
@@ -612,7 +622,11 @@ bool doGame(char* addr, int port) {
                     ptime2 = altutime();
                     int blocknum = invspot + 1 + invoff * 10;
                     if (blockinf[blocknum].id && blockinf[blocknum].data[blocksub].id) {
-                        setBlock(&chunks, cx, cz, lastblockx, lastblocky, lastblockz, (struct blockdata){blocknum, blocksub, 0, 0, 0, 0, 0, 0, 0, 0, 0});
+                        //setBlock(&chunks, cx, cz, lastblockx, lastblocky, lastblockz, (struct blockdata){blocknum, blocksub, 0, 0, 0, 0, 0, 0, 0, 0, 0});
+                        cliSend(CLIENT_SETBLOCK,
+                                (int64_t)(lastblockx) + cx * 16, (int)(lastblocky), (int64_t)(-lastblockz) + cz * 16,
+                                (struct blockdata){blocknum, blocksub, 0, 0, 0, 0, 0, 0, 0, 0, 0});
+                        //printf("-> [%"PRId64", %d, %"PRId64"]\n", (int64_t)((int64_t)(lastblockx) + cx * 16), (int)(lastblocky), (int64_t)((int64_t)(-lastblockz) + cz * 16));
                     }
                 }
             placehold = true;
@@ -624,7 +638,10 @@ bool doGame(char* addr, int port) {
             if (!destroyhold || (altutime() - dtime) >= 500000)
                 if ((altutime() - dtime2) >= 125000 && blockid && blockid != 7 && (!blockid2 || blockid2 == 7)) {
                     dtime2 = altutime();
-                    setBlock(&chunks, cx, cz, blockx, blocky, blockz, (struct blockdata){0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0});
+                    //setBlock(&chunks, cx, cz, blockx, blocky, blockz, (struct blockdata){0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0});
+                    cliSend(CLIENT_SETBLOCK,
+                            (int64_t)(blockx) + cx * 16, (int)(blocky), (int64_t)(-blockz) + cz * 16,
+                            (struct blockdata){0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0});
                 }
             destroyhold = true;
         } else {
