@@ -49,8 +49,8 @@ static force_inline void writeChunk(struct chunkdata* chunks, int64_t x, int64_t
     //printf("writing chunk to [%"PRId64", %"PRId64"] ([%"PRId64", %"PRId64"])\n", nx, nz, x, z);
     memcpy(chunks->data[coff], data, 65536 * sizeof(struct blockdata));
     //chunks->renddata[coff].updated = false;
-    updateChunk(x, z, 1);
     chunks->renddata[coff].generated = true;
+    updateChunk(x, z, 1);
     pthread_mutex_unlock(&uclock);
 }
 
@@ -168,58 +168,58 @@ static force_inline bool phitblock(coord_3d block, coord_3d boffset, coord_3d* p
 }
 
 static force_inline uint8_t pcollide(struct chunkdata* chunks, coord_3d* pos) {
-    coord_3d new = *pos;
-    new = intCoord(new);
+    coord_3d newpos = *pos;
+    newpos = intCoord(newpos);
     uint8_t ret = 0;
-    //printf("collide check from: [%f][%f][%f] -> [%f][%f][%f]\n", pos.x, pos.y, pos.z, new.x, new.y, new.z);
+    //printf("collide check from: [%f][%f][%f] -> [%f][%f][%f]\n", pos.x, pos.y, pos.z, newpos.x, newpos.y, newpos.z);
     struct blockdata tmpbd[8] = {
-        getBlock(chunks, 0, 0, new.x, new.y, new.z + 1),
-        getBlock(chunks, 0, 0, new.x, new.y, new.z - 1),
-        getBlock(chunks, 0, 0, new.x + 1, new.y, new.z),
-        getBlock(chunks, 0, 0, new.x - 1, new.y, new.z),
-        getBlock(chunks, 0, 0, new.x + 1, new.y, new.z + 1),
-        getBlock(chunks, 0, 0, new.x + 1, new.y, new.z - 1),
-        getBlock(chunks, 0, 0, new.x - 1, new.y, new.z + 1),
-        getBlock(chunks, 0, 0, new.x - 1, new.y, new.z - 1),
+        getBlock(chunks, 0, 0, newpos.x, newpos.y, newpos.z + 1),
+        getBlock(chunks, 0, 0, newpos.x, newpos.y, newpos.z - 1),
+        getBlock(chunks, 0, 0, newpos.x + 1, newpos.y, newpos.z),
+        getBlock(chunks, 0, 0, newpos.x - 1, newpos.y, newpos.z),
+        getBlock(chunks, 0, 0, newpos.x + 1, newpos.y, newpos.z + 1),
+        getBlock(chunks, 0, 0, newpos.x + 1, newpos.y, newpos.z - 1),
+        getBlock(chunks, 0, 0, newpos.x - 1, newpos.y, newpos.z + 1),
+        getBlock(chunks, 0, 0, newpos.x - 1, newpos.y, newpos.z - 1),
     };
     if (tmpbd[0].id && tmpbd[0].id != 7) {
         //puts("back");
-        ret |= phitblock(new, (coord_3d){0, 0, 1}, pos);
+        ret |= phitblock(newpos, (coord_3d){0, 0, 1}, pos);
     }
     ret <<= 1;
     if (tmpbd[1].id && tmpbd[1].id != 7) {
         //puts("front");
-        ret |= phitblock(new, (coord_3d){0, 0, -1}, pos);
+        ret |= phitblock(newpos, (coord_3d){0, 0, -1}, pos);
     }
     ret <<= 1;
     if (tmpbd[2].id && tmpbd[2].id != 7) {
         //puts("right");
-        ret |= phitblock(new, (coord_3d){1, 0, 0}, pos);
+        ret |= phitblock(newpos, (coord_3d){1, 0, 0}, pos);
     }
     ret <<= 1;
     if (tmpbd[3].id && tmpbd[3].id != 7) {
         //puts("left");
-        ret |= phitblock(new, (coord_3d){-1, 0, 0}, pos);
+        ret |= phitblock(newpos, (coord_3d){-1, 0, 0}, pos);
     }
     ret <<= 1;
     if (tmpbd[4].id && tmpbd[4].id != 7) {
         //puts("back right");
-        ret |= phitblock(new, (coord_3d){1, 0, 1}, pos);
+        ret |= phitblock(newpos, (coord_3d){1, 0, 1}, pos);
     }
     ret <<= 1;
     if (tmpbd[5].id && tmpbd[5].id != 7) {
         //puts("front right");
-        ret |= phitblock(new, (coord_3d){1, 0, -1}, pos);
+        ret |= phitblock(newpos, (coord_3d){1, 0, -1}, pos);
     }
     ret <<= 1;
     if (tmpbd[6].id && tmpbd[6].id != 7) {
         //puts("back left");
-        ret |= phitblock(new, (coord_3d){-1, 0, 1}, pos);
+        ret |= phitblock(newpos, (coord_3d){-1, 0, 1}, pos);
     }
     ret <<= 1;
     if (tmpbd[7].id && tmpbd[7].id != 7) {
         //puts("front left");
-        ret |= phitblock(new, (coord_3d){-1, 0, -1}, pos);
+        ret |= phitblock(newpos, (coord_3d){-1, 0, -1}, pos);
     }
     return ret;
 }
@@ -297,7 +297,7 @@ static void handleServer(int msg, void* _data) {
         case SERVER_SETBLOCK:; {
             struct server_data_setblock* data = _data;
             //printf("set block at [%"PRId64", %d, %"PRId64"] ([%"PRId64", %"PRId64"]) to [%d]\n", data->x - cx * 16, data->y, -data->z - cz * 16, (data->x + 8) / 16, (data->z + 8) / 16, data->data.id);
-            setBlock(&chunks, 0, 0, data->x - cx * 16, data->y, -data->z + cz * 16, data->data);
+            setBlock(&chunks, data->x - cx * 16, data->y, -data->z + cz * 16, data->data);
             updateChunk((data->x + 8) / 16, (data->z + 8) / 16, 2);
             break;
         }

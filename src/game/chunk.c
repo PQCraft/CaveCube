@@ -38,7 +38,7 @@ struct blockdata getBlock(struct chunkdata* data, int64_t cx, int64_t cz, int64_
     return data->data[c][y * 256 + z * 16 + x];
 }
 
-void setBlock(struct chunkdata* data, int64_t ocx, int64_t ocz, int64_t x, int y, int64_t z, struct blockdata bdata) {
+void setBlock(struct chunkdata* data, int64_t x, int y, int64_t z, struct blockdata bdata) {
     pthread_mutex_lock(&uclock);
     int64_t cx = 0, cz = 0;
     z *= -1;
@@ -61,6 +61,19 @@ void setBlock(struct chunkdata* data, int64_t ocx, int64_t ocz, int64_t x, int y
     pthread_mutex_unlock(&uclock);
 }
 
+static inline int compare(const void* b, const void* a) {
+    float fa = ((struct rendorder*)a)->dist;
+    float fb = ((struct rendorder*)b)->dist;
+    //printf("[%f]\n", ((struct rendorder*)a)->dist);
+    return (fa > fb) - (fa < fb);
+}
+
+static inline float distance(float x1, float z1, float x2, float z2) {
+    //float f = sqrt(fabs(x2 - x1) * fabs(x2 - x1) + fabs(z2 - z1) * fabs(z2 - z1));
+    //printf("[%f][%f][%f][%f] [%f]\n", x1, z1, x2, z2, f);
+    return /*f*/ sqrt(fabs(x2 - x1) * fabs(x2 - x1) + fabs(z2 - z1) * fabs(z2 - z1));
+}
+
 struct chunkdata allocChunks(uint32_t dist) {
     struct chunkdata chunks;
     chunks.info.dist = dist;
@@ -70,9 +83,18 @@ struct chunkdata allocChunks(uint32_t dist) {
     chunks.info.widthsq = dist;
     chunks.data = malloc(dist * sizeof(struct blockdata*));
     for (unsigned i = 0; i < dist; ++i) {
-        chunks.data[i] = calloc(65536 * sizeof(struct blockdata), 1);
+        chunks.data[i] = calloc(sizeof(struct blockdata), 65536);
     }
-    chunks.renddata = calloc(dist * sizeof(struct chunk_renddata), 1);
+    chunks.renddata = calloc(sizeof(struct chunk_renddata), dist);
+    chunks.rordr = calloc(sizeof(struct rendorder), dist);
+    for (unsigned x = 0; x < chunks.info.width; ++x) {
+        for (unsigned z = 0; z < chunks.info.width; ++z) {
+            uint32_t c = x + z * chunks.info.width;
+            chunks.rordr[c].dist = distance((int)(x - chunks.info.dist), (int)(z - chunks.info.dist), 0, 0);
+            chunks.rordr[c].c = c;
+        }
+    }
+    qsort(chunks.rordr, chunks.info.widthsq, sizeof(struct rendorder), compare);
     return chunks;
 }
 
@@ -100,8 +122,12 @@ void moveChunks(struct chunkdata* chunks, int64_t cxo, int64_t czo, int cx, int 
             chunks->data[off] = swap;
             chunks->renddata[off] = rdswap;
             if (chunks->renddata[off].generated) {
-                chunks->renddata[off].vcount = 0;
-                chunks->renddata[off].vcount2 = 0;
+                chunks->renddata[off].vcount[0] = 0;
+                chunks->renddata[off].vcount[1] = 0;
+                chunks->renddata[off].vcount[2] = 0;
+                chunks->renddata[off].tcount[0] = 0;
+                chunks->renddata[off].tcount[1] = 0;
+                chunks->renddata[off].tcount[2] = 0;
                 chunks->renddata[off].buffered = false;
                 chunks->renddata[off].generated = false;
             }
@@ -121,8 +147,12 @@ void moveChunks(struct chunkdata* chunks, int64_t cxo, int64_t czo, int cx, int 
             chunks->data[c] = swap;
             chunks->renddata[c] = rdswap;
             if (chunks->renddata[c].generated) {
-                chunks->renddata[c].vcount = 0;
-                chunks->renddata[c].vcount2 = 0;
+                chunks->renddata[c].vcount[0] = 0;
+                chunks->renddata[c].vcount[1] = 0;
+                chunks->renddata[c].vcount[2] = 0;
+                chunks->renddata[c].tcount[0] = 0;
+                chunks->renddata[c].tcount[1] = 0;
+                chunks->renddata[c].tcount[2] = 0;
                 chunks->renddata[c].buffered = false;
                 chunks->renddata[c].generated = false;
             }
@@ -144,8 +174,12 @@ void moveChunks(struct chunkdata* chunks, int64_t cxo, int64_t czo, int cx, int 
             chunks->data[off] = swap;
             chunks->renddata[off] = rdswap;
             if (chunks->renddata[off].generated) {
-                chunks->renddata[off].vcount = 0;
-                chunks->renddata[off].vcount2 = 0;
+                chunks->renddata[off].vcount[0] = 0;
+                chunks->renddata[off].vcount[1] = 0;
+                chunks->renddata[off].vcount[2] = 0;
+                chunks->renddata[off].tcount[0] = 0;
+                chunks->renddata[off].tcount[1] = 0;
+                chunks->renddata[off].tcount[2] = 0;
                 chunks->renddata[off].buffered = false;
                 chunks->renddata[off].generated = false;
             }
@@ -171,8 +205,12 @@ void moveChunks(struct chunkdata* chunks, int64_t cxo, int64_t czo, int cx, int 
             chunks->renddata[c] = rdswap;
             //chunks->renddata[c].moved = true;
             if (chunks->renddata[c].generated) {
-                chunks->renddata[c].vcount = 0;
-                chunks->renddata[c].vcount2 = 0;
+                chunks->renddata[c].vcount[0] = 0;
+                chunks->renddata[c].vcount[1] = 0;
+                chunks->renddata[c].vcount[2] = 0;
+                chunks->renddata[c].tcount[0] = 0;
+                chunks->renddata[c].tcount[1] = 0;
+                chunks->renddata[c].tcount[2] = 0;
                 chunks->renddata[c].buffered = false;
                 chunks->renddata[c].generated = false;
             }
