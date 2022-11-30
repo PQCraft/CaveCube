@@ -89,15 +89,11 @@ struct model {
 };
 
 struct chunk_renddata {
-    unsigned VBO;
-    uint32_t vcount;
-    uint32_t* vertices;
-    unsigned VBO2;
-    uint32_t vcount2;
-    uint32_t* vertices2;
-    unsigned VBO3;
-    uint32_t vcount3;
-    uint32_t* vertices3;
+    bool init;
+    unsigned VBO[3];
+    uint32_t vcount[3];
+    uint32_t* vertices[3];
+    uint32_t tcount[3];
     uint64_t updateid;
     bool ready:1;
     bool buffered:1;
