@@ -51,7 +51,7 @@ void setBlock(struct chunkdata* data, int64_t x, int y, int64_t z, struct blockd
     while (x > 15) {cx += 1; x -= 16;}
     while (z > 15) {cz -= 1; z -= 16;}
     while (z < 0) {cz += 1; z += 16;}
-    if (cx >= (int)data->info.width || cz >= (int)data->info.width) return;
+    if (cx < 0 || cz < 0 || cx >= (int)data->info.width || cz >= (int)data->info.width) return;
     int32_t c = cx + cz * data->info.width;
     if (!data->renddata[c].generated) return;
     int32_t off = y * 256 + z * 16 + x;
