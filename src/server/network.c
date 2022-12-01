@@ -187,7 +187,7 @@ struct netcxn* newCxn(int type, char* addr, int port, int obs, int ibs) {
             int opt = 1;
             setsockopt(newsock, SOL_SOCKET, SO_REUSEADDR, (void*)&opt, sizeof(opt));
             opt = 1;
-            setsockopt(newsock, IPPROTO_TCP, TCP_NODELAY, (void*)&opt, sizeof(opt));
+            //setsockopt(newsock, IPPROTO_TCP, TCP_NODELAY, (void*)&opt, sizeof(opt));
             if (bind(newsock, (const struct sockaddr*)address, sizeof(*address))) {
                 fputs("newCxn: Failed to bind socket\n", stderr);
                 close(newsock);
@@ -202,7 +202,7 @@ struct netcxn* newCxn(int type, char* addr, int port, int obs, int ibs) {
         }
         case CXN_ACTIVE:; {
             int opt = 1;
-            setsockopt(newsock, IPPROTO_TCP, TCP_NODELAY, (void*)&opt, sizeof(opt));
+            //setsockopt(newsock, IPPROTO_TCP, TCP_NODELAY, (void*)&opt, sizeof(opt));
             if (connect(newsock, (struct sockaddr*)address, sizeof(*address))) {
                 fputs("newCxn: Failed to connect\n", stderr);
                 close(newsock);
