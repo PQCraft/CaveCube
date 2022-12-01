@@ -601,7 +601,8 @@ static void* servnetthread(void* args) {
                             srv_nosend:;
                         }
                     }
-                    sendCxn(pdata[i].cxn);
+                    int bytes_sent = sendCxn(pdata[i].cxn);
+                    if (bytes_sent) printf("server write [%d]\n", bytes_sent);
                 }
             }
             pthread_mutex_unlock(&pdatalock);
@@ -757,7 +758,8 @@ static void* clinetthread(void* args) {
     uint64_t acttime = altutime();
     while (true) {
         bool activity = false;
-        recvCxn(clicxn);
+        int bytes = recvCxn(clicxn);
+        if (bytes) printf("client read [%d]\n", bytes);
         if (tmpsize < 1) {
             int dsize = getInbufSize(clicxn);
             if (dsize >= 4) {
