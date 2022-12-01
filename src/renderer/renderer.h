@@ -112,6 +112,12 @@ enum {
     SPACE_UNDERWORLD,
 };
 
+enum {
+    CHUNKUPDATE_PRIO_LOW,
+    CHUNKUPDATE_PRIO_HIGH,
+    CHUNKUPDATE_PRIO__MAX,
+};
+
 #endif
 
 typedef unsigned int texture_t;
@@ -134,7 +140,7 @@ void updateScreen(void);
 void setMeshChunks(void*);
 void updateChunks(void);
 void startMesher(void);
-void updateChunk(int64_t, int64_t, int);
+void updateChunk(int64_t, int64_t, int, int);
 void setMeshChunkOff(int64_t, int64_t);
 void render(void);
 void setSkyColor(float, float, float);

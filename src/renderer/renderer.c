@@ -428,7 +428,6 @@ static float vert2D[] = {
 static pthread_t pthreads[MAX_THREADS];
 pthread_mutex_t uclock;
 static uint8_t water;
-struct msgdata chunkmsgs;
 
 struct msgdata_msg {
     bool valid;
@@ -444,9 +443,10 @@ struct msgdata {
     int rptr;
     int wptr;
     struct msgdata_msg* msg;
-    uint64_t id;
     pthread_mutex_t lock;
 };
+
+struct msgdata chunkmsgs[CHUNKUPDATE_PRIO__MAX];
 
 static force_inline void initMsgData(struct msgdata* mdata) {
     mdata->size = 0;
@@ -467,6 +467,7 @@ static void deinitMsgData(struct msgdata* mdata) {
 */
 
 static force_inline void addMsg(struct msgdata* mdata, int64_t x, int64_t z, uint64_t id, bool dep, int lvl) {
+    static uint64_t mdataid = 0;
     pthread_mutex_lock(&mdata->lock);
     if (mdata->wptr < 0 || mdata->rptr >= mdata->size) {
         mdata->rptr = 0;
@@ -480,12 +481,12 @@ static force_inline void addMsg(struct msgdata* mdata, int64_t x, int64_t z, uin
     mdata->msg[mdata->wptr].lvl = lvl;
     mdata->msg[mdata->wptr].x = x;
     mdata->msg[mdata->wptr].z = z;
-    mdata->msg[mdata->wptr].id = (dep) ? id : mdata->id++;
+    mdata->msg[mdata->wptr].id = (dep) ? id : mdataid++;
     pthread_mutex_unlock(&mdata->lock);
 }
 
-void updateChunk(int64_t x, int64_t z, int updatelvl) {
-    addMsg(&chunkmsgs, x, z, 0, false, updatelvl);
+void updateChunk(int64_t x, int64_t z, int p, int updatelvl) {
+    addMsg(&chunkmsgs[p], x, z, 0, false, updatelvl);
 }
 
 static int64_t cxo, czo;
@@ -561,25 +562,6 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id, bool dep, int l
         uint32_t c = nx + nz * chunks->info.width;
         if (msg.id < chunks->renddata[c].updateid) {goto lblcontinue;}
         //printf("meshing [%"PRId64", %"PRId64"] -> [%"PRId64", %"PRId64"] (c=%d, offset=[%"PRId64", %"PRId64"])\n", msg.x, msg.z, nx, nz, c, cxo, czo);
-        /*
-        if (!msg.dep) {
-            addMsg(&chunkmsgs, msg.x, msg.z, msg.id, true, 0);
-            if (msg.lvl >= 1) {
-                addMsg(&chunkmsgs, msg.x, msg.z + 1, msg.id, true, 0);
-                addMsg(&chunkmsgs, msg.x, msg.z - 1, msg.id, true, 0);
-                addMsg(&chunkmsgs, msg.x + 1, msg.z, msg.id, true, 0);
-                addMsg(&chunkmsgs, msg.x - 1, msg.z, msg.id, true, 0);
-                if (msg.lvl >= 2) {
-                    addMsg(&chunkmsgs, msg.x + 1, msg.z + 1, msg.id, true, 0);
-                    addMsg(&chunkmsgs, msg.x + 1, msg.z - 1, msg.id, true, 0);
-                    addMsg(&chunkmsgs, msg.x - 1, msg.z + 1, msg.id, true, 0);
-                    addMsg(&chunkmsgs, msg.x - 1, msg.z - 1, msg.id, true, 0);
-                }
-            }
-            //printf("BASE: [%"PRId64", %"PRId64"]\n", msg.x, msg.z);
-            goto lblcontinue;
-        }
-        */
     }
     pthread_mutex_unlock(&uclock);
     //printf("mesh: [%"PRId64", %"PRId64"]\n", msg.x, msg.z);
@@ -702,7 +684,8 @@ static void* meshthread(void* args) {
     struct msgdata_msg msg;
     while (!quitRequest) {
         bool activity = false;
-        if (getNextMsg(&chunkmsgs, &msg)) {
+        int p = 0;
+        if (getNextMsg(&chunkmsgs[(p = CHUNKUPDATE_PRIO_HIGH)], &msg) || getNextMsg(&chunkmsgs[(p = CHUNKUPDATE_PRIO_LOW)], &msg)) {
             activity = true;
             mesh(msg.x, msg.z, msg.id, msg.dep, 0);
             if (!msg.dep) {
@@ -719,6 +702,7 @@ static void* meshthread(void* args) {
                     }
                 }
             }
+            //printf("x: [%"PRId64"], z: [%"PRId64"], p: [%d]\n", msg.x, msg.z, p);
             pthread_mutex_lock(&uclock);
             setready(msg.x, msg.z, true);
             if (!msg.dep) {
@@ -727,6 +711,12 @@ static void* meshthread(void* args) {
                     setready(msg.x, msg.z - 1, true);
                     setready(msg.x + 1, msg.z, true);
                     setready(msg.x - 1, msg.z, true);
+                    if (msg.lvl >= 2) {
+                        setready(msg.x + 1, msg.z + 1, true);
+                        setready(msg.x + 1, msg.z - 1, true);
+                        setready(msg.x - 1, msg.z + 1, true);
+                        setready(msg.x - 1, msg.z - 1, true);
+                    }
                 }
             }
             pthread_mutex_unlock(&uclock);
@@ -1753,7 +1743,8 @@ bool startRenderer() {
 
     free(tmpbuf);
 
-    initMsgData(&chunkmsgs);
+    initMsgData(&chunkmsgs[CHUNKUPDATE_PRIO_LOW]);
+    initMsgData(&chunkmsgs[CHUNKUPDATE_PRIO_HIGH]);
 
     return true;
 }
