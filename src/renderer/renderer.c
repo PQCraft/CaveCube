@@ -548,7 +548,7 @@ static uint32_t constBlockVert2[6][6] = {
     ++*v; ++*l;\
 }
 
-static force_inline void mesh(int64_t x, int64_t z, uint64_t id, bool dep, int lvl) {
+static force_inline void mesh(int64_t x, int64_t z, uint64_t id, bool dep, int lvl, bool watersort) {
     struct msgdata_msg msg = (struct msgdata_msg){true, dep, lvl, x, z, id};
     struct blockdata bdata;
     struct blockdata bdata2[6];
@@ -624,7 +624,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id, bool dep, int l
                             }
                         }
                         //printf("added [%d][%d %d %d][%d]: [%u]: [%08X]...\n", c, x, y, z, i, (uint8_t)bdata.id, baseVert1);
-                    } else {
+                    } else if (!watersort) {
                         for (int j = 0; j < 6; ++j) {
                             mtsetvert(&_vptr, &vpsize, &vplen, &vptr, constBlockVert1[i][j] | baseVert1);
                             mtsetvert(&_vptr, &vpsize, &vplen, &vptr, constBlockVert2[i][j] | baseVert2);
@@ -648,9 +648,12 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id, bool dep, int l
     }
     uint64_t c = nx + nz * chunks->info.width;
     if (msg.id >= chunks->renddata[c].updateid) {
-        if (chunks->renddata[c].vertices[0]) free(chunks->renddata[c].vertices[0]);
-        if (chunks->renddata[c].vertices[1]) free(chunks->renddata[c].vertices[1]);
-        if (chunks->renddata[c].vertices[2]) free(chunks->renddata[c].vertices[2]);
+        //if (chunks->renddata[c].vertices[0]) free(chunks->renddata[c].vertices[0]);
+        //if (chunks->renddata[c].vertices[1]) free(chunks->renddata[c].vertices[1]);
+        //if (chunks->renddata[c].vertices[2]) free(chunks->renddata[c].vertices[2]);
+        if (!watersort) chunks->renddata[c].remesh[0] = true;
+        chunks->renddata[c].remesh[1] = true;
+        chunks->renddata[c].remesh[2] = true;
         chunks->renddata[c].vcount[0] = vplen;
         chunks->renddata[c].vcount[1] = vplen2;
         chunks->renddata[c].vcount[2] = vplen3;
@@ -687,18 +690,18 @@ static void* meshthread(void* args) {
         int p = 0;
         if (getNextMsg(&chunkmsgs[(p = CHUNKUPDATE_PRIO_HIGH)], &msg) || getNextMsg(&chunkmsgs[(p = CHUNKUPDATE_PRIO_LOW)], &msg)) {
             activity = true;
-            mesh(msg.x, msg.z, msg.id, msg.dep, 0);
+            mesh(msg.x, msg.z, msg.id, msg.dep, 0, false);
             if (!msg.dep) {
                 if (msg.lvl >= 1) {
-                    mesh(msg.x, msg.z + 1, msg.id, true, 0);
-                    mesh(msg.x, msg.z - 1, msg.id, true, 0);
-                    mesh(msg.x + 1, msg.z, msg.id, true, 0);
-                    mesh(msg.x - 1, msg.z, msg.id, true, 0);
+                    mesh(msg.x, msg.z + 1, msg.id, true, 0, false);
+                    mesh(msg.x, msg.z - 1, msg.id, true, 0, false);
+                    mesh(msg.x + 1, msg.z, msg.id, true, 0, false);
+                    mesh(msg.x - 1, msg.z, msg.id, true, 0, false);
                     if (msg.lvl >= 2) {
-                        mesh(msg.x + 1, msg.z + 1, msg.id, true, 0);
-                        mesh(msg.x + 1, msg.z - 1, msg.id, true, 0);
-                        mesh(msg.x - 1, msg.z + 1, msg.id, true, 0);
-                        mesh(msg.x - 1, msg.z - 1, msg.id, true, 0);
+                        mesh(msg.x + 1, msg.z + 1, msg.id, true, 0, false);
+                        mesh(msg.x + 1, msg.z - 1, msg.id, true, 0, false);
+                        mesh(msg.x - 1, msg.z + 1, msg.id, true, 0, false);
+                        mesh(msg.x - 1, msg.z - 1, msg.id, true, 0, false);
                     }
                 }
             }
@@ -739,15 +742,16 @@ void updateChunks() {
             chunks->renddata[c].init = true;
         }
         for (int i = 0; i < 3; ++i) {
-            uint32_t tmpsize = chunks->renddata[c].vcount[i] * sizeof(uint32_t);
-            if (tmpsize) {
+            if (chunks->renddata[c].remesh[i]) {
+                uint32_t tmpsize = chunks->renddata[c].vcount[i] * sizeof(uint32_t);
                 glBindBuffer(GL_ARRAY_BUFFER, chunks->renddata[c].VBO[i]);
                 glBufferData(GL_ARRAY_BUFFER, tmpsize, chunks->renddata[c].vertices[i], GL_STATIC_DRAW);
+                chunks->renddata[c].tcount[i] = chunks->renddata[c].vcount[i] / 3;
+                //printf("[%u][%d]: [%d]->[%d]\n", c, i, chunks->renddata[c].vcount[i], chunks->renddata[c].tcount[i]);
+                free(chunks->renddata[c].vertices[i]);
+                chunks->renddata[c].vertices[i] = NULL;
+                chunks->renddata[c].remesh[i] = 0;
             }
-            chunks->renddata[c].tcount[i] = chunks->renddata[c].vcount[i] / 3;
-            //printf("[%u][%d]: [%d]->[%d]\n", c, i, chunks->renddata[c].vcount[i], chunks->renddata[c].tcount[i]);
-            free(chunks->renddata[c].vertices[i]);
-            chunks->renddata[c].vertices[i] = NULL;
         }
         chunks->renddata[c].ready = false;
         chunks->renddata[c].buffered = true;
