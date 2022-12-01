@@ -117,7 +117,7 @@ void moveChunks(struct chunkdata* chunks, int64_t cxo, int64_t czo, int cx, int 
             //chunks->renddata[c].updated = false;
             nx = (c % chunks->info.width) - chunks->info.dist;
             nz = (c / chunks->info.width) - chunks->info.dist;
-            updateChunk((int64_t)((int64_t)(nx) + cxo), (int64_t)((int64_t)(-nz) + czo), 1);
+            updateChunk((int64_t)((int64_t)(nx) + cxo), (int64_t)((int64_t)(-nz) + czo), CHUNKUPDATE_PRIO_LOW, 1);
             uint32_t off = c + chunks->info.width - 1;
             chunks->data[off] = swap;
             chunks->renddata[off] = rdswap;
@@ -143,7 +143,7 @@ void moveChunks(struct chunkdata* chunks, int64_t cxo, int64_t czo, int cx, int 
             //chunks->renddata[c + chunks->info.width - 1].updated = false;
             nx = ((c + chunks->info.width - 1) % chunks->info.width) - chunks->info.dist;
             nz = ((c + chunks->info.width - 1) / chunks->info.width) - chunks->info.dist;
-            updateChunk((int64_t)((int64_t)(nx) + cxo), (int64_t)((int64_t)(-nz) + czo), 1);
+            updateChunk((int64_t)((int64_t)(nx) + cxo), (int64_t)((int64_t)(-nz) + czo), CHUNKUPDATE_PRIO_LOW, 1);
             chunks->data[c] = swap;
             chunks->renddata[c] = rdswap;
             if (chunks->renddata[c].generated) {
@@ -169,7 +169,7 @@ void moveChunks(struct chunkdata* chunks, int64_t cxo, int64_t czo, int cx, int 
             //chunks->renddata[c].updated = false;
             nx = (c % chunks->info.width) - chunks->info.dist;
             nz = (c / chunks->info.width) - chunks->info.dist;
-            updateChunk((int64_t)((int64_t)(nx) + cxo), (int64_t)((int64_t)(-nz) + czo), 1);
+            updateChunk((int64_t)((int64_t)(nx) + cxo), (int64_t)((int64_t)(-nz) + czo), CHUNKUPDATE_PRIO_LOW, 1);
             uint32_t off = c + (chunks->info.width - 1) * chunks->info.width;
             chunks->data[off] = swap;
             chunks->renddata[off] = rdswap;
@@ -191,7 +191,7 @@ void moveChunks(struct chunkdata* chunks, int64_t cxo, int64_t czo, int cx, int 
             //chunks->renddata[c].updated = false;
             nx = (c % chunks->info.width) - chunks->info.dist;
             nz = (c / chunks->info.width) - chunks->info.dist;
-            updateChunk((int64_t)((int64_t)(nx) + cxo), (int64_t)((int64_t)(-nz) + czo), 1);
+            updateChunk((int64_t)((int64_t)(nx) + cxo), (int64_t)((int64_t)(-nz) + czo), CHUNKUPDATE_PRIO_LOW, 1);
             //chunks->renddata[c].moved = true;
             for (uint32_t i = chunks->info.width - 1; i > 0; --i) {
                 chunks->data[c + i * chunks->info.width] = chunks->data[c + (i - 1) * chunks->info.width];
@@ -200,7 +200,7 @@ void moveChunks(struct chunkdata* chunks, int64_t cxo, int64_t czo, int cx, int 
             //chunks->renddata[c + (chunks->info.width - 1) * chunks->info.width].updated = false;
             nx = ((c + (chunks->info.width - 1) * chunks->info.width) % chunks->info.width) - chunks->info.dist;
             nz = ((c + (chunks->info.width - 1) * chunks->info.width) / chunks->info.width) - chunks->info.dist;
-            updateChunk((int64_t)((int64_t)(nx) + cxo), (int64_t)((int64_t)(-nz) + czo), 1);
+            updateChunk((int64_t)((int64_t)(nx) + cxo), (int64_t)((int64_t)(-nz) + czo), CHUNKUPDATE_PRIO_LOW, 1);
             chunks->data[c] = swap;
             chunks->renddata[c] = rdswap;
             //chunks->renddata[c].moved = true;

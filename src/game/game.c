@@ -50,7 +50,7 @@ static force_inline void writeChunk(struct chunkdata* chunks, int64_t x, int64_t
     memcpy(chunks->data[coff], data, 65536 * sizeof(struct blockdata));
     //chunks->renddata[coff].updated = false;
     chunks->renddata[coff].generated = true;
-    updateChunk(x, z, 1);
+    updateChunk(x, z, CHUNKUPDATE_PRIO_LOW, 1);
     pthread_mutex_unlock(&uclock);
 }
 
@@ -310,7 +310,7 @@ static void handleServer(int msg, void* _data) {
             chunkOfBlock(data->x, data->z, &ucx, &ucz);
             //printf("set block at [%"PRId64", %d, %"PRId64"] ([%"PRId64", %"PRId64"]) to [%d]\n", data->x, data->y, data->z, ucx, ucz, data->data.id);
             setBlock(&chunks, data->x - cx * 16, data->y, -data->z + cz * 16, data->data);
-            updateChunk(ucx, ucz, 2);
+            updateChunk(ucx, ucz, CHUNKUPDATE_PRIO_HIGH, 2);
             break;
         }
     }
@@ -673,7 +673,7 @@ bool doGame(char* addr, int port) {
             fpsstarttime2 = altutime();
             if (curbdata.id == 7) {
                 setVisibility(-1.0, 0.5);
-                setScreenMult(0.4, 0.55, 0.8);
+                setScreenMult(0.425, 0.6, 0.75);
             } else {
                 setVisibility(0.5, 1.0);
                 setScreenMult(1.0, 1.0, 1.0);
