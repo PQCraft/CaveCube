@@ -556,10 +556,10 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id, bool dep, int l
     int64_t nx = (msg.x - cxo) + chunks->info.dist;
     int64_t nz = chunks->info.width - ((msg.z - czo) + chunks->info.dist) - 1;
     {
-        if (nx < 0 || nz < 0 || nx >= chunks->info.width || nz >= chunks->info.width) {
+        uint32_t c = nx + nz * chunks->info.width;
+        if (nx < 0 || nz < 0 || nx >= chunks->info.width || nz >= chunks->info.width || !chunks->renddata[c].generated) {
             goto lblcontinue;
         }
-        uint32_t c = nx + nz * chunks->info.width;
         if (msg.id < chunks->renddata[c].updateid) {goto lblcontinue;}
         //printf("meshing [%"PRId64", %"PRId64"] -> [%"PRId64", %"PRId64"] (c=%d, offset=[%"PRId64", %"PRId64"])\n", msg.x, msg.z, nx, nz, c, cxo, czo);
     }
@@ -610,7 +610,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id, bool dep, int l
                     uint32_t baseVert3 = ((blockinf[bdata.id].data[bdata.subid].texoff[i] << 16) & 0xFFFF0000) |
                                          ((blockinf[bdata.id].data[bdata.subid].anict[i] << 8) & 0xFF00) | (bdata2[i].light_n);
                     if (bdata.id == water) {
-                        if (!bdata2[i].id) {
+                        if (/*!bdata2[i].id*/ true) {
                             for (int j = 0; j < 6; ++j) {
                                 mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, constBlockVert1[i][j] | baseVert1);
                                 mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, constBlockVert2[i][j] | baseVert2);
@@ -1210,6 +1210,7 @@ void render() {
                 glDrawArrays(GL_TRIANGLES, 0, chunks->renddata[rendc].tcount[1]);
             }
             glEnable(GL_CULL_FACE);
+            /*
             if (chunks->renddata[rendc].tcount[2]) {
                 //setUniform2f(rendinf.shaderprog, "ccoord", (float[]){(int)(rendc % chunks->info.width) - (int)chunks->info.dist, (int)(rendc / chunks->info.width) - (int)chunks->info.dist});
                 glBindBuffer(GL_ARRAY_BUFFER, chunks->renddata[rendc].VBO[2]);
@@ -1218,6 +1219,7 @@ void render() {
                 glVertexAttribIPointer(2, 1, GL_UNSIGNED_INT, 3 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * 2));
                 glDrawArrays(GL_TRIANGLES, 0, chunks->renddata[rendc].tcount[2]);
             }
+            */
             glDepthMask(true);
         }
     }
