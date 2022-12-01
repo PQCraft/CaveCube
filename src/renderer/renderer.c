@@ -405,10 +405,10 @@ void setMeshChunks(void* vdata) {
 }
 
 static force_inline struct blockdata rendGetBlock(int32_t c, int x, int y, int z) {
-    while (x < 0 && c % chunks->info.width) {c -= 1; x += 16;}
-    while (x > 15 && (c + 1) % chunks->info.width) {c += 1; x -= 16;}
-    while (z > 15 && c >= (int)chunks->info.width) {c -= chunks->info.width; z -= 16;}
-    while (z < 0 && c < (int)(chunks->info.widthsq - chunks->info.width)) {c += chunks->info.width; z += 16;}
+    while (x < 0/* && c % chunks->info.width*/) {c -= 1; x += 16;}
+    while (x > 15/* && (c + 1) % chunks->info.width*/) {c += 1; x -= 16;}
+    while (z > 15/* && c >= (int)chunks->info.width*/) {c -= chunks->info.width; z -= 16;}
+    while (z < 0/* && c < (int)(chunks->info.widthsq - chunks->info.width)*/) {c += chunks->info.width; z += 16;}
     if (c < 0 || x < 0 || z < 0 || x > 15 || z > 15) return (struct blockdata){255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     if (c >= (int32_t)chunks->info.widthsq || y < 0 || y > 255) return (struct blockdata){0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     if (!chunks->renddata[c].generated) return (struct blockdata){255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -547,7 +547,7 @@ static uint32_t constBlockVert2[6][6] = {
     ++*v; ++*l;\
 }
 
-static force_inline bool mesh(int64_t x, int64_t z, uint64_t id, bool dep, int lvl) {
+static force_inline void mesh(int64_t x, int64_t z, uint64_t id, bool dep, int lvl) {
     struct msgdata_msg msg = (struct msgdata_msg){true, dep, lvl, x, z, id};
     struct blockdata bdata;
     struct blockdata bdata2[6];
@@ -558,8 +558,9 @@ static force_inline bool mesh(int64_t x, int64_t z, uint64_t id, bool dep, int l
         if (nx < 0 || nz < 0 || nx >= chunks->info.width || nz >= chunks->info.width) {
             goto lblcontinue;
         }
-        uint64_t c = nx + nz * chunks->info.width;
+        uint32_t c = nx + nz * chunks->info.width;
         if (msg.id < chunks->renddata[c].updateid) {goto lblcontinue;}
+        //printf("meshing [%"PRId64", %"PRId64"] -> [%"PRId64", %"PRId64"] (c=%d, offset=[%"PRId64", %"PRId64"])\n", msg.x, msg.z, nx, nz, c, cxo, czo);
         /*
         if (!msg.dep) {
             addMsg(&chunkmsgs, msg.x, msg.z, msg.id, true, 0);
@@ -664,7 +665,7 @@ static force_inline bool mesh(int64_t x, int64_t z, uint64_t id, bool dep, int l
         goto lblcontinue;
     }
     uint64_t c = nx + nz * chunks->info.width;
-    if (msg.id > chunks->renddata[c].updateid) {
+    if (msg.id >= chunks->renddata[c].updateid) {
         if (chunks->renddata[c].vertices[0]) free(chunks->renddata[c].vertices[0]);
         if (chunks->renddata[c].vertices[1]) free(chunks->renddata[c].vertices[1]);
         if (chunks->renddata[c].vertices[2]) free(chunks->renddata[c].vertices[2]);
@@ -686,11 +687,13 @@ static force_inline bool mesh(int64_t x, int64_t z, uint64_t id, bool dep, int l
     pthread_mutex_unlock(&uclock);
 }
 
-static force_inline void setready(int32_t x, int32_t z, bool val) {
+static force_inline void setready(int64_t x, int64_t z, bool val) {
     int64_t nx = (x - cxo) + chunks->info.dist;
     int64_t nz = chunks->info.width - ((z - czo) + chunks->info.dist) - 1;
     if (nx < 0 || nz < 0 || nx >= (int32_t)chunks->info.width || nz >= (int32_t)chunks->info.width) return;
-    chunks->renddata[nx + nz * chunks->info.width].ready = val;
+    uint32_t c = nx + nz * chunks->info.width;
+    chunks->renddata[c].ready = val;
+    //printf("set ready on [%"PRId64", %"PRId64"] -> [%"PRId64", %"PRId64"] (c=%d, offset=[%"PRId64", %"PRId64"])\n", x, z, nx, nz, c, cxo, czo);
 }
 
 static void* meshthread(void* args) {
