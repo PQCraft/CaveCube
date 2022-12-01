@@ -11,11 +11,11 @@
 #endif
 
 #ifndef SERVER_SNDBUF_SIZE
-    #define SERVER_SNDBUF_SIZE 262144
+    #define SERVER_SNDBUF_SIZE (1 << 21)
 #endif
 
 #ifndef CLIENT_SNDBUF_SIZE
-    #define CLIENT_SNDBUF_SIZE 262144
+    #define CLIENT_SNDBUF_SIZE (1 << 21)
 #endif
 
 #ifndef SERVER_OUTBUF_SIZE
@@ -23,7 +23,7 @@
 #endif
 
 #ifndef CLIENT_OUTBUF_SIZE
-    #define CLIENT_OUTBUF_SIZE (1 << 18)
+    #define CLIENT_OUTBUF_SIZE (1 << 22)
 #endif
 
 enum {
