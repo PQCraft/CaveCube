@@ -19,11 +19,11 @@
 #endif
 
 #ifndef SERVER_OUTBUF_SIZE
-    #define SERVER_OUTBUF_SIZE (1 << 22)
+    #define SERVER_OUTBUF_SIZE (1 << 24)
 #endif
 
 #ifndef CLIENT_OUTBUF_SIZE
-    #define CLIENT_OUTBUF_SIZE (1 << 22)
+    #define CLIENT_OUTBUF_SIZE (1 << 24)
 #endif
 
 enum {
