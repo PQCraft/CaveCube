@@ -77,6 +77,9 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
                 }
             }
             int n0 = noise2d(8, cx, cz);
+            data[0].subid = 0;
+            data[1].subid = 0;
+            data[2].subid = 0;
             data[0].id = bedrock;
             if (!(n0 % 2) || !(n0 % 3)) data[1].id = bedrock;
             if (!(n0 % 4)) data[2].id = bedrock;

@@ -65,7 +65,6 @@ static force_inline void reqChunks(struct chunkdata* chunks, int64_t xo, int64_t
     pthread_mutex_lock(&uclock);
     cxo = xo;
     czo = zo;
-    setMeshChunkOff(xo, zo);
     //printf("set [%u]\n", cid);
     pthread_mutex_unlock(&uclock);
     for (int i = 0; i <= (int)chunks->info.dist; ++i) {
@@ -264,6 +263,17 @@ static int compat = 0;
 static bool setskycolor = false;
 static color newskycolor;
 
+static force_inline int64_t i64_abs(int64_t v) {return (v < 0) ? -v : v;}
+
+static force_inline void chunkOfBlock(int64_t x, int64_t z, int64_t* chunkx, int64_t* chunkz) {
+    if (x < 0) x += 1;
+    if (z < 0) z += 1;
+    *chunkx = (i64_abs(x) + 8) / 16;
+    *chunkz = (i64_abs(z) + 8) / 16;
+    if (x < 0) *chunkx = -(*chunkx);
+    if (z < 0) *chunkz = -(*chunkz);
+}
+
 static void handleServer(int msg, void* _data) {
     //printf("Recieved [%d] from server\n", msg);
     switch (msg) {
@@ -296,9 +306,11 @@ static void handleServer(int msg, void* _data) {
         }
         case SERVER_SETBLOCK:; {
             struct server_data_setblock* data = _data;
-            //printf("set block at [%"PRId64", %d, %"PRId64"] ([%"PRId64", %"PRId64"]) to [%d]\n", data->x - cx * 16, data->y, -data->z - cz * 16, (data->x + 8) / 16, (data->z + 8) / 16, data->data.id);
+            int64_t ucx, ucz;
+            chunkOfBlock(data->x, data->z, &ucx, &ucz);
+            //printf("set block at [%"PRId64", %d, %"PRId64"] ([%"PRId64", %"PRId64"]) to [%d]\n", data->x, data->y, data->z, ucx, ucz, data->data.id);
             setBlock(&chunks, data->x - cx * 16, data->y, -data->z + cz * 16, data->data);
-            updateChunk((data->x + 8) / 16, (data->z + 8) / 16, 2);
+            updateChunk(ucx, ucz, 2);
             break;
         }
     }
@@ -531,6 +543,7 @@ bool doGame(char* addr, int port) {
         if (cmx || cmz || first) {
             first = false;
             moveChunks(&chunks, cx, cz, cmx, cmz);
+            setMeshChunkOff(cx, cz);
             reqChunks(&chunks, cx, cz);
             pchunkx = cx;
             pchunkz = cz;
