@@ -547,162 +547,185 @@ static uint32_t constBlockVert2[6][6] = {
     ++*v; ++*l;\
 }
 
-static void* meshthread(void* args) {
-    (void)args;
+static force_inline bool mesh(int64_t x, int64_t z, uint64_t id, bool dep, int lvl) {
+    struct msgdata_msg msg = (struct msgdata_msg){true, dep, lvl, x, z, id};
     struct blockdata bdata;
     struct blockdata bdata2[6];
+    pthread_mutex_lock(&uclock);
+    int64_t nx = (msg.x - cxo) + chunks->info.dist;
+    int64_t nz = chunks->info.width - ((msg.z - czo) + chunks->info.dist) - 1;
+    {
+        if (nx < 0 || nz < 0 || nx >= chunks->info.width || nz >= chunks->info.width) {
+            goto lblcontinue;
+        }
+        uint64_t c = nx + nz * chunks->info.width;
+        if (msg.id < chunks->renddata[c].updateid) {goto lblcontinue;}
+        /*
+        if (!msg.dep) {
+            addMsg(&chunkmsgs, msg.x, msg.z, msg.id, true, 0);
+            if (msg.lvl >= 1) {
+                addMsg(&chunkmsgs, msg.x, msg.z + 1, msg.id, true, 0);
+                addMsg(&chunkmsgs, msg.x, msg.z - 1, msg.id, true, 0);
+                addMsg(&chunkmsgs, msg.x + 1, msg.z, msg.id, true, 0);
+                addMsg(&chunkmsgs, msg.x - 1, msg.z, msg.id, true, 0);
+                if (msg.lvl >= 2) {
+                    addMsg(&chunkmsgs, msg.x + 1, msg.z + 1, msg.id, true, 0);
+                    addMsg(&chunkmsgs, msg.x + 1, msg.z - 1, msg.id, true, 0);
+                    addMsg(&chunkmsgs, msg.x - 1, msg.z + 1, msg.id, true, 0);
+                    addMsg(&chunkmsgs, msg.x - 1, msg.z - 1, msg.id, true, 0);
+                }
+            }
+            //printf("BASE: [%"PRId64", %"PRId64"]\n", msg.x, msg.z);
+            goto lblcontinue;
+        }
+        */
+    }
+    pthread_mutex_unlock(&uclock);
+    //printf("mesh: [%"PRId64", %"PRId64"]\n", msg.x, msg.z);
+    int vpsize = 1024;
+    int vpsize2 = 1024;
+    int vpsize3 = 256;
+    uint32_t* _vptr = malloc(vpsize * sizeof(uint32_t));
+    uint32_t* _vptr2 = malloc(vpsize2 * sizeof(uint32_t));
+    uint32_t* _vptr3 = malloc(vpsize3 * sizeof(uint32_t));
+    int vplen = 0;
+    int vplen2 = 0;
+    int vplen3 = 0;
+    uint32_t* vptr = _vptr;
+    uint32_t* vptr2 = _vptr2;
+    uint32_t* vptr3 = _vptr3;
+    for (int y = 0; y < 256; ++y) {
+        pthread_mutex_lock(&uclock);
+        nx = (msg.x - cxo) + chunks->info.dist;
+        nz = chunks->info.width - ((msg.z - czo) + chunks->info.dist) - 1;
+        if (nx < 0 || nz < 0 || nx >= chunks->info.width || nz >= chunks->info.width) {
+            free(_vptr);
+            free(_vptr2);
+            free(_vptr3);
+            goto lblcontinue;
+        }
+        uint64_t c = nx + nz * chunks->info.width;
+        for (int z = 0; z < 16; ++z) {
+            for (int x = 0; x < 16; ++x) {
+                bdata = rendGetBlock(c, x, y, z);
+                if (!bdata.id || !blockinf[bdata.id].id || !blockinf[bdata.id].data[bdata.subid].id) continue;
+                bdata2[0] = rendGetBlock(c, x, y + 1, z);
+                bdata2[1] = rendGetBlock(c, x + 1, y, z);
+                bdata2[2] = rendGetBlock(c, x, y, z + 1);
+                bdata2[3] = rendGetBlock(c, x, y - 1, z);
+                bdata2[4] = rendGetBlock(c, x - 1, y, z);
+                bdata2[5] = rendGetBlock(c, x, y, z - 1);
+                for (int i = 0; i < 6; ++i) {
+                    if (bdata2[i].id && blockinf[bdata2[i].id].id) {
+                        if (!blockinf[bdata2[i].id].data[bdata2[i].subid].transparency) continue;
+                        if (blockinf[bdata.id].data[bdata.subid].transparency && (bdata.id == bdata2[i].id)) continue;
+                    }
+                    if (bdata2[i].id == 255) continue;
+                    uint32_t baseVert1 = ((x << 28) | (y << 16) | (z << 8)) & 0xF0FF0F00;
+                    uint32_t baseVert2 = ((bdata2[i].light_r << 28) | (bdata2[i].light_g << 24) | (bdata2[i].light_b << 20) |
+                                         blockinf[bdata.id].data[bdata.subid].anidiv) & 0xFFF000FF;
+                    uint32_t baseVert3 = ((blockinf[bdata.id].data[bdata.subid].texoff[i] << 16) & 0xFFFF0000) |
+                                         ((blockinf[bdata.id].data[bdata.subid].anict[i] << 8) & 0xFF00) | (bdata2[i].light_n);
+                    if (bdata.id == water) {
+                        if (!bdata2[i].id) {
+                            for (int j = 0; j < 6; ++j) {
+                                mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, constBlockVert1[i][j] | baseVert1);
+                                mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, constBlockVert2[i][j] | baseVert2);
+                                mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert3);
+                            }
+                        } else {
+                            for (int j = 0; j < 6; ++j) {
+                                mtsetvert(&_vptr3, &vpsize3, &vplen3, &vptr3, constBlockVert1[i][j] | baseVert1);
+                                mtsetvert(&_vptr3, &vpsize3, &vplen3, &vptr3, constBlockVert2[i][j] | baseVert2);
+                                mtsetvert(&_vptr3, &vpsize3, &vplen3, &vptr3, baseVert3);
+                            }
+                        }
+                        //printf("added [%d][%d %d %d][%d]: [%u]: [%08X]...\n", c, x, y, z, i, (uint8_t)bdata.id, baseVert1);
+                    } else {
+                        for (int j = 0; j < 6; ++j) {
+                            mtsetvert(&_vptr, &vpsize, &vplen, &vptr, constBlockVert1[i][j] | baseVert1);
+                            mtsetvert(&_vptr, &vpsize, &vplen, &vptr, constBlockVert2[i][j] | baseVert2);
+                            mtsetvert(&_vptr, &vpsize, &vplen, &vptr, baseVert3);
+                        }
+                        //printf("added [%d][%d %d %d][%d]: [%u]: [%08X]...\n", c, x, y, z, i, (uint8_t)bdata.id, baseVert1);
+                    }
+                }
+            }
+        }
+        pthread_mutex_unlock(&uclock);
+    }
+    pthread_mutex_lock(&uclock);
+    nx = (msg.x - cxo) + chunks->info.dist;
+    nz = chunks->info.width - ((msg.z - czo) + chunks->info.dist) - 1;
+    if (nx < 0 || nz < 0 || nx >= chunks->info.width || nz >= chunks->info.width) {
+        free(_vptr);
+        free(_vptr2);
+        free(_vptr3);
+        goto lblcontinue;
+    }
+    uint64_t c = nx + nz * chunks->info.width;
+    if (msg.id > chunks->renddata[c].updateid) {
+        if (chunks->renddata[c].vertices[0]) free(chunks->renddata[c].vertices[0]);
+        if (chunks->renddata[c].vertices[1]) free(chunks->renddata[c].vertices[1]);
+        if (chunks->renddata[c].vertices[2]) free(chunks->renddata[c].vertices[2]);
+        chunks->renddata[c].vcount[0] = vplen;
+        chunks->renddata[c].vcount[1] = vplen2;
+        chunks->renddata[c].vcount[2] = vplen3;
+        chunks->renddata[c].vertices[0] = _vptr;
+        chunks->renddata[c].vertices[1] = _vptr2;
+        chunks->renddata[c].vertices[2] = _vptr3;
+        //chunks->renddata[c].ready = true;
+        chunks->renddata[c].updateid = msg.id;
+        //printf("meshed: [%"PRId64", %"PRId64"] ([%"PRId64", %"PRId64"])\n", msg.x, msg.z, nx, nz);
+    } else {
+        free(_vptr);
+        free(_vptr2);
+        free(_vptr3);
+    }
+    lblcontinue:;
+    pthread_mutex_unlock(&uclock);
+}
+
+static force_inline void setready(int32_t x, int32_t z, bool val) {
+    int64_t nx = (x - cxo) + chunks->info.dist;
+    int64_t nz = chunks->info.width - ((z - czo) + chunks->info.dist) - 1;
+    if (nx < 0 || nz < 0 || nx >= (int32_t)chunks->info.width || nz >= (int32_t)chunks->info.width) return;
+    chunks->renddata[nx + nz * chunks->info.width].ready = val;
+}
+
+static void* meshthread(void* args) {
+    (void)args;
     uint64_t acttime = altutime();
     struct msgdata_msg msg;
     while (!quitRequest) {
         bool activity = false;
         if (getNextMsg(&chunkmsgs, &msg)) {
             activity = true;
-            pthread_mutex_lock(&uclock);
-            {
-                int64_t nx = (msg.x - cxo) + chunks->info.dist;
-                int64_t nz = chunks->info.width - ((msg.z - czo) + chunks->info.dist) - 1;
-                if (nx < 0 || nz < 0 || nx >= chunks->info.width || nz >= chunks->info.width) {
-                    goto lblcontinue;
-                }
-                uint64_t c = nx + nz * chunks->info.width;
-                if (msg.id < chunks->renddata[c].updateid) {goto lblcontinue;}
-                /*
-                if (!msg.dep) {
-                    addMsg(&chunkmsgs, msg.x, msg.z, msg.id, true, 0);
-                    if (msg.lvl >= 1) {
-                        addMsg(&chunkmsgs, msg.x, msg.z + 1, msg.id, true, 0);
-                        addMsg(&chunkmsgs, msg.x, msg.z - 1, msg.id, true, 0);
-                        addMsg(&chunkmsgs, msg.x + 1, msg.z, msg.id, true, 0);
-                        addMsg(&chunkmsgs, msg.x - 1, msg.z, msg.id, true, 0);
-                        if (msg.lvl >= 2) {
-                            addMsg(&chunkmsgs, msg.x + 1, msg.z + 1, msg.id, true, 0);
-                            addMsg(&chunkmsgs, msg.x + 1, msg.z - 1, msg.id, true, 0);
-                            addMsg(&chunkmsgs, msg.x - 1, msg.z + 1, msg.id, true, 0);
-                            addMsg(&chunkmsgs, msg.x - 1, msg.z - 1, msg.id, true, 0);
-                        }
-                    }
-                    //printf("BASE: [%"PRId64", %"PRId64"]\n", msg.x, msg.z);
-                    goto lblcontinue;
-                }
-                */
-            }
-            pthread_mutex_unlock(&uclock);
-            //printf("mesh: [%"PRId64", %"PRId64"]\n", msg.x, msg.z);
-            int vpsize = 1024;
-            int vpsize2 = 1024;
-            int vpsize3 = 256;
-            uint32_t* _vptr = malloc(vpsize * sizeof(uint32_t));
-            uint32_t* _vptr2 = malloc(vpsize2 * sizeof(uint32_t));
-            uint32_t* _vptr3 = malloc(vpsize3 * sizeof(uint32_t));
-            int vplen = 0;
-            int vplen2 = 0;
-            int vplen3 = 0;
-            uint32_t* vptr = _vptr;
-            uint32_t* vptr2 = _vptr2;
-            uint32_t* vptr3 = _vptr3;
-            for (int y = 0; y < 256; ++y) {
-                pthread_mutex_lock(&uclock);
-                int64_t nx = (msg.x - cxo) + chunks->info.dist;
-                int64_t nz = chunks->info.width - ((msg.z - czo) + chunks->info.dist) - 1;
-                if (nx < 0 || nz < 0 || nx >= chunks->info.width || nz >= chunks->info.width) {
-                    free(_vptr);
-                    free(_vptr2);
-                    free(_vptr3);
-                    goto lblcontinue;
-                }
-                uint64_t c = nx + nz * chunks->info.width;
-                for (int z = 0; z < 16; ++z) {
-                    for (int x = 0; x < 16; ++x) {
-                        bdata = rendGetBlock(c, x, y, z);
-                        if (!bdata.id || !blockinf[bdata.id].id || !blockinf[bdata.id].data[bdata.subid].id) continue;
-                        bdata2[0] = rendGetBlock(c, x, y + 1, z);
-                        bdata2[1] = rendGetBlock(c, x + 1, y, z);
-                        bdata2[2] = rendGetBlock(c, x, y, z + 1);
-                        bdata2[3] = rendGetBlock(c, x, y - 1, z);
-                        bdata2[4] = rendGetBlock(c, x - 1, y, z);
-                        bdata2[5] = rendGetBlock(c, x, y, z - 1);
-                        for (int i = 0; i < 6; ++i) {
-                            if (bdata2[i].id && blockinf[bdata2[i].id].id) {
-                                if (!blockinf[bdata2[i].id].data[bdata2[i].subid].transparency) continue;
-                                if (blockinf[bdata.id].data[bdata.subid].transparency && (bdata.id == bdata2[i].id)) continue;
-                            }
-                            if (bdata2[i].id == 255) continue;
-                            uint32_t baseVert1 = ((x << 28) | (y << 16) | (z << 8)) & 0xF0FF0F00;
-                            uint32_t baseVert2 = ((bdata2[i].light_r << 28) | (bdata2[i].light_g << 24) | (bdata2[i].light_b << 20) |
-                                                 blockinf[bdata.id].data[bdata.subid].anidiv) & 0xFFF000FF;
-                            uint32_t baseVert3 = ((blockinf[bdata.id].data[bdata.subid].texoff[i] << 16) & 0xFFFF0000) |
-                                                 ((blockinf[bdata.id].data[bdata.subid].anict[i] << 8) & 0xFF00) | (bdata2[i].light_n);
-                            if (bdata.id == water) {
-                                if (!bdata2[i].id) {
-                                    for (int j = 0; j < 6; ++j) {
-                                        mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, constBlockVert1[i][j] | baseVert1);
-                                        mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, constBlockVert2[i][j] | baseVert2);
-                                        mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert3);
-                                    }
-                                } else {
-                                    for (int j = 0; j < 6; ++j) {
-                                        mtsetvert(&_vptr3, &vpsize3, &vplen3, &vptr3, constBlockVert1[i][j] | baseVert1);
-                                        mtsetvert(&_vptr3, &vpsize3, &vplen3, &vptr3, constBlockVert2[i][j] | baseVert2);
-                                        mtsetvert(&_vptr3, &vpsize3, &vplen3, &vptr3, baseVert3);
-                                    }
-                                }
-                                //printf("added [%d][%d %d %d][%d]: [%u]: [%08X]...\n", c, x, y, z, i, (uint8_t)bdata.id, baseVert1);
-                            } else {
-                                for (int j = 0; j < 6; ++j) {
-                                    mtsetvert(&_vptr, &vpsize, &vplen, &vptr, constBlockVert1[i][j] | baseVert1);
-                                    mtsetvert(&_vptr, &vpsize, &vplen, &vptr, constBlockVert2[i][j] | baseVert2);
-                                    mtsetvert(&_vptr, &vpsize, &vplen, &vptr, baseVert3);
-                                }
-                                //printf("added [%d][%d %d %d][%d]: [%u]: [%08X]...\n", c, x, y, z, i, (uint8_t)bdata.id, baseVert1);
-                            }
-                        }
+            mesh(msg.x, msg.z, msg.id, msg.dep, 0);
+            if (!msg.dep) {
+                if (msg.lvl >= 1) {
+                    mesh(msg.x, msg.z + 1, msg.id, true, 0);
+                    mesh(msg.x, msg.z - 1, msg.id, true, 0);
+                    mesh(msg.x + 1, msg.z, msg.id, true, 0);
+                    mesh(msg.x - 1, msg.z, msg.id, true, 0);
+                    if (msg.lvl >= 2) {
+                        mesh(msg.x + 1, msg.z + 1, msg.id, true, 0);
+                        mesh(msg.x + 1, msg.z - 1, msg.id, true, 0);
+                        mesh(msg.x - 1, msg.z + 1, msg.id, true, 0);
+                        mesh(msg.x - 1, msg.z - 1, msg.id, true, 0);
                     }
                 }
-                pthread_mutex_unlock(&uclock);
             }
             pthread_mutex_lock(&uclock);
-            int64_t nx = (msg.x - cxo) + chunks->info.dist;
-            int64_t nz = chunks->info.width - ((msg.z - czo) + chunks->info.dist) - 1;
-            if (nx < 0 || nz < 0 || nx >= chunks->info.width || nz >= chunks->info.width) {
-                free(_vptr);
-                free(_vptr2);
-                free(_vptr3);
-                goto lblcontinue;
-            }
-            uint64_t c = nx + nz * chunks->info.width;
-            if (msg.id > chunks->renddata[c].updateid) {
-                if (chunks->renddata[c].vertices[0]) free(chunks->renddata[c].vertices[0]);
-                if (chunks->renddata[c].vertices[1]) free(chunks->renddata[c].vertices[1]);
-                if (chunks->renddata[c].vertices[2]) free(chunks->renddata[c].vertices[2]);
-                chunks->renddata[c].vcount[0] = vplen;
-                chunks->renddata[c].vcount[1] = vplen2;
-                chunks->renddata[c].vcount[2] = vplen3;
-                chunks->renddata[c].vertices[0] = _vptr;
-                chunks->renddata[c].vertices[1] = _vptr2;
-                chunks->renddata[c].vertices[2] = _vptr3;
-                chunks->renddata[c].ready = true;
-                chunks->renddata[c].updateid = msg.id;
-                if (!msg.dep) {
-                    if (msg.lvl >= 1) {
-                        addMsg(&chunkmsgs, msg.x, msg.z + 1, msg.id, true, 0);
-                        addMsg(&chunkmsgs, msg.x, msg.z - 1, msg.id, true, 0);
-                        addMsg(&chunkmsgs, msg.x + 1, msg.z, msg.id, true, 0);
-                        addMsg(&chunkmsgs, msg.x - 1, msg.z, msg.id, true, 0);
-                        if (msg.lvl >= 2) {
-                            addMsg(&chunkmsgs, msg.x + 1, msg.z + 1, msg.id, true, 0);
-                            addMsg(&chunkmsgs, msg.x + 1, msg.z - 1, msg.id, true, 0);
-                            addMsg(&chunkmsgs, msg.x - 1, msg.z + 1, msg.id, true, 0);
-                            addMsg(&chunkmsgs, msg.x - 1, msg.z - 1, msg.id, true, 0);
-                        }
-                    }
+            setready(msg.x, msg.z, true);
+            if (!msg.dep) {
+                if (msg.lvl >= 1) {
+                    setready(msg.x, msg.z + 1, true);
+                    setready(msg.x, msg.z - 1, true);
+                    setready(msg.x + 1, msg.z, true);
+                    setready(msg.x - 1, msg.z, true);
                 }
-                //printf("meshed: [%"PRId64", %"PRId64"] ([%"PRId64", %"PRId64"])\n", msg.x, msg.z, nx, nz);
-            } else {
-                free(_vptr);
-                free(_vptr2);
-                free(_vptr3);
             }
-            lblcontinue:;
             pthread_mutex_unlock(&uclock);
         }
         if (activity) {
@@ -713,8 +736,6 @@ static void* meshthread(void* args) {
     }
     return NULL;
 }
-
-static bool uchunks_slowmode = false;
 
 void updateChunks() {
     pthread_mutex_lock(&uclock);
@@ -737,7 +758,6 @@ void updateChunks() {
         }
         chunks->renddata[c].ready = false;
         chunks->renddata[c].buffered = true;
-        if (uchunks_slowmode) break;
     }
     pthread_mutex_unlock(&uclock);
 }
