@@ -567,16 +567,12 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id, bool dep, int l
     //printf("mesh: [%"PRId64", %"PRId64"]\n", msg.x, msg.z);
     int vpsize = 1024;
     int vpsize2 = 1024;
-    int vpsize3 = 256;
     uint32_t* _vptr = malloc(vpsize * sizeof(uint32_t));
     uint32_t* _vptr2 = malloc(vpsize2 * sizeof(uint32_t));
-    uint32_t* _vptr3 = malloc(vpsize3 * sizeof(uint32_t));
     int vplen = 0;
     int vplen2 = 0;
-    int vplen3 = 0;
     uint32_t* vptr = _vptr;
     uint32_t* vptr2 = _vptr2;
-    uint32_t* vptr3 = _vptr3;
     for (int y = 0; y < 256; ++y) {
         pthread_mutex_lock(&uclock);
         nx = (msg.x - cxo) + chunks->info.dist;
@@ -584,7 +580,6 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id, bool dep, int l
         if (nx < 0 || nz < 0 || nx >= chunks->info.width || nz >= chunks->info.width) {
             free(_vptr);
             free(_vptr2);
-            free(_vptr3);
             goto lblcontinue;
         }
         uint64_t c = nx + nz * chunks->info.width;
@@ -610,17 +605,14 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id, bool dep, int l
                     uint32_t baseVert3 = ((blockinf[bdata.id].data[bdata.subid].texoff[i] << 16) & 0xFFFF0000) |
                                          ((blockinf[bdata.id].data[bdata.subid].anict[i] << 8) & 0xFF00) | (bdata2[i].light_n);
                     if (bdata.id == water) {
-                        if (/*!bdata2[i].id*/ true) {
-                            for (int j = 0; j < 6; ++j) {
-                                mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, constBlockVert1[i][j] | baseVert1);
-                                mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, constBlockVert2[i][j] | baseVert2);
+                        for (int j = 0; j < 6; ++j) {
+                            mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, constBlockVert1[i][j] | baseVert1);
+                            mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, constBlockVert2[i][j] | baseVert2);
+                            mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert3);
+                            if (!bdata2[i].id) {
+                                mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, constBlockVert1[i][5 - j] | baseVert1);
+                                mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, constBlockVert2[i][5 - j] | baseVert2);
                                 mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert3);
-                            }
-                        } else {
-                            for (int j = 0; j < 6; ++j) {
-                                mtsetvert(&_vptr3, &vpsize3, &vplen3, &vptr3, constBlockVert1[i][j] | baseVert1);
-                                mtsetvert(&_vptr3, &vpsize3, &vplen3, &vptr3, constBlockVert2[i][j] | baseVert2);
-                                mtsetvert(&_vptr3, &vpsize3, &vplen3, &vptr3, baseVert3);
                             }
                         }
                         //printf("added [%d][%d %d %d][%d]: [%u]: [%08X]...\n", c, x, y, z, i, (uint8_t)bdata.id, baseVert1);
@@ -643,30 +635,24 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id, bool dep, int l
     if (nx < 0 || nz < 0 || nx >= chunks->info.width || nz >= chunks->info.width) {
         free(_vptr);
         free(_vptr2);
-        free(_vptr3);
         goto lblcontinue;
     }
     uint64_t c = nx + nz * chunks->info.width;
     if (msg.id >= chunks->renddata[c].updateid) {
         //if (chunks->renddata[c].vertices[0]) free(chunks->renddata[c].vertices[0]);
         //if (chunks->renddata[c].vertices[1]) free(chunks->renddata[c].vertices[1]);
-        //if (chunks->renddata[c].vertices[2]) free(chunks->renddata[c].vertices[2]);
         if (!watersort) chunks->renddata[c].remesh[0] = true;
         chunks->renddata[c].remesh[1] = true;
-        chunks->renddata[c].remesh[2] = true;
         chunks->renddata[c].vcount[0] = vplen;
         chunks->renddata[c].vcount[1] = vplen2;
-        chunks->renddata[c].vcount[2] = vplen3;
         chunks->renddata[c].vertices[0] = _vptr;
         chunks->renddata[c].vertices[1] = _vptr2;
-        chunks->renddata[c].vertices[2] = _vptr3;
         //chunks->renddata[c].ready = true;
         chunks->renddata[c].updateid = msg.id;
         //printf("meshed: [%"PRId64", %"PRId64"] ([%"PRId64", %"PRId64"])\n", msg.x, msg.z, nx, nz);
     } else {
         free(_vptr);
         free(_vptr2);
-        free(_vptr3);
     }
     lblcontinue:;
     pthread_mutex_unlock(&uclock);
@@ -738,10 +724,10 @@ void updateChunks() {
     for (uint32_t c = 0; !quitRequest && c < chunks->info.widthsq; ++c) {
         if (!chunks->renddata[c].ready || !chunks->renddata[c].visible) continue;
         if (!chunks->renddata[c].init) {
-            glGenBuffers(3, chunks->renddata[c].VBO);
+            glGenBuffers(2, chunks->renddata[c].VBO);
             chunks->renddata[c].init = true;
         }
-        for (int i = 0; i < 3; ++i) {
+        for (int i = 0; i < 2; ++i) {
             if (chunks->renddata[c].remesh[i]) {
                 uint32_t tmpsize = chunks->renddata[c].vcount[i] * sizeof(uint32_t);
                 glBindBuffer(GL_ARRAY_BUFFER, chunks->renddata[c].VBO[i]);
@@ -822,14 +808,6 @@ static inline void syncTextColors() {
     setUniform3f(rendinf.shaderprog, "textColor[14]", textColor[14]);
     setUniform3f(rendinf.shaderprog, "textColor[15]", textColor[15]);
 }
-
-// ui elem: [16 bits: x][16 bits: y]
-// ui elem: [1 bit: 0][23 bits: reserved][8 bits: z]
-// ui elem: [8 bits: r][8 bits: g][8 bits: b][8 bits: a]
-
-// text:    [16 bits: x][16 bits: y]
-// text:    [1 bit: 1][5 bits: reserved][1 bit: texture x][1 bit: texture y][8 bits: reserved][8 bits: text char][8 bits: z]
-// text:    [8 bits: fgc alpha][8 bits: bgc alpha][4 bits: text fgc][4 bits: text bgc][8 bits: reserved]
 
 struct meshdata {
     int s;
@@ -1199,7 +1177,6 @@ void render() {
                 glVertexAttribIPointer(2, 1, GL_UNSIGNED_INT, 3 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * 2));
                 glDrawArrays(GL_TRIANGLES, 0, chunks->renddata[rendc].tcount[0]);
             }
-            glDisable(GL_CULL_FACE);
             glDepthMask(false);
             if (chunks->renddata[rendc].tcount[1]) {
                 //setUniform2f(rendinf.shaderprog, "ccoord", (float[]){(int)(rendc % chunks->info.width) - (int)chunks->info.dist, (int)(rendc / chunks->info.width) - (int)chunks->info.dist});
@@ -1209,17 +1186,6 @@ void render() {
                 glVertexAttribIPointer(2, 1, GL_UNSIGNED_INT, 3 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * 2));
                 glDrawArrays(GL_TRIANGLES, 0, chunks->renddata[rendc].tcount[1]);
             }
-            glEnable(GL_CULL_FACE);
-            /*
-            if (chunks->renddata[rendc].tcount[2]) {
-                //setUniform2f(rendinf.shaderprog, "ccoord", (float[]){(int)(rendc % chunks->info.width) - (int)chunks->info.dist, (int)(rendc / chunks->info.width) - (int)chunks->info.dist});
-                glBindBuffer(GL_ARRAY_BUFFER, chunks->renddata[rendc].VBO[2]);
-                glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 3 * sizeof(uint32_t), (void*)(0));
-                glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 3 * sizeof(uint32_t), (void*)(sizeof(uint32_t)));
-                glVertexAttribIPointer(2, 1, GL_UNSIGNED_INT, 3 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * 2));
-                glDrawArrays(GL_TRIANGLES, 0, chunks->renddata[rendc].tcount[2]);
-            }
-            */
             glDepthMask(true);
         }
     }

@@ -124,10 +124,8 @@ void moveChunks(struct chunkdata* chunks, int64_t cxo, int64_t czo, int cx, int 
             if (chunks->renddata[off].generated) {
                 chunks->renddata[off].vcount[0] = 0;
                 chunks->renddata[off].vcount[1] = 0;
-                chunks->renddata[off].vcount[2] = 0;
                 chunks->renddata[off].tcount[0] = 0;
                 chunks->renddata[off].tcount[1] = 0;
-                chunks->renddata[off].tcount[2] = 0;
                 chunks->renddata[off].buffered = false;
                 chunks->renddata[off].generated = false;
             }
@@ -149,10 +147,8 @@ void moveChunks(struct chunkdata* chunks, int64_t cxo, int64_t czo, int cx, int 
             if (chunks->renddata[c].generated) {
                 chunks->renddata[c].vcount[0] = 0;
                 chunks->renddata[c].vcount[1] = 0;
-                chunks->renddata[c].vcount[2] = 0;
                 chunks->renddata[c].tcount[0] = 0;
                 chunks->renddata[c].tcount[1] = 0;
-                chunks->renddata[c].tcount[2] = 0;
                 chunks->renddata[c].buffered = false;
                 chunks->renddata[c].generated = false;
             }
@@ -176,10 +172,8 @@ void moveChunks(struct chunkdata* chunks, int64_t cxo, int64_t czo, int cx, int 
             if (chunks->renddata[off].generated) {
                 chunks->renddata[off].vcount[0] = 0;
                 chunks->renddata[off].vcount[1] = 0;
-                chunks->renddata[off].vcount[2] = 0;
                 chunks->renddata[off].tcount[0] = 0;
                 chunks->renddata[off].tcount[1] = 0;
-                chunks->renddata[off].tcount[2] = 0;
                 chunks->renddata[off].buffered = false;
                 chunks->renddata[off].generated = false;
             }
@@ -207,10 +201,8 @@ void moveChunks(struct chunkdata* chunks, int64_t cxo, int64_t czo, int cx, int 
             if (chunks->renddata[c].generated) {
                 chunks->renddata[c].vcount[0] = 0;
                 chunks->renddata[c].vcount[1] = 0;
-                chunks->renddata[c].vcount[2] = 0;
                 chunks->renddata[c].tcount[0] = 0;
                 chunks->renddata[c].tcount[1] = 0;
-                chunks->renddata[c].tcount[2] = 0;
                 chunks->renddata[c].buffered = false;
                 chunks->renddata[c].generated = false;
             }
