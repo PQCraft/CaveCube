@@ -11,7 +11,7 @@
 #endif
 
 #ifndef SERVER_SNDBUF_SIZE
-    #define SERVER_SNDBUF_SIZE (1 << 20)
+    #define SERVER_SNDBUF_SIZE (1 << 19)
 #endif
 
 #ifndef SERVER_RCVBUF_SIZE
@@ -23,23 +23,23 @@
 #endif
 
 #ifndef CLIENT_RCVBUF_SIZE
-    #define CLIENT_RCVBUF_SIZE (1 << 20)
+    #define CLIENT_RCVBUF_SIZE (1 << 19)
 #endif
 
 #ifndef SERVER_OUTBUF_SIZE
-    #define SERVER_OUTBUF_SIZE (1 << 21)
+    #define SERVER_OUTBUF_SIZE (1 << 20)
 #endif
 
 #ifndef SERVER_INBUF_SIZE
-    #define SERVER_INBUF_SIZE (1 << 19)
+    #define SERVER_INBUF_SIZE (1 << 18)
 #endif
 
 #ifndef CLIENT_OUTBUF_SIZE
-    #define CLIENT_OUTBUF_SIZE (1 << 18)
+    #define CLIENT_OUTBUF_SIZE (1 << 16)
 #endif
 
 #ifndef CLIENT_INBUF_SIZE
-    #define CLIENT_INBUF_SIZE (1 << 21)
+    #define CLIENT_INBUF_SIZE (1 << 22)
 #endif
 
 enum {
