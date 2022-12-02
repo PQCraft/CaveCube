@@ -924,7 +924,7 @@ bool cliConnect(char* addr, int port, void (*cb)(int, void*)) {
     if (!(clicxn = newCxn(CXN_ACTIVE, addr, port, CLIENT_OUTBUF_SIZE, CLIENT_INBUF_SIZE))) {
         fputs("cliConnect: Failed to create connection\n", stderr);
         return false;
-    }setCxnBufSize(servcxn, CLIENT_SNDBUF_SIZE, CLIENT_RCVBUF_SIZE);
+    }setCxnBufSize(clicxn, CLIENT_SNDBUF_SIZE, CLIENT_RCVBUF_SIZE);
     initMsgData(&climsgout);
     callback = cb;
     #ifdef NAME_THREADS
