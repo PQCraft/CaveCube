@@ -15,7 +15,7 @@
 #endif
 
 #ifndef SERVER_RCVBUF_SIZE
-    #define SERVER_RCVBUF_SIZE (1 << 19)
+    #define SERVER_RCVBUF_SIZE (1 << 21)
 #endif
 
 #ifndef CLIENT_SNDBUF_SIZE
