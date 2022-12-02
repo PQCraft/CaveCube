@@ -11,19 +11,19 @@
 #endif
 
 #ifndef SERVER_SNDBUF_SIZE
-    #define SERVER_SNDBUF_SIZE (1 << 20)
+    #define SERVER_SNDBUF_SIZE (1 << 18)
 #endif
 
 #ifndef SERVER_RCVBUF_SIZE
-    #define SERVER_RCVBUF_SIZE (1 << 20)
+    #define SERVER_RCVBUF_SIZE (1 << 18)
 #endif
 
 #ifndef CLIENT_SNDBUF_SIZE
-    #define CLIENT_SNDBUF_SIZE (1 << 20)
+    #define CLIENT_SNDBUF_SIZE (1 << 18)
 #endif
 
 #ifndef CLIENT_RCVBUF_SIZE
-    #define CLIENT_RCVBUF_SIZE (1 << 20)
+    #define CLIENT_RCVBUF_SIZE (1 << 18)
 #endif
 
 #ifndef SERVER_OUTBUF_SIZE
