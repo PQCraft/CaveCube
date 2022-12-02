@@ -483,7 +483,7 @@ bool doGame(char* addr, int port) {
             bps *= 1.6875;
         }
         float speedmult = 1.0;
-        float leanmult = ((bps < 10.0) ? bps : 10.0) / 3.5 * (1.0 + (speedmult * 0.1));
+        float leanmult = ((bps < 10.0) ? bps : 10.0) * 0.125 * (1.0 + (speedmult * 0.1));
         bps *= speedmult;
         tmpcamrot.x += input.rot_up * input.rot_mult_y;
         tmpcamrot.y -= input.rot_right * input.rot_mult_x;
