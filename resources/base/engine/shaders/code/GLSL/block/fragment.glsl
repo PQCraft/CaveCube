@@ -18,7 +18,7 @@ void main() {
     } else {
         discard;
     }
-    float fogdist = distance(fragPos.xz, cam.xz);
+    float fogdist = distance(fragPos.xyz, cam.xyz);
     float fogdmin = (float(dist) * 16.0) * fogNear;
     float fogdmax = (float(dist) * 16.0) * fogFar;
     fragColor.rgb *= light;
