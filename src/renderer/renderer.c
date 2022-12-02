@@ -35,6 +35,21 @@ static GLuint shader_2d;
 static GLuint shader_ui;
 static GLuint shader_framebuffer;
 
+static unsigned VAO;
+static unsigned VBO2D;
+
+static unsigned FBO;
+static unsigned FBTEX;
+static unsigned FBTEXID;
+static unsigned DBUF;
+
+static unsigned UIFBO;
+static unsigned UIFBTEX;
+static unsigned UIFBTEXID;
+static unsigned UIDBUF;
+
+struct chunkdata* chunks;
+
 static force_inline void setMat4(GLuint prog, char* name, mat4 val) {
     glUniformMatrix4fv(glGetUniformLocation(prog, name), 1, GL_FALSE, *val);
 }
@@ -229,8 +244,32 @@ void updateUIScale() {
     //printf("Scale UI to [%d] (%dx%d)\n", s, rendinf.width, rendinf.height);
 }
 
+static void winch(int w, int h) {
+    if (inputMode == INPUT_MODE_GAME) {
+        resetInput();
+    }
+    if (!rendinf.fullscr) {
+        rendinf.win_width = w;
+        rendinf.win_height = h;
+    }
+    setFullscreen(rendinf.fullscr);
+
+}
+
+#if defined(USESDL2)
+void sdlreszevent(int w, int h) {
+    winch(w, h);
+}
+#else
+static void fbsize(GLFWwindow* win, int w, int h) {
+    (void)win;
+    winch(w, h);
+}
+#endif
+
 void setFullscreen(bool fullscreen) {
     static int winox = -1, winoy = -1;
+    glfwSetFramebufferSizeCallback(rendinf.window, NULL);
     if (fullscreen) {
         rendinf.aspect = (float)rendinf.full_width / (float)rendinf.full_height;
         rendinf.width = rendinf.full_width;
@@ -276,7 +315,20 @@ void setFullscreen(bool fullscreen) {
     updateUIScale();
     setUniform1f(rendinf.shaderprog, "xsize", rendinf.width);
     setUniform1f(rendinf.shaderprog, "ysize", rendinf.height);
-    //updateCam();
+
+    glBindTexture(GL_TEXTURE_2D, FBTEX);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, rendinf.width, rendinf.height, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+    glBindRenderbuffer(GL_RENDERBUFFER, DBUF);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, rendinf.width, rendinf.height);
+
+    glBindTexture(GL_TEXTURE_2D, UIFBTEX);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, rendinf.width, rendinf.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+    glBindRenderbuffer(GL_RENDERBUFFER, UIDBUF);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, rendinf.width, rendinf.height);
+
+    glViewport(0, 0, rendinf.width, rendinf.height);
+
+    glfwSetFramebufferSizeCallback(rendinf.window, fbsize);
 }
 
 static force_inline bool makeShaderProg(char* hdrtext, char* _vstext, char* _fstext, GLuint* p) {
@@ -384,21 +436,6 @@ void updateScreen() {
     glfwSwapBuffers(rendinf.window);
     #endif
 }
-
-static unsigned VAO;
-static unsigned VBO2D;
-
-static unsigned FBO;
-static unsigned FBTEX;
-static unsigned FBTEXID;
-static unsigned DBUF;
-
-static unsigned UIFBO;
-static unsigned UIFBTEX;
-static unsigned UIFBTEXID;
-static unsigned UIDBUF;
-
-struct chunkdata* chunks;
 
 void setMeshChunks(void* vdata) {
     chunks = vdata;
@@ -1226,40 +1263,6 @@ void render() {
     }
 }
 
-static void winch(int w, int h) {
-    if (inputMode == INPUT_MODE_GAME) {
-        resetInput();
-    }
-    if (!rendinf.fullscr) {
-        rendinf.win_width = w;
-        rendinf.win_height = h;
-    }
-    setFullscreen(rendinf.fullscr);
-
-    glBindTexture(GL_TEXTURE_2D, FBTEX);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, rendinf.width, rendinf.height, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
-    glBindRenderbuffer(GL_RENDERBUFFER, DBUF);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, rendinf.width, rendinf.height);
-
-    glBindTexture(GL_TEXTURE_2D, UIFBTEX);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, rendinf.width, rendinf.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-    glBindRenderbuffer(GL_RENDERBUFFER, UIDBUF);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, rendinf.width, rendinf.height);
-
-    glViewport(0, 0, rendinf.width, rendinf.height);
-}
-
-#if defined(USESDL2)
-void sdlreszevent(int w, int h) {
-    winch(w, h);
-}
-#else
-static void fbsize(GLFWwindow* win, int w, int h) {
-    (void)win;
-    winch(w, h);
-}
-#endif
-
 #if defined(USESDL2)
 static void sdlerror(char* m) {
     fprintf(stderr, "SDL2 error: {%s}: {%s}\n", m, SDL_GetError());
@@ -1504,11 +1507,12 @@ bool startRenderer() {
     printf("Vendor string: %s\n", glvend);
     glrend = glGetString(GL_RENDERER);
     printf("Renderer string: %s\n", glrend);
-
     #if defined(USESDL2)
     #else
     glfwSetFramebufferSizeCallback(rendinf.window, fbsize);
     #endif
+    glGenRenderbuffers(1, &UIDBUF);
+    glGenRenderbuffers(1, &DBUF);
     setFullscreen(rendinf.fullscr);
 
     setShaderProg(shader_block);
@@ -1538,7 +1542,6 @@ bool startRenderer() {
 
     int gltex = GL_TEXTURE0;
 
-    glGenRenderbuffers(1, &UIDBUF);
     glBindRenderbuffer(GL_RENDERBUFFER, UIDBUF);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, rendinf.width, rendinf.height);
     UIFBTEXID = gltex++;
@@ -1553,7 +1556,6 @@ bool startRenderer() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, UIFBTEX, 0);
 
-    glGenRenderbuffers(1, &DBUF);
     glBindRenderbuffer(GL_RENDERBUFFER, DBUF);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, rendinf.width, rendinf.height);
     FBTEXID = gltex++;
