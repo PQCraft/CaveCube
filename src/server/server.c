@@ -407,7 +407,7 @@ static void* servnetthread(void* args) {
     while (serveralive) {
         bool activity = false;
         struct netcxn* newcxn;
-        if ((newcxn = acceptCxn(servcxn, SERVER_OUTBUF_SIZE, CLIENT_OUTBUF_SIZE))) {
+        if ((newcxn = acceptCxn(servcxn, SERVER_OUTBUF_SIZE, SERVER_INBUF_SIZE))) {
             activity = true;
             {
                 char str[22];
@@ -434,6 +434,7 @@ static void* servnetthread(void* args) {
                 closeCxn(newcxn);
             }
             pthread_mutex_unlock(&pdatalock);
+            setCxnBufSize(newcxn, SERVER_SNDBUF_SIZE, SERVER_RCVBUF_SIZE);
         }
         for (int i = 0; i < maxclients; ++i) {
             pthread_mutex_lock(&pdatalock);
@@ -631,7 +632,7 @@ int startServer(char* addr, int port, int mcli, char* world) {
     puts("  Initializing connection...");
     #endif
     port = servcxn->info.port;
-    setCxnBufSize(servcxn, SERVER_SNDBUF_SIZE, CLIENT_SNDBUF_SIZE);
+    setCxnBufSize(servcxn, SERVER_SNDBUF_SIZE, SERVER_RCVBUF_SIZE);
     pdata = calloc(maxclients, sizeof(*pdata));
     for (int i = 0; i < MSG_PRIO__MAX; ++i) {
         initMsgData(&servmsgin[i]);
@@ -666,7 +667,7 @@ int startServer(char* addr, int port, int mcli, char* world) {
     pthread_create(&servnetthreadh, NULL, &servnetthread, NULL);
     #ifdef NAME_THREADS
     pthread_getname_np(servnetthreadh, name2, 256);
-    sprintf(name, "%s:snet", name2);
+    sprintf(name, "%.8s:snet", name2);
     pthread_setname_np(servnetthreadh, name);
     #endif
     #if DBGLVL(1)
@@ -675,7 +676,7 @@ int startServer(char* addr, int port, int mcli, char* world) {
     pthread_create(&servtimerh, NULL, &servtimerthread, &servtimer);
     #ifdef NAME_THREADS
     pthread_getname_np(servtimerh, name2, 256);
-    sprintf(name, "%s:stmr", name2);
+    sprintf(name, "%.8s:stmr", name2);
     pthread_setname_np(servtimerh, name);
     #endif
     for (int i = 0; i < SERVER_THREADS && i < MAX_THREADS; ++i) {
@@ -689,7 +690,7 @@ int startServer(char* addr, int port, int mcli, char* world) {
         pthread_create(&servpthreads[i], NULL, &servthread, (void*)(intptr_t)i);
         #ifdef NAME_THREADS
         pthread_getname_np(servpthreads[i], name2, 256);
-        sprintf(name, "%s:srv%d", name2, i);
+        sprintf(name, "%.8s:srv%d", name2, i);
         pthread_setname_np(servpthreads[i], name);
         #endif
     }
@@ -920,10 +921,10 @@ static void* clinetthread(void* args) {
 }
 
 bool cliConnect(char* addr, int port, void (*cb)(int, void*)) {
-    if (!(clicxn = newCxn(CXN_ACTIVE, addr, port, CLIENT_OUTBUF_SIZE, SERVER_OUTBUF_SIZE))) {
+    if (!(clicxn = newCxn(CXN_ACTIVE, addr, port, CLIENT_OUTBUF_SIZE, CLIENT_INBUF_SIZE))) {
         fputs("cliConnect: Failed to create connection\n", stderr);
         return false;
-    }
+    }setCxnBufSize(servcxn, CLIENT_SNDBUF_SIZE, CLIENT_RCVBUF_SIZE);
     initMsgData(&climsgout);
     callback = cb;
     #ifdef NAME_THREADS
@@ -935,7 +936,7 @@ bool cliConnect(char* addr, int port, void (*cb)(int, void*)) {
     pthread_create(&clinetthreadh, NULL, &clinetthread, NULL);
     #ifdef NAME_THREADS
     pthread_getname_np(clinetthreadh, name2, 256);
-    sprintf(name, "%s:ct", name2);
+    sprintf(name, "%.8s:ct", name2);
     pthread_setname_np(clinetthreadh, name);
     #endif
     return true;
