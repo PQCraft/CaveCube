@@ -116,16 +116,18 @@ endif
 
 BIN := $(BINNAME)$(BINEXT)
 
-CFLAGS += -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -O2 -pthread
+CFLAGS += -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -pthread
 CFLAGS += $(MODULECFLAGS) -DMODULEID=$(MODULEID) -DMODULE=$(MODULE)
 ifdef OS
     WRFLAGS += $(MODULECFLAGS) -DMODULE=$(MODULE)
 endif
 ifdef DEBUG
-    CFLAGS += -g -DDEBUG=$(DEBUG)
+    CFLAGS += -Og -g -DDEBUG=$(DEBUG)
     ifdef OS
         WRFLAGS += -DDEBUG=$(DEBUG)
     endif
+else
+    CFLAGS += -O2
 endif
 ifdef M32
     CFLAGS += -DM32
