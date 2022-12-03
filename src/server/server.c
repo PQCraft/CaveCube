@@ -7,8 +7,6 @@
 #include <common/noise.h>
 #include <game/game.h>
 #include <game/worldgen.h>
-#include <easylzma/compress.h>
-#include <easylzma/decompress.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,19 +15,6 @@
 
 int SERVER_THREADS;
 static bool serveralive = false;
-
-elzma_compress_handle srv_ezlz_comp = NULL;
-unsigned char srv_ezlz_comp_level = 0;
-unsigned char srv_ezlz_comp_lc = ELZMA_LC_DEFAULT;
-unsigned char srv_ezlz_comp_lp = ELZMA_LP_DEFAULT;
-unsigned char srv_ezlz_comp_pb = ELZMA_PB_DEFAULT;
-//unsigned int srv_ezlz_comp_maxdict = ELZMA_DICT_SIZE_DEFAULT_MAX;
-elzma_file_format srv_ezlz_comp_format = ELZMA_lzma;
-elzma_decompress_handle srv_ezlz_decomp = NULL;
-
-static force_inline void srv_ezlz_prep(int level, unsigned size) {
-    elzma_compress_config(srv_ezlz_comp, srv_ezlz_comp_lc, srv_ezlz_comp_lp, srv_ezlz_comp_pb, level, elzma_get_dict_size(size), srv_ezlz_comp_format, size);
-}
 
 struct msgdata_msg {
     int id;
@@ -422,33 +407,6 @@ static void* servthread(void* args) {
     return NULL;
 }
 
-struct srv_ezlz_rd_ctx {
-    unsigned size;
-    unsigned char* data;
-    unsigned ptr;
-};
-
-struct srv_ezlz_wr_ctx {
-    unsigned size;
-    unsigned char* data;
-};
-
-static size_t srv_ezlz_rd(void* _ctx, void* buf, size_t* size) {
-    struct srv_ezlz_rd_ctx* ctx = _ctx;
-    if (*size > ctx->size - ctx->ptr) *size = ctx->size - ctx->ptr;
-    memcpy(buf, &ctx->data[ctx->ptr], *size);
-    ctx->ptr += *size;
-    return 0;
-}
-
-static size_t srv_ezlz_wr(void* _ctx, void* buf, size_t size) {
-    struct srv_ezlz_wr_ctx* ctx = _ctx;
-    ctx->data = realloc(ctx->data, ctx->size + size);
-    memcpy(&ctx->data[ctx->size], buf, size);
-    ctx->size += size;
-    return size;
-}
-
 static struct netcxn* servcxn;
 
 static pthread_t servnetthreadh;
@@ -803,20 +761,8 @@ static struct netcxn* clicxn;
 
 static void (*callback)(int, void*);
 
-elzma_compress_handle cli_ezlz_comp = NULL;
-unsigned char cli_ezlz_comp_level = 5;
-unsigned char cli_ezlz_comp_lc = ELZMA_LC_DEFAULT;
-unsigned char cli_ezlz_comp_lp = ELZMA_LP_DEFAULT;
-unsigned char cli_ezlz_comp_pb = ELZMA_PB_DEFAULT;
-//unsigned int cli_ezlz_comp_maxdict = ELZMA_DICT_SIZE_DEFAULT_MAX;
-elzma_file_format cli_ezlz_comp_format = ELZMA_lzma;
-elzma_decompress_handle cli_ezlz_decomp = NULL;
-
-static force_inline void cli_ezlz_prep(int level, unsigned size) {
-    elzma_compress_config(cli_ezlz_comp, cli_ezlz_comp_lc, cli_ezlz_comp_lp, cli_ezlz_comp_pb, level, elzma_get_dict_size(size), cli_ezlz_comp_format, size);
-}
-
 static struct msgdata climsgout;
+
 static pthread_t clinetthreadh;
 
 static void* clinetthread(void* args) {
@@ -992,8 +938,7 @@ bool cliConnect(char* addr, int port, void (*cb)(int, void*)) {
     if (!(clicxn = newCxn(CXN_ACTIVE, addr, port, CLIENT_OUTBUF_SIZE, CLIENT_INBUF_SIZE))) {
         fputs("cliConnect: Failed to create connection\n", stderr);
         return false;
-    }
-    setCxnBufSize(clicxn, CLIENT_SNDBUF_SIZE, CLIENT_RCVBUF_SIZE);
+    }setCxnBufSize(clicxn, CLIENT_SNDBUF_SIZE, CLIENT_RCVBUF_SIZE);
     initMsgData(&climsgout);
     callback = cb;
     #ifdef NAME_THREADS
@@ -1053,11 +998,5 @@ void cliSend(int id, ...) {
 bool initServer() {
     if (!initNet()) return false;
     pthread_mutex_init(&pdatalock, NULL);
-    #if MODULEID == MODULEID_GAME
-    cli_ezlz_comp = elzma_compress_alloc();
-    cli_ezlz_decomp = elzma_decompress_alloc();
-    #endif
-    srv_ezlz_comp = elzma_compress_alloc();
-    srv_ezlz_decomp = elzma_decompress_alloc();
     return true;
 }

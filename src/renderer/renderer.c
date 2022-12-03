@@ -676,8 +676,8 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id, bool dep, int l
     }
     uint64_t c = nx + nz * chunks->info.width;
     if (msg.id >= chunks->renddata[c].updateid) {
-        //if (chunks->renddata[c].vertices[0]) free(chunks->renddata[c].vertices[0]);
-        //if (chunks->renddata[c].vertices[1]) free(chunks->renddata[c].vertices[1]);
+        if (chunks->renddata[c].vertices[0]) free(chunks->renddata[c].vertices[0]);
+        if (chunks->renddata[c].vertices[1]) free(chunks->renddata[c].vertices[1]);
         if (!watersort) chunks->renddata[c].remesh[0] = true;
         chunks->renddata[c].remesh[1] = true;
         chunks->renddata[c].vcount[0] = vplen;

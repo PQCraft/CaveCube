@@ -82,6 +82,7 @@ struct server_data_updatechunk {
     int64_t x;
     int64_t z;
     int len;
+    unsigned char* cdata;
     struct blockdata data[65536];
 };
 
