@@ -44,6 +44,8 @@ int getCoreCt(void);
 char* spCharToStr(char);
 bool getBool(char*);
 int readStrUntil(char*, char, char*);
+int ezCompress(int, unsigned, void*, unsigned, void*);
+int ezDecompress(unsigned, void*, unsigned, void*);
 
 #ifdef _WIN32
 extern LARGE_INTEGER perfctfreq;

@@ -1,5 +1,6 @@
 #include <main/main.h>
 #include "common.h"
+#include <zlib/zlib.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -563,4 +564,30 @@ int readStrUntil(char* input, char c, char* output) {
     }
     *output = 0;
     return size;
+}
+
+int ezCompress(int level, unsigned insize, void* indata, unsigned outsize, void* outdata) {
+    z_stream stream = {.zalloc = Z_NULL, .zfree = Z_NULL, .opaque = Z_NULL};
+    stream.avail_in = insize;
+    stream.next_in = indata;
+    stream.avail_out = outsize;
+    stream.next_out = outdata;
+    deflateInit(&stream, level);
+    int ret = deflate(&stream, Z_FINISH);
+    deflateEnd(&stream);
+    if (ret < 0) return ret;
+    return stream.total_out;
+}
+
+int ezDecompress(unsigned insize, void* indata, unsigned outsize, void* outdata) {
+    z_stream stream = {.zalloc = Z_NULL, .zfree = Z_NULL, .opaque = Z_NULL};
+    stream.avail_in = insize;
+    stream.next_in = indata;
+    stream.avail_out = outsize;
+    stream.next_out = outdata;
+    inflateInit(&stream);
+    int ret = inflate(&stream, Z_FINISH);
+    inflateEnd(&stream);
+    if (ret < 0) return ret;
+    return stream.total_out;
 }

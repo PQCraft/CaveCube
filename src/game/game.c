@@ -310,7 +310,7 @@ static void handleServer(int msg, void* _data) {
             chunkOfBlock(data->x, data->z, &ucx, &ucz);
             //printf("set block at [%"PRId64", %d, %"PRId64"] ([%"PRId64", %"PRId64"]) to [%d]\n", data->x, data->y, data->z, ucx, ucz, data->data.id);
             setBlock(&chunks, data->x - cx * 16, data->y, -data->z + cz * 16, data->data);
-            updateChunk(ucx, ucz, CHUNKUPDATE_PRIO_HIGH, 2);
+            updateChunk(ucx, ucz, CHUNKUPDATE_PRIO_HIGH, 1);
             break;
         }
     }

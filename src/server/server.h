@@ -19,11 +19,11 @@
 #endif
 
 #ifndef SERVER_OUTBUF_SIZE
-    #define SERVER_OUTBUF_SIZE (1 << 20)
+    #define SERVER_OUTBUF_SIZE (1 << 19)
 #endif
 
 #ifndef SERVER_INBUF_SIZE
-    #define SERVER_INBUF_SIZE (1 << 16)
+    #define SERVER_INBUF_SIZE (1 << 17)
 #endif
 
 #ifndef CLIENT_SNDBUF_SIZE
@@ -31,7 +31,7 @@
 #endif
 
 #ifndef CLIENT_RCVBUF_SIZE
-    #define CLIENT_RCVBUF_SIZE (1 << 21)
+    #define CLIENT_RCVBUF_SIZE (1 << 19)
 #endif
 
 #ifndef CLIENT_OUTBUF_SIZE
