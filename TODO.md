@@ -1,7 +1,4 @@
 ### NEED TO DO:
-- Redo almost everything to do with chunks/blocks
-- Get lzma working and use it to compress/decompress chunks
-- Ensure that every function that does block operations takes a non-inverted z
 - Flesh out UI
     - More UI elements (buttons, text boxes, etc)
     - UI interaction (elem states, tooltips, etc)
@@ -20,7 +17,7 @@
     - Add event for collecting player info
     - Add event for running physics
     - Add event for handling game logic
-- Make it so that events are not pushed again until an acknowledge (prevents overflow)
+- Make it so that timers are not pushed again until an acknowledge (prevents overflow)
 - Make server ask for and handle player's positions
 - Implement server chunk cache/pool
 - Implement world saves in `src/server/saves.(c|h)`
@@ -43,6 +40,9 @@
 - Android support (requires that it be buildable from the command-line using `make` so it can be used in `mkrelease.sh`)
 
 ### IN-PROGRESS:
+- Get lzma working and use it to compress/decompress chunks
+- Redo almost everything to do with chunks/blocks
+- Ensure that every function that does block operations takes a non-inverted z
 
 ### DONE:
 - Renderer improvements

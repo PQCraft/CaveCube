@@ -31,7 +31,7 @@
 #endif
 
 #ifndef CLIENT_RCVBUF_SIZE
-    #define CLIENT_RCVBUF_SIZE (1 << 22)
+    #define CLIENT_RCVBUF_SIZE (1 << 21)
 #endif
 
 #ifndef CLIENT_OUTBUF_SIZE
@@ -39,7 +39,7 @@
 #endif
 
 #ifndef CLIENT_INBUF_SIZE
-    #define CLIENT_INBUF_SIZE (1 << 22)
+    #define CLIENT_INBUF_SIZE (1 << 21)
 #endif
 
 enum {
