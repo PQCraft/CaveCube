@@ -7,6 +7,7 @@
 #include <common/noise.h>
 #include <game/game.h>
 #include <game/worldgen.h>
+#include <zlib/zlib.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -546,7 +547,7 @@ static void* servnetthread(void* args) {
                                 }
                                 case SERVER_UPDATECHUNK:; {
                                     struct server_data_updatechunk* tmpdata = msg.data;
-                                    msgsize += 8 + 8 + tmpdata->len * sizeof(struct blockdata);
+                                    msgsize += 8 + 8 + tmpdata->len;
                                     break;
                                 }
                                 case SERVER_SETSKYCOLOR:; {
@@ -588,7 +589,7 @@ static void* servnetthread(void* args) {
                                     writeToCxnBuf(pdata[i].cxn, &tmpqword, 8);
                                     tmpqword = host2net64(tmpdata->z);
                                     writeToCxnBuf(pdata[i].cxn, &tmpqword, 8);
-                                    writeToCxnBuf(pdata[i].cxn, &tmpdata->data, tmpdata->len * sizeof(struct blockdata));
+                                    writeToCxnBuf(pdata[i].cxn, &tmpdata->cdata, tmpdata->len);
                                     break;
                                 }
                                 case SERVER_SETSKYCOLOR:; {
