@@ -637,7 +637,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id, bool dep, int l
                     }
                     if (bdata2[i].id == 255) continue;
                     uint32_t baseVert1 = ((x << 28) | (y << 16) | (z << 8)) & 0xF0FF0F00;
-                    uint32_t baseVert2 = ((bdata2[i].light_r << 28) | (bdata2[i].light_g << 24) | (bdata2[i].light_b << 20) |
+                    uint32_t baseVert2 = ((bdata.light_r << 28) | (bdata.light_g << 24) | (bdata.light_b << 20) |
                                          blockinf[bdata.id].data[bdata.subid].anidiv) & 0xFFF000FF;
                     uint32_t baseVert3 = ((blockinf[bdata.id].data[bdata.subid].texoff[i] << 16) & 0xFFFF0000) |
                                          ((blockinf[bdata.id].data[bdata.subid].anict[i] << 8) & 0xFF00) | (bdata2[i].light_n);
@@ -790,6 +790,7 @@ void startMesher() {
         char name[256];
         char name2[256];
         #endif
+        if (MESHER_THREADS < 2) MESHER_THREADS = 2;
         for (int i = 0; i < MESHER_THREADS && i < MAX_THREADS && i < MESHER_THREADS_MAX; ++i) {
             #ifdef NAME_THREADS
             name[0] = 0;
@@ -799,7 +800,7 @@ void startMesher() {
             printf("Mesher: Started thread [%d]\n", i);
             #ifdef NAME_THREADS
             pthread_getname_np(pthreads[i], name2, 256);
-            sprintf(name, "%s:msh%d", name2, i);
+            sprintf(name, "%.8s:msh%d", name2, i);
             pthread_setname_np(pthreads[i], name);
             #endif
         }
