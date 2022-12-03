@@ -1,4 +1,8 @@
 ### NEED TO DO:
+- Implement server chunk cache/pool
+- Implement world saves in `src/server/saves.(c|h)`
+- Redo almost everything to do with chunks/blocks
+- Ensure that every function that does block operations takes a non-inverted z
 - Flesh out UI
     - More UI elements (buttons, text boxes, etc)
     - UI interaction (elem states, tooltips, etc)
@@ -19,8 +23,6 @@
     - Add event for handling game logic
 - Make it so that timers are not pushed again until an acknowledge (prevents overflow)
 - Make server ask for and handle player's positions
-- Implement server chunk cache/pool
-- Implement world saves in `src/server/saves.(c|h)`
 - Redo BMD to CCM (delete `src/bmd/` and add `src/ccm/`)
     - Add parts, model types (3D, BLOCK, 2D, etc), and data types (VERT, ANI, AABB, etc)
 - 3D model rendering in `src/renderer/renderer.c`
@@ -40,9 +42,9 @@
 - Android support (requires that it be buildable from the command-line using `make` so it can be used in `mkrelease.sh`)
 
 ### IN-PROGRESS:
-- Get lzma working and use it to compress/decompress chunks
-- Redo almost everything to do with chunks/blocks
-- Ensure that every function that does block operations takes a non-inverted z
+- Translucency depth sorting
 
 ### DONE:
 - Renderer improvements
+- Added chunk compression using zlib
+- Improved mesher latency

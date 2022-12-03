@@ -750,7 +750,7 @@ static void* meshthread(void* args) {
         if (activity) {
             acttime = altutime();
         } else if (altutime() - acttime > 500000) {
-            microwait(200000);
+            microwait(10000);
         }
     }
     return NULL;
