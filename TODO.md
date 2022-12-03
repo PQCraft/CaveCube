@@ -1,5 +1,6 @@
 ### NEED TO DO:
 - Redo almost everything to do with chunks/blocks
+- Get lzma working and use it to compress/decompress chunks
 - Ensure that every function that does block operations takes a non-inverted z
 - Flesh out UI
     - More UI elements (buttons, text boxes, etc)
