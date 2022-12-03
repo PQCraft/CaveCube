@@ -11,31 +11,31 @@
 #endif
 
 #ifndef SERVER_SNDBUF_SIZE
-    #define SERVER_SNDBUF_SIZE (1 << 20)
+    #define SERVER_SNDBUF_SIZE (1 << 19)
 #endif
 
 #ifndef SERVER_RCVBUF_SIZE
-    #define SERVER_RCVBUF_SIZE (1 << 20)
-#endif
-
-#ifndef CLIENT_SNDBUF_SIZE
-    #define CLIENT_SNDBUF_SIZE (1 << 20)
-#endif
-
-#ifndef CLIENT_RCVBUF_SIZE
-    #define CLIENT_RCVBUF_SIZE (1 << 20)
+    #define SERVER_RCVBUF_SIZE (1 << 16)
 #endif
 
 #ifndef SERVER_OUTBUF_SIZE
-    #define SERVER_OUTBUF_SIZE (1 << 21)
+    #define SERVER_OUTBUF_SIZE (1 << 20)
 #endif
 
 #ifndef SERVER_INBUF_SIZE
-    #define SERVER_INBUF_SIZE (1 << 21)
+    #define SERVER_INBUF_SIZE (1 << 16)
+#endif
+
+#ifndef CLIENT_SNDBUF_SIZE
+    #define CLIENT_SNDBUF_SIZE (1 << 16)
+#endif
+
+#ifndef CLIENT_RCVBUF_SIZE
+    #define CLIENT_RCVBUF_SIZE (1 << 22)
 #endif
 
 #ifndef CLIENT_OUTBUF_SIZE
-    #define CLIENT_OUTBUF_SIZE (1 << 21)
+    #define CLIENT_OUTBUF_SIZE (1 << 17)
 #endif
 
 #ifndef CLIENT_INBUF_SIZE
@@ -81,6 +81,7 @@ struct server_data_logininfo {
 struct server_data_updatechunk {
     int64_t x;
     int64_t z;
+    int len;
     struct blockdata data[65536];
 };
 
