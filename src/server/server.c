@@ -356,7 +356,7 @@ static void* servthread(void* args) {
                         stream.next_in = (unsigned char*)outdata->data;
                         stream.avail_out = 2 << 19;
                         stream.next_out = outdata->cdata = malloc(stream.avail_out);
-                        deflateInit(&stream, 4);
+                        deflateInit(&stream, 3);
                         deflate(&stream, Z_FINISH);
                         deflateEnd(&stream);
                         outdata->len = stream.total_out;
