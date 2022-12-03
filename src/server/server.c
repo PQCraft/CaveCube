@@ -348,6 +348,16 @@ static void* servthread(void* args) {
                         outdata->x = data->x;
                         outdata->z = data->z;
                         genChunk(data->x, data->z, outdata->data, worldtype);
+                        int len = 65536;
+                        for (int i = 65535; i >= 0; --i) {
+                            struct blockdata* b = &outdata->data[i];
+                            if (b->id || b->subid /*|| b->light_r || b->light_g || b->light_b*/) {
+                                break;
+                            } else {
+                                --len;
+                            }
+                        }
+                        outdata->len = len;
                         addMsg(&servmsgout[MSG_PRIO_LOW], SERVER_UPDATECHUNK, outdata, msg.uuid, msg.uind);
                         break;
                     }
@@ -535,7 +545,8 @@ static void* servnetthread(void* args) {
                                     break;
                                 }
                                 case SERVER_UPDATECHUNK:; {
-                                    msgsize += 8 + 8 + 65536 * sizeof(struct blockdata);
+                                    struct server_data_updatechunk* tmpdata = msg.data;
+                                    msgsize += 8 + 8 + tmpdata->len * sizeof(struct blockdata);
                                     break;
                                 }
                                 case SERVER_SETSKYCOLOR:; {
@@ -577,7 +588,7 @@ static void* servnetthread(void* args) {
                                     writeToCxnBuf(pdata[i].cxn, &tmpqword, 8);
                                     tmpqword = host2net64(tmpdata->z);
                                     writeToCxnBuf(pdata[i].cxn, &tmpqword, 8);
-                                    writeToCxnBuf(pdata[i].cxn, &tmpdata->data, 65536 * sizeof(struct blockdata));
+                                    writeToCxnBuf(pdata[i].cxn, &tmpdata->data, tmpdata->len * sizeof(struct blockdata));
                                     break;
                                 }
                                 case SERVER_SETSKYCOLOR:; {
@@ -812,7 +823,9 @@ static void* clinetthread(void* args) {
                     memcpy(&data.z, &buf[ptr], 8);
                     ptr += 8;
                     data.z = net2host64(data.z);
-                    memcpy(data.data, &buf[ptr], 65536 * sizeof(struct blockdata));
+                    //printf("tmpsize: [%d]\n", tmpsize);
+                    memset(data.data, 0, 65536 * sizeof(struct blockdata));
+                    memcpy(data.data, &buf[ptr], (tmpsize - 8 - 8 - 1));
                     callback(SERVER_UPDATECHUNK, &data);
                     break;
                 }
