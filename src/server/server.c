@@ -690,6 +690,7 @@ int startServer(char* addr, int port, int mcli, char* world) {
     sprintf(name, "%.8s:stmr", name2);
     pthread_setname_np(servtimerh, name);
     #endif
+    if (SERVER_THREADS < 4) SERVER_THREADS = 4;
     for (int i = 0; i < SERVER_THREADS && i < MAX_THREADS; ++i) {
         #ifdef NAME_THREADS
         name[0] = 0;

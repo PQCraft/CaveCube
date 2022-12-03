@@ -790,7 +790,6 @@ void startMesher() {
         char name[256];
         char name2[256];
         #endif
-        if (MESHER_THREADS < 2) MESHER_THREADS = 2;
         for (int i = 0; i < MESHER_THREADS && i < MAX_THREADS && i < MESHER_THREADS_MAX; ++i) {
             #ifdef NAME_THREADS
             name[0] = 0;
