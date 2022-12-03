@@ -9,6 +9,8 @@
 #include <game/worldgen.h>
 #include <zlib/zlib.h>
 
+#define SRV_ZSTREAM_INIT {.zalloc = Z_NULL, .zfree = Z_NULL, .opaque = Z_NULL}
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -349,16 +351,16 @@ static void* servthread(void* args) {
                         outdata->x = data->x;
                         outdata->z = data->z;
                         genChunk(data->x, data->z, outdata->data, worldtype);
-                        int len = 65536;
-                        for (int i = 65535; i >= 0; --i) {
-                            struct blockdata* b = &outdata->data[i];
-                            if (b->id || b->subid /*|| b->light_r || b->light_g || b->light_b*/) {
-                                break;
-                            } else {
-                                --len;
-                            }
-                        }
-                        outdata->len = len;
+                        z_stream stream = SRV_ZSTREAM_INIT;
+                        stream.avail_in = 65536 * sizeof(struct blockdata);
+                        stream.next_in = (unsigned char*)outdata->data;
+                        stream.avail_out = 2 << 19;
+                        stream.next_out = outdata->cdata = malloc(stream.avail_out);
+                        deflateInit(&stream, 4);
+                        deflate(&stream, Z_FINISH);
+                        deflateEnd(&stream);
+                        outdata->len = stream.total_out;
+                        //printf("chunk [%"PRId64", %"PRId64"]: [%d]\n", outdata->x, outdata->z, outdata->len);
                         addMsg(&servmsgout[MSG_PRIO_LOW], SERVER_UPDATECHUNK, outdata, msg.uuid, msg.uind);
                         break;
                     }
@@ -548,6 +550,7 @@ static void* servnetthread(void* args) {
                                 case SERVER_UPDATECHUNK:; {
                                     struct server_data_updatechunk* tmpdata = msg.data;
                                     msgsize += 8 + 8 + tmpdata->len;
+                                    //printf("msgsize: [%d]\n", msgsize);
                                     break;
                                 }
                                 case SERVER_SETSKYCOLOR:; {
@@ -589,7 +592,8 @@ static void* servnetthread(void* args) {
                                     writeToCxnBuf(pdata[i].cxn, &tmpqword, 8);
                                     tmpqword = host2net64(tmpdata->z);
                                     writeToCxnBuf(pdata[i].cxn, &tmpqword, 8);
-                                    writeToCxnBuf(pdata[i].cxn, &tmpdata->cdata, tmpdata->len);
+                                    writeToCxnBuf(pdata[i].cxn, tmpdata->cdata, tmpdata->len);
+                                    free(tmpdata->cdata);
                                     break;
                                 }
                                 case SERVER_SETSKYCOLOR:; {
@@ -826,8 +830,16 @@ static void* clinetthread(void* args) {
                     ptr += 8;
                     data.z = net2host64(data.z);
                     //printf("tmpsize: [%d]\n", tmpsize);
-                    memset(data.data, 0, 65536 * sizeof(struct blockdata));
-                    memcpy(data.data, &buf[ptr], (tmpsize - 8 - 8 - 1));
+                    z_stream stream = SRV_ZSTREAM_INIT;
+                    stream.avail_in = tmpsize - 8 - 8 - 1;
+                    stream.next_in = &buf[ptr];
+                    stream.avail_out = 65536 * sizeof(struct blockdata);
+                    stream.next_out = (unsigned char*)data.data;
+                    inflateInit(&stream);
+                    //printf("ERR: %d\n", inflate(&stream, Z_FINISH));
+                    inflate(&stream, Z_FINISH);
+                    inflateEnd(&stream);
+                    //printf("recv [%"PRId64", %"PRId64"]: [%d] [%lu]\n", data.x, data.z, tmpsize - 8 - 8 - 1, stream.total_out);
                     callback(SERVER_UPDATECHUNK, &data);
                     break;
                 }
