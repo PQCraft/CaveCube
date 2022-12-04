@@ -613,7 +613,7 @@ static force_inline float dist3d(float x0, float y0, float z0, float x1, float y
     return fabs(sqrt(dx * dx + dy * dy + dz * dz));
 }
 
-static force_inline void sortChunk(int32_t c, int xoff, int zoff, bool update) {
+static force_inline void _sortChunk(int32_t c, int xoff, int zoff, bool update) {
     //int64_t nx = x + chunks->info.dist;
     //int64_t nz = chunks->info.width - (z + chunks->info.dist) - 1;
     //if (nx < 0 || nz < 0 || nx >= (int32_t)chunks->info.width || nz >= (int32_t)chunks->info.width) return;
@@ -663,13 +663,17 @@ static force_inline void sortChunk(int32_t c, int xoff, int zoff, bool update) {
             chunks->renddata[c].init = true;
         }
         glBindBuffer(GL_ARRAY_BUFFER, chunks->renddata[c].VBO[1]);
-        glBufferData(GL_ARRAY_BUFFER, tmpsize * sizeof(uint32_t) * 3 * 3 * 2, chunks->renddata[c].vertices[1], GL_STATIC_DRAW);
-        //chunks->renddata[c].tcount[1] = tmpsize * 3;
+        glBufferData(GL_ARRAY_BUFFER, tmpsize * sizeof(uint32_t) * 3 * 3 * 2, chunks->renddata[c].vertices[1], GL_DYNAMIC_DRAW);
+        chunks->renddata[c].tcount[1] = tmpsize * 3 * 2;
         //printf("[%u][%d]: [%d]->[%d]\n", c, i, chunks->renddata[c].vcount[1], chunks->renddata[c].tcount[1]);
         //free(chunks->renddata[c].vertices[1]);
         //chunks->renddata[c].vertices[1] = NULL;
         //chunks->renddata[c].remesh[1] = 0;
     }
+}
+
+void sortChunk(int32_t c, int xoff, int zoff, bool update) {
+    _sortChunk(c, xoff, zoff, update);
 }
 
 static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
@@ -770,7 +774,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
         chunks->renddata[c].vcount[1] = vplen2;
         chunks->renddata[c].vertices[0] = _vptr;
         chunks->renddata[c].vertices[1] = _vptr2;
-        sortChunk(c, (x - cxo), (z - czo),false);
+        _sortChunk(c, (x - cxo), (z - czo),false);
         //chunks->renddata[c].ready = true;
         chunks->renddata[c].updateid = id;
         //printf("meshed: [%"PRId64", %"PRId64"] ([%"PRId64", %"PRId64"])\n", x, z, nx, nz);
@@ -865,7 +869,7 @@ void updateChunks() {
         if (chunks->renddata[c].remesh[1]) {
             uint32_t tmpsize = chunks->renddata[c].vcount[1] * sizeof(uint32_t);
             glBindBuffer(GL_ARRAY_BUFFER, chunks->renddata[c].VBO[1]);
-            glBufferData(GL_ARRAY_BUFFER, tmpsize, chunks->renddata[c].vertices[1], GL_STATIC_DRAW);
+            glBufferData(GL_ARRAY_BUFFER, tmpsize, chunks->renddata[c].vertices[1], GL_DYNAMIC_DRAW);
             chunks->renddata[c].tcount[1] = chunks->renddata[c].vcount[1] / 3;
             //printf("[%u][%d]: [%d]->[%d]\n", c, i, chunks->renddata[c].vcount[1], chunks->renddata[c].tcount[1]);
             //free(chunks->renddata[c].vertices[1]);
@@ -1294,13 +1298,23 @@ void render() {
     glUniform1ui(glGetUniformLocation(rendinf.shaderprog, "aniMult"), (aMStart - altutime()) / 10000);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "dist"), chunks->info.dist);
     setUniform3f(rendinf.shaderprog, "cam", (float[]){rendinf.campos.x, rendinf.campos.y, rendinf.campos.z});
+
     pthread_mutex_lock(&uclock);
-    sortChunk(-1, 0, 0, true);
-    sortChunk(-1, 1, 0, true);
-    sortChunk(-1, -1, 0, true);
-    sortChunk(-1, 0, 1, true);
-    sortChunk(-1, 0, -1, true);
+
+    _sortChunk(-1, 0, 0, true);
+
+    _sortChunk(-1, 1, 0, true);
+    _sortChunk(-1, -1, 0, true);
+    _sortChunk(-1, 0, 1, true);
+    _sortChunk(-1, 0, -1, true);
+
+    _sortChunk(-1, 1, 1, true);
+    _sortChunk(-1, -1, 1, true);
+    _sortChunk(-1, 1, -1, true);
+    _sortChunk(-1, -1, -1, true);
+
     pthread_mutex_unlock(&uclock);
+
     uint32_t rendc = 0;
     for (uint32_t c = 0; c < chunks->info.widthsq; ++c) {
         rendc = chunks->rordr[c].c;
