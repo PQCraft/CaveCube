@@ -464,7 +464,7 @@ static float vert2D[] = {
 
 static pthread_t pthreads[MAX_THREADS];
 pthread_mutex_t uclock;
-static uint8_t water;
+//static uint8_t water;
 
 struct msgdata_msg {
     bool valid;
@@ -596,7 +596,7 @@ static force_ineline int32_t calcChunkOff(int64_t x, int64_t z) {
 
 struct tricmp {
     float dist;
-    uint32_t data[9];
+    uint32_t data[18];
 };
 
 static int compare(const void* b, const void* a) {
@@ -623,49 +623,38 @@ static force_inline void sortChunk(int32_t c, int xoff, int zoff, bool update) {
     float camy = rendinf.campos.y;
     float camz = -rendinf.campos.z - zoff * 16;
     if (!chunks->renddata[c].visible) return;
-    int32_t tmpsize = chunks->renddata[c].vcount[1] / 3 / 3;
+    int32_t tmpsize = chunks->renddata[c].vcount[1] / 3 / 3 / 2;
     //if (!xoff && !zoff) printf("tri count of 0, 0: [%d]\n", tmpsize);
     struct tricmp* data = malloc(tmpsize * sizeof(struct tricmp));
     uint32_t* dptr = chunks->renddata[c].vertices[1];
     for (int i = 0; i < tmpsize; ++i) {
         uint32_t sv;
-        //float vx = 0, vy = 0, vz = 0;
-        data[i].dist = INFINITY;
-        for (int j = 0; j < 3; ++j) {
+        float vx = 0, vy = 0, vz = 0;
+        for (int j = 0; j < 6; ++j) {
             data[i].data[0 + j * 3] = sv = *dptr++;
             data[i].data[1 + j * 3] = *dptr++;
             data[i].data[2 + j * 3] = *dptr++;
             float x = (float)(((sv >> 24) & 255) + ((sv >> 2) & 1)) / 16.0 - 8.0;
             float y = (float)(((sv >> 12) & 4095) + ((sv >> 1) & 1)) / 16.0;
             float z = (float)(((sv >> 4) & 255) + (sv & 1)) / 16.0 - 8.0;
-            float dist = dist3d(camx, camy, camz, x, y, z);
-            if (dist < data[i].dist) {
-                data[i].dist = dist;
-            }
             //if (!xoff && !zoff) printf("pos[%d][%d]: [%f, %f, %f]\n", i, j, x, y, z);
-            //vx += x;
-            //vy += y;
-            //vz += z;
+            vx += x;
+            vy += y;
+            vz += z;
         }
-        //vx /= 3.0;
-        //vy /= 3.0;
-        //vz /= 3.0;
-        //data[i].dist = dist3d(camx, camy, camz, vx, vy, vz);
+        vx /= 6.0;
+        vy /= 6.0;
+        vz /= 6.0;
+        data[i].dist = dist3d(camx, camy, camz, vx, vy, vz);
         //if (!xoff && !zoff) printf("pos[%d]: [%f, %f, %f]; cam: [%f, %f, %f]; dist: [%f]\n", i, vx, vy, vz, camx, camy, camz, data[i].dist);
     }
     qsort(data, tmpsize, sizeof(struct tricmp), compare);
     dptr = chunks->renddata[c].vertices[1];
     for (int i = 0; i < tmpsize; ++i) {
         //if (!xoff && !zoff) printf("dist[%d]: [%f]\n", i, data[i].dist);
-        *dptr++ = data[i].data[0];
-        *dptr++ = data[i].data[1];
-        *dptr++ = data[i].data[2];
-        *dptr++ = data[i].data[3];
-        *dptr++ = data[i].data[4];
-        *dptr++ = data[i].data[5];
-        *dptr++ = data[i].data[6];
-        *dptr++ = data[i].data[7];
-        *dptr++ = data[i].data[8];
+        for (int j = 0; j < 18; ++j) {
+            *dptr++ = data[i].data[j];
+        }
     }
     free(data);
     if (update) {
@@ -674,7 +663,7 @@ static force_inline void sortChunk(int32_t c, int xoff, int zoff, bool update) {
             chunks->renddata[c].init = true;
         }
         glBindBuffer(GL_ARRAY_BUFFER, chunks->renddata[c].VBO[1]);
-        glBufferData(GL_ARRAY_BUFFER, tmpsize * sizeof(uint32_t) * 3 * 3, chunks->renddata[c].vertices[1], GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, tmpsize * sizeof(uint32_t) * 3 * 3 * 2, chunks->renddata[c].vertices[1], GL_STATIC_DRAW);
         //chunks->renddata[c].tcount[1] = tmpsize * 3;
         //printf("[%u][%d]: [%d]->[%d]\n", c, i, chunks->renddata[c].vcount[1], chunks->renddata[c].tcount[1]);
         //free(chunks->renddata[c].vertices[1]);
@@ -738,7 +727,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
                                          blockinf[bdata.id].data[bdata.subid].anidiv) & 0xFFF000FF;
                     uint32_t baseVert3 = ((blockinf[bdata.id].data[bdata.subid].texoff[i] << 16) & 0xFFFF0000) |
                                          ((blockinf[bdata.id].data[bdata.subid].anict[i] << 8) & 0xFF00) | (bdata2[i].light_n);
-                    if (bdata.id == water) {
+                    if (blockinf[bdata.id].data[bdata.subid].transparency >= 2) {
                         for (int j = 0; j < 6; ++j) {
                             mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, constBlockVert1[i][j] | baseVert1);
                             mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, constBlockVert2[i][j] | baseVert2);
@@ -1307,10 +1296,10 @@ void render() {
     setUniform3f(rendinf.shaderprog, "cam", (float[]){rendinf.campos.x, rendinf.campos.y, rendinf.campos.z});
     pthread_mutex_lock(&uclock);
     sortChunk(-1, 0, 0, true);
-    //sortChunk(-1, 1, 0, true);
-    //sortChunk(-1, -1, 0, true);
-    //sortChunk(-1, 0, 1, true);
-    //sortChunk(-1, 0, -1, true);
+    sortChunk(-1, 1, 0, true);
+    sortChunk(-1, -1, 0, true);
+    sortChunk(-1, 0, 1, true);
+    sortChunk(-1, 0, -1, true);
     pthread_mutex_unlock(&uclock);
     uint32_t rendc = 0;
     for (uint32_t c = 0; c < chunks->info.widthsq; ++c) {
@@ -1732,8 +1721,8 @@ bool startRenderer() {
                         //printf("! [%d][%d]: [%u]\n", i, j, (uint8_t)img->data[k]);
                         if (img->data[k]) {
                             blockinf[i].data[s].transparency = 2;
-                            img->data[k] = 215;
-                            //break;
+                            //img->data[k] = 215;
+                            break;
                         } else {
                             blockinf[i].data[s].transparency = 1;
                         }
@@ -1832,7 +1821,7 @@ bool startRenderer() {
     glEnableVertexAttribArray(2);
     glEnableVertexAttribArray(3);
 
-    water = blockNoFromID("water");
+    //water = blockNoFromID("water");
 
     free(tmpbuf);
 
