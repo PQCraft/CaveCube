@@ -25,6 +25,8 @@
 - Make server ask for and handle player's positions
 - Redo BMD to CCM (delete `src/bmd/` and add `src/ccm/`)
     - Add parts, model types (3D, BLOCK, 2D, etc), and data types (VERT, ANI, AABB, etc)
+    - Impose a limit on block models where triangles must make up quads due to transparency sorting
+        - Either add a checker function or make the block model format use quads and convert to triangles on load
 - 3D model rendering in `src/renderer/renderer.c`
 - Audio (probably miniaudio or SDL_Mixer) in `src/audio/`
 - Redo worldgen in `src/game/worldgen.(c|h)`
@@ -48,3 +50,4 @@
 - Renderer improvements
 - Added chunk compression using zlib
 - Improved mesher latency
+- Added transparency sorting
