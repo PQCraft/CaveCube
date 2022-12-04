@@ -94,6 +94,7 @@ struct chunk_renddata {
     uint32_t vcount[2];
     uint32_t* vertices[2];
     uint32_t tcount[2];
+    uint32_t* sortvert;
     bool remesh[2];
     uint64_t updateid;
     bool ready:1;
@@ -140,6 +141,7 @@ void updateCam(void);
 void updateScreen(void);
 void setMeshChunks(void*);
 void updateChunks(void);
+void sortChunk(int32_t, int, int, bool);
 void startMesher(void);
 void updateChunk(int64_t, int64_t, int, int);
 void setMeshChunkOff(int64_t, int64_t);

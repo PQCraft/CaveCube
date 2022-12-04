@@ -208,6 +208,12 @@ void moveChunks(struct chunkdata* chunks, int64_t cxo, int64_t czo, int cx, int 
             }
         }
     }
+    for (int d = chunks->info.dist; d < 0; ++d) {
+        sortChunk(-1, d, d, false);
+    }
+    for (int d = 1; d <= (int)chunks->info.dist; ++d) {
+        sortChunk(-1, d, d, false);
+    }
     pthread_mutex_unlock(&uclock);
 }
 
