@@ -61,14 +61,14 @@ void setBlock(struct chunkdata* data, int64_t x, int y, int64_t z, struct blockd
     pthread_mutex_unlock(&uclock);
 }
 
-static inline int compare(const void* b, const void* a) {
+static int compare(const void* b, const void* a) {
     float fa = ((struct rendorder*)a)->dist;
     float fb = ((struct rendorder*)b)->dist;
     //printf("[%f]\n", ((struct rendorder*)a)->dist);
     return (fa > fb) - (fa < fb);
 }
 
-static inline float distance(float x1, float z1, float x2, float z2) {
+static force_inline float distance(float x1, float z1, float x2, float z2) {
     //float f = sqrt(fabs(x2 - x1) * fabs(x2 - x1) + fabs(z2 - z1) * fabs(z2 - z1));
     //printf("[%f][%f][%f][%f] [%f]\n", x1, z1, x2, z2, f);
     return /*f*/ sqrt(fabs(x2 - x1) * fabs(x2 - x1) + fabs(z2 - z1) * fabs(z2 - z1));

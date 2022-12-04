@@ -18,7 +18,7 @@ out vec3 light;
 void main() {
     fragPos.x = (float(((data1 >> 24) & uint(255)) + ((data1 >> 2) & uint(1)))) / 16.0 - 8.0;
     fragPos.y = (float(((data1 >> 12) & uint(4095)) + ((data1 >> 1) & uint(1)))) / 16.0;
-    fragPos.z = ((float(((data1 >> 4) & uint(255)) + ((data1 >> 0) & uint(1)))) / 16.0 - 8.0) * -1.0;
+    fragPos.z = ((float(((data1 >> 4) & uint(255)) + (data1 & uint(1)))) / 16.0 - 8.0) * -1.0;
     texCoord.x = (float(((data2 >> 16) & uint(15)) + ((data2 >> 9) & uint(1)))) / 16.0;
     texCoord.y = (float(((data2 >> 12) & uint(15)) + ((data2 >> 8) & uint(1)))) / 16.0;
     fragPos += vec3(ccoord.x, 0.0, ccoord.y) * 16.0;
