@@ -622,7 +622,7 @@ static force_inline void _sortChunk(int32_t c, int xoff, int zoff, bool update) 
     float camx = rendinf.campos.x - xoff * 16;
     float camy = rendinf.campos.y;
     float camz = -rendinf.campos.z - zoff * 16;
-    if (!chunks->renddata[c].visible) return;
+    if (update && !chunks->renddata[c].visible) return;
     int32_t tmpsize = chunks->renddata[c].vcount[1] / 3 / 3 / 2;
     //if (!xoff && !zoff) printf("tri count of 0, 0: [%d]\n", tmpsize);
     struct tricmp* data = malloc(tmpsize * sizeof(struct tricmp));
@@ -875,6 +875,7 @@ void updateChunks() {
             //free(chunks->renddata[c].vertices[1]);
             //chunks->renddata[c].vertices[1] = NULL;
             chunks->renddata[c].remesh[1] = 0;
+            sortChunk(c, (int)(c % chunks->info.width) - (int)chunks->info.dist, (int)(c / chunks->info.width) - (int)chunks->info.dist, true);
         }
         chunks->renddata[c].ready = false;
         chunks->renddata[c].buffered = true;

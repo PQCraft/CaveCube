@@ -44,7 +44,6 @@
 - Android support (requires that it be buildable from the command-line using `make` so it can be used in `mkrelease.sh`)
 
 ### IN-PROGRESS:
-- Translucency depth sorting
 
 ### DONE:
 - Renderer improvements
