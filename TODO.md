@@ -16,7 +16,6 @@
 - Redo doGame() and remove loopDelay
     - Remove collision spaghetti
     - Use physics code for collision and raycasting
-- Make updateChunks() use a message list
 - Add some server events
     - Add event for collecting player info
     - Add event for running physics
@@ -25,8 +24,7 @@
 - Make server ask for and handle player's positions
 - Redo BMD to CCM (delete `src/bmd/` and add `src/ccm/`)
     - Add parts, model types (3D, BLOCK, 2D, etc), and data types (VERT, ANI, AABB, etc)
-    - Impose a limit on block models where triangles must make up quads due to transparency sorting
-        - Either add a checker function or make the block model format use quads and convert to triangles on load
+    - Block models use quads instead of triangles
 - 3D model rendering in `src/renderer/renderer.c`
 - Audio (probably miniaudio or SDL_Mixer) in `src/audio/`
 - Redo worldgen in `src/game/worldgen.(c|h)`
@@ -42,6 +40,7 @@
 - Direct3D support
 - Greedy mesher in `src/renderer/renderer.c`
 - Android support (requires that it be buildable from the command-line using `make` so it can be used in `mkrelease.sh`)
+- Make updateChunks() use a message list
 
 ### IN-PROGRESS:
 
@@ -50,3 +49,5 @@
 - Added chunk compression using zlib
 - Improved mesher latency
 - Added transparency sorting
+- Fixed OpenGLES
+- Added tinted and stained glass

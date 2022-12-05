@@ -64,6 +64,7 @@ void initBlocks() {
             blockinf[i].data[j].light_r = atoi(getInfoVarStatic((char*)varcfg->data, "light_r", "0", 16));
             blockinf[i].data[j].light_g = atoi(getInfoVarStatic((char*)varcfg->data, "light_g", "0", 16));
             blockinf[i].data[j].light_b = atoi(getInfoVarStatic((char*)varcfg->data, "light_b", "0", 16));
+            blockinf[i].data[j].backfaces = getBool(getInfoVarStatic((char*)varcfg->data, "backfaces", "false", 16));
             freeResource(varcfg);
             #if DBGLVL(1)
             printf("  Variant #%d: id \"%s\", name \"%s\"\n", j, blockinf[i].data[j].id, blockinf[i].data[j].name);
