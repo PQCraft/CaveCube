@@ -475,6 +475,14 @@ bool doGame(char* addr, int port) {
                 }
             }
         }
+        float zoomrotmult;
+        if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_ZOOM)) {
+            rendinf.camfov = 12.5;
+            zoomrotmult = 0.25;
+        } else {
+            rendinf.camfov = 85;
+            zoomrotmult = 1.0;
+        }
         bool crouch = false;
         if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_CROUCH)) {
             crouch = true;
@@ -485,8 +493,8 @@ bool doGame(char* addr, int port) {
         float speedmult = 1.0;
         float leanmult = ((bps < 10.0) ? bps : 10.0) * 0.125 * (1.0 + (speedmult * 0.1));
         bps *= speedmult;
-        tmpcamrot.x += input.rot_up * input.rot_mult_y;
-        tmpcamrot.y -= input.rot_right * input.rot_mult_x;
+        tmpcamrot.x += input.rot_up * input.rot_mult_y * zoomrotmult;
+        tmpcamrot.y -= input.rot_right * input.rot_mult_x * zoomrotmult;
         rendinf.camrot.x = tmpcamrot.x - input.mov_up * leanmult;
         if (rendinf.camrot.x > 89.99) rendinf.camrot.x = 89.99;
         if (rendinf.camrot.x < -89.99) rendinf.camrot.x = -89.99;
