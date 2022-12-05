@@ -190,6 +190,8 @@ static force_inline bool isVisible(struct frustum* frust, float ax, float ay, fl
 	return true;
 }
 
+static float sc_camx, sc_camy, sc_camz;
+
 void updateCam() {
     static float uc_fov = -1.0, uc_asp = -1.0;
     static avec3 uc_campos;
@@ -212,9 +214,9 @@ void updateCam() {
         //setMat4(rendinf.shaderprog, "projection", uc_proj);
         uc_uproj = false;
     }
-    uc_campos[0] = rendinf.campos.x;
-    uc_campos[1] = rendinf.campos.y;
-    uc_campos[2] = rendinf.campos.z;
+    uc_campos[0] = sc_camx = rendinf.campos.x;
+    uc_campos[1] = sc_camy = rendinf.campos.y;
+    uc_campos[2] = sc_camz = rendinf.campos.z;
     uc_rotradx = rendinf.camrot.x * M_PI / 180.0;
     uc_rotrady = (rendinf.camrot.y - 90.0) * M_PI / 180.0;
     uc_rotradz = rendinf.camrot.z * M_PI / 180.0;
@@ -269,7 +271,12 @@ static void fbsize(GLFWwindow* win, int w, int h) {
 
 void setFullscreen(bool fullscreen) {
     static int winox = -1, winoy = -1;
+
+    #if defined(USESDL2)
+    #else
     glfwSetFramebufferSizeCallback(rendinf.window, NULL);
+    #endif
+
     if (fullscreen) {
         rendinf.aspect = (float)rendinf.full_width / (float)rendinf.full_height;
         rendinf.width = rendinf.full_width;
@@ -328,7 +335,10 @@ void setFullscreen(bool fullscreen) {
 
     glViewport(0, 0, rendinf.width, rendinf.height);
 
+    #if defined(USESDL2)
+    #else
     glfwSetFramebufferSizeCallback(rendinf.window, fbsize);
+    #endif
 }
 
 static force_inline bool makeShaderProg(char* hdrtext, char* _vstext, char* _fstext, GLuint* p) {
@@ -621,9 +631,9 @@ static force_inline void _sortChunk(int32_t c, int xoff, int zoff, bool update) 
     if (!chunks->renddata[c].sortvert || !chunks->renddata[c].tcount[1]) return;
     if (update && !chunks->renddata[c].visible) return;
     //printf("sorting: [%d, %d]\n", xoff, zoff);
-    float camx = rendinf.campos.x - xoff * 16;
-    float camy = rendinf.campos.y;
-    float camz = -rendinf.campos.z - zoff * 16;
+    float camx = sc_camx - xoff * 16;
+    float camy = sc_camy;
+    float camz = -sc_camz - zoff * 16;
     int32_t tmpsize = chunks->renddata[c].tcount[1] / 3 / 2;
     //if (!xoff && !zoff) printf("tri count of 0, 0: [%d]\n", tmpsize);
     struct tricmp* data = malloc(tmpsize * sizeof(struct tricmp));
@@ -723,8 +733,11 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
                 bdata2[5] = rendGetBlock(c, x, y, z - 1);
                 for (int i = 0; i < 6; ++i) {
                     if (bdata2[i].id && blockinf[bdata2[i].id].id) {
-                        if (!blockinf[bdata2[i].id].data[bdata2[i].subid].transparency) continue;
-                        if (blockinf[bdata.id].data[bdata.subid].transparency && (bdata.id == bdata2[i].id)) continue;
+                        if (blockinf[bdata2[i].id].data[bdata2[i].subid].transparency) {
+                            if (bdata.id == bdata2[i].id && bdata.subid == bdata2[i].subid) continue;
+                        } else {
+                            continue;
+                        }
                     }
                     if (bdata2[i].id == 255) continue;
                     uint32_t baseVert1 = ((x << 28) | (y << 16) | (z << 8)) & 0xF0FF0F00;
@@ -737,7 +750,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
                             mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, constBlockVert1[i][j] | baseVert1);
                             mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, constBlockVert2[i][j] | baseVert2);
                             mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert3);
-                            if (!bdata2[i].id) {
+                            if (!bdata2[i].id && blockinf[bdata.id].data[bdata.subid].backfaces) {
                                 mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, constBlockVert1[i][5 - j] | baseVert1);
                                 mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, constBlockVert2[i][5 - j] | baseVert2);
                                 mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert3);
@@ -1608,7 +1621,7 @@ bool startRenderer() {
     vs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/ui/vertex.glsl");
     fs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/ui/fragment.glsl");
     if (!vs || !fs || !makeShaderProg((char*)hdr->data, (char*)vs->data, (char*)fs->data, &shader_ui)) {
-        fputs("startRenderer: Failed to compile text shader\n", stderr);
+        fputs("startRenderer: Failed to compile UI shader\n", stderr);
         return false;
     }
     freeResource(vs);

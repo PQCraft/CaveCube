@@ -22,10 +22,10 @@ void main() {
         } else {
             fragColor = texture(fontTexData, vec3(texCoord, texNum));
         }
-        if (bool(u) && int(charty) >= int(charth) - scale) {
+        if (bool(u) && float(int(charty)) >= float(int(charth)) - scale) {
             fragColor = mcolor;
         }
-        if (bool(s) && int(charty) >= int(charth / 2.0) - scale && int(charty) < int(charth / 2.0)) {
+        if (bool(s) && float(int(charty)) >= float(int(charth / 2.0)) - scale && float(int(charty)) < float(int(charth / 2.0))) {
             fragColor = mcolor;
         }
         fragColor *= mcolor;

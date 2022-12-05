@@ -17,6 +17,7 @@ struct blockinfo_data {
     uint8_t light_r:4;
     uint8_t light_g:4;
     uint8_t light_b:4;
+    bool backfaces;
 };
 
 struct blockinfo {
