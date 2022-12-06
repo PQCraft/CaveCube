@@ -1418,6 +1418,7 @@ void render() {
             glDrawArrays(GL_TRIANGLES, 0, 6);
         }
     }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 #if defined(USESDL2)

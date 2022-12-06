@@ -1,8 +1,6 @@
 ### NEED TO DO:
 - Implement server chunk cache/pool
 - Implement world saves in `src/server/saves.(c|h)`
-- Redo almost everything to do with chunks/blocks
-- Ensure that every function that does block operations takes a non-inverted z
 - Flesh out UI
     - More UI elements (buttons, text boxes, etc)
     - UI interaction (elem states, tooltips, etc)
@@ -43,8 +41,7 @@
 - Make updateChunks() use a message list
 
 ### IN-PROGRESS:
+- Redo almost everything to do with chunks/blocks
+    - Ensure that every function that does block operations takes a non-inverted z
 
 ### DONE:
-- Fixed transparency sorting (hopefully)
-- Changed sand texture
-- Changed light texture
