@@ -103,6 +103,16 @@ struct chunkdata allocChunks(uint32_t dist) {
 void moveChunks(struct chunkdata* chunks, int64_t cxo, int64_t czo, int cx, int cz) {
     //moved = true;
     pthread_mutex_lock(&uclock);
+    for (int d = -chunks->info.dist; d <= (int)chunks->info.dist; ++d) {
+        if (d < -2 || d > 2) {
+            sortChunk(-1, d, 0, false);
+            sortChunk(-1, d, 1, false);
+            sortChunk(-1, d, -1, false);
+            sortChunk(-1, 0, d, false);
+            sortChunk(-1, 1, d, false);
+            sortChunk(-1, -1, d, false);
+        }
+    }
     struct blockdata* swap = NULL;
     struct chunk_renddata rdswap;
     int32_t nx = 0, nz = 0;
@@ -209,16 +219,11 @@ void moveChunks(struct chunkdata* chunks, int64_t cxo, int64_t czo, int cx, int 
         }
     }
     //int32_t c = 0;
+    /*
     for (int z = -chunks->info.dist; z <= (int)chunks->info.dist; ++z) {
         for (int x = -chunks->info.dist; x <= (int)chunks->info.dist; ++x) {
-            if ((x < 1 || x > 1) && (z < 1 || z > 1)) sortChunk(-1, x, z, false);
-        }
-    }
-    /*
-    for (int d = -chunks->info.dist; d <= (int)chunks->info.dist; ++d) {
-        if (d < 1 || d > 1) {
-            sortChunk(-1, d, 0, false);
-            sortChunk(-1, 0, d, false);
+            if ((x > -2 && x < 2) && (z > -2 && z < 2)) continue;
+            sortChunk(-1, x, z, false);
         }
     }
     */
