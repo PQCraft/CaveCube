@@ -559,8 +559,8 @@ bool doGame(char* addr, int port) {
         }
         if (cmx || cmz || first) {
             first = false;
-            setMeshChunkOff(cx, cz);
             moveChunks(&chunks, cx, cz, cmx, cmz);
+            setMeshChunkOff(cx, cz);
             reqChunks(&chunks, cx, cz);
             pchunkx = cx;
             pchunkz = cz;
