@@ -45,9 +45,6 @@
 ### IN-PROGRESS:
 
 ### DONE:
-- Renderer improvements
-- Added chunk compression using zlib
-- Improved mesher latency
-- Added transparency sorting
-- Fixed OpenGLES
-- Added tinted and stained glass
+- Fixed transparency sorting (hopefully)
+- Changed sand texture
+- Changed light texture
