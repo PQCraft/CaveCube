@@ -450,13 +450,22 @@ bool doGame(char* addr, int port) {
                             if (invoff < 0) invoff = 4;
                             blocksub = 0;
                             break;
-                        case INPUT_ACTION_SINGLE_VARIANT_NEXT:;
+                        case INPUT_ACTION_SINGLE_ROT_X:;
                             ++blocksub;
                             break;
-                        case INPUT_ACTION_SINGLE_VARIANT_PREV:;
+                        case INPUT_ACTION_SINGLE_ROT_Y:;
                             --blocksub;
                             if (blocksub < 0) blocksub = 0;
                             break;
+                        /*
+                        case INPUT_ACTION_SINGLE_ROT_Z:;
+                            for (int z = -chunks.info.dist; z <= (int)chunks.info.dist; ++z) {
+                                for (int x = -chunks.info.dist; x <= (int)chunks.info.dist; ++x) {
+                                    updateChunk(x + cx, z + cz, CHUNKUPDATE_PRIO_HIGH, 0);
+                                }
+                            }
+                            break;
+                        */
                         case INPUT_ACTION_SINGLE_ESC:;
                             setInputMode(INPUT_MODE_UI);
                             resetInput();
@@ -550,8 +559,8 @@ bool doGame(char* addr, int port) {
         }
         if (cmx || cmz || first) {
             first = false;
-            moveChunks(&chunks, cx, cz, cmx, cmz);
             setMeshChunkOff(cx, cz);
+            moveChunks(&chunks, cx, cz, cmx, cmz);
             reqChunks(&chunks, cx, cz);
             pchunkx = cx;
             pchunkz = cz;

@@ -630,9 +630,12 @@ static force_inline void _sortChunk(int32_t c, int xoff, int zoff, bool update) 
     //int tmpc = (xoff + chunks->info.dist) + (chunks->info.width - (zoff + chunks->info.dist) - 1) * chunks->info.width;
     //if (c >= 0 && tmpc != c) printf("! [%d][%d]: calc:[%d], given:[%d]\n", xoff, zoff, tmpc, c);
     if (c < 0) c = (xoff + chunks->info.dist) + (chunks->info.width - (zoff + chunks->info.dist) - 1) * chunks->info.width;
-    if (!chunks->renddata[c].sortvert || !chunks->renddata[c].tcount[1]) return;
     if (update) {
-        if (!chunks->renddata[c].visible) return;
+        if (!chunks->renddata[c].sortvert || !chunks->renddata[c].tcount[1] || !chunks->renddata[c].visible) {
+            //printf("[%d][%d]: [%016"PRIX64"] [%d] [%d]\n", xoff + (int)cxo, zoff + (int)czo, (uintptr_t)chunks->renddata[c].sortvert, chunks->renddata[c].tcount[1], chunks->renddata[c].visible);
+            return;
+        }
+        //printf("req: [%d][%d]\n", xoff + (int)cxo, zoff + (int)czo);
         //printf("sorting: [%d, %d]\n", xoff, zoff);
         float camx = sc_camx - xoff * 16;
         float camy = sc_camy;
@@ -672,10 +675,12 @@ static force_inline void _sortChunk(int32_t c, int xoff, int zoff, bool update) 
             }
         }
         free(data);
+        /*
         if (!chunks->renddata[c].init) {
             glGenBuffers(2, chunks->renddata[c].VBO);
             chunks->renddata[c].init = true;
         }
+        */
         glBindBuffer(GL_ARRAY_BUFFER, chunks->renddata[c].VBO[1]);
         glBufferSubData(GL_ARRAY_BUFFER, 0, tmpsize * sizeof(uint32_t) * 3 * 3 * 2, chunks->renddata[c].sortvert);
         //chunks->renddata[c].tcount[1] = tmpsize * 3 * 2;
@@ -686,6 +691,7 @@ static force_inline void _sortChunk(int32_t c, int xoff, int zoff, bool update) 
     } else {
         chunks->renddata[c].remesh[1] = true;
         chunks->renddata[c].ready = true;
+        //printf("req: [%d][%d]\n", xoff, zoff);
     }
 }
 
@@ -891,13 +897,19 @@ void updateChunks() {
             glBindBuffer(GL_ARRAY_BUFFER, chunks->renddata[c].VBO[1]);
             glBufferData(GL_ARRAY_BUFFER, tmpsize, chunks->renddata[c].vertices[1], GL_DYNAMIC_DRAW);
             chunks->renddata[c].tcount[1] = chunks->renddata[c].vcount[1] / 3;
-            //printf("[%d][%d]\n", (int)(c % chunks->info.width) - (int)chunks->info.dist, (int)(c / chunks->info.width) - (int)chunks->info.dist);
             chunks->renddata[c].sortvert = realloc(chunks->renddata[c].sortvert, tmpsize);
             memcpy(chunks->renddata[c].sortvert, chunks->renddata[c].vertices[1], tmpsize);
             //free(chunks->renddata[c].vertices[1]);
             //chunks->renddata[c].vertices[1] = NULL;
             chunks->renddata[c].remesh[1] = false;
-            _sortChunk(c, (int)(c % chunks->info.width) - (int)chunks->info.dist, -((int)(c / chunks->info.width) - (int)chunks->info.dist), true);
+            if (tmpsize) {
+                /*
+                int tmpx = ((int)(c % chunks->info.width) - (int)chunks->info.dist) + (int)cxo;
+                int tmpy = -((int)(c / chunks->info.width) - (int)chunks->info.dist) + (int)czo;
+                if (!tmpx && !tmpy) printf("[%d][%d]\n", tmpx, tmpy);
+                */
+                _sortChunk(c, (int)(c % chunks->info.width) - (int)chunks->info.dist, -((int)(c / chunks->info.width) - (int)chunks->info.dist), true);
+            }
         }
         chunks->renddata[c].ready = false;
         chunks->renddata[c].buffered = true;
