@@ -40,8 +40,6 @@ typedef struct {
 struct renderer_info {
     #if defined(USESDL2)
     SDL_GLContext context;
-    SDL_GLContext mainctx;
-    SDL_GLContext threadctx;
     #endif
     unsigned win_width;
     unsigned win_height;
@@ -64,6 +62,7 @@ struct renderer_info {
     GLFWmonitor* monitor;
     GLFWwindow* window;
     #endif
+    struct chunkdata* chunks;
     coord_3d campos;
     coord_3d camrot;
     float camfov;
@@ -127,7 +126,6 @@ typedef unsigned int texture_t;
 #ifndef RENDERER_H_STUB
 
 extern struct renderer_info rendinf;
-extern pthread_mutex_t uclock;
 extern int MESHER_THREADS;
 extern int MESHER_THREADS_MAX;
 

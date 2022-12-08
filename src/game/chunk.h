@@ -19,6 +19,7 @@ struct __attribute__((packed)) blockdata {
     uint8_t flags:8;
 };
 
+#if MODULEID == MODULEID_GAME
 struct rendorder {
     uint32_t c;
     float dist;
@@ -30,18 +31,20 @@ struct chunkinfo {
     uint32_t widthsq;
 };
 
-#if MODULEID == MODULEID_GAME
 struct chunkdata {
+    pthread_mutex_t lock;
     struct chunkinfo info;
     struct rendorder* rordr;
     struct blockdata** data;
+    int64_t xoff;
+    int64_t zoff;
     struct chunk_renddata* renddata;
 };
 
-struct chunkdata allocChunks(uint32_t);
-void moveChunks(struct chunkdata*, int64_t, int64_t, int, int);
-struct blockdata getBlock(struct chunkdata*, int64_t, int64_t, int64_t, int, int64_t);
+struct blockdata getBlock(struct chunkdata*, int64_t, int, int64_t);
 void setBlock(struct chunkdata*, int64_t, int, int64_t, struct blockdata);
+struct chunkdata* allocChunks(int);
+void moveChunks(struct chunkdata*, int, int);
 #endif
 
 #endif
