@@ -21,7 +21,6 @@ extern int realfps;
 extern bool showDebugInfo;
 extern coord_3d_dbl pcoord;
 extern coord_3d pvelocity;
-extern int64_t pchunkx, pchunky, pchunkz;
 extern int pblockx, pblocky, pblockz;
 
 extern struct ui_data* game_ui[4];

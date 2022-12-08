@@ -48,8 +48,6 @@ static unsigned UIFBTEX;
 static unsigned UIFBTEXID;
 static unsigned UIDBUF;
 
-struct chunkdata* chunks;
-
 static force_inline void setMat4(GLuint prog, char* name, mat4 val) {
     glUniformMatrix4fv(glGetUniformLocation(prog, name), 1, GL_FALSE, *val);
 }
@@ -216,7 +214,7 @@ void updateCam() {
     }
     uc_campos[0] = sc_camx = rendinf.campos.x;
     uc_campos[1] = sc_camy = rendinf.campos.y;
-    uc_campos[2] = sc_camz = rendinf.campos.z;
+    uc_campos[2] = sc_camz = -rendinf.campos.z;
     uc_rotradx = rendinf.camrot.x * M_PI / 180.0;
     uc_rotrady = (rendinf.camrot.y - 90.0) * M_PI / 180.0;
     uc_rotradz = rendinf.camrot.z * M_PI / 180.0;
@@ -447,19 +445,15 @@ void updateScreen() {
     #endif
 }
 
-void setMeshChunks(void* vdata) {
-    chunks = vdata;
-}
-
 static force_inline struct blockdata rendGetBlock(int32_t c, int x, int y, int z) {
-    while (x < 0/* && c % chunks->info.width*/) {c -= 1; x += 16;}
-    while (x > 15/* && (c + 1) % chunks->info.width*/) {c += 1; x -= 16;}
-    while (z > 15/* && c >= (int)chunks->info.width*/) {c -= chunks->info.width; z -= 16;}
-    while (z < 0/* && c < (int)(chunks->info.widthsq - chunks->info.width)*/) {c += chunks->info.width; z += 16;}
+    while (x < 0/* && c % rendinf.chunks->info.width*/) {c -= 1; x += 16;}
+    while (x > 15/* && (c + 1) % rendinf.chunks->info.width*/) {c += 1; x -= 16;}
+    while (z > 15/* && c >= (int)rendinf.chunks->info.width*/) {c -= rendinf.chunks->info.width; z -= 16;}
+    while (z < 0/* && c < (int)(rendinf.chunks->info.widthsq - rendinf.chunks->info.width)*/) {c += rendinf.chunks->info.width; z += 16;}
     if (c < 0 || x < 0 || z < 0 || x > 15 || z > 15) return (struct blockdata){255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    if (c >= (int32_t)chunks->info.widthsq || y < 0 || y > 255) return (struct blockdata){0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    if (!chunks->renddata[c].generated) return (struct blockdata){255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    struct blockdata ret = chunks->data[c][y * 256 + z * 16 + x];
+    if (c >= (int32_t)rendinf.chunks->info.widthsq || y < 0 || y > 255) return (struct blockdata){0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    if (!rendinf.chunks->renddata[c].generated) return (struct blockdata){255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    struct blockdata ret = rendinf.chunks->data[c][y * 256 + z * 16 + x];
     return ret;
 }
 
@@ -473,7 +467,6 @@ static float vert2D[] = {
 };
 
 static pthread_t pthreads[MAX_THREADS];
-pthread_mutex_t uclock;
 //static uint8_t water;
 
 struct msgdata_msg {
@@ -536,13 +529,6 @@ void updateChunk(int64_t x, int64_t z, int p, int updatelvl) {
     addMsg(&chunkmsgs[p], x, z, 0, false, updatelvl);
 }
 
-static int64_t cxo, czo;
-
-void setMeshChunkOff(int64_t x, int64_t z) {
-    cxo = x;
-    czo = z;
-}
-
 static force_inline bool getNextMsg(struct msgdata* mdata, struct msgdata_msg* msg) {
     pthread_mutex_lock(&mdata->lock);
     if (mdata->rptr >= 0) {
@@ -597,10 +583,10 @@ static uint32_t constBlockVert2[6][6] = {
 
 /*
 static force_ineline int32_t calcChunkOff(int64_t x, int64_t z) {
-    int64_t nx = x + chunks->info.dist;
-    int64_t nz = chunks->info.width - (z + chunks->info.dist) - 1;
-    if (nx < 0 || nz < 0 || nx >= (int32_t)chunks->info.width || nz >= (int32_t)chunks->info.width) return -1;
-    return nx + nz * chunks->info.width;
+    int64_t nx = x + rendinf.chunks->info.dist;
+    int64_t nz = rendinf.chunks->info.width - (z + rendinf.chunks->info.dist) - 1;
+    if (nx < 0 || nz < 0 || nx >= (int32_t)rendinf.chunks->info.width || nz >= (int32_t)rendinf.chunks->info.width) return -1;
+    return nx + nz * rendinf.chunks->info.width;
 }
 */
 
@@ -620,31 +606,28 @@ static force_inline float dist3d(float x0, float y0, float z0, float x1, float y
     float dx = x1 - x0;
     float dy = y1 - y0;
     float dz = z1 - z0;
-    return fabs(sqrt(dx * dx + dy * dy + dz * dz));
+    return sqrt(dx * dx + dy * dy + dz * dz);
 }
 
 static force_inline void _sortChunk(int32_t c, int xoff, int zoff, bool update) {
-    //int64_t nx = x + chunks->info.dist;
-    //int64_t nz = chunks->info.width - (z + chunks->info.dist) - 1;
-    //if (nx < 0 || nz < 0 || nx >= (int32_t)chunks->info.width || nz >= (int32_t)chunks->info.width) return;
-    //int tmpc = (xoff + chunks->info.dist) + (chunks->info.width - (zoff + chunks->info.dist) - 1) * chunks->info.width;
+    //int64_t nx = x + rendinf.chunks->info.dist;
+    //int64_t nz = rendinf.chunks->info.width - (z + rendinf.chunks->info.dist) - 1;
+    //if (nx < 0 || nz < 0 || nx >= (int32_t)rendinf.chunks->info.width || nz >= (int32_t)rendinf.chunks->info.width) return;
+    //int tmpc = (xoff + rendinf.chunks->info.dist) + (rendinf.chunks->info.width - (zoff + rendinf.chunks->info.dist) - 1) * rendinf.chunks->info.width;
     //if (c >= 0 && tmpc != c) printf("! [%d][%d]: calc:[%d], given:[%d]\n", xoff, zoff, tmpc, c);
-    if (c < 0) c = (xoff + chunks->info.dist) + (chunks->info.width - (zoff + chunks->info.dist) - 1) * chunks->info.width;
+    if (c < 0) c = (xoff + rendinf.chunks->info.dist) + (rendinf.chunks->info.width - (zoff + rendinf.chunks->info.dist) - 1) * rendinf.chunks->info.width;
     if (update) {
-        if (!chunks->renddata[c].sortvert || !chunks->renddata[c].tcount[1] || !chunks->renddata[c].visible) {
-            //printf("[%d][%d]: [%016"PRIX64"] [%d] [%d]\n", xoff + (int)cxo, zoff + (int)czo, (uintptr_t)chunks->renddata[c].sortvert, chunks->renddata[c].tcount[1], chunks->renddata[c].visible);
-            return;
-        }
+        if (!rendinf.chunks->renddata[c].sortvert || !rendinf.chunks->renddata[c].tcount[1] || !rendinf.chunks->renddata[c].visible) return;
         //printf("req: [%d][%d]\n", xoff + (int)cxo, zoff + (int)czo);
         //printf("sorting: [%d, %d]\n", xoff, zoff);
         float camx = sc_camx - xoff * 16;
         float camy = sc_camy;
         float camz = -sc_camz - zoff * 16;
         //printf("[%d][%d]: cam: [%f, %f, %f]\n", xoff, zoff, camx, camy, camz);
-        int32_t tmpsize = chunks->renddata[c].tcount[1] / 3 / 2;
+        int32_t tmpsize = rendinf.chunks->renddata[c].tcount[1] / 3 / 2;
         //if (!xoff && !zoff) printf("tri count of 0, 0: [%d]\n", tmpsize);
         struct tricmp* data = malloc(tmpsize * sizeof(struct tricmp));
-        uint32_t* dptr = chunks->renddata[c].sortvert;
+        uint32_t* dptr = rendinf.chunks->renddata[c].sortvert;
         for (int i = 0; i < tmpsize; ++i) {
             uint32_t sv;
             float vx = 0, vy = 0, vz = 0;
@@ -667,7 +650,7 @@ static force_inline void _sortChunk(int32_t c, int xoff, int zoff, bool update) 
             //if (!xoff && !zoff) printf("pos[%d]: [%f, %f, %f]; cam: [%f, %f, %f]; dist: [%f]\n", i, vx, vy, vz, camx, camy, camz, data[i].dist);
         }
         qsort(data, tmpsize, sizeof(struct tricmp), compare);
-        dptr = chunks->renddata[c].sortvert;
+        dptr = rendinf.chunks->renddata[c].sortvert;
         for (int i = 0; i < tmpsize; ++i) {
             //if (!xoff && !zoff) printf("dist[%d]: [%f]\n", i, data[i].dist);
             for (int j = 0; j < 18; ++j) {
@@ -676,21 +659,21 @@ static force_inline void _sortChunk(int32_t c, int xoff, int zoff, bool update) 
         }
         free(data);
         /*
-        if (!chunks->renddata[c].init) {
-            glGenBuffers(2, chunks->renddata[c].VBO);
-            chunks->renddata[c].init = true;
+        if (!rendinf.chunks->renddata[c].init) {
+            glGenBuffers(2, rendinf.chunks->renddata[c].VBO);
+            rendinf.chunks->renddata[c].init = true;
         }
         */
-        glBindBuffer(GL_ARRAY_BUFFER, chunks->renddata[c].VBO[1]);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, tmpsize * sizeof(uint32_t) * 3 * 3 * 2, chunks->renddata[c].sortvert);
-        //chunks->renddata[c].tcount[1] = tmpsize * 3 * 2;
-        //printf("[%u][%d]: [%d]->[%d]\n", c, i, chunks->renddata[c].vcount[1], chunks->renddata[c].tcount[1]);
-        //free(chunks->renddata[c].vertices[1]);
-        //chunks->renddata[c].vertices[1] = NULL;
-        //chunks->renddata[c].remesh[1] = 0;
+        glBindBuffer(GL_ARRAY_BUFFER, rendinf.chunks->renddata[c].VBO[1]);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, tmpsize * sizeof(uint32_t) * 3 * 3 * 2, rendinf.chunks->renddata[c].sortvert);
+        //rendinf.chunks->renddata[c].tcount[1] = tmpsize * 3 * 2;
+        //printf("[%u][%d]: [%d]->[%d]\n", c, i, rendinf.chunks->renddata[c].vcount[1], rendinf.chunks->renddata[c].tcount[1]);
+        //free(rendinf.chunks->renddata[c].vertices[1]);
+        //rendinf.chunks->renddata[c].vertices[1] = NULL;
+        //rendinf.chunks->renddata[c].remesh[1] = 0;
     } else {
-        chunks->renddata[c].remesh[1] = true;
-        chunks->renddata[c].ready = true;
+        rendinf.chunks->renddata[c].remesh[1] = true;
+        rendinf.chunks->renddata[c].ready = true;
         //printf("req: [%d][%d]\n", xoff, zoff);
     }
 }
@@ -702,18 +685,18 @@ void sortChunk(int32_t c, int xoff, int zoff, bool update) {
 static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
     struct blockdata bdata;
     struct blockdata bdata2[6];
-    pthread_mutex_lock(&uclock);
-    int64_t nx = (x - cxo) + chunks->info.dist;
-    int64_t nz = chunks->info.width - ((z - czo) + chunks->info.dist) - 1;
+    pthread_mutex_lock(&rendinf.chunks->lock);
+    int64_t nx = (x - rendinf.chunks->xoff) + rendinf.chunks->info.dist;
+    int64_t nz = rendinf.chunks->info.width - ((z - rendinf.chunks->zoff) + rendinf.chunks->info.dist) - 1;
     {
-        uint32_t c = nx + nz * chunks->info.width;
-        if (nx < 0 || nz < 0 || nx >= chunks->info.width || nz >= chunks->info.width || !chunks->renddata[c].generated) {
+        uint32_t c = nx + nz * rendinf.chunks->info.width;
+        if (nx < 0 || nz < 0 || nx >= rendinf.chunks->info.width || nz >= rendinf.chunks->info.width || !rendinf.chunks->renddata[c].generated) {
             goto lblcontinue;
         }
-        if (id < chunks->renddata[c].updateid) {goto lblcontinue;}
+        if (id < rendinf.chunks->renddata[c].updateid) {goto lblcontinue;}
         //printf("meshing [%"PRId64", %"PRId64"] -> [%"PRId64", %"PRId64"] (c=%d, offset=[%"PRId64", %"PRId64"])\n", x, z, nx, nz, c, cxo, czo);
     }
-    pthread_mutex_unlock(&uclock);
+    pthread_mutex_unlock(&rendinf.chunks->lock);
     //printf("mesh: [%"PRId64", %"PRId64"]\n", x, z);
     int vpsize = 4096;
     int vpsize2 = 4096;
@@ -724,15 +707,15 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
     uint32_t* vptr = _vptr;
     uint32_t* vptr2 = _vptr2;
     for (int y = 0; y < 256; ++y) {
-        pthread_mutex_lock(&uclock);
-        nx = (x - cxo) + chunks->info.dist;
-        nz = chunks->info.width - ((z - czo) + chunks->info.dist) - 1;
-        if (nx < 0 || nz < 0 || nx >= chunks->info.width || nz >= chunks->info.width) {
+        pthread_mutex_lock(&rendinf.chunks->lock);
+        nx = (x - rendinf.chunks->xoff) + rendinf.chunks->info.dist;
+        nz = rendinf.chunks->info.width - ((z - rendinf.chunks->zoff) + rendinf.chunks->info.dist) - 1;
+        if (nx < 0 || nz < 0 || nx >= rendinf.chunks->info.width || nz >= rendinf.chunks->info.width) {
             free(_vptr);
             free(_vptr2);
             goto lblcontinue;
         }
-        uint64_t c = nx + nz * chunks->info.width;
+        uint64_t c = nx + nz * rendinf.chunks->info.width;
         for (int z = 0; z < 16; ++z) {
             for (int x = 0; x < 16; ++x) {
                 bdata = rendGetBlock(c, x, y, z);
@@ -775,49 +758,49 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
                             mtsetvert(&_vptr, &vpsize, &vplen, &vptr, constBlockVert2[i][j] | baseVert2);
                             mtsetvert(&_vptr, &vpsize, &vplen, &vptr, baseVert3);
                         }
-                        //printf("added [%d][%d %d %d][%d]: [%u]: [%08X]...\n", c, x, y, z, i, (uint8_t)bdata.id, baseVert1);
+                        //printf("added [%"PRId64"][%d %d %d][%d]: [%u]: [%08X]...\n", c, x, y, z, i, (uint8_t)bdata.id, baseVert1);
                     }
                 }
             }
         }
-        pthread_mutex_unlock(&uclock);
+        pthread_mutex_unlock(&rendinf.chunks->lock);
     }
-    pthread_mutex_lock(&uclock);
-    nx = (x - cxo) + chunks->info.dist;
-    nz = chunks->info.width - ((z - czo) + chunks->info.dist) - 1;
-    if (nx < 0 || nz < 0 || nx >= chunks->info.width || nz >= chunks->info.width) {
+    pthread_mutex_lock(&rendinf.chunks->lock);
+    nx = (x - rendinf.chunks->xoff) + rendinf.chunks->info.dist;
+    nz = rendinf.chunks->info.width - ((z - rendinf.chunks->zoff) + rendinf.chunks->info.dist) - 1;
+    if (nx < 0 || nz < 0 || nx >= rendinf.chunks->info.width || nz >= rendinf.chunks->info.width) {
         free(_vptr);
         free(_vptr2);
         goto lblcontinue;
     }
-    uint64_t c = nx + nz * chunks->info.width;
-    if (id >= chunks->renddata[c].updateid) {
-        if (chunks->renddata[c].vertices[0]) free(chunks->renddata[c].vertices[0]);
-        if (chunks->renddata[c].vertices[1]) free(chunks->renddata[c].vertices[1]);
-        chunks->renddata[c].remesh[0] = true;
-        chunks->renddata[c].remesh[1] = true;
-        chunks->renddata[c].vcount[0] = vplen;
-        chunks->renddata[c].vcount[1] = vplen2;
-        chunks->renddata[c].vertices[0] = _vptr;
-        chunks->renddata[c].vertices[1] = _vptr2;
+    uint64_t c = nx + nz * rendinf.chunks->info.width;
+    if (id >= rendinf.chunks->renddata[c].updateid) {
+        if (rendinf.chunks->renddata[c].vertices[0]) free(rendinf.chunks->renddata[c].vertices[0]);
+        if (rendinf.chunks->renddata[c].vertices[1]) free(rendinf.chunks->renddata[c].vertices[1]);
+        rendinf.chunks->renddata[c].remesh[0] = true;
+        rendinf.chunks->renddata[c].remesh[1] = true;
+        rendinf.chunks->renddata[c].vcount[0] = vplen;
+        rendinf.chunks->renddata[c].vcount[1] = vplen2;
+        rendinf.chunks->renddata[c].vertices[0] = _vptr;
+        rendinf.chunks->renddata[c].vertices[1] = _vptr2;
         //_sortChunk(c, (x - cxo), (z - czo), false);
-        //chunks->renddata[c].ready = true;
-        chunks->renddata[c].updateid = id;
+        //rendinf.chunks->renddata[c].ready = true;
+        rendinf.chunks->renddata[c].updateid = id;
         //printf("meshed: [%"PRId64", %"PRId64"] ([%"PRId64", %"PRId64"])\n", x, z, nx, nz);
     } else {
         free(_vptr);
         free(_vptr2);
     }
     lblcontinue:;
-    pthread_mutex_unlock(&uclock);
+    pthread_mutex_unlock(&rendinf.chunks->lock);
 }
 
 static force_inline void setready(int64_t x, int64_t z, bool val) {
-    int64_t nx = (x - cxo) + chunks->info.dist;
-    int64_t nz = chunks->info.width - ((z - czo) + chunks->info.dist) - 1;
-    if (nx < 0 || nz < 0 || nx >= (int32_t)chunks->info.width || nz >= (int32_t)chunks->info.width) return;
-    uint32_t c = nx + nz * chunks->info.width;
-    chunks->renddata[c].ready = val;
+    int64_t nx = (x - rendinf.chunks->xoff) + rendinf.chunks->info.dist;
+    int64_t nz = rendinf.chunks->info.width - ((z - rendinf.chunks->zoff) + rendinf.chunks->info.dist) - 1;
+    if (nx < 0 || nz < 0 || nx >= (int32_t)rendinf.chunks->info.width || nz >= (int32_t)rendinf.chunks->info.width) return;
+    uint32_t c = nx + nz * rendinf.chunks->info.width;
+    rendinf.chunks->renddata[c].ready = val;
     //printf("set ready on [%"PRId64", %"PRId64"] -> [%"PRId64", %"PRId64"] (c=%d, offset=[%"PRId64", %"PRId64"])\n", x, z, nx, nz, c, cxo, czo);
 }
 
@@ -846,7 +829,7 @@ static void* meshthread(void* args) {
                 }
             }
             //printf("x: [%"PRId64"], z: [%"PRId64"], p: [%d]\n", msg.x, msg.z, p);
-            pthread_mutex_lock(&uclock);
+            pthread_mutex_lock(&rendinf.chunks->lock);
             setready(msg.x, msg.z, true);
             if (!msg.dep) {
                 if (msg.lvl >= 1) {
@@ -862,7 +845,7 @@ static void* meshthread(void* args) {
                     }
                 }
             }
-            pthread_mutex_unlock(&uclock);
+            pthread_mutex_unlock(&rendinf.chunks->lock);
         }
         if (activity) {
             acttime = altutime();
@@ -875,46 +858,46 @@ static void* meshthread(void* args) {
 }
 
 void updateChunks() {
-    pthread_mutex_lock(&uclock);
-    for (uint32_t c = 0; !quitRequest && c < chunks->info.widthsq; ++c) {
-        if (!chunks->renddata[c].ready || !chunks->renddata[c].visible) continue;
-        if (!chunks->renddata[c].init) {
-            glGenBuffers(2, chunks->renddata[c].VBO);
-            chunks->renddata[c].init = true;
+    pthread_mutex_lock(&rendinf.chunks->lock);
+    for (uint32_t c = 0; !quitRequest && c < rendinf.chunks->info.widthsq; ++c) {
+        if (!rendinf.chunks->renddata[c].ready || !rendinf.chunks->renddata[c].visible) continue;
+        if (!rendinf.chunks->renddata[c].init) {
+            glGenBuffers(2, rendinf.chunks->renddata[c].VBO);
+            rendinf.chunks->renddata[c].init = true;
         }
-        if (chunks->renddata[c].remesh[0]) {
-            uint32_t tmpsize = chunks->renddata[c].vcount[0] * sizeof(uint32_t);
-            glBindBuffer(GL_ARRAY_BUFFER, chunks->renddata[c].VBO[0]);
-            glBufferData(GL_ARRAY_BUFFER, tmpsize, chunks->renddata[c].vertices[0], GL_STATIC_DRAW);
-            chunks->renddata[c].tcount[0] = chunks->renddata[c].vcount[0] / 3;
-            //printf("[%u][%d]: [%d]->[%d]\n", c, i, chunks->renddata[c].vcount[0], chunks->renddata[c].tcount[0]);
-            free(chunks->renddata[c].vertices[0]);
-            chunks->renddata[c].vertices[0] = NULL;
-            chunks->renddata[c].remesh[0] = false;
+        if (rendinf.chunks->renddata[c].remesh[0]) {
+            uint32_t tmpsize = rendinf.chunks->renddata[c].vcount[0] * sizeof(uint32_t);
+            glBindBuffer(GL_ARRAY_BUFFER, rendinf.chunks->renddata[c].VBO[0]);
+            glBufferData(GL_ARRAY_BUFFER, tmpsize, rendinf.chunks->renddata[c].vertices[0], GL_STATIC_DRAW);
+            rendinf.chunks->renddata[c].tcount[0] = rendinf.chunks->renddata[c].vcount[0] / 3;
+            //printf("[%u][%d]: [%d]->[%d]\n", c, i, rendinf.chunks->renddata[c].vcount[0], rendinf.chunks->renddata[c].tcount[0]);
+            free(rendinf.chunks->renddata[c].vertices[0]);
+            rendinf.chunks->renddata[c].vertices[0] = NULL;
+            rendinf.chunks->renddata[c].remesh[0] = false;
         }
-        if (chunks->renddata[c].remesh[1]) {
-            uint32_t tmpsize = chunks->renddata[c].vcount[1] * sizeof(uint32_t);
-            glBindBuffer(GL_ARRAY_BUFFER, chunks->renddata[c].VBO[1]);
-            glBufferData(GL_ARRAY_BUFFER, tmpsize, chunks->renddata[c].vertices[1], GL_DYNAMIC_DRAW);
-            chunks->renddata[c].tcount[1] = chunks->renddata[c].vcount[1] / 3;
-            chunks->renddata[c].sortvert = realloc(chunks->renddata[c].sortvert, tmpsize);
-            memcpy(chunks->renddata[c].sortvert, chunks->renddata[c].vertices[1], tmpsize);
-            //free(chunks->renddata[c].vertices[1]);
-            //chunks->renddata[c].vertices[1] = NULL;
-            chunks->renddata[c].remesh[1] = false;
+        if (rendinf.chunks->renddata[c].remesh[1]) {
+            uint32_t tmpsize = rendinf.chunks->renddata[c].vcount[1] * sizeof(uint32_t);
+            glBindBuffer(GL_ARRAY_BUFFER, rendinf.chunks->renddata[c].VBO[1]);
+            glBufferData(GL_ARRAY_BUFFER, tmpsize, rendinf.chunks->renddata[c].vertices[1], GL_DYNAMIC_DRAW);
+            rendinf.chunks->renddata[c].tcount[1] = rendinf.chunks->renddata[c].vcount[1] / 3;
+            rendinf.chunks->renddata[c].sortvert = realloc(rendinf.chunks->renddata[c].sortvert, tmpsize);
+            memcpy(rendinf.chunks->renddata[c].sortvert, rendinf.chunks->renddata[c].vertices[1], tmpsize);
+            //free(rendinf.chunks->renddata[c].vertices[1]);
+            //rendinf.chunks->renddata[c].vertices[1] = NULL;
+            rendinf.chunks->renddata[c].remesh[1] = false;
             if (tmpsize) {
                 /*
-                int tmpx = ((int)(c % chunks->info.width) - (int)chunks->info.dist) + (int)cxo;
-                int tmpy = -((int)(c / chunks->info.width) - (int)chunks->info.dist) + (int)czo;
+                int tmpx = ((int)(c % rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist) + (int)cxo;
+                int tmpy = -((int)(c / rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist) + (int)czo;
                 if (!tmpx && !tmpy) printf("[%d][%d]\n", tmpx, tmpy);
                 */
-                _sortChunk(c, (int)(c % chunks->info.width) - (int)chunks->info.dist, -((int)(c / chunks->info.width) - (int)chunks->info.dist), true);
+                _sortChunk(c, (int)(c % rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist, -((int)(c / rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist), true);
             }
         }
-        chunks->renddata[c].ready = false;
-        chunks->renddata[c].buffered = true;
+        rendinf.chunks->renddata[c].ready = false;
+        rendinf.chunks->renddata[c].buffered = true;
     }
-    pthread_mutex_unlock(&uclock);
+    pthread_mutex_unlock(&rendinf.chunks->lock);
 }
 
 static bool mesheractive = false;
@@ -1318,7 +1301,7 @@ void render() {
             pvelocity.x, pvelocity.y, pvelocity.z,
             rendinf.camrot.x, rendinf.camrot.y, rendinf.camrot.z,
             pblockx, pblocky, pblockz,
-            pchunkx, pchunkz
+            rendinf.chunks->xoff, rendinf.chunks->zoff
         );
         if (game_ui[UILAYER_DBGINF]) editUIElem(game_ui[UILAYER_DBGINF], dbgtextuih, NULL, -1, "text", tbuf, NULL);
     }
@@ -1331,10 +1314,10 @@ void render() {
     static uint64_t aMStart = 0;
     if (!aMStart) aMStart = altutime();
     glUniform1ui(glGetUniformLocation(rendinf.shaderprog, "aniMult"), (aMStart - altutime()) / 10000);
-    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "dist"), chunks->info.dist);
-    setUniform3f(rendinf.shaderprog, "cam", (float[]){rendinf.campos.x, rendinf.campos.y, rendinf.campos.z});
+    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "dist"), rendinf.chunks->info.dist);
+    setUniform3f(rendinf.shaderprog, "cam", (float[]){rendinf.campos.x, rendinf.campos.y, -rendinf.campos.z});
 
-    pthread_mutex_lock(&uclock);
+    pthread_mutex_lock(&rendinf.chunks->lock);
 
     _sortChunk(-1, 0, 0, true);
 
@@ -1348,37 +1331,37 @@ void render() {
     _sortChunk(-1, 1, -1, true);
     _sortChunk(-1, -1, -1, true);
 
-    pthread_mutex_unlock(&uclock);
+    pthread_mutex_unlock(&rendinf.chunks->lock);
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     int32_t rendc = 0;
-    for (int32_t c = chunks->info.widthsq - 1; c >= 0; --c) {
-        rendc = chunks->rordr[c].c;
-        avec2 coord = {(int)(rendc % chunks->info.width) - (int)chunks->info.dist, (int)(rendc / chunks->info.width) - (int)chunks->info.dist};
+    for (int32_t c = rendinf.chunks->info.widthsq - 1; c >= 0; --c) {
+        rendc = rendinf.chunks->rordr[c].c;
+        avec2 coord = {(int)(rendc % rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist, (int)(rendc / rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist};
         setUniform2f(rendinf.shaderprog, "ccoord", coord);
-        if ((chunks->renddata[rendc].visible = isVisible(&frust, coord[0] * 16 - 8, 0, coord[1] * 16 - 8, coord[0] * 16 + 8, 256, coord[1] * 16 + 8)) && chunks->renddata[rendc].buffered) {
-            if (chunks->renddata[rendc].tcount[0]) {
-                glBindBuffer(GL_ARRAY_BUFFER, chunks->renddata[rendc].VBO[0]);
+        if ((rendinf.chunks->renddata[rendc].visible = isVisible(&frust, coord[0] * 16 - 8, 0, coord[1] * 16 - 8, coord[0] * 16 + 8, 256, coord[1] * 16 + 8)) && rendinf.chunks->renddata[rendc].buffered) {
+            if (rendinf.chunks->renddata[rendc].tcount[0]) {
+                glBindBuffer(GL_ARRAY_BUFFER, rendinf.chunks->renddata[rendc].VBO[0]);
                 glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 3 * sizeof(uint32_t), (void*)(0));
                 glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 3 * sizeof(uint32_t), (void*)(sizeof(uint32_t)));
                 glVertexAttribIPointer(2, 1, GL_UNSIGNED_INT, 3 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * 2));
-                glDrawArrays(GL_TRIANGLES, 0, chunks->renddata[rendc].tcount[0]);
+                glDrawArrays(GL_TRIANGLES, 0, rendinf.chunks->renddata[rendc].tcount[0]);
             }
         }
     }
     glDepthMask(false);
-    for (int32_t c = 0; c < (int)chunks->info.widthsq; ++c) {
-        rendc = chunks->rordr[c].c;
-        avec2 coord = {(int)(rendc % chunks->info.width) - (int)chunks->info.dist, (int)(rendc / chunks->info.width) - (int)chunks->info.dist};
+    for (int32_t c = 0; c < (int)rendinf.chunks->info.widthsq; ++c) {
+        rendc = rendinf.chunks->rordr[c].c;
+        avec2 coord = {(int)(rendc % rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist, (int)(rendc / rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist};
         setUniform2f(rendinf.shaderprog, "ccoord", coord);
-        if (chunks->renddata[rendc].visible && chunks->renddata[rendc].buffered) {
-            if (chunks->renddata[rendc].tcount[1]) {
-                glBindBuffer(GL_ARRAY_BUFFER, chunks->renddata[rendc].VBO[1]);
+        if (rendinf.chunks->renddata[rendc].visible && rendinf.chunks->renddata[rendc].buffered) {
+            if (rendinf.chunks->renddata[rendc].tcount[1]) {
+                glBindBuffer(GL_ARRAY_BUFFER, rendinf.chunks->renddata[rendc].VBO[1]);
                 glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 3 * sizeof(uint32_t), (void*)(0));
                 glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 3 * sizeof(uint32_t), (void*)(sizeof(uint32_t)));
                 glVertexAttribIPointer(2, 1, GL_UNSIGNED_INT, 3 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * 2));
-                glDrawArrays(GL_TRIANGLES, 0, chunks->renddata[rendc].tcount[1]);
+                glDrawArrays(GL_TRIANGLES, 0, rendinf.chunks->renddata[rendc].tcount[1]);
             }
         }
     }
@@ -1433,8 +1416,6 @@ static void errorcb(int e, const char* m) {
 #endif
 
 bool initRenderer() {
-    pthread_mutex_init(&uclock, NULL);
-
     rendinf.camfov = 85;
     rendinf.camnear = 0.05;
     rendinf.camfar = 1000;
