@@ -1,4 +1,4 @@
-# <img src="https://raw.githubusercontent.com/PQCraft/CaveCube/master/extras/icon/hicolor/512x512/apps/cavecube.png" align="right" height="95"/>CaveCube
+# <img src="https://raw.githubusercontent.com/PQCraft/CaveCube/dev/extras/icon/hicolor/512x512/apps/cavecube.png" align="right" height="95"/>CaveCube
 **An in-development Minecraft/Infiniminer clone**<br>
 
 ---
