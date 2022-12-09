@@ -610,22 +610,13 @@ static force_inline float dist3d(float x0, float y0, float z0, float x1, float y
 }
 
 static force_inline void _sortChunk(int32_t c, int xoff, int zoff, bool update) {
-    //int64_t nx = x + rendinf.chunks->info.dist;
-    //int64_t nz = rendinf.chunks->info.width - (z + rendinf.chunks->info.dist) - 1;
-    //if (nx < 0 || nz < 0 || nx >= (int32_t)rendinf.chunks->info.width || nz >= (int32_t)rendinf.chunks->info.width) return;
-    //int tmpc = (xoff + rendinf.chunks->info.dist) + (rendinf.chunks->info.width - (zoff + rendinf.chunks->info.dist) - 1) * rendinf.chunks->info.width;
-    //if (c >= 0 && tmpc != c) printf("! [%d][%d]: calc:[%d], given:[%d]\n", xoff, zoff, tmpc, c);
     if (c < 0) c = (xoff + rendinf.chunks->info.dist) + (rendinf.chunks->info.width - (zoff + rendinf.chunks->info.dist) - 1) * rendinf.chunks->info.width;
     if (update) {
         if (!rendinf.chunks->renddata[c].sortvert || !rendinf.chunks->renddata[c].tcount[1] || !rendinf.chunks->renddata[c].visible) return;
-        //printf("req: [%d][%d]\n", xoff + (int)cxo, zoff + (int)czo);
-        //printf("sorting: [%d, %d]\n", xoff, zoff);
         float camx = sc_camx - xoff * 16;
         float camy = sc_camy;
         float camz = -sc_camz - zoff * 16;
-        //printf("[%d][%d]: cam: [%f, %f, %f]\n", xoff, zoff, camx, camy, camz);
         int32_t tmpsize = rendinf.chunks->renddata[c].tcount[1] / 3 / 2;
-        //if (!xoff && !zoff) printf("tri count of 0, 0: [%d]\n", tmpsize);
         struct tricmp* data = malloc(tmpsize * sizeof(struct tricmp));
         uint32_t* dptr = rendinf.chunks->renddata[c].sortvert;
         for (int i = 0; i < tmpsize; ++i) {
@@ -635,46 +626,28 @@ static force_inline void _sortChunk(int32_t c, int xoff, int zoff, bool update) 
                 data[i].data[0 + j * 3] = sv = *dptr++;
                 data[i].data[1 + j * 3] = *dptr++;
                 data[i].data[2 + j * 3] = *dptr++;
-                float x = (float)(((sv >> 24) & 255) + ((sv >> 2) & 1)) / 16.0 - 8.0;
-                float y = (float)(((sv >> 12) & 4095) + ((sv >> 1) & 1)) / 16.0;
-                float z = (float)(((sv >> 4) & 255) + (sv & 1)) / 16.0 - 8.0;
-                //if (!xoff && !zoff) printf("pos[%d][%d]: [%f, %f, %f]\n", i, j, x, y, z);
-                vx += x;
-                vy += y;
-                vz += z;
+                vx += (float)(((sv >> 24) & 255) + ((sv >> 2) & 1)) / 16.0 - 8.0;
+                vy += (float)(((sv >> 12) & 4095) + ((sv >> 1) & 1)) / 16.0;
+                vz += (float)(((sv >> 4) & 255) + (sv & 1)) / 16.0 - 8.0;
             }
             vx /= 6.0;
             vy /= 6.0;
             vz /= 6.0;
             data[i].dist = dist3d(camx, camy, camz, vx, vy, vz);
-            //if (!xoff && !zoff) printf("pos[%d]: [%f, %f, %f]; cam: [%f, %f, %f]; dist: [%f]\n", i, vx, vy, vz, camx, camy, camz, data[i].dist);
         }
         qsort(data, tmpsize, sizeof(struct tricmp), compare);
         dptr = rendinf.chunks->renddata[c].sortvert;
         for (int i = 0; i < tmpsize; ++i) {
-            //if (!xoff && !zoff) printf("dist[%d]: [%f]\n", i, data[i].dist);
             for (int j = 0; j < 18; ++j) {
                 *dptr++ = data[i].data[j];
             }
         }
         free(data);
-        /*
-        if (!rendinf.chunks->renddata[c].init) {
-            glGenBuffers(2, rendinf.chunks->renddata[c].VBO);
-            rendinf.chunks->renddata[c].init = true;
-        }
-        */
         glBindBuffer(GL_ARRAY_BUFFER, rendinf.chunks->renddata[c].VBO[1]);
         glBufferSubData(GL_ARRAY_BUFFER, 0, tmpsize * sizeof(uint32_t) * 3 * 3 * 2, rendinf.chunks->renddata[c].sortvert);
-        //rendinf.chunks->renddata[c].tcount[1] = tmpsize * 3 * 2;
-        //printf("[%u][%d]: [%d]->[%d]\n", c, i, rendinf.chunks->renddata[c].vcount[1], rendinf.chunks->renddata[c].tcount[1]);
-        //free(rendinf.chunks->renddata[c].vertices[1]);
-        //rendinf.chunks->renddata[c].vertices[1] = NULL;
-        //rendinf.chunks->renddata[c].remesh[1] = 0;
     } else {
         rendinf.chunks->renddata[c].remesh[1] = true;
         rendinf.chunks->renddata[c].ready = true;
-        //printf("req: [%d][%d]\n", xoff, zoff);
     }
 }
 
