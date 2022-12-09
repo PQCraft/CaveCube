@@ -44,6 +44,15 @@ struct blockdata getBlock(struct chunkdata* data, int64_t x, int y, int64_t z) {
 
 void setBlock(struct chunkdata* data, int64_t x, int y, int64_t z, struct blockdata bdata) {
     pthread_mutex_lock(&data->lock);
+    if (y < 0 || y > 255) return;
+    int64_t cx, cz;
+    _getChunkOfBlock(x, z, &cx, &cz);
+    cx = (cx - data->xoff) + data->info.dist;
+    cz = data->info.width - ((cz - data->zoff) + data->info.dist) - 1;
+    if (cx < 0 || cz < 0 || cx >= data->info.width || cz >= data->info.width) return;
+    x = i64_mod(x + 8, 16);
+    z = 15 - i64_mod(z + 8, 16);
+    data->data[cx + cz * data->info.width][y * 256 + z * 16 + x] = bdata;
     pthread_mutex_unlock(&data->lock);
 }
 
@@ -106,7 +115,7 @@ void moveChunks(struct chunkdata* chunks, int cx, int cz) {
     struct chunk_renddata rdswap;
     int c;
     for (; cx < 0; ++cx) { // move left (player goes right)
-        for (int z = 0; z < chunks->info.width; ++z) {
+        for (unsigned z = 0; z < chunks->info.width; ++z) {
             c = (chunks->info.width - 1) + z * chunks->info.width;
             swap = chunks->data[c];
             rdswap = chunks->renddata[c];
@@ -129,11 +138,11 @@ void moveChunks(struct chunkdata* chunks, int cx, int cz) {
         }
     }
     for (; cx > 0; --cx) { // move right (player goes left)
-        for (int z = 0; z < chunks->info.width; ++z) {
+        for (unsigned z = 0; z < chunks->info.width; ++z) {
             c = z * chunks->info.width;
             swap = chunks->data[c];
             rdswap = chunks->renddata[c];
-            for (int x = 0; x < chunks->info.width - 1; ++x) {
+            for (int x = 0; x < (int)chunks->info.width - 1; ++x) {
                 c = x + z * chunks->info.width;
                 chunks->data[c] = chunks->data[c + 1];
                 chunks->renddata[c] = chunks->renddata[c + 1];
@@ -152,11 +161,11 @@ void moveChunks(struct chunkdata* chunks, int cx, int cz) {
         }
     }
     for (; cz < 0; ++cz) { // move forward (player goes backward)
-        for (int x = 0; x < chunks->info.width; ++x) {
+        for (unsigned x = 0; x < chunks->info.width; ++x) {
             c = x;
             swap = chunks->data[c];
             rdswap = chunks->renddata[c];
-            for (int z = 0; z < chunks->info.width - 1; ++z) {
+            for (int z = 0; z < (int)chunks->info.width - 1; ++z) {
                 c = x + z * chunks->info.width;
                 chunks->data[c] = chunks->data[c + chunks->info.width];
                 chunks->renddata[c] = chunks->renddata[c + chunks->info.width];
@@ -175,7 +184,7 @@ void moveChunks(struct chunkdata* chunks, int cx, int cz) {
         }
     }
     for (; cz > 0; --cz) { // move backward (player goes forward)
-        for (int x = 0; x < chunks->info.width; ++x) {
+        for (unsigned x = 0; x < chunks->info.width; ++x) {
             c = x + (chunks->info.width - 1) * chunks->info.width;
             swap = chunks->data[c];
             rdswap = chunks->renddata[c];
