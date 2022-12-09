@@ -48,6 +48,7 @@ struct blockdata getBlock(struct chunkdata*, int64_t, int, int64_t);
 void setBlock(struct chunkdata*, int64_t, int, int64_t, struct blockdata);
 void getChunkOfBlock(int64_t, int64_t, int64_t*, int64_t*);
 struct chunkdata* allocChunks(int);
+void resizeChunks(struct chunkdata*, int);
 void moveChunks(struct chunkdata*, int, int);
 #endif
 

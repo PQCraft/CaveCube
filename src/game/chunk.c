@@ -39,7 +39,9 @@ struct blockdata getBlock(struct chunkdata* data, int64_t x, int y, int64_t z) {
     if (cx < 0 || cz < 0 || cx >= data->info.width || cz >= data->info.width) return BLOCKDATA_BORDER;
     x = i64_mod(x + 8, 16);
     z = 15 - i64_mod(z + 8, 16);
-    return data->data[cx + cz * data->info.width][y * 256 + z * 16 + x];
+    int c = cx + cz * data->info.width;
+    if (!data->renddata[c].generated) return BLOCKDATA_BORDER;
+    return data->data[c][y * 256 + z * 16 + x];
 }
 
 void setBlock(struct chunkdata* data, int64_t x, int y, int64_t z, struct blockdata bdata) {
@@ -52,7 +54,9 @@ void setBlock(struct chunkdata* data, int64_t x, int y, int64_t z, struct blockd
     if (cx < 0 || cz < 0 || cx >= data->info.width || cz >= data->info.width) return;
     x = i64_mod(x + 8, 16);
     z = 15 - i64_mod(z + 8, 16);
-    data->data[cx + cz * data->info.width][y * 256 + z * 16 + x] = bdata;
+    int c = cx + cz * data->info.width;
+    if (!data->renddata[c].generated) return;
+    data->data[c][y * 256 + z * 16 + x] = bdata;
     pthread_mutex_unlock(&data->lock);
 }
 
@@ -80,7 +84,7 @@ struct chunkdata* allocChunks(int dist) {
     chunks->info.widthsq = dist;
     chunks->data = malloc(dist * sizeof(*chunks->data));
     for (int i = 0; i < dist; ++i) {
-        chunks->data[i] = calloc(sizeof(**chunks->data), 65536);
+        chunks->data[i] = malloc(sizeof(**chunks->data) * 65536);
     }
     chunks->renddata = calloc(sizeof(*chunks->renddata), dist);
     chunks->rordr = calloc(sizeof(*chunks->rordr), dist);
@@ -95,6 +99,40 @@ struct chunkdata* allocChunks(int dist) {
     chunks->xoff = 0;
     chunks->zoff = 0;
     return chunks;
+}
+
+void resizeChunks(struct chunkdata* chunks, int dist) {
+    if (dist < 1) dist = 1;
+    pthread_mutex_lock(&chunks->lock);
+    for (int i = 0; i < (int)chunks->info.widthsq; ++i) {
+        free(chunks->data[i]);
+        free(chunks->renddata[i].vertices[0]);
+        free(chunks->renddata[i].vertices[1]);
+        free(chunks->renddata[i].sortvert);
+    }
+    free(chunks->data);
+    free(chunks->renddata);
+    free(chunks->rordr);
+    chunks->info.dist = dist;
+    dist = 1 + dist * 2;
+    chunks->info.width = dist;
+    dist *= dist;
+    chunks->info.widthsq = dist;
+    chunks->data = malloc(dist * sizeof(*chunks->data));
+    for (int i = 0; i < dist; ++i) {
+        chunks->data[i] = calloc(sizeof(**chunks->data), 65536);
+    }
+    chunks->renddata = calloc(sizeof(*chunks->renddata), dist);
+    chunks->rordr = calloc(sizeof(*chunks->rordr), dist);
+    for (unsigned x = 0; x < chunks->info.width; ++x) {
+        for (unsigned z = 0; z < chunks->info.width; ++z) {
+            uint32_t c = x + z * chunks->info.width;
+            chunks->rordr[c].dist = distance((int)(x - chunks->info.dist), (int)(chunks->info.dist - z), 0, 0);
+            chunks->rordr[c].c = c;
+        }
+    }
+    qsort(chunks->rordr, chunks->info.widthsq, sizeof(*chunks->rordr), compare);
+    pthread_mutex_unlock(&chunks->lock);
 }
 
 void moveChunks(struct chunkdata* chunks, int cx, int cz) {
