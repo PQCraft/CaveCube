@@ -445,16 +445,16 @@ void updateScreen() {
     #endif
 }
 
-static force_inline struct blockdata rendGetBlock(int32_t c, int x, int y, int z) {
-    while (x < 0/* && c % rendinf.chunks->info.width*/) {c -= 1; x += 16;}
-    while (x > 15/* && (c + 1) % rendinf.chunks->info.width*/) {c += 1; x -= 16;}
-    while (z > 15/* && c >= (int)rendinf.chunks->info.width*/) {c -= rendinf.chunks->info.width; z -= 16;}
-    while (z < 0/* && c < (int)(rendinf.chunks->info.widthsq - rendinf.chunks->info.width)*/) {c += rendinf.chunks->info.width; z += 16;}
-    if (c < 0 || x < 0 || z < 0 || x > 15 || z > 15) return (struct blockdata){255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    if (c >= (int32_t)rendinf.chunks->info.widthsq || y < 0 || y > 255) return (struct blockdata){0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    if (!rendinf.chunks->renddata[c].generated) return (struct blockdata){255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    struct blockdata ret = rendinf.chunks->data[c][y * 256 + z * 16 + x];
-    return ret;
+static force_inline int64_t i64_mod(int64_t v, int64_t m) {return ((v % m) + m) % m;}
+
+static force_inline struct blockdata rendGetBlock(int64_t cx, int64_t cz, int x, int y, int z) {
+    if (y < 0 || y > 255) return BLOCKDATA_NULL;
+    cx += x / 16 - (x < 0);
+    cz -= z / 16 - (z < 0);
+    if (cx < 0 || cz < 0 || cx >= rendinf.chunks->info.width || cz >= rendinf.chunks->info.width) return BLOCKDATA_BORDER;
+    x = i64_mod(x, 16);
+    z = i64_mod(z, 16);
+    return rendinf.chunks->data[cx + cz * rendinf.chunks->info.width][y * 256 + z * 16 + x];
 }
 
 static float vert2D[] = {
@@ -581,15 +581,6 @@ static uint32_t constBlockVert2[6][6] = {
     ++*v; ++*l;\
 }
 
-/*
-static force_ineline int32_t calcChunkOff(int64_t x, int64_t z) {
-    int64_t nx = x + rendinf.chunks->info.dist;
-    int64_t nz = rendinf.chunks->info.width - (z + rendinf.chunks->info.dist) - 1;
-    if (nx < 0 || nz < 0 || nx >= (int32_t)rendinf.chunks->info.width || nz >= (int32_t)rendinf.chunks->info.width) return -1;
-    return nx + nz * rendinf.chunks->info.width;
-}
-*/
-
 struct tricmp {
     float dist;
     uint32_t data[18];
@@ -598,7 +589,6 @@ struct tricmp {
 static int compare(const void* b, const void* a) {
     float fa = ((struct tricmp*)a)->dist;
     float fb = ((struct tricmp*)b)->dist;
-    //printf("[%f] <-> [%f]\n", fa, fb);
     return (fa > fb) - (fa < fb);
 }
 
@@ -688,17 +678,17 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
             free(_vptr2);
             goto lblcontinue;
         }
-        uint64_t c = nx + nz * rendinf.chunks->info.width;
+        //uint64_t c = nx + nz * rendinf.chunks->info.width;
         for (int z = 0; z < 16; ++z) {
             for (int x = 0; x < 16; ++x) {
-                bdata = rendGetBlock(c, x, y, z);
+                bdata = rendGetBlock(nx, nz, x, y, z);
                 if (!bdata.id || !blockinf[bdata.id].id || !blockinf[bdata.id].data[bdata.subid].id) continue;
-                bdata2[0] = rendGetBlock(c, x, y + 1, z);
-                bdata2[1] = rendGetBlock(c, x + 1, y, z);
-                bdata2[2] = rendGetBlock(c, x, y, z + 1);
-                bdata2[3] = rendGetBlock(c, x, y - 1, z);
-                bdata2[4] = rendGetBlock(c, x - 1, y, z);
-                bdata2[5] = rendGetBlock(c, x, y, z - 1);
+                bdata2[0] = rendGetBlock(nx, nz, x, y + 1, z);
+                bdata2[1] = rendGetBlock(nx, nz, x + 1, y, z);
+                bdata2[2] = rendGetBlock(nx, nz, x, y, z + 1);
+                bdata2[3] = rendGetBlock(nx, nz, x, y - 1, z);
+                bdata2[4] = rendGetBlock(nx, nz, x - 1, y, z);
+                bdata2[5] = rendGetBlock(nx, nz, x, y, z - 1);
                 for (int i = 0; i < 6; ++i) {
                     if (bdata2[i].id && blockinf[bdata2[i].id].id) {
                         if (blockinf[bdata2[i].id].data[bdata2[i].subid].transparency) {

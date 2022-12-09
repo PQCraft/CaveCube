@@ -391,10 +391,10 @@ bool doGame(char* addr, int port) {
         speedmult /= 4.0;
         speedmult += 0.75;
         if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_JUMP)) {
-            yvel += 1.0 * speedmult;
+            yvel += 1.0 * (speedmult + (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_RUN)) * 0.0175);
         }
         if (crouch) {
-            yvel -= 1.0 * speedmult;
+            yvel -= 1.0 * (speedmult + (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_RUN)) * 0.0175);
         }
         //printf("yvel: [%f] [%f] [%f] [%f] [%u]\n", rendinf.campos.y, (float)((int)(blocky2)) + 0.5, yvel, pmult, underbdata.id & 0xFF);
         pvelocity.y = yvel;
