@@ -44,8 +44,10 @@
 - Make updateChunks() use a message list
 
 ### IN-PROGRESS:
-- Redo almost everything to do with chunks/blocks
-    - Ensure that every function that does block operations takes a non-inverted z
+- Add physics in `src/physics/`
+    - Use ticks https://gafferongames.com/post/fix_your_timestep/ and add interpolation
+    - Add AABB collision in `collision.(c|h)`
+    - Add raycasting in `raycasting.(c|h)`
 
 ### DONE:
 - Redid logo
