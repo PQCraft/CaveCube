@@ -454,7 +454,9 @@ static force_inline struct blockdata rendGetBlock(int64_t cx, int64_t cz, int x,
     if (cx < 0 || cz < 0 || cx >= rendinf.chunks->info.width || cz >= rendinf.chunks->info.width) return BLOCKDATA_BORDER;
     x = i64_mod(x, 16);
     z = i64_mod(z, 16);
-    return rendinf.chunks->data[cx + cz * rendinf.chunks->info.width][y * 256 + z * 16 + x];
+    int c = cx + cz * rendinf.chunks->info.width;
+    if (!rendinf.chunks->renddata[c].generated) return BLOCKDATA_BORDER;
+    return rendinf.chunks->data[c][y * 256 + z * 16 + x];
 }
 
 static float vert2D[] = {

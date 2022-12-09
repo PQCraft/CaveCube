@@ -1,4 +1,11 @@
+### INFO
+- Next version: 0.6.0
+
 ### NEED TO DO:
+- Add physics in `src/physics/`
+    - Use ticks https://gafferongames.com/post/fix_your_timestep/ and add interpolation
+    - Add AABB collision in `collision.(c|h)`
+    - Add raycasting in `raycasting.(c|h)`
 - Implement server chunk cache/pool
 - Implement world saves in `src/server/saves.(c|h)`
 - Flesh out UI
@@ -7,10 +14,6 @@
     - Add `fit_width_to_text` and `fit_height_to_text` attrib
     - Add `text_fmt` attrib
     - Add items to hotbar
-- Add physics in `src/physics/`
-    - Use ticks https://gafferongames.com/post/fix_your_timestep/ and add interpolation
-    - Add AABB collision in `collision.(c|h)`
-    - Add raycasting in `raycasting.(c|h)`
 - Redo doGame() and remove loopDelay
     - Remove collision spaghetti
     - Use physics code for collision and raycasting
@@ -45,3 +48,6 @@
     - Ensure that every function that does block operations takes a non-inverted z
 
 ### DONE:
+- Redid logo
+- Decrustified some chunkdata stuff
+- Added view distance resizing

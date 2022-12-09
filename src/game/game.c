@@ -161,7 +161,8 @@ bool doGame(char* addr, int port) {
     declareConfigKey(config, "Game", "loopDelay", "1000", false);
     declareConfigKey(config, "Player", "name", "Player", false);
     declareConfigKey(config, "Player", "skin", "", false);
-    rendinf.chunks = allocChunks(atoi(getConfigKey(config, "Game", "viewDist")));
+    int viewdist = atoi(getConfigKey(config, "Game", "viewDist"));
+    rendinf.chunks = allocChunks(viewdist);
     if (rendinf.fps || rendinf.vsync) loopdelay = atoi(getConfigKey(config, "Game", "loopDelay"));
     printf("Allocated chunks: [%d] [%d]\n", rendinf.chunks->info.width, rendinf.chunks->info.widthsq);
     rendinf.campos.y = 76.5;
