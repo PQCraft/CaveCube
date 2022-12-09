@@ -14,12 +14,37 @@
 #include <pthread.h>
 #include <math.h>
 
+static force_inline int64_t i64_abs(int64_t v) {return (v < 0) ? -v : v;}
+static force_inline int64_t i64_mod(int64_t v, int64_t m) {return ((v % m) + m) % m;}
+
+static force_inline void _getChunkOfBlock(int64_t x, int64_t z, int64_t* chunkx, int64_t* chunkz) {
+    if (x < 0) x += 1;
+    if (z < 0) z += 1;
+    *chunkx = (i64_abs(x) + 8) / 16;
+    *chunkz = (i64_abs(z) + 8) / 16;
+    if (x < 0) *chunkx = -(*chunkx);
+    if (z < 0) *chunkz = -(*chunkz);
+}
+
+void getChunkOfBlock(int64_t x, int64_t z, int64_t* chunkx, int64_t* chunkz) {
+    _getChunkOfBlock(x, z, chunkx, chunkz);
+}
+
 struct blockdata getBlock(struct chunkdata* data, int64_t x, int y, int64_t z) {
+    if (y < 0 || y > 255) return BLOCKDATA_NULL;
+    int64_t cx, cz;
+    _getChunkOfBlock(x, z, &cx, &cz);
+    cx = (cx - data->xoff) + data->info.dist;
+    cz = data->info.width - ((cz - data->zoff) + data->info.dist) - 1;
+    if (cx < 0 || cz < 0 || cx >= data->info.width || cz >= data->info.width) return BLOCKDATA_BORDER;
+    x = i64_mod(x + 8, 16);
+    z = 15 - i64_mod(z + 8, 16);
+    return data->data[cx + cz * data->info.width][y * 256 + z * 16 + x];
 }
 
 void setBlock(struct chunkdata* data, int64_t x, int y, int64_t z, struct blockdata bdata) {
-    pthread_mutex_lock(&rendinf.chunks->lock);
-    pthread_mutex_unlock(&rendinf.chunks->lock);
+    pthread_mutex_lock(&data->lock);
+    pthread_mutex_unlock(&data->lock);
 }
 
 static int compare(const void* b, const void* a) {

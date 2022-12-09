@@ -19,6 +19,9 @@ struct __attribute__((packed)) blockdata {
     uint8_t flags:8;
 };
 
+#define BLOCKDATA_NULL ((struct blockdata){0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
+#define BLOCKDATA_BORDER ((struct blockdata){255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
+
 #if MODULEID == MODULEID_GAME
 struct rendorder {
     uint32_t c;
