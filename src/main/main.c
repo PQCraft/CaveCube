@@ -313,12 +313,22 @@ int main(int _argc, char** _argv) {
             SERVER_THREADS = cores / 2;
             cores -= SERVER_THREADS;
             MESHER_THREADS = cores;
-            if (!initServer()) return 1;
-            if (!initRenderer() || !startRenderer()) return 1;
+            if (!initServer()) {
+                fputs("Failed to init server\n", stderr);
+                return 1;
+            }
+            if (!initRenderer()) {
+                fputs("Failed to init renderer\n", stderr);
+                return 1;
+            }
+            if (!startRenderer()) {
+                fputs("Failed to start renderer\n", stderr);
+                return 1;
+            }
             printf("Starting world '%s'%s...\n", loc_opt.world, (loc_opt.lan) ? " on LAN" : "");
             int servport;
             if ((servport = startServer(NULL, 0, (loc_opt.lan) ? loc_opt.players : 1, loc_opt.world)) < 0) {
-                fputs("Server failed to start\n", stderr);
+                fputs("Failed to start server\n", stderr);
                 return 1;
             }
             bool game_ecode = doGame(NULL, servport);
@@ -331,7 +341,14 @@ int main(int _argc, char** _argv) {
             cores -= 3;
             if (cores < 1) cores = 1;
             MESHER_THREADS = cores;
-            if (!initRenderer() || !startRenderer()) return 1;
+            if (!initRenderer()) {
+                fputs("Failed to init renderer\n", stderr);
+                return 1;
+            }
+            if (!startRenderer()) {
+                fputs("Failed to start renderer\n", stderr);
+                return 1;
+            }
             bool game_ecode = doGame(cli_opt.addr, cli_opt.port);
             stopRenderer();
             ret = !game_ecode;
@@ -341,9 +358,12 @@ int main(int _argc, char** _argv) {
             cores -= 1;
             if (cores < 1) cores = 1;
             SERVER_THREADS = cores;
-            if (!initServer()) return 1;
+            if (!initServer()) {
+                fputs("Failed to init server\n", stderr);
+                return 1;
+            }
             if (startServer(srv_opt.addr, srv_opt.port, srv_opt.players, srv_opt.world) < 0) {
-                fputs("Server failed to start\n", stderr);
+                fputs("Failed to start server\n", stderr);
                 return 1;
             }
             pause();
@@ -357,7 +377,7 @@ int main(int _argc, char** _argv) {
     SERVER_THREADS = cores;
     if (!initServer()) return 1;
     if (startServer(srv_opt.addr, srv_opt.port, srv_opt.players, srv_opt.world) < 0) {
-        fputs("Server failed to start\n", stderr);
+        fputs("Failed to start server\n", stderr);
         return 1;
     }
     pause();
