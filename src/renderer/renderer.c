@@ -1553,7 +1553,16 @@ bool startRenderer() {
         fputs("startRenderer: Failed to initialize GLAD\n", stderr);
         return false;
     }
+    glver = glGetString(GL_VERSION);
+    printf("OpenGL version: %s\n", glver);
+    glslver = glGetString(GL_SHADING_LANGUAGE_VERSION);
+    printf("GLSL version: %s\n", glslver);
+    glvend = glGetString(GL_VENDOR);
+    printf("Vendor string: %s\n", glvend);
+    glrend = glGetString(GL_RENDERER);
+    printf("Renderer string: %s\n", glrend);
     if (GL_KHR_debug) {
+        puts("KHR_debug supported");
         glDebugMessageCallback(oglCallback, NULL);
     }
 
@@ -1603,14 +1612,6 @@ bool startRenderer() {
     printf("Windowed resolution: [%ux%u@%d]\n", rendinf.win_width, rendinf.win_height, rendinf.win_fps);
     printf("Fullscreen resolution: [%ux%u@%d]\n", rendinf.full_width, rendinf.full_height, rendinf.full_fps);
 
-    glver = glGetString(GL_VERSION);
-    printf("OpenGL version: %s\n", glver);
-    glslver = glGetString(GL_SHADING_LANGUAGE_VERSION);
-    printf("GLSL version: %s\n", glslver);
-    glvend = glGetString(GL_VENDOR);
-    printf("Vendor string: %s\n", glvend);
-    glrend = glGetString(GL_RENDERER);
-    printf("Renderer string: %s\n", glrend);
     #if defined(USESDL2)
     #else
     glfwSetFramebufferSizeCallback(rendinf.window, fbsize);
