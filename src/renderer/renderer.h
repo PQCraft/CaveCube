@@ -43,13 +43,13 @@ struct renderer_info {
     #endif
     unsigned win_width;
     unsigned win_height;
-    unsigned win_fps;
+    float win_fps;
     unsigned full_width;
     unsigned full_height;
-    unsigned full_fps;
+    float full_fps;
     unsigned disp_width;
     unsigned disp_height;
-    unsigned disphz;
+    float disphz;
     unsigned width;
     unsigned height;
     unsigned fps;
