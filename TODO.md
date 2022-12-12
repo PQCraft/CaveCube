@@ -2,10 +2,6 @@
 - Next version: 0.6.0
 
 ### NEED TO DO:
-- Add physics in `src/physics/`
-    - Use ticks https://gafferongames.com/post/fix_your_timestep/ and add interpolation
-    - Add AABB collision in `collision.(c|h)`
-    - Add raycasting in `raycasting.(c|h)`
 - Implement server chunk cache/pool
 - Implement world saves in `src/server/saves.(c|h)`
 - Flesh out UI
