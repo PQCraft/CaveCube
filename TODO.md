@@ -14,9 +14,6 @@
     - Add `fit_width_to_text` and `fit_height_to_text` attrib
     - Add `text_fmt` attrib
     - Add items to hotbar
-- Redo doGame() and remove loopDelay
-    - Remove collision spaghetti
-    - Use physics code for collision and raycasting
 - Add some server events
     - Add event for collecting player info
     - Add event for running physics
@@ -44,6 +41,9 @@
 - Make updateChunks() use a message list
 
 ### IN-PROGRESS:
+- Redo doGame() and remove loopDelay
+    - Remove collision spaghetti
+    - Use physics code for collision and raycasting
 - Add physics in `src/physics/`
     - Use ticks https://gafferongames.com/post/fix_your_timestep/ and add interpolation
     - Add AABB collision in `collision.(c|h)`
