@@ -20,8 +20,8 @@
 
 #include <common/glue.h>
 
-int fps;
-int realfps;
+double fps;
+double realfps;
 bool showDebugInfo = true;
 coord_3d_dbl pcoord;
 coord_3d pvelocity;
@@ -433,6 +433,15 @@ bool doGame(char* addr, int port) {
             fpstime += tmp;
             if (tmp > lowframe) lowframe = tmp;
             ++fpsct;
+            uint64_t curtime = altutime();
+            if (curtime - fpsstarttime >= 200000) {
+                fps = 1000000.0 / (double)((fpstime / (double)fpsct));
+                realfps = 1000000.0 / (double)lowframe;
+                fpsstarttime = curtime;
+                fpsct = 0;
+                fpstime = 0;
+                lowframe = 1000000.0 / (double)rendinf.disphz;
+            }
         }
         //uint64_t et2 = altutime() - st1;
         //if (et2 > 16667) printf("OY!: logic:[%lu]; rend:[%lu]\n", et1, et2);
@@ -440,21 +449,6 @@ bool doGame(char* addr, int port) {
         pblockx = bcoord.x;
         pblocky = bcoord.y;
         pblockz = bcoord.z;
-        uint64_t curtime = altutime();
-        if (curtime - fpsstarttime >= 150000) {
-            fps = round(1000000.0 / (double)((fpstime / (double)fpsct)));
-            realfps = round(1000000.0 / (double)lowframe);
-            fpsstarttime = curtime;
-            /*
-            if (rendinf.fps) {
-                if (rendtime > 50000 && fpsct < (int)rendinf.fps) rendtime -= 100000;
-                if (rendtime < 100000 && fpsct > (int)rendinf.fps + 5) rendtime += 100000;
-            }
-            */
-            fpsct = 0;
-            fpstime = 0;
-            lowframe = 1000000.0 / (double)rendinf.disphz;
-        }
         fpsmult = (double)((uint64_t)altutime() - (uint64_t)st1) / 1000000.0;
         pmult = posmult * fpsmult;
     }

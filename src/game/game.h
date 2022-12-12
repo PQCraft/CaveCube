@@ -16,8 +16,8 @@ enum {
 
 bool doGame(char*, int);
 
-extern int fps;
-extern int realfps;
+extern double fps;
+extern double realfps;
 extern bool showDebugInfo;
 extern coord_3d_dbl pcoord;
 extern coord_3d pvelocity;

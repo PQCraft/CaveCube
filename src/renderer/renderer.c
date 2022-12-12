@@ -1255,7 +1255,7 @@ void render() {
         }
         sprintf(
             &tbuf[0][toff],
-            "FPS: %d (%d)\n"
+            "FPS: %.2lf (%.2lf)\n"
             "Position: (%lf, %lf, %lf)\n"
             "Velocity: (%f, %f, %f)\n"
             "Rotation: (%f, %f, %f)\n"
@@ -1503,12 +1503,12 @@ bool startRenderer() {
     declareConfigKey(config, "Renderer", "FOV", "85", false);
     declareConfigKey(config, "Renderer", "nearPlane", "0.05", false);
     declareConfigKey(config, "Renderer", "farPlane", "2500", false);
-    sscanf(getConfigKey(config, "Renderer", "resolution"), "%ux%u@%u",
+    sscanf(getConfigKey(config, "Renderer", "resolution"), "%ux%u@%f",
         &rendinf.win_width, &rendinf.win_height, &rendinf.win_fps);
     if (!rendinf.win_width || rendinf.win_width > 32767) rendinf.win_width = 1024;
     if (!rendinf.win_height || rendinf.win_height > 32767) rendinf.win_height = 768;
     rendinf.full_fps = rendinf.win_fps;
-    sscanf(getConfigKey(config, "Renderer", "fullScreenRes"), "%ux%u@%u",
+    sscanf(getConfigKey(config, "Renderer", "fullScreenRes"), "%ux%u@%f",
         &rendinf.full_width, &rendinf.full_height, &rendinf.full_fps);
     if (!rendinf.full_width || rendinf.full_width > 32767) rendinf.full_width = rendinf.disp_width;
     if (!rendinf.full_height || rendinf.full_height > 32767) rendinf.full_height = rendinf.disp_height;
@@ -1609,8 +1609,8 @@ bool startRenderer() {
     freeResource(vs);
     freeResource(fs);
 
-    printf("Windowed resolution: [%ux%u@%d]\n", rendinf.win_width, rendinf.win_height, rendinf.win_fps);
-    printf("Fullscreen resolution: [%ux%u@%d]\n", rendinf.full_width, rendinf.full_height, rendinf.full_fps);
+    printf("Windowed resolution: [%ux%u@%g]\n", rendinf.win_width, rendinf.win_height, rendinf.win_fps);
+    printf("Fullscreen resolution: [%ux%u@%g]\n", rendinf.full_width, rendinf.full_height, rendinf.full_fps);
 
     #if defined(USESDL2)
     #else
