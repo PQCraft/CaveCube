@@ -43,8 +43,8 @@ static force_inline void writeChunk(struct chunkdata* chunks, int64_t x, int64_t
     uint32_t coff = nx + nz * chunks->info.width;
     //printf("writing chunk to [%"PRId64", %"PRId64"] ([%"PRId64", %"PRId64"])\n", nx, nz, x, z);
     memcpy(chunks->data[coff], data, 65536 * sizeof(struct blockdata));
-    //chunks->renddata[coff].updated = false;
     chunks->renddata[coff].generated = true;
+    chunks->renddata[coff].requested = false;
     updateChunk(x, z, CHUNKUPDATE_PRIO_LOW, 1);
     pthread_mutex_unlock(&chunks->lock);
 }
@@ -58,8 +58,9 @@ static force_inline void reqChunks(struct chunkdata* chunks) {
             for (int x = -i; x <= i; ++x) {
                 if (abs(z) == i || (abs(z) != i && abs(x) == i)) {
                     uint32_t coff = (z + chunks->info.dist) * chunks->info.width + (x + chunks->info.dist);
-                    if (!chunks->renddata[coff].generated/* && !chunks->renddata[coff].requested*/) {
+                    if (!chunks->renddata[coff].generated && !chunks->renddata[coff].requested) {
                         //printf("REQ [%"PRId64", %"PRId64"]\n", (int64_t)((int64_t)(x) + xo), (int64_t)((int64_t)(-z) + zo));
+                        //chunks->renddata[coff].requested = true; //TODO: figure out why this doesn't unset
                         cliSend(CLIENT_GETCHUNK, (int64_t)((int64_t)(x) + chunks->xoff), (int64_t)((int64_t)(-z) + chunks->zoff));
                     }
                 }
@@ -97,10 +98,6 @@ static force_inline void updateHotbar(int hb, int slot) {
     char hbslot[2] = {slot + '0', 0};
     editUIElem(game_ui[UILAYER_CLIENT], hb, NULL, -1, "slot", hbslot, NULL);
 }
-
-//#define mod(x, n) (((x) % (n) + (n)) % (n))
-
-//int64_t farlands = -((int64_t)1 << 55);
 
 static pthread_mutex_t gfxlock = PTHREAD_MUTEX_INITIALIZER;
 static bool ping = false;
@@ -192,6 +189,7 @@ bool doGame(char* addr, int port) {
         return false;
     }
     if (quitRequest) return false;
+    reqChunks(rendinf.chunks);
 
     struct input_info input;
     //genChunks(&chunks, cx, cz);
@@ -211,7 +209,7 @@ bool doGame(char* addr, int port) {
 
     resetInput();
     setInputMode(INPUT_MODE_GAME);
-    //setSkyColor(0.5, 0.5, 0.5);
+    setSkyColor(0.5, 0.5, 0.5);
     for (int i = 0; i < 4; ++i) {
         game_ui[i] = allocUI();
     }
@@ -234,7 +232,7 @@ bool doGame(char* addr, int port) {
     while (!quitRequest) {
         uint64_t st1 = altutime();
         if (loopdelay) microwait(loopdelay);
-        float bps = 4;
+        float bps = 25;
         getInput(&input);
         {
             if (!input.focus && inputMode != INPUT_MODE_UI) {
@@ -286,15 +284,6 @@ bool doGame(char* addr, int port) {
                             --blocksub;
                             if (blocksub < 0) blocksub = 0;
                             break;
-                        /*
-                        case INPUT_ACTION_SINGLE_ROT_Z:;
-                            for (int z = -chunks->info.dist; z <= (int)chunks->info.dist; ++z) {
-                                for (int x = -chunks->info.dist; x <= (int)chunks->info.dist; ++x) {
-                                    updateChunk(x + cx, z + cz, CHUNKUPDATE_PRIO_HIGH, 0);
-                                }
-                            }
-                            break;
-                        */
                         case INPUT_ACTION_SINGLE_ESC:;
                             setInputMode(INPUT_MODE_UI);
                             resetInput();
@@ -328,9 +317,7 @@ bool doGame(char* addr, int port) {
         } /*else*/ if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_RUN)) {
             bps *= 1.6875;
         }
-        float speedmult = 3.0;
         float leanmult = ((bps < 10.0) ? bps : 10.0) * 0.125 * 1.0;
-        bps *= speedmult;
         tmpcamrot.x += input.rot_up * input.rot_mult_y * zoomrotmult;
         tmpcamrot.y -= input.rot_right * input.rot_mult_x * zoomrotmult;
         rendinf.camrot.x = tmpcamrot.x - input.mov_up * leanmult;
@@ -344,7 +331,6 @@ bool doGame(char* addr, int port) {
         if (tmpcamrot.x < -90.0) tmpcamrot.x = -90.0;
         float yrotrad = (tmpcamrot.y / 180 * M_PI);
         int cmx = 0, cmz = 0;
-        static bool first = true;
         rendinf.campos.z += zcm * input.mov_mult;
         rendinf.campos.x += xcm * input.mov_mult;
         pvelocity.x = xcm;
@@ -365,8 +351,7 @@ bool doGame(char* addr, int port) {
             rendinf.campos.x += 16.0;
             --cmx;
         }
-        if (cmx || cmz || first) {
-            first = false;
+        if (cmx || cmz) {
             moveChunks(rendinf.chunks, cmx, cmz);
             reqChunks(rendinf.chunks);
             //microwait(1000000);
@@ -389,13 +374,11 @@ bool doGame(char* addr, int port) {
             rendinf.campos.y = (float)((int)(rendinf.campos.y)) + 0.5;
         }
         */
-        speedmult /= 4.0;
-        speedmult += 0.75;
         if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_JUMP)) {
-            yvel += 1.0 * (speedmult + (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_RUN)) * 0.0175);
+            yvel += 2.0 * (1.0 + (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_RUN)) * 0.0175);
         }
         if (crouch) {
-            yvel -= 1.0 * (speedmult + (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_RUN)) * 0.0175);
+            yvel -= 2.0 * (1.0 + (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_RUN)) * 0.0175);
         }
         //printf("yvel: [%f] [%f] [%f] [%f] [%u]\n", rendinf.campos.y, (float)((int)(blocky2)) + 0.5, yvel, pmult, underbdata.id & 0xFF);
         pvelocity.y = yvel;

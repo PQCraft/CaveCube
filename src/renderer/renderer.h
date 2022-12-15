@@ -100,6 +100,7 @@ struct chunk_renddata {
     bool buffered:1;
     bool generated:1;
     bool visible:1;
+    bool requested:1;
 };
 
 struct ui_renddata {
