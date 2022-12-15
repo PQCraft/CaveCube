@@ -135,6 +135,16 @@ void resizeChunks(struct chunkdata* chunks, int dist) {
     pthread_mutex_unlock(&chunks->lock);
 }
 
+static force_inline void nullattrib(struct chunkdata* chunks, int c) {
+    chunks->renddata[c].vcount[0] = 0;
+    chunks->renddata[c].vcount[1] = 0;
+    chunks->renddata[c].tcount[0] = 0;
+    chunks->renddata[c].tcount[1] = 0;
+    chunks->renddata[c].buffered = false;
+    chunks->renddata[c].generated = false;
+    chunks->renddata[c].requested = false;
+}
+
 void moveChunks(struct chunkdata* chunks, int cx, int cz) {
     pthread_mutex_lock(&chunks->lock);
     for (int d = -chunks->info.dist; d <= (int)chunks->info.dist; ++d) {
@@ -166,12 +176,7 @@ void moveChunks(struct chunkdata* chunks, int cx, int cz) {
             chunks->data[c] = swap;
             chunks->renddata[c] = rdswap;
             if (chunks->renddata[c].generated) {
-                chunks->renddata[c].vcount[0] = 0;
-                chunks->renddata[c].vcount[1] = 0;
-                chunks->renddata[c].tcount[0] = 0;
-                chunks->renddata[c].tcount[1] = 0;
-                chunks->renddata[c].buffered = false;
-                chunks->renddata[c].generated = false;
+                nullattrib(chunks, c);
             }
         }
     }
@@ -189,12 +194,7 @@ void moveChunks(struct chunkdata* chunks, int cx, int cz) {
             chunks->data[c] = swap;
             chunks->renddata[c] = rdswap;
             if (chunks->renddata[c].generated) {
-                chunks->renddata[c].vcount[0] = 0;
-                chunks->renddata[c].vcount[1] = 0;
-                chunks->renddata[c].tcount[0] = 0;
-                chunks->renddata[c].tcount[1] = 0;
-                chunks->renddata[c].buffered = false;
-                chunks->renddata[c].generated = false;
+                nullattrib(chunks, c);
             }
         }
     }
@@ -212,12 +212,7 @@ void moveChunks(struct chunkdata* chunks, int cx, int cz) {
             chunks->data[c] = swap;
             chunks->renddata[c] = rdswap;
             if (chunks->renddata[c].generated) {
-                chunks->renddata[c].vcount[0] = 0;
-                chunks->renddata[c].vcount[1] = 0;
-                chunks->renddata[c].tcount[0] = 0;
-                chunks->renddata[c].tcount[1] = 0;
-                chunks->renddata[c].buffered = false;
-                chunks->renddata[c].generated = false;
+                nullattrib(chunks, c);
             }
         }
     }
@@ -235,12 +230,7 @@ void moveChunks(struct chunkdata* chunks, int cx, int cz) {
             chunks->data[c] = swap;
             chunks->renddata[c] = rdswap;
             if (chunks->renddata[c].generated) {
-                chunks->renddata[c].vcount[0] = 0;
-                chunks->renddata[c].vcount[1] = 0;
-                chunks->renddata[c].tcount[0] = 0;
-                chunks->renddata[c].tcount[1] = 0;
-                chunks->renddata[c].buffered = false;
-                chunks->renddata[c].generated = false;
+                nullattrib(chunks, c);
             }
         }
     }
