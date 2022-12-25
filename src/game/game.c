@@ -304,18 +304,17 @@ bool doGame(char* addr, int port) {
         }
         float zoomrotmult;
         if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_ZOOM)) {
-            rendinf.camfov = 12.5;
             zoomrotmult = 0.25;
         } else {
-            rendinf.camfov = 85;
             zoomrotmult = 1.0;
         }
+        float runmult = 1.0;
         bool crouch = false;
         if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_CROUCH)) {
             crouch = true;
             //bps *= 0.375;
-        } /*else*/ if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_RUN)) {
-            bps *= 1.6875;
+        } /*else*/ if ((input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_RUN)) && input.mov_up > 0.0) {
+            runmult = 1.6875;
         }
         float leanmult = ((bps < 10.0) ? bps : 10.0) * 0.125 * 1.0;
         tmpcamrot.x += input.rot_up * input.rot_mult_y * zoomrotmult;
@@ -361,9 +360,9 @@ bool doGame(char* addr, int port) {
         struct blockdata curbdata = getBlockF(rendinf.chunks, rendinf.campos.x, rendinf.campos.y, rendinf.campos.z);
         //struct blockdata curbdata2 = getBlockF(&chunks, rendinf.campos.x, rendinf.campos.y - 1, rendinf.campos.z);
         //struct blockdata underbdata = getBlockF(&chunks, rendinf.campos.x, rendinf.campos.y - 1.51, rendinf.campos.z);
-        float f1 = input.mov_up * sinf(yrotrad);
+        float f1 = input.mov_up * runmult * sinf(yrotrad);
         float f2 = input.mov_right * cosf(yrotrad);
-        float f3 = input.mov_up * cosf(yrotrad);
+        float f3 = input.mov_up * runmult * cosf(yrotrad);
         float f4 = (input.mov_right * sinf(yrotrad)) * -1;
         xcm = (f1 * bps) + (f2 * bps);
         zcm = (f3 * bps) + (f4 * bps);
@@ -408,7 +407,13 @@ bool doGame(char* addr, int port) {
             }
             pthread_mutex_unlock(&gfxlock);
             //if (crouch) rendinf.campos.y -= 0.375;
+            float oldfov = rendinf.camfov;
+            bool zoom = (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_ZOOM));
+            bool run = (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_RUN));
+            if (zoom) rendinf.camfov = 12.5;
+            else if (run) rendinf.camfov += ((input.mov_up > 0.0) ? input.mov_up : 0.0) * 1.25;
             updateCam();
+            if (zoom || run) rendinf.camfov = oldfov;
             updateChunks();
             //if (crouch) rendinf.campos.y += 0.375;
             render();

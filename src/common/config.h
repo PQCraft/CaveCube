@@ -22,11 +22,11 @@ struct config {
     bool changed;
 };
 
-struct config* openConfig(char*);
-void declareConfigKey(struct config*, char*, char*, char*, bool);
-void deleteConfigKey(struct config*, char*, char*);
-char* getConfigKey(struct config*, char*, char*);
-bool writeConfig(struct config*, char*);
-void closeConfig(struct config*);
+struct config* openConfig(char* /*path*/);
+void declareConfigKey(struct config* /*cfg*/, char* /*sect*/, char* /*key*/, char* /*val*/, bool /*overwrite*/);
+void deleteConfigKey(struct config* /*cfg*/, char* /*sect*/, char* /*key*/);
+char* getConfigKey(struct config* /*cfg*/, char* /*sect*/, char* /*key*/);
+bool writeConfig(struct config* /*cfg*/, char* /*path*/);
+void closeConfig(struct config* /*cfg*/);
 
 #endif

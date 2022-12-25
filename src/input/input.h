@@ -64,6 +64,7 @@ struct input_info {
     float mov_mult;
     float mov_up;
     float mov_right;
+    float mov_bal;
     float rot_mult_x;
     float rot_mult_y;
     float rot_up;
@@ -80,7 +81,7 @@ bool initInput(void);
 void resetInput(void);
 void getInput(struct input_info*);
 
-#define INPUT_EMPTY_INFO (struct input_info){false, INPUT_ACTION_MULTI__NONE, INPUT_ACTION_SINGLE__NONE, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0, 0, 0}
+#define INPUT_EMPTY_INFO (struct input_info){false, INPUT_ACTION_MULTI__NONE, INPUT_ACTION_SINGLE__NONE, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0, 0, 0}
 
 #endif
 

@@ -663,8 +663,9 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
     }
     pthread_mutex_unlock(&rendinf.chunks->lock);
     //printf("mesh: [%"PRId64", %"PRId64"]\n", x, z);
-    int vpsize = 4096;
-    int vpsize2 = 4096;
+    //uint64_t stime = altutime();
+    int vpsize = 65536;
+    int vpsize2 = 65536;
     uint32_t* _vptr = malloc(vpsize * sizeof(uint32_t));
     uint32_t* _vptr2 = malloc(vpsize2 * sizeof(uint32_t));
     int vplen = 0;
@@ -752,6 +753,10 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
         //rendinf.chunks->renddata[c].ready = true;
         rendinf.chunks->renddata[c].updateid = id;
         //printf("meshed: [%"PRId64", %"PRId64"] ([%"PRId64", %"PRId64"])\n", x, z, nx, nz);
+        /*
+        double time = (altutime() - stime) / 1000.0;
+        printf("meshed: [%"PRId64", %"PRId64"] in [%lgms]\n", x, z, time);
+        */
     } else {
         free(_vptr);
         free(_vptr2);
@@ -769,6 +774,8 @@ static force_inline void setready(int64_t x, int64_t z, bool val) {
     //printf("set ready on [%"PRId64", %"PRId64"] -> [%"PRId64", %"PRId64"] (c=%d, offset=[%"PRId64", %"PRId64"])\n", x, z, nx, nz, c, cxo, czo);
 }
 
+bool lazymesh;
+
 static void* meshthread(void* args) {
     (void)args;
     uint64_t acttime = altutime();
@@ -777,26 +784,42 @@ static void* meshthread(void* args) {
         bool activity = false;
         int p = 0;
         if (getNextMsg(&chunkmsgs[(p = CHUNKUPDATE_PRIO_HIGH)], &msg) || getNextMsg(&chunkmsgs[(p = CHUNKUPDATE_PRIO_LOW)], &msg)) {
+            //uint64_t stime = altutime();
             activity = true;
             mesh(msg.x, msg.z, msg.id);
             if (!msg.dep) {
-                if (msg.lvl >= 1) {
-                    mesh(msg.x, msg.z + 1, msg.id);
-                    mesh(msg.x, msg.z - 1, msg.id);
-                    mesh(msg.x + 1, msg.z, msg.id);
-                    mesh(msg.x - 1, msg.z, msg.id);
-                    if (msg.lvl >= 2) {
-                        mesh(msg.x + 1, msg.z + 1, msg.id);
-                        mesh(msg.x + 1, msg.z - 1, msg.id);
-                        mesh(msg.x - 1, msg.z + 1, msg.id);
-                        mesh(msg.x - 1, msg.z - 1, msg.id);
+                if (lazymesh) {
+                    if (msg.lvl >= 1) {
+                        addMsg(&chunkmsgs[p], msg.x, msg.z + 1, msg.id, true, msg.lvl);
+                        addMsg(&chunkmsgs[p], msg.x, msg.z - 1, msg.id, true, msg.lvl);
+                        addMsg(&chunkmsgs[p], msg.x + 1, msg.z, msg.id, true, msg.lvl);
+                        addMsg(&chunkmsgs[p], msg.x - 1, msg.z, msg.id, true, msg.lvl);
+                        if (msg.lvl >= 2) {
+                            addMsg(&chunkmsgs[p], msg.x + 1, msg.z + 1, msg.id, true, msg.lvl);
+                            addMsg(&chunkmsgs[p], msg.x + 1, msg.z - 1, msg.id, true, msg.lvl);
+                            addMsg(&chunkmsgs[p], msg.x - 1, msg.z + 1, msg.id, true, msg.lvl);
+                            addMsg(&chunkmsgs[p], msg.x - 1, msg.z - 1, msg.id, true, msg.lvl);
+                        }
+                    }
+                } else {
+                    if (msg.lvl >= 1) {
+                        mesh(msg.x, msg.z + 1, msg.id);
+                        mesh(msg.x, msg.z - 1, msg.id);
+                        mesh(msg.x + 1, msg.z, msg.id);
+                        mesh(msg.x - 1, msg.z, msg.id);
+                        if (msg.lvl >= 2) {
+                            mesh(msg.x + 1, msg.z + 1, msg.id);
+                            mesh(msg.x + 1, msg.z - 1, msg.id);
+                            mesh(msg.x - 1, msg.z + 1, msg.id);
+                            mesh(msg.x - 1, msg.z - 1, msg.id);
+                        }
                     }
                 }
             }
             //printf("x: [%"PRId64"], z: [%"PRId64"], p: [%d]\n", msg.x, msg.z, p);
             pthread_mutex_lock(&rendinf.chunks->lock);
             setready(msg.x, msg.z, true);
-            if (!msg.dep) {
+            if (!msg.dep && !lazymesh) {
                 if (msg.lvl >= 1) {
                     setready(msg.x, msg.z + 1, true);
                     setready(msg.x, msg.z - 1, true);
@@ -811,6 +834,10 @@ static void* meshthread(void* args) {
                 }
             }
             pthread_mutex_unlock(&rendinf.chunks->lock);
+            /*
+            double time = (altutime() - stime) / 1000.0;
+            printf("meshed: [%"PRId64", %"PRId64"] in [%lgms]\n", msg.x, msg.z, time);
+            */
         }
         if (activity) {
             acttime = altutime();
@@ -1380,17 +1407,6 @@ static void errorcb(int e, const char* m) {
 }
 #endif
 
-bool initRenderer() {
-    rendinf.camfov = 85;
-    rendinf.camnear = 0.05;
-    rendinf.camfar = 1000;
-    rendinf.campos = GFX_DEFAULT_POS;
-    rendinf.camrot = GFX_DEFAULT_ROT;
-    //rendinf.camrot.y = 180;
-
-    return true;
-}
-
 #if defined(_WIN32) && !defined(_WIN64)
 __attribute__((stdcall))
 #endif
@@ -1427,7 +1443,20 @@ static void oglCallback(GLenum source, GLenum type, GLuint id, GLenum severity, 
     fprintf(stderr, "OpenGL debug [%s]: [%d] {%s}\n", sevstr, id, msg);
 }
 
-bool startRenderer() {
+bool initRenderer() {
+    declareConfigKey(config, "Renderer", "compositing", "true", false);
+    declareConfigKey(config, "Renderer", "resolution", "1024x768", false);
+    declareConfigKey(config, "Renderer", "fullScreenRes", "", false);
+    declareConfigKey(config, "Renderer", "vSync", "true", false);
+    declareConfigKey(config, "Renderer", "fullScreen", "false", false);
+    declareConfigKey(config, "Renderer", "FOV", "85", false);
+    declareConfigKey(config, "Renderer", "nearPlane", "0.05", false);
+    declareConfigKey(config, "Renderer", "farPlane", "2500", false);
+    declareConfigKey(config, "Renderer", "lazyMesher", "false", false);
+
+    rendinf.campos = GFX_DEFAULT_POS;
+    rendinf.camrot = GFX_DEFAULT_ROT;
+
     #if defined(USESDL2)
     SDL_SetHint(SDL_HINT_NO_SIGNAL_HANDLERS, "1");
     if (SDL_Init(SDL_INIT_VIDEO)) {
@@ -1440,7 +1469,6 @@ bool startRenderer() {
     #endif
 
     #if defined(USESDL2)
-    declareConfigKey(config, "Renderer", "compositing", "true", false);
     bool compositing = getBool(getConfigKey(config, "Renderer", "compositing"));
     SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
     #if defined(USEGLES)
@@ -1496,13 +1524,6 @@ bool startRenderer() {
     rendinf.win_fps = rendinf.disphz;
     #endif
 
-    declareConfigKey(config, "Renderer", "resolution", "1024x768", false);
-    declareConfigKey(config, "Renderer", "fullScreenRes", "", false);
-    declareConfigKey(config, "Renderer", "vSync", "true", false);
-    declareConfigKey(config, "Renderer", "fullScreen", "false", false);
-    declareConfigKey(config, "Renderer", "FOV", "85", false);
-    declareConfigKey(config, "Renderer", "nearPlane", "0.05", false);
-    declareConfigKey(config, "Renderer", "farPlane", "2500", false);
     sscanf(getConfigKey(config, "Renderer", "resolution"), "%ux%u@%f",
         &rendinf.win_width, &rendinf.win_height, &rendinf.win_fps);
     if (!rendinf.win_width || rendinf.win_width > 32767) rendinf.win_width = 1024;
@@ -1517,7 +1538,11 @@ bool startRenderer() {
     rendinf.camfov = atof(getConfigKey(config, "Renderer", "FOV"));
     rendinf.camnear = atof(getConfigKey(config, "Renderer", "nearPlane"));
     rendinf.camfar = atof(getConfigKey(config, "Renderer", "farPlane"));
+    lazymesh = getBool(getConfigKey(config, "Renderer", "lazyMesher"));
+    return true;
+}
 
+bool startRenderer() {
     #if defined(USESDL2)
     if (!(rendinf.window = SDL_CreateWindow(PROG_NAME, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, rendinf.win_width, rendinf.win_height, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE))) {
         sdlerror("startRenderer: Failed to create window");
