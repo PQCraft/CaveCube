@@ -31,4 +31,7 @@ void initBlocks(void);
 int blockNoFromID(char*);
 int blockSubNoFromID(int, char*);
 
+#define BLOCKNO_NULL (0)
+#define BLOCKNO_BORDER (255)
+
 #endif

@@ -19,8 +19,8 @@ struct __attribute__((packed)) blockdata {
     uint8_t flags:8;
 };
 
-#define BLOCKDATA_NULL ((struct blockdata){0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
-#define BLOCKDATA_BORDER ((struct blockdata){255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
+//#define BLOCKDATA_NULL ((struct blockdata){0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
+//#define BLOCKDATA_BORDER ((struct blockdata){255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
 
 #if MODULEID == MODULEID_GAME
 struct rendorder {
@@ -44,7 +44,7 @@ struct chunkdata {
     struct chunk_renddata* renddata;
 };
 
-struct blockdata getBlock(struct chunkdata*, int64_t, int, int64_t);
+void getBlock(struct chunkdata*, int64_t, int, int64_t, struct blockdata*);
 void setBlock(struct chunkdata*, int64_t, int, int64_t, struct blockdata);
 void getChunkOfBlock(int64_t, int64_t, int64_t*, int64_t*);
 struct chunkdata* allocChunks(int);
