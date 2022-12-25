@@ -2,6 +2,7 @@
 
 #include <main/main.h>
 #include "chunk.h"
+#include "blocks.h"
 #include <common/common.h>
 #include <renderer/renderer.h>
 #include <server/server.h>
@@ -30,18 +31,18 @@ void getChunkOfBlock(int64_t x, int64_t z, int64_t* chunkx, int64_t* chunkz) {
     _getChunkOfBlock(x, z, chunkx, chunkz);
 }
 
-struct blockdata getBlock(struct chunkdata* data, int64_t x, int y, int64_t z) {
-    if (y < 0 || y > 255) return BLOCKDATA_NULL;
+void getBlock(struct chunkdata* data, int64_t x, int y, int64_t z, struct blockdata* b) {
+    if (y < 0 || y > 255) {b->id = BLOCKNO_NULL; return;}
     int64_t cx, cz;
     _getChunkOfBlock(x, z, &cx, &cz);
     cx = (cx - data->xoff) + data->info.dist;
     cz = data->info.width - ((cz - data->zoff) + data->info.dist) - 1;
-    if (cx < 0 || cz < 0 || cx >= data->info.width || cz >= data->info.width) return BLOCKDATA_BORDER;
+    if (cx < 0 || cz < 0 || cx >= data->info.width || cz >= data->info.width) {b->id = BLOCKNO_BORDER; return;}
     x = i64_mod(x + 8, 16);
     z = 15 - i64_mod(z + 8, 16);
     int c = cx + cz * data->info.width;
-    if (!data->renddata[c].generated) return BLOCKDATA_BORDER;
-    return data->data[c][y * 256 + z * 16 + x];
+    if (!data->renddata[c].generated) {b->id = BLOCKNO_BORDER; return;}
+    *b = data->data[c][y * 256 + z * 16 + x];
 }
 
 void setBlock(struct chunkdata* data, int64_t x, int y, int64_t z, struct blockdata bdata) {

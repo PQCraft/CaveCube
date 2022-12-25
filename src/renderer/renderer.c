@@ -447,16 +447,16 @@ void updateScreen() {
 
 static force_inline int64_t i64_mod(int64_t v, int64_t m) {return ((v % m) + m) % m;}
 
-static force_inline struct blockdata rendGetBlock(int64_t cx, int64_t cz, int x, int y, int z) {
-    if (y < 0 || y > 255) return BLOCKDATA_NULL;
+static force_inline void rendGetBlock(int64_t cx, int64_t cz, int x, int y, int z, struct blockdata* b) {
+    if (y < 0 || y > 255) {b->id = BLOCKNO_NULL; return;}
     cx += x / 16 - (x < 0);
     cz -= z / 16 - (z < 0);
-    if (cx < 0 || cz < 0 || cx >= rendinf.chunks->info.width || cz >= rendinf.chunks->info.width) return BLOCKDATA_BORDER;
+    if (cx < 0 || cz < 0 || cx >= rendinf.chunks->info.width || cz >= rendinf.chunks->info.width) {b->id = BLOCKNO_BORDER; return;};
     x = i64_mod(x, 16);
     z = i64_mod(z, 16);
     int c = cx + cz * rendinf.chunks->info.width;
-    if (!rendinf.chunks->renddata[c].generated) return BLOCKDATA_BORDER;
-    return rendinf.chunks->data[c][y * 256 + z * 16 + x];
+    if (!rendinf.chunks->renddata[c].generated) {b->id = BLOCKNO_BORDER; return;};
+    *b = rendinf.chunks->data[c][y * 256 + z * 16 + x];
 }
 
 static float vert2D[] = {
@@ -684,14 +684,14 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
         //uint64_t c = nx + nz * rendinf.chunks->info.width;
         for (int z = 0; z < 16; ++z) {
             for (int x = 0; x < 16; ++x) {
-                bdata = rendGetBlock(nx, nz, x, y, z);
+                rendGetBlock(nx, nz, x, y, z, &bdata);
                 if (!bdata.id || !blockinf[bdata.id].id || !blockinf[bdata.id].data[bdata.subid].id) continue;
-                bdata2[0] = rendGetBlock(nx, nz, x, y + 1, z);
-                bdata2[1] = rendGetBlock(nx, nz, x + 1, y, z);
-                bdata2[2] = rendGetBlock(nx, nz, x, y, z + 1);
-                bdata2[3] = rendGetBlock(nx, nz, x, y - 1, z);
-                bdata2[4] = rendGetBlock(nx, nz, x - 1, y, z);
-                bdata2[5] = rendGetBlock(nx, nz, x, y, z - 1);
+                rendGetBlock(nx, nz, x, y + 1, z, &bdata2[0]);
+                rendGetBlock(nx, nz, x + 1, y, z, &bdata2[1]);
+                rendGetBlock(nx, nz, x, y, z + 1, &bdata2[2]);
+                rendGetBlock(nx, nz, x, y - 1, z, &bdata2[3]);
+                rendGetBlock(nx, nz, x - 1, y, z, &bdata2[4]);
+                rendGetBlock(nx, nz, x, y, z - 1, &bdata2[5]);
                 for (int i = 0; i < 6; ++i) {
                     if (bdata2[i].id && blockinf[bdata2[i].id].id) {
                         if (blockinf[bdata2[i].id].data[bdata2[i].subid].transparency) {

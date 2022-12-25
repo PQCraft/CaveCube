@@ -69,11 +69,11 @@ static force_inline void reqChunks(struct chunkdata* chunks) {
     }
 }
 
-static force_inline struct blockdata getBlockF(struct chunkdata* chunks, float x, float y, float z) {
+static force_inline void getBlockF(struct chunkdata* chunks, float x, float y, float z, struct blockdata* b) {
     x -= (x < 0) ? 1.0 : 0.0;
     y -= (y < 0) ? 1.0 : 0.0;
     z -= (z < 0) ? 1.0 : 0.0;
-    return getBlock(chunks, x, y, z);
+    getBlock(chunks, x, y, z, b);
 }
 
 static force_inline coord_3d_dbl w2bCoord(coord_3d_dbl in) {
@@ -357,7 +357,8 @@ bool doGame(char* addr, int port) {
         }
         //genChunks(&chunks, cx, cz);
         //printf("x [%f] z [%f]\n", rendinf.campos.x, rendinf.campos.z);
-        struct blockdata curbdata = getBlockF(rendinf.chunks, rendinf.campos.x, rendinf.campos.y, rendinf.campos.z);
+        struct blockdata curbdata;
+        getBlockF(rendinf.chunks, rendinf.campos.x, rendinf.campos.y, rendinf.campos.z, &curbdata);
         //struct blockdata curbdata2 = getBlockF(&chunks, rendinf.campos.x, rendinf.campos.y - 1, rendinf.campos.z);
         //struct blockdata underbdata = getBlockF(&chunks, rendinf.campos.x, rendinf.campos.y - 1.51, rendinf.campos.z);
         float f1 = input.mov_up * runmult * sinf(yrotrad);
