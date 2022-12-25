@@ -829,9 +829,14 @@ static void* clinetthread(void* args) {
                     memcpy(&data.z, &buf[ptr], 8);
                     ptr += 8;
                     data.z = net2host64(data.z);
+                    //uint64_t stime = altutime();
                     if (ezDecompress(tmpsize - 8 - 8 - 1, &buf[ptr], 65536 * sizeof(struct blockdata), data.data) >= 0) {
                         //printf("recv [%"PRId64", %"PRId64"]: [%d]\n", data.x, data.z, tmpsize - 8 - 8 - 1);
                         callback(SERVER_UPDATECHUNK, &data);
+                        /*
+                        double time = (altutime() - stime) / 1000.0;
+                        printf("decompressed: [%"PRId64", %"PRId64"] in [%lgms]\n", data.x, data.z, time);
+                        */
                     }
                     break;
                 }

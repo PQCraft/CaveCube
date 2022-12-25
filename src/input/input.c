@@ -427,6 +427,7 @@ void getInput(struct input_info* _inf) {
             mul = fabs(1 / (cos(mul) + sin(mul)));
             inf->mov_up *= mul;
             inf->mov_right *= mul;
+            inf->mov_bal = mul;
             for (int i = 0; i < INPUT_ACTION_MULTI__MAX - 1; ++i) {
                 if (keyState(input_ma[i]) >= 0.2) {
                     inf->multi_actions |= 1 << i;
