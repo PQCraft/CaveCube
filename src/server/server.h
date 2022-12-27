@@ -42,6 +42,10 @@
     #define CLIENT_INBUF_SIZE (1 << 21)
 #endif
 
+#ifndef SERVER_ASYNC_MSG
+    #define SERVER_ASYNC_MSG 1
+#endif
+
 enum {
     SERVER__MIN = -1,
     SERVER_PONG,

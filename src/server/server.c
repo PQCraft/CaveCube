@@ -48,6 +48,23 @@ static force_inline void deinitMsgData(struct msgdata* mdata) {
 
 static force_inline void addMsg(struct msgdata* mdata, int id, void* data, uint64_t uuid, int uind) {
     pthread_mutex_lock(&mdata->lock);
+    #if SERVER_ASYNC_MSG
+    int index = -1;
+    for (int i = 0; i < mdata->size; ++i) {
+        if (mdata->msg[i].id < 0) {
+            index = i;
+            break;
+        }
+    }
+    if (index == -1) {
+        index = mdata->size++;
+        mdata->msg = realloc(mdata->msg, mdata->size * sizeof(*mdata->msg));
+    }
+    mdata->msg[index].id = id;
+    mdata->msg[index].data = data;
+    mdata->msg[index].uuid = uuid;
+    mdata->msg[index].uind = uind;
+    #else
     if (mdata->wptr < 0 || mdata->rptr >= mdata->size) {
         mdata->rptr = 0;
         mdata->size = 0;
@@ -59,11 +76,25 @@ static force_inline void addMsg(struct msgdata* mdata, int id, void* data, uint6
     mdata->msg[mdata->wptr].data = data;
     mdata->msg[mdata->wptr].uuid = uuid;
     mdata->msg[mdata->wptr].uind = uind;
+    #endif
     pthread_mutex_unlock(&mdata->lock);
 }
 
 static force_inline bool getNextMsg(struct msgdata* mdata, struct msgdata_msg* msg) {
     pthread_mutex_lock(&mdata->lock);
+    #if SERVER_ASYNC_MSG
+    for (int i = 0; i < mdata->size; ++i) {
+        if (mdata->msg[i].id >= 0) {
+            msg->id = mdata->msg[i].id;
+            msg->data = mdata->msg[i].data;
+            msg->uuid = mdata->msg[i].uuid;
+            msg->uind = mdata->msg[i].uind;
+            mdata->msg[i].id = -1;
+            pthread_mutex_unlock(&mdata->lock);
+            return true;
+        }
+    }
+    #else
     if (mdata->rptr >= 0) {
         for (int i = mdata->rptr; i < mdata->size; ++i) {
             if (mdata->msg[i].id >= 0) {
@@ -79,12 +110,26 @@ static force_inline bool getNextMsg(struct msgdata* mdata, struct msgdata_msg* m
             }
         }
     }
+    #endif
     pthread_mutex_unlock(&mdata->lock);
     return false;
 }
 
 static force_inline bool getNextMsgForUUID(struct msgdata* mdata, struct msgdata_msg* msg, uint64_t uuid) {
     pthread_mutex_lock(&mdata->lock);
+    #if SERVER_ASYNC_MSG
+    for (int i = 0; i < mdata->size; ++i) {
+        if (mdata->msg[i].id >= 0 && mdata->msg[i].uuid == uuid) {
+            msg->id = mdata->msg[i].id;
+            msg->data = mdata->msg[i].data;
+            msg->uuid = mdata->msg[i].uuid;
+            msg->uind = mdata->msg[i].uind;
+            mdata->msg[i].id = -1;
+            pthread_mutex_unlock(&mdata->lock);
+            return true;
+        }
+    }
+    #else
     if (mdata->rptr >= 0) {
         for (int i = mdata->rptr; i < mdata->size; ++i) {
             if (mdata->msg[i].id >= 0 && mdata->msg[i].uuid == uuid) {
@@ -100,6 +145,7 @@ static force_inline bool getNextMsgForUUID(struct msgdata* mdata, struct msgdata
             }
         }
     }
+    #endif
     pthread_mutex_unlock(&mdata->lock);
     return false;
 }

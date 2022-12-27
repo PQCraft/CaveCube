@@ -555,22 +555,31 @@ static force_inline bool getNextMsg(struct msgdata* mdata, struct msgdata_msg* m
     return false;
 }
 
-static uint32_t constBlockVert1[6][6] = {
-    {0x0000F0F3, 0x0F00F006, 0x0F00F0F7, 0x0F00F006, 0x0000F0F3, 0x0000F002}, // U
-    {0x0F00F006, 0x0F0000F5, 0x0F00F0F7, 0x0F0000F5, 0x0F00F006, 0x0F000004}, // R
-    {0x0F00F0F7, 0x000000F1, 0x0000F0F3, 0x000000F1, 0x0F00F0F7, 0x0F0000F5}, // F
-    {0x00000000, 0x0F0000F5, 0x0F000004, 0x0F0000F5, 0x00000000, 0x000000F1}, // D
-    {0x0000F0F3, 0x00000000, 0x0000F002, 0x00000000, 0x0000F0F3, 0x000000F1}, // L
-    {0x0000F002, 0x0F000004, 0x0F00F006, 0x0F000004, 0x0000F002, 0x00000000}, // B
-};
-
-static uint32_t constBlockVert2[6][6] = {
-    {0x00000000, 0x000FF300, 0x000F0200, 0x000FF300, 0x00000000, 0x0000F100}, // U
-    {0x00000000, 0x000FF300, 0x000F0200, 0x000FF300, 0x00000000, 0x0000F100}, // R
-    {0x00000000, 0x000FF300, 0x000F0200, 0x000FF300, 0x00000000, 0x0000F100}, // F
-    {0x00000000, 0x000FF300, 0x000F0200, 0x000FF300, 0x00000000, 0x0000F100}, // D
-    {0x00000000, 0x000FF300, 0x000F0200, 0x000FF300, 0x00000000, 0x0000F100}, // L
-    {0x00000000, 0x000FF300, 0x000F0200, 0x000FF300, 0x00000000, 0x0000F100}, // B
+static uint32_t constBlockVert[3][6][6] = {
+    {
+        {0x0000F0F3, 0x0F00F006, 0x0F00F0F7, 0x0F00F006, 0x0000F0F3, 0x0000F002}, // U
+        {0x0F00F006, 0x0F0000F5, 0x0F00F0F7, 0x0F0000F5, 0x0F00F006, 0x0F000004}, // R
+        {0x0F00F0F7, 0x000000F1, 0x0000F0F3, 0x000000F1, 0x0F00F0F7, 0x0F0000F5}, // F
+        {0x00000000, 0x0F0000F5, 0x0F000004, 0x0F0000F5, 0x00000000, 0x000000F1}, // D
+        {0x0000F0F3, 0x00000000, 0x0000F002, 0x00000000, 0x0000F0F3, 0x000000F1}, // L
+        {0x0000F002, 0x0F000004, 0x0F00F006, 0x0F000004, 0x0000F002, 0x00000000}  // B
+    },
+    {
+        {0x00000000, 0x00000F0F, 0x00000F00, 0x00000F0F, 0x00000000, 0x0000000F}, // U
+        {0x00000000, 0x00000F0F, 0x00000F00, 0x00000F0F, 0x00000000, 0x0000000F}, // R
+        {0x00000000, 0x00000F0F, 0x00000F00, 0x00000F0F, 0x00000000, 0x0000000F}, // F
+        {0x00000000, 0x00000F0F, 0x00000F00, 0x00000F0F, 0x00000000, 0x0000000F}, // D
+        {0x00000000, 0x00000F0F, 0x00000F00, 0x00000F0F, 0x00000000, 0x0000000F}, // L
+        {0x00000000, 0x00000F0F, 0x00000F00, 0x00000F0F, 0x00000000, 0x0000000F}, // B
+    },
+    {
+        {0x00000000, 0x00000003, 0x00000002, 0x00000003, 0x00000000, 0x00000001}, // U
+        {0x00000000, 0x00000003, 0x00000002, 0x00000003, 0x00000000, 0x00000001}, // R
+        {0x00000000, 0x00000003, 0x00000002, 0x00000003, 0x00000000, 0x00000001}, // F
+        {0x00000000, 0x00000003, 0x00000002, 0x00000003, 0x00000000, 0x00000001}, // D
+        {0x00000000, 0x00000003, 0x00000002, 0x00000003, 0x00000000, 0x00000001}, // L
+        {0x00000000, 0x00000003, 0x00000002, 0x00000003, 0x00000000, 0x00000001}  // B
+    }
 };
 
 #define mtsetvert(_v, s, l, v, bv) {\
@@ -672,7 +681,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
     int vplen2 = 0;
     uint32_t* vptr = _vptr;
     uint32_t* vptr2 = _vptr2;
-    uint32_t baseVert1, baseVert2, baseVert3;
+    uint32_t baseVert[3];
     for (int y = 0; y < 256; ++y) {
         pthread_mutex_lock(&rendinf.chunks->lock);
         nx = (x - rendinf.chunks->xoff) + rendinf.chunks->info.dist;
@@ -702,30 +711,34 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
                         }
                     }
                     if (bdata2[i].id == 255) continue;
-                    baseVert1 = ((x << 28) | (y << 16) | (z << 8)) & 0xF0FF0F00;
-                    baseVert2 = ((bdata2[i].light_r << 28) | (bdata2[i].light_g << 24) | (bdata2[i].light_b << 20) |
-                                         blockinf[bdata.id].data[bdata.subid].anidiv) & 0xFFF000FF;
-                    baseVert3 = ((blockinf[bdata.id].data[bdata.subid].texoff[i] << 16) & 0xFFFF0000) |
-                                         ((blockinf[bdata.id].data[bdata.subid].anict[i] << 8) & 0xFF00) | (bdata2[i].light_n);
+
+                    baseVert[0] = ((x << 28) | (y << 16) | (z << 8)) & 0xF0FF0F00;
+
+                    baseVert[1] = (bdata2[i].light_r << 28) | (bdata2[i].light_g << 24) | (bdata2[i].light_b << 20) | (bdata2[i].light_n << 16);
+
+                    baseVert[2] = ((blockinf[bdata.id].data[bdata.subid].texoff[i] << 16) & 0xFFFF0000);
+                    baseVert[2] |= ((blockinf[bdata.id].data[bdata.subid].anict[i] << 9) & 0xFE00);
+                    baseVert[2] |= ((blockinf[bdata.id].data[bdata.subid].anidiv << 2) & 0x1FC);
+
                     if (blockinf[bdata.id].data[bdata.subid].transparency >= 2) {
                         if (!bdata2[i].id && blockinf[bdata.id].data[bdata.subid].backfaces) {
                             for (int j = 5; j >= 0; --j) {
-                                mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, constBlockVert1[i][j] | baseVert1);
-                                mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, constBlockVert2[i][j] | baseVert2);
-                                mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert3);
+                                mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert[0] | constBlockVert[0][i][j]);
+                                mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert[1] | constBlockVert[1][i][j]);
+                                mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert[2] | constBlockVert[2][i][j]);
                             }
                         }
                         for (int j = 0; j < 6; ++j) {
-                            mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, constBlockVert1[i][j] | baseVert1);
-                            mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, constBlockVert2[i][j] | baseVert2);
-                            mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert3);
+                            mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert[0] | constBlockVert[0][i][j]);
+                            mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert[1] | constBlockVert[1][i][j]);
+                            mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert[2] | constBlockVert[2][i][j]);
                         }
                         //printf("added [%d][%d %d %d][%d]: [%u]: [%08X]...\n", c, x, y, z, i, (uint8_t)bdata.id, baseVert1);
                     } else {
                         for (int j = 0; j < 6; ++j) {
-                            mtsetvert(&_vptr, &vpsize, &vplen, &vptr, constBlockVert1[i][j] | baseVert1);
-                            mtsetvert(&_vptr, &vpsize, &vplen, &vptr, constBlockVert2[i][j] | baseVert2);
-                            mtsetvert(&_vptr, &vpsize, &vplen, &vptr, baseVert3);
+                            mtsetvert(&_vptr, &vpsize, &vplen, &vptr, baseVert[0] | constBlockVert[0][i][j]);
+                            mtsetvert(&_vptr, &vpsize, &vplen, &vptr, baseVert[1] | constBlockVert[1][i][j]);
+                            mtsetvert(&_vptr, &vpsize, &vplen, &vptr, baseVert[2] | constBlockVert[2][i][j]);
                         }
                         //printf("added [%"PRId64"][%d %d %d][%d]: [%u]: [%08X]...\n", c, x, y, z, i, (uint8_t)bdata.id, baseVert1);
                     }
