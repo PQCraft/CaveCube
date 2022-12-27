@@ -20,7 +20,7 @@
     - Add parts, model types (3D, BLOCK, 2D, etc), and data types (VERT, ANI, AABB, etc)
     - Block models use quads instead of triangles
 - 3D model rendering in `src/renderer/renderer.c`
-- Audio (probably miniaudio or SDL_Mixer) in `src/audio/`
+- Audio (probably miniaudio or SDL Mixer) in `src/audio/`
 - Redo worldgen in `src/game/worldgen.(c|h)`
     - Add structures to worldgen (trees, buildings, etc)
     - Generate values for height, spikes, details, moisture, and structures
