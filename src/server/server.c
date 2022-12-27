@@ -362,6 +362,7 @@ static void* servthread(void* args) {
                             //printf("chunk [%"PRId64", %"PRId64"]: [%d]\n", outdata->x, outdata->z, outdata->len);
                             addMsg(&servmsgout[MSG_PRIO_LOW], SERVER_UPDATECHUNK, outdata, msg.uuid, msg.uind);
                         }
+                        //microwait(100000);
                         break;
                     }
                     case CLIENT_SETBLOCK:; {

@@ -49,31 +49,47 @@ static force_inline void writeChunk(struct chunkdata* chunks, int64_t x, int64_t
     pthread_mutex_unlock(&chunks->lock);
 }
 
+static force_inline void reqChunk(struct chunkdata* chunks, int64_t x, int64_t z) {
+    uint32_t coff = (z + chunks->info.dist) * chunks->info.width + (x + chunks->info.dist);
+    if (!chunks->renddata[coff].generated && !chunks->renddata[coff].requested) {
+        //printf("REQ [%"PRId64", %"PRId64"]\n", (int64_t)((int64_t)(x) + xo), (int64_t)((int64_t)(-z) + zo));
+        //chunks->renddata[coff].requested = true; //TODO: figure out why this doesn't unset
+        cliSend(CLIENT_GETCHUNK, (int64_t)((int64_t)(x) + chunks->xoff), (int64_t)((int64_t)(-z) + chunks->zoff));
+    }
+}
+
 static force_inline void reqChunks(struct chunkdata* chunks) {
     pthread_mutex_lock(&chunks->lock);
     //printf("set [%u]\n", cid);
     pthread_mutex_unlock(&chunks->lock);
-    for (int i = 0; i <= (int)chunks->info.dist; ++i) {
-        for (int z = -i; z <= i; ++z) {
-            for (int x = -i; x <= i; ++x) {
-                if (abs(z) == i || (abs(z) != i && abs(x) == i)) {
-                    uint32_t coff = (z + chunks->info.dist) * chunks->info.width + (x + chunks->info.dist);
-                    if (!chunks->renddata[coff].generated && !chunks->renddata[coff].requested) {
-                        //printf("REQ [%"PRId64", %"PRId64"]\n", (int64_t)((int64_t)(x) + xo), (int64_t)((int64_t)(-z) + zo));
-                        //chunks->renddata[coff].requested = true; //TODO: figure out why this doesn't unset
-                        cliSend(CLIENT_GETCHUNK, (int64_t)((int64_t)(x) + chunks->xoff), (int64_t)((int64_t)(-z) + chunks->zoff));
-                    }
-                }
-            }
+    reqChunk(chunks, 0, 0);
+    for (int i = 1; i <= (int)chunks->info.dist; ++i) {
+        reqChunk(chunks, i, 0);
+        reqChunk(chunks, -i, 0);
+        reqChunk(chunks, 0, i);
+        reqChunk(chunks, 0, -i);
+        for (int j = 1; j < i; ++j) {
+            reqChunk(chunks, -j, i);
+            reqChunk(chunks, j, i);
+            reqChunk(chunks, j, -i);
+            reqChunk(chunks, -j, -i);
+            reqChunk(chunks, -i, -j);
+            reqChunk(chunks, -i, j);
+            reqChunk(chunks, i, j);
+            reqChunk(chunks, i, -j);
         }
+        reqChunk(chunks, -i, i);
+        reqChunk(chunks, i, -i);
+        reqChunk(chunks, -i, -i);
+        reqChunk(chunks, i, i);
     }
 }
 
-static force_inline void getBlockF(struct chunkdata* chunks, float x, float y, float z, struct blockdata* b) {
+static force_inline void getBlockF(struct chunkdata* chunks, int64_t xoff, int64_t zoff, float x, float y, float z, struct blockdata* b) {
     x -= (x < 0) ? 1.0 : 0.0;
     y -= (y < 0) ? 1.0 : 0.0;
     z -= (z < 0) ? 1.0 : 0.0;
-    getBlock(chunks, x, y, z, b);
+    getBlock(chunks, (int64_t)x + xoff * 16, y, (int64_t)z + zoff * 16, b);
 }
 
 static force_inline coord_3d_dbl w2bCoord(coord_3d_dbl in) {
@@ -355,37 +371,22 @@ bool doGame(char* addr, int port) {
             reqChunks(rendinf.chunks);
             //microwait(1000000);
         }
-        //genChunks(&chunks, cx, cz);
-        //printf("x [%f] z [%f]\n", rendinf.campos.x, rendinf.campos.z);
-        struct blockdata curbdata;
-        getBlockF(rendinf.chunks, rendinf.campos.x, rendinf.campos.y, rendinf.campos.z, &curbdata);
-        //struct blockdata curbdata2 = getBlockF(&chunks, rendinf.campos.x, rendinf.campos.y - 1, rendinf.campos.z);
-        //struct blockdata underbdata = getBlockF(&chunks, rendinf.campos.x, rendinf.campos.y - 1.51, rendinf.campos.z);
         float f1 = input.mov_up * runmult * sinf(yrotrad);
         float f2 = input.mov_right * cosf(yrotrad);
         float f3 = input.mov_up * runmult * cosf(yrotrad);
         float f4 = (input.mov_right * sinf(yrotrad)) * -1;
         xcm = (f1 * bps) + (f2 * bps);
         zcm = (f3 * bps) + (f4 * bps);
-        //printf("[yr:%f]:[us:%f][rc:%f][uc:%f][rs:%f]:[x:%f][z:%f]\n", yrotrad, f1, f2, f3, f4, xcm, zcm);
         float yvel = 0.0;
-        /*
-        if (rendinf.campos.y < (float)((int)(rendinf.campos.y)) + 0.5 && yvel <= 0.0) {
-            rendinf.campos.y = (float)((int)(rendinf.campos.y)) + 0.5;
-        }
-        */
         if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_JUMP)) {
             yvel += 2.0 * (1.0 + (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_RUN)) * 0.0175);
         }
         if (crouch) {
             yvel -= 2.0 * (1.0 + (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_RUN)) * 0.0175);
         }
-        //printf("yvel: [%f] [%f] [%f] [%f] [%u]\n", rendinf.campos.y, (float)((int)(blocky2)) + 0.5, yvel, pmult, underbdata.id & 0xFF);
         pvelocity.y = yvel;
         rendinf.campos.y += yvel * pmult;
         if (rendinf.campos.y < -2.5) rendinf.campos.y = -2.5;
-        //printf("[%d] [%d] [%d]\n", (!rendinf.vsync && !rendinf.fps), !rendinf.fps, (altutime() - fpsstarttime2) >= rendtime / rendinf.fps);
-        //uint64_t et1 = altutime() - st1;
         if ((!rendinf.vsync && !rendinf.fps) || !rendinf.fps || (altutime() - fpsstarttime2) >= (1000000 / rendinf.fps) - loopdelay) {
             if (rendinf.fps) {
                 uint64_t mwdtime = (1000000 / rendinf.fps) - (altutime() - fpsstarttime2);
@@ -394,6 +395,14 @@ bool doGame(char* addr, int port) {
             //puts("render");
             double tmp = (double)(altutime() - fpsstarttime2);
             fpsstarttime2 = altutime();
+            //if (crouch) rendinf.campos.y -= 0.375;
+            float oldfov = rendinf.camfov;
+            bool zoom = (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_ZOOM));
+            bool run = (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_RUN));
+            if (zoom) rendinf.camfov = 12.5;
+            else if (run) rendinf.camfov += ((input.mov_up > 0.0) ? input.mov_up : 0.0) * 1.25;
+            struct blockdata curbdata;
+            getBlockF(rendinf.chunks, rendinf.chunks->xoff, rendinf.chunks->zoff, rendinf.campos.x, rendinf.campos.y, rendinf.campos.z, &curbdata);
             if (curbdata.id == 7) {
                 setVisibility(-1.0, 0.5);
                 setScreenMult(0.425, 0.6, 0.75);
@@ -407,12 +416,6 @@ bool doGame(char* addr, int port) {
                 setskycolor = false;
             }
             pthread_mutex_unlock(&gfxlock);
-            //if (crouch) rendinf.campos.y -= 0.375;
-            float oldfov = rendinf.camfov;
-            bool zoom = (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_ZOOM));
-            bool run = (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_RUN));
-            if (zoom) rendinf.camfov = 12.5;
-            else if (run) rendinf.camfov += ((input.mov_up > 0.0) ? input.mov_up : 0.0) * 1.25;
             updateCam();
             if (zoom || run) rendinf.camfov = oldfov;
             updateChunks();
@@ -432,8 +435,6 @@ bool doGame(char* addr, int port) {
                 lowframe = 1000000.0 / (double)rendinf.disphz;
             }
         }
-        //uint64_t et2 = altutime() - st1;
-        //if (et2 > 16667) printf("OY!: logic:[%lu]; rend:[%lu]\n", et1, et2);
         coord_3d_dbl bcoord = w2bCoord(pcoord);
         pblockx = bcoord.x;
         pblocky = bcoord.y;
