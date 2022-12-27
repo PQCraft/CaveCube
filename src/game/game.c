@@ -60,8 +60,6 @@ static force_inline void reqChunk(struct chunkdata* chunks, int64_t x, int64_t z
 
 static force_inline void reqChunks(struct chunkdata* chunks) {
     pthread_mutex_lock(&chunks->lock);
-    //printf("set [%u]\n", cid);
-    pthread_mutex_unlock(&chunks->lock);
     reqChunk(chunks, 0, 0);
     for (int i = 1; i <= (int)chunks->info.dist; ++i) {
         reqChunk(chunks, i, 0);
@@ -83,6 +81,7 @@ static force_inline void reqChunks(struct chunkdata* chunks) {
         reqChunk(chunks, -i, -i);
         reqChunk(chunks, i, i);
     }
+    pthread_mutex_unlock(&chunks->lock);
 }
 
 static force_inline void getBlockF(struct chunkdata* chunks, int64_t xoff, int64_t zoff, float x, float y, float z, struct blockdata* b) {
