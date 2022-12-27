@@ -844,7 +844,7 @@ static void* meshthread(void* args) {
         }
         if (activity) {
             acttime = altutime();
-            microwait(1000);
+            if (lazymesh) microwait(1000);
         } else if (altutime() - acttime > 500000) {
             microwait(10000);
         }
