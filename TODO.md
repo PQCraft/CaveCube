@@ -50,3 +50,4 @@
 - Decrustified some chunkdata stuff
 - Added view distance resizing
 - Added a lazy meshing option
+- Optimized chunk requests
