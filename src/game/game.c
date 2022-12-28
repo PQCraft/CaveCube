@@ -188,7 +188,7 @@ bool doGame(char* addr, int port) {
     rendinf.chunks = allocChunks(viewdist);
     if (rendinf.fps || rendinf.vsync) loopdelay = atoi(getConfigKey(config, "Game", "loopDelay"));
     printf("Allocated chunks: [%d] [%d]\n", rendinf.chunks->info.width, rendinf.chunks->info.widthsq);
-    rendinf.campos.y = 76.5;
+    rendinf.campos.y = 101.5;
     initInput();
     float pmult = posmult;
     puts("Connecting to server...");
@@ -414,8 +414,8 @@ bool doGame(char* addr, int port) {
             struct blockdata curbdata;
             getBlockF(rendinf.chunks, rendinf.chunks->xoff, rendinf.chunks->zoff, rendinf.campos.x, rendinf.campos.y, rendinf.campos.z, &curbdata);
             if (curbdata.id == 7) {
-                setVisibility(-1.0, 0.5);
-                setScreenMult(0.425, 0.6, 0.75);
+                //setVisibility(-1.0, 0.5);
+                //setScreenMult(0.425, 0.6, 0.75);
             } else {
                 setVisibility(0.5, 1.0);
                 setScreenMult(1.0, 1.0, 1.0);

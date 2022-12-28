@@ -625,8 +625,8 @@ static uint32_t constBlockVert[4][6][6] = {
 };
 
 //static int light_n_tweak[6] = {0, 0, 0, 0, 0, 0};
-//static int light_n_tweak[6] = {0, 2, 1, 4, 2, 3};
-static int light_n_tweak[6] = {0, 1, 1, 2, 1, 1};
+static int light_n_tweak[6] = {0, 2, 1, 4, 2, 3};
+//static int light_n_tweak[6] = {0, 1, 1, 2, 1, 1};
 //static int light_n_tweak[6] = {0, 1, 1, 1, 1, 1};
 
 #define mtsetvert(_v, s, l, v, bv) {\
@@ -762,14 +762,14 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
 
                     baseVert[0] = ((x << 28) | (y << 16) | (z << 8)) & 0xF0FF0F00;
 
-                    int8_t light_n_r = bdata2[i].light_n_r - light_n_tweak[i];
+                    int16_t light_n_r = bdata2[i].light_n_r - light_n_tweak[i];
                     if (light_n_r < 0) light_n_r = 0;
-                    int8_t light_n_g = bdata2[i].light_n_g - light_n_tweak[i];
+                    int16_t light_n_g = bdata2[i].light_n_g - light_n_tweak[i];
                     if (light_n_g < 0) light_n_g = 0;
-                    int8_t light_n_b = bdata2[i].light_n_b - light_n_tweak[i];
+                    int16_t light_n_b = bdata2[i].light_n_b - light_n_tweak[i];
                     if (light_n_b < 0) light_n_b = 0;
-                    baseVert[1] = (bdata2[i].light_r << 24) | (bdata2[i].light_g << 20) | (bdata2[i].light_b << 16);
-                    baseVert[1] |= (light_n_r << 8) | (light_n_g << 4) | (light_n_b);
+                    baseVert[1] = (bdata2[i].light_r << 26) | (bdata2[i].light_g << 21) | (bdata2[i].light_b << 16);
+                    baseVert[1] |= (light_n_r << 10) | (light_n_g << 5) | (light_n_b);
 
                     baseVert[2] = ((blockinf[bdata.id].data[bdata.subid].texoff[i] << 16) & 0xFFFF0000);
                     baseVert[2] |= ((blockinf[bdata.id].data[bdata.subid].anict[i] << 8) & 0xFF00);
