@@ -475,12 +475,9 @@ void setRandSeed(int s, uint64_t val) {
 }
 
 uint8_t getRandByte(int s) {
-    randSeed[s] += SEED_OP1;
     randSeed[s] *= SEED_OP1;
     randSeed[s] += SEED_OP2;
-    uintptr_t tmp = (randSeed[s] >> 63);
-    randSeed[s] <<= 1;
-    randSeed[s] |= tmp;
+    randSeed[s] >>= 1;
     return randSeed[s];
 }
 

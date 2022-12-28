@@ -26,6 +26,7 @@ bool initWorldgen() {
     sand = blockNoFromID("sand");
     water = blockNoFromID("water");
     bedrock = blockNoFromID("bedrock");
+    //setRandSeed(15, altutime());
     return true;
 }
 
@@ -100,21 +101,19 @@ void genChunk(int64_t cx, int64_t cz, struct blockdata* data, int type) {
             struct blockdata sliver[256];
             memset(&sliver, 0, sizeof(sliver));
             genSliver(type, cx, cz, sliver);
-            int8_t nlight = 15;
+            float nlight = 31;
             for (int i = 255; i >= 0; --i) {
                 struct blockdata* tdata = &data[256 * i + xzoff];
-                if (sliver[i].id == water) {--nlight; if (nlight < 0) nlight = 0;}
+                if (sliver[i].id == water) {nlight -= 1.75; if (nlight < 0) nlight = 0;}
                 *tdata = (struct blockdata){
                     .id = sliver[i].id,
                     .subid = sliver[i].subid,
                     .light_n_r = nlight,
-                    .light_n_g = 15 - (15 - nlight) * 0.75,
-                    .light_n_b = 15 - (15 - nlight) * 0.5
+                    .light_n_g = 31 - (31 - nlight) * 0.67,
+                    .light_n_b = 31 - (31 - nlight) * 0.25
                 };
                 /*
-                ((uint16_t*)tdata)[0] = getRandWord(15);
-                ((uint16_t*)tdata)[1] = getRandWord(15);
-                ((uint16_t*)tdata)[2] = getRandWord(15);
+                ((uint64_t*)tdata)[0] = getRandQWord(15);
                 int maxsub = 64;
                 while (1) {
                     if (blockinf[tdata->id].data[maxsub - 1].id) break;
@@ -122,7 +121,9 @@ void genChunk(int64_t cx, int64_t cz, struct blockdata* data, int type) {
                     --maxsub;
                 }
                 tdata->subid = tdata->subid % maxsub;
-                //tdata->light_n = 15;
+                //tdata->light_n_r = 31;
+                //tdata->light_n_g = 31;
+                //tdata->light_n_b = 31;
                 */
             }
         }
