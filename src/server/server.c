@@ -429,17 +429,17 @@ static void* servthread(void* args) {
                         break;
                     }
                     case _SERVER_USERCONNECT:; {
-                        struct server_data_setskycolor* tmpdata1 = malloc(sizeof(*tmpdata1));
-                        struct server_data_setnatcolor* tmpdata2 = malloc(sizeof(*tmpdata2));
+                        struct server_data_setskycolor* skycolor = malloc(sizeof(*skycolor));
+                        struct server_data_setnatcolor* natcolor = malloc(sizeof(*natcolor));
 
-                        *tmpdata1 = (struct server_data_setskycolor){0xA0, 0xC8, 0xFF};
-                        *tmpdata2 = (struct server_data_setnatcolor){0xFF, 0xFF, 0xEE};
+                        *skycolor = (struct server_data_setskycolor){0xA0, 0xC8, 0xFF};
+                        *natcolor = (struct server_data_setnatcolor){0xFF, 0xFF, 0xE0};
 
                         //*tmpdata1 = (struct server_data_setskycolor){0xDF, 0x40, 0x37};
                         //*tmpdata2 = (struct server_data_setnatcolor){0xBC, 0x23, 0x12};
 
-                        addMsg(&servmsgout[MSG_PRIO_HIGH], SERVER_SETSKYCOLOR, tmpdata1, msg.uuid, msg.uind);
-                        addMsg(&servmsgout[MSG_PRIO_HIGH], SERVER_SETNATCOLOR, tmpdata2, msg.uuid, msg.uind);
+                        addMsg(&servmsgout[MSG_PRIO_HIGH], SERVER_SETSKYCOLOR, skycolor, msg.uuid, msg.uind);
+                        addMsg(&servmsgout[MSG_PRIO_HIGH], SERVER_SETNATCOLOR, natcolor, msg.uuid, msg.uind);
                         break;
                     }
                     case _SERVER_USERDISCONNECT:; {
