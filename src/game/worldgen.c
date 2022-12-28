@@ -103,8 +103,14 @@ void genChunk(int64_t cx, int64_t cz, struct blockdata* data, int type) {
             int8_t nlight = 15;
             for (int i = 255; i >= 0; --i) {
                 struct blockdata* tdata = &data[256 * i + xzoff];
-                //if (sliver[i].id == water) {--nlight; if (nlight < 0) nlight = 0;}
-                *tdata = (struct blockdata){.id = sliver[i].id, .subid = sliver[i].subid, .light_n = nlight};
+                if (sliver[i].id == water) {--nlight; if (nlight < 0) nlight = 0;}
+                *tdata = (struct blockdata){
+                    .id = sliver[i].id,
+                    .subid = sliver[i].subid,
+                    .light_n_r = nlight,
+                    .light_n_g = 15 - (15 - nlight) * 0.75,
+                    .light_n_b = 15 - (15 - nlight) * 0.5
+                };
                 /*
                 ((uint16_t*)tdata)[0] = getRandWord(15);
                 ((uint16_t*)tdata)[1] = getRandWord(15);

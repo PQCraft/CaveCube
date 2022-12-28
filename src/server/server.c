@@ -435,8 +435,8 @@ static void* servthread(void* args) {
                         *skycolor = (struct server_data_setskycolor){0xA0, 0xC8, 0xFF};
                         *natcolor = (struct server_data_setnatcolor){0xFF, 0xFF, 0xE0};
 
-                        //*tmpdata1 = (struct server_data_setskycolor){0xDF, 0x40, 0x37};
-                        //*tmpdata2 = (struct server_data_setnatcolor){0xBC, 0x23, 0x12};
+                        //*skycolor = (struct server_data_setskycolor){0xDF, 0x40, 0x37};
+                        //*natcolor = (struct server_data_setnatcolor){0xBC, 0x23, 0x12};
 
                         addMsg(&servmsgout[MSG_PRIO_HIGH], SERVER_SETSKYCOLOR, skycolor, msg.uuid, msg.uind);
                         addMsg(&servmsgout[MSG_PRIO_HIGH], SERVER_SETNATCOLOR, natcolor, msg.uuid, msg.uind);

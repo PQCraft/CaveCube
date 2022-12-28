@@ -14,9 +14,11 @@ struct __attribute__((packed)) blockdata {
     uint8_t light_r:4;
     uint8_t light_g:4;
     uint8_t light_b:4;
-    uint8_t light_n:4;
+    uint8_t light_n_r:4;
+    uint8_t light_n_g:4;
+    uint8_t light_n_b:4;
     uint8_t charge:4;
-    uint8_t flags:8;
+    uint16_t /*padding*/:16; 
 };
 
 //#define BLOCKDATA_NULL ((struct blockdata){0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
