@@ -18,9 +18,9 @@ void main() {
     } else {
         discard;
     }
-    float fogdist = distance(fragPos.xyz, cam.xyz);
+    float fogdist = distance(vec3(fragPos.x, abs(cam.y - fragPos.y) * 0.5, fragPos.z), vec3(cam.x, 0, cam.z));
     float fogdmin = (float(dist) * 16.0) * fogNear;
     float fogdmax = (float(dist) * 16.0) * fogFar;
-    fragColor.rgb *= light;
+    fragColor.rgb *= light * 0.8 + skycolor * 0.2;
     fragColor = mix(fragColor, vec4(skycolor, fragColor.a), 1.0 - clamp((fogdmax - fogdist) / (fogdmax - fogdmin), 0.0, 1.0));
 }

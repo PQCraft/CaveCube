@@ -100,10 +100,24 @@ void genChunk(int64_t cx, int64_t cz, struct blockdata* data, int type) {
             struct blockdata sliver[256];
             memset(&sliver, 0, sizeof(sliver));
             genSliver(type, cx, cz, sliver);
-            for (int i = 0; i < 256; ++i) {
+            int8_t nlight = 15;
+            for (int i = 255; i >= 0; --i) {
                 struct blockdata* tdata = &data[256 * i + xzoff];
-                memset(tdata, 0, sizeof(struct blockdata));
-                *tdata = (struct blockdata){.id = sliver[i].id, .subid = sliver[i].subid, .light_r = 15, .light_g = 15, .light_b = 14};
+                //if (sliver[i].id == water) {--nlight; if (nlight < 0) nlight = 0;}
+                *tdata = (struct blockdata){.id = sliver[i].id, .subid = sliver[i].subid, .light_n = nlight};
+                /*
+                ((uint16_t*)tdata)[0] = getRandWord(15);
+                ((uint16_t*)tdata)[1] = getRandWord(15);
+                ((uint16_t*)tdata)[2] = getRandWord(15);
+                int maxsub = 64;
+                while (1) {
+                    if (blockinf[tdata->id].data[maxsub - 1].id) break;
+                    if (maxsub <= 1) break;
+                    --maxsub;
+                }
+                tdata->subid = tdata->subid % maxsub;
+                //tdata->light_n = 15;
+                */
             }
         }
     }

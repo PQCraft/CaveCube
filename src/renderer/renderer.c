@@ -86,6 +86,13 @@ void setSkyColor(float r, float g, float b) {
     //setUniform3f(rendinf.shaderprog, "skycolor", (float[]){r, g, b});
 }
 
+void setNatColor(float r, float g, float b) {
+    setShaderProg(shader_block);
+    setUniform3f(rendinf.shaderprog, "natLight", (float[]){r, g, b});
+    //setShaderProg(shader_3d);
+    //setUniform3f(rendinf.shaderprog, "natLight", (float[]){r, g, b});
+}
+
 static color screenmult;
 
 void setScreenMult(float r, float g, float b) {
@@ -448,14 +455,35 @@ void updateScreen() {
 static force_inline int64_t i64_mod(int64_t v, int64_t m) {return ((v % m) + m) % m;}
 
 static force_inline void rendGetBlock(int64_t cx, int64_t cz, int x, int y, int z, struct blockdata* b) {
-    if (y < 0 || y > 255) {b->id = BLOCKNO_NULL; return;}
+    if (y < 0 || y > 255) {
+        b->id = BLOCKNO_NULL;
+        b->light_r = 0;
+        b->light_g = 0;
+        b->light_b = 0;
+        b->light_n = 15;
+        return;
+    }
     cx += x / 16 - (x < 0);
     cz -= z / 16 - (z < 0);
-    if (cx < 0 || cz < 0 || cx >= rendinf.chunks->info.width || cz >= rendinf.chunks->info.width) {b->id = BLOCKNO_BORDER; return;}
+    if (cx < 0 || cz < 0 || cx >= rendinf.chunks->info.width || cz >= rendinf.chunks->info.width) {
+        b->id = BLOCKNO_BORDER;
+        b->light_r = 0;
+        b->light_g = 0;
+        b->light_b = 0;
+        b->light_n = 15;
+        return;
+    }
     x = i64_mod(x, 16);
     z = i64_mod(z, 16);
     int c = cx + cz * rendinf.chunks->info.width;
-    if (!rendinf.chunks->renddata[c].generated) {b->id = BLOCKNO_BORDER; return;};
+    if (!rendinf.chunks->renddata[c].generated) {
+        b->id = BLOCKNO_BORDER;
+        b->light_r = 0;
+        b->light_g = 0;
+        b->light_b = 0;
+        b->light_n = 15;
+        return;
+    }
     *b = rendinf.chunks->data[c][y * 256 + z * 16 + x];
 }
 
@@ -581,6 +609,10 @@ static uint32_t constBlockVert[3][6][6] = {
         {0x00000000, 0x00000003, 0x00000002, 0x00000003, 0x00000000, 0x00000001}  // B
     }
 };
+
+//static int light_n_tweak[6] = {0, 2, 1, 4, 2, 3};
+static int light_n_tweak[6] = {0, 1, 1, 2, 1, 1};
+//static int light_n_tweak[6] = {0, 1, 1, 1, 1, 1};
 
 #define mtsetvert(_v, s, l, v, bv) {\
     if (*l >= *s) {\
@@ -711,15 +743,13 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
                         }
                     }
                     if (bdata2[i].id == 255) continue;
-
                     baseVert[0] = ((x << 28) | (y << 16) | (z << 8)) & 0xF0FF0F00;
-
-                    baseVert[1] = (bdata2[i].light_r << 28) | (bdata2[i].light_g << 24) | (bdata2[i].light_b << 20) | (bdata2[i].light_n << 16);
-
+                    int8_t light_n = bdata2[i].light_n - light_n_tweak[i];
+                    if (light_n < 0) light_n = 0;
+                    baseVert[1] = (bdata2[i].light_r << 28) | (bdata2[i].light_g << 24) | (bdata2[i].light_b << 20) | (light_n << 16);
                     baseVert[2] = ((blockinf[bdata.id].data[bdata.subid].texoff[i] << 16) & 0xFFFF0000);
                     baseVert[2] |= ((blockinf[bdata.id].data[bdata.subid].anict[i] << 9) & 0xFE00);
                     baseVert[2] |= ((blockinf[bdata.id].data[bdata.subid].anidiv << 2) & 0x1FC);
-
                     if (blockinf[bdata.id].data[bdata.subid].transparency >= 2) {
                         if (!bdata2[i].id && blockinf[bdata.id].data[bdata.subid].backfaces) {
                             for (int j = 5; j >= 0; --j) {
@@ -733,14 +763,12 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
                             mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert[1] | constBlockVert[1][i][j]);
                             mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert[2] | constBlockVert[2][i][j]);
                         }
-                        //printf("added [%d][%d %d %d][%d]: [%u]: [%08X]...\n", c, x, y, z, i, (uint8_t)bdata.id, baseVert1);
                     } else {
                         for (int j = 0; j < 6; ++j) {
                             mtsetvert(&_vptr, &vpsize, &vplen, &vptr, baseVert[0] | constBlockVert[0][i][j]);
                             mtsetvert(&_vptr, &vpsize, &vplen, &vptr, baseVert[1] | constBlockVert[1][i][j]);
                             mtsetvert(&_vptr, &vpsize, &vplen, &vptr, baseVert[2] | constBlockVert[2][i][j]);
                         }
-                        //printf("added [%"PRId64"][%d %d %d][%d]: [%u]: [%08X]...\n", c, x, y, z, i, (uint8_t)bdata.id, baseVert1);
                     }
                 }
             }

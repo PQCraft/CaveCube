@@ -429,9 +429,17 @@ static void* servthread(void* args) {
                         break;
                     }
                     case _SERVER_USERCONNECT:; {
-                        struct server_data_setskycolor* tmpdata = malloc(sizeof(*tmpdata));
-                        *tmpdata = (struct server_data_setskycolor){0xA0, 0xC8, 0xFF};
-                        addMsg(&servmsgout[MSG_PRIO_HIGH], SERVER_SETSKYCOLOR, tmpdata, msg.uuid, msg.uind);
+                        struct server_data_setskycolor* tmpdata1 = malloc(sizeof(*tmpdata1));
+                        struct server_data_setnatcolor* tmpdata2 = malloc(sizeof(*tmpdata2));
+
+                        *tmpdata1 = (struct server_data_setskycolor){0xA0, 0xC8, 0xFF};
+                        *tmpdata2 = (struct server_data_setnatcolor){0xFF, 0xFF, 0xEE};
+
+                        //*tmpdata1 = (struct server_data_setskycolor){0xDF, 0x40, 0x37};
+                        //*tmpdata2 = (struct server_data_setnatcolor){0xBC, 0x23, 0x12};
+
+                        addMsg(&servmsgout[MSG_PRIO_HIGH], SERVER_SETSKYCOLOR, tmpdata1, msg.uuid, msg.uind);
+                        addMsg(&servmsgout[MSG_PRIO_HIGH], SERVER_SETNATCOLOR, tmpdata2, msg.uuid, msg.uind);
                         break;
                     }
                     case _SERVER_USERDISCONNECT:; {
@@ -604,6 +612,10 @@ static void* servnetthread(void* args) {
                                     msgsize += 1 + 1 + 1;
                                     break;
                                 }
+                                case SERVER_SETNATCOLOR:; {
+                                    msgsize += 1 + 1 + 1;
+                                    break;
+                                }
                                 case SERVER_SETBLOCK:; {
                                     msgsize += 8 + 8 + 1 + sizeof(struct blockdata);
                                     break;
@@ -645,6 +657,13 @@ static void* servnetthread(void* args) {
                                 }
                                 case SERVER_SETSKYCOLOR:; {
                                     struct server_data_setskycolor* tmpdata = msg.data;
+                                    writeToCxnBuf(pdata[i].cxn, &tmpdata->r, 1);
+                                    writeToCxnBuf(pdata[i].cxn, &tmpdata->g, 1);
+                                    writeToCxnBuf(pdata[i].cxn, &tmpdata->b, 1);
+                                    break;
+                                }
+                                case SERVER_SETNATCOLOR:; {
+                                    struct server_data_setnatcolor* tmpdata = msg.data;
                                     writeToCxnBuf(pdata[i].cxn, &tmpdata->r, 1);
                                     writeToCxnBuf(pdata[i].cxn, &tmpdata->g, 1);
                                     writeToCxnBuf(pdata[i].cxn, &tmpdata->b, 1);
@@ -893,6 +912,14 @@ static void* clinetthread(void* args) {
                     data.g = buf[ptr++];
                     data.b = buf[ptr++];
                     callback(SERVER_SETSKYCOLOR, &data);
+                    break;
+                }
+                case SERVER_SETNATCOLOR:; {
+                    struct server_data_setnatcolor data;
+                    data.r = buf[ptr++];
+                    data.g = buf[ptr++];
+                    data.b = buf[ptr++];
+                    callback(SERVER_SETNATCOLOR, &data);
                     break;
                 }
                 case SERVER_SETBLOCK:; {
