@@ -146,6 +146,7 @@ void updateChunk(int64_t, int64_t, int, int);
 void setMeshChunkOff(int64_t, int64_t);
 void render(void);
 void setSkyColor(float, float, float);
+void setNatColor(float, float, float);
 void setScreenMult(float, float, float);
 void setVisibility(float, float);
 void setFullscreen(bool);

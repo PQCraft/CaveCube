@@ -26,6 +26,7 @@ void main() {
     light.r = float((data2 >> 28) & uint(15)) / 15.0;
     light.g = float((data2 >> 24) & uint(15)) / 15.0;
     light.b = float((data2 >> 20) & uint(15)) / 15.0;
-    light = clamp(light, vec3(0.0, 0.0, 0.0), vec3(1.0, 1.0, 1.0));
+    light += natLight * (float((data2 >> 16) & uint(15)) / 15.0);
+    //light = clamp(light, vec3(0.0, 0.0, 0.0), vec3(1.0, 1.0, 1.0));
     gl_Position = projection * view * vec4(fragPos, 1.0);
 }

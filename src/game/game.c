@@ -119,6 +119,8 @@ static bool ping = false;
 static int compat = 0;
 static bool setskycolor = false;
 static color newskycolor;
+static bool setnatcolor = false;
+static color newnatcolor;
 
 static void handleServer(int msg, void* _data) {
     //printf("Recieved [%d] from server\n", msg);
@@ -147,6 +149,15 @@ static void handleServer(int msg, void* _data) {
             pthread_mutex_lock(&gfxlock);
             newskycolor = (color){(float)data->r / 255.0, (float)data->g / 255.0, (float)data->b / 255.0, 1.0};
             setskycolor = true;
+            pthread_mutex_unlock(&gfxlock);
+            break;
+        }
+        case SERVER_SETNATCOLOR:; {
+            struct server_data_setnatcolor* data = _data;
+            //printf("set natural light to [#%02x%02x%02x]\n", data->r, data->g, data->b);
+            pthread_mutex_lock(&gfxlock);
+            newnatcolor = (color){(float)data->r / 255.0, (float)data->g / 255.0, (float)data->b / 255.0, 1.0};
+            setnatcolor = true;
             pthread_mutex_unlock(&gfxlock);
             break;
         }
@@ -413,6 +424,10 @@ bool doGame(char* addr, int port) {
             if (setskycolor) {
                 setSkyColor(newskycolor.r, newskycolor.g, newskycolor.b);
                 setskycolor = false;
+            }
+            if (setnatcolor) {
+                setNatColor(newnatcolor.r, newnatcolor.g, newnatcolor.b);
+                setnatcolor = false;
             }
             pthread_mutex_unlock(&gfxlock);
             updateCam();

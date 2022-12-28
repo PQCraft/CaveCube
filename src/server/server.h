@@ -53,6 +53,7 @@ enum {
     SERVER_LOGININFO,
     SERVER_UPDATECHUNK,
     SERVER_SETSKYCOLOR,
+    SERVER_SETNATCOLOR,
     SERVER_SETBLOCK,
     SERVER__MAX,
 };
@@ -91,6 +92,12 @@ struct server_data_updatechunk {
 };
 
 struct server_data_setskycolor {
+    uint8_t r;
+    uint8_t g;
+    uint8_t b;
+};
+
+struct server_data_setnatcolor {
     uint8_t r;
     uint8_t g;
     uint8_t b;
