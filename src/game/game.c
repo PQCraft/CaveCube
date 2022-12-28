@@ -414,8 +414,8 @@ bool doGame(char* addr, int port) {
             struct blockdata curbdata;
             getBlockF(rendinf.chunks, rendinf.chunks->xoff, rendinf.chunks->zoff, rendinf.campos.x, rendinf.campos.y, rendinf.campos.z, &curbdata);
             if (curbdata.id == 7) {
-                //setVisibility(-1.0, 0.5);
-                //setScreenMult(0.425, 0.6, 0.75);
+                setVisibility(-0.75, 0.5);
+                setScreenMult(0.425, 0.6, 0.75);
             } else {
                 setVisibility(0.5, 1.0);
                 setScreenMult(1.0, 1.0, 1.0);

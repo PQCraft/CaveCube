@@ -460,9 +460,9 @@ static force_inline void rendGetBlock(int64_t cx, int64_t cz, int x, int y, int 
         b->light_r = 0;
         b->light_g = 0;
         b->light_b = 0;
-        b->light_n_r = 15;
-        b->light_n_g = 15;
-        b->light_n_b = 15;
+        b->light_n_r = 31;
+        b->light_n_g = 31;
+        b->light_n_b = 31;
         return;
     }
     cx += x / 16 - (x < 0);
@@ -472,9 +472,9 @@ static force_inline void rendGetBlock(int64_t cx, int64_t cz, int x, int y, int 
         b->light_r = 0;
         b->light_g = 0;
         b->light_b = 0;
-        b->light_n_r = 15;
-        b->light_n_g = 15;
-        b->light_n_b = 15;
+        b->light_n_r = 31;
+        b->light_n_g = 31;
+        b->light_n_b = 31;
         return;
     }
     x = i64_mod(x, 16);
@@ -485,9 +485,9 @@ static force_inline void rendGetBlock(int64_t cx, int64_t cz, int x, int y, int 
         b->light_r = 0;
         b->light_g = 0;
         b->light_b = 0;
-        b->light_n_r = 15;
-        b->light_n_g = 15;
-        b->light_n_b = 15;
+        b->light_n_r = 31;
+        b->light_n_g = 31;
+        b->light_n_b = 31;
         return;
     }
     *b = rendinf.chunks->data[c][y * 256 + z * 16 + x];
@@ -781,22 +781,22 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
                         if (!bdata2[i].id && blockinf[bdata.id].data[bdata.subid].backfaces) {
                             for (int j = 5; j >= 0; --j) {
                                 mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert[0] | constBlockVert[0][i][j]);
-                                mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert[1] | constBlockVert[1][i][j]);
-                                mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert[2] | constBlockVert[2][i][j]);
+                                mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert[1]/* | constBlockVert[1][i][j]*/);
+                                mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert[2]/* | constBlockVert[2][i][j]*/);
                                 mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert[3] | constBlockVert[3][i][j]);
                             }
                         }
                         for (int j = 0; j < 6; ++j) {
                             mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert[0] | constBlockVert[0][i][j]);
-                            mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert[1] | constBlockVert[1][i][j]);
-                            mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert[2] | constBlockVert[2][i][j]);
+                            mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert[1]/* | constBlockVert[1][i][j]*/);
+                            mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert[2]/* | constBlockVert[2][i][j]*/);
                             mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert[3] | constBlockVert[3][i][j]);
                         }
                     } else {
                         for (int j = 0; j < 6; ++j) {
                             mtsetvert(&_vptr, &vpsize, &vplen, &vptr, baseVert[0] | constBlockVert[0][i][j]);
-                            mtsetvert(&_vptr, &vpsize, &vplen, &vptr, baseVert[1] | constBlockVert[1][i][j]);
-                            mtsetvert(&_vptr, &vpsize, &vplen, &vptr, baseVert[2] | constBlockVert[2][i][j]);
+                            mtsetvert(&_vptr, &vpsize, &vplen, &vptr, baseVert[1]/* | constBlockVert[1][i][j]*/);
+                            mtsetvert(&_vptr, &vpsize, &vplen, &vptr, baseVert[2]/* | constBlockVert[2][i][j]*/);
                             mtsetvert(&_vptr, &vpsize, &vplen, &vptr, baseVert[3] | constBlockVert[3][i][j]);
                         }
                     }

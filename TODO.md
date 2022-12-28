@@ -54,3 +54,4 @@
 - Added natural lighting
 - Made the random number algorithm slightly more random
 - Changed lighting from 12-bit RGB (R4G4B4) to 15-bit RGB (R5G5B5)
+- Changed bedrock texture
