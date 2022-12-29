@@ -401,7 +401,7 @@ static void* servthread(void* args) {
                         #else
                         complvl = 1;
                         #endif
-                        len = ezCompress(complvl, 65536 * sizeof(struct blockdata), outdata->data, len, (outdata->cdata = malloc(len)));
+                        len = ezCompress(complvl, 131072 * sizeof(struct blockdata), outdata->data, len, (outdata->cdata = malloc(len)));
                         if (len >= 0) {
                             outdata->len = len;
                             outdata->cdata = realloc(outdata->cdata, outdata->len);
@@ -896,7 +896,7 @@ static void* clinetthread(void* args) {
                     ptr += 8;
                     data.z = net2host64(data.z);
                     //uint64_t stime = altutime();
-                    if (ezDecompress(tmpsize - 8 - 8 - 1, &buf[ptr], 65536 * sizeof(struct blockdata), data.data) >= 0) {
+                    if (ezDecompress(tmpsize - 8 - 8 - 1, &buf[ptr], 131072 * sizeof(struct blockdata), data.data) >= 0) {
                         //printf("recv [%"PRId64", %"PRId64"]: [%d]\n", data.x, data.z, tmpsize - 8 - 8 - 1);
                         callback(SERVER_UPDATECHUNK, &data);
                         /*

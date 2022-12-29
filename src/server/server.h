@@ -11,7 +11,7 @@
 #endif
 
 #ifndef SERVER_SNDBUF_SIZE
-    #define SERVER_SNDBUF_SIZE (1 << 19)
+    #define SERVER_SNDBUF_SIZE (1 << 20)
 #endif
 
 #ifndef SERVER_RCVBUF_SIZE
@@ -19,7 +19,7 @@
 #endif
 
 #ifndef SERVER_OUTBUF_SIZE
-    #define SERVER_OUTBUF_SIZE (1 << 19)
+    #define SERVER_OUTBUF_SIZE (1 << 21)
 #endif
 
 #ifndef SERVER_INBUF_SIZE
@@ -88,7 +88,7 @@ struct server_data_updatechunk {
     int64_t z;
     int len;
     unsigned char* cdata;
-    struct blockdata data[65536];
+    struct blockdata data[131072];
 };
 
 struct server_data_setskycolor {

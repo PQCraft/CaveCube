@@ -1,11 +1,11 @@
 layout (location = 0) in uint data1;
-// [8 bits: X][12 bits: Y][8 bits: Z][1 bit: reserved][1 bit: X + 1][1 bit: Y + 1][1 bit: Z + 1]
+// [8 bits: X][16 bits: Y][8 bits: Z]
 layout (location = 1) in uint data2;
 // [1 bit: reserved][5 bits: R][5 bits: G][5 bits: B][1 bit: reserved][5 bits: nat R][5 bits: nat G][5 bits: nat B]
 layout (location = 2) in uint data3;
 // [16 bits: texture offset][8 bits: animation offset][8 bits: animation divisor]
 layout (location = 3) in uint data4;
-// [8 bits: texture X][8 bits: texture Y][14 bits: reserved][1 bit: texture X + 1][1 bit: texture Y + 1]
+// [8 bits: texture X][8 bits: texture Y][11 bits: reserved][1 bit: X + 1][1 bit: Y + 1][1 bit: Z + 1][1 bit: texture X + 1][1 bit: texture Y + 1]
 uniform mat4 view;
 uniform mat4 projection;
 uniform vec2 ccoord;
@@ -18,9 +18,9 @@ out float texOffset;
 out vec3 light;
 
 void main() {
-    fragPos.x = (float(((data1 >> 24) & uint(255)) + ((data1 >> 2) & uint(1)))) / 16.0 - 8.0;
-    fragPos.y = (float(((data1 >> 12) & uint(4095)) + ((data1 >> 1) & uint(1)))) / 16.0;
-    fragPos.z = ((float(((data1 >> 4) & uint(255)) + (data1 & uint(1)))) / 16.0 - 8.0) * -1.0;
+    fragPos.x = (float(((data1 >> 24) & uint(255)) + ((data4 >> 4) & uint(1)))) / 16.0 - 8.0;
+    fragPos.y = (float(((data1 >> 8) & uint(65535)) + ((data4 >> 3) & uint(1)))) / 16.0;
+    fragPos.z = ((float((data1 & uint(255)) + ((data1 >> 2) & uint(1)))) / 16.0 - 8.0) * -1.0;
     texCoord.x = (float(((data4 >> 24) & uint(255)) + ((data4 >> 1) & uint(1)))) / 16.0;
     texCoord.y = (float(((data4 >> 16) & uint(255)) + (data4 & uint(1)))) / 16.0;
     fragPos += vec3(ccoord.x, 0.0, ccoord.y) * 16.0;

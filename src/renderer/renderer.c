@@ -455,7 +455,7 @@ void updateScreen() {
 static force_inline int64_t i64_mod(int64_t v, int64_t m) {return ((v % m) + m) % m;}
 
 static force_inline void rendGetBlock(int64_t cx, int64_t cz, int x, int y, int z, struct blockdata* b) {
-    if (y < 0 || y > 255) {
+    if (y < 0 || y > 511) {
         b->id = BLOCKNO_NULL;
         b->light_r = 0;
         b->light_g = 0;
@@ -591,12 +591,12 @@ static force_inline bool getNextMsg(struct msgdata* mdata, struct msgdata_msg* m
 
 static uint32_t constBlockVert[4][6][6] = {
     {
-        {0x0000F0F3, 0x0F00F006, 0x0F00F0F7, 0x0F00F006, 0x0000F0F3, 0x0000F002}, // U
-        {0x0F00F006, 0x0F0000F5, 0x0F00F0F7, 0x0F0000F5, 0x0F00F006, 0x0F000004}, // R
-        {0x0F00F0F7, 0x000000F1, 0x0000F0F3, 0x000000F1, 0x0F00F0F7, 0x0F0000F5}, // F
-        {0x00000000, 0x0F0000F5, 0x0F000004, 0x0F0000F5, 0x00000000, 0x000000F1}, // D
-        {0x0000F0F3, 0x00000000, 0x0000F002, 0x00000000, 0x0000F0F3, 0x000000F1}, // L
-        {0x0000F002, 0x0F000004, 0x0F00F006, 0x0F000004, 0x0000F002, 0x00000000}  // B
+        {0x00000F0F, 0x0F000F00, 0x0F000F0F, 0x0F000F00, 0x00000F0F, 0x00000F00}, // U
+        {0x0F000F00, 0x0F00000F, 0x0F000F0F, 0x0F00000F, 0x0F000F00, 0x0F000000}, // R
+        {0x0F000F0F, 0x0000000F, 0x00000F0F, 0x0000000F, 0x0F000F0F, 0x0F00000F}, // F
+        {0x00000000, 0x0F00000F, 0x0F000000, 0x0F00000F, 0x00000000, 0x0000000F}, // D
+        {0x00000F0F, 0x00000000, 0x00000F00, 0x00000000, 0x00000F0F, 0x0000000F}, // L
+        {0x00000F00, 0x0F000000, 0x0F000F00, 0x0F000000, 0x00000F00, 0x00000000}  // B
     },
     {
         {0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000}, // U
@@ -615,12 +615,12 @@ static uint32_t constBlockVert[4][6][6] = {
         {0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000}, // B
     },
     {
-        {0x00000000, 0x0F0F0003, 0x0F000002, 0x0F0F0003, 0x00000000, 0x000F0001}, // U
-        {0x00000000, 0x0F0F0003, 0x0F000002, 0x0F0F0003, 0x00000000, 0x000F0001}, // R
-        {0x00000000, 0x0F0F0003, 0x0F000002, 0x0F0F0003, 0x00000000, 0x000F0001}, // F
-        {0x00000000, 0x0F0F0003, 0x0F000002, 0x0F0F0003, 0x00000000, 0x000F0001}, // D
-        {0x00000000, 0x0F0F0003, 0x0F000002, 0x0F0F0003, 0x00000000, 0x000F0001}, // L
-        {0x00000000, 0x0F0F0003, 0x0F000002, 0x0F0F0003, 0x00000000, 0x000F0001}, // B
+        {0x0000000C, 0x0F0F001B, 0x0F00001E, 0x0F0F001B, 0x0000000C, 0x000F0009}, // U
+        {0x00000018, 0x0F0F0017, 0x0F00001E, 0x0F0F0017, 0x00000018, 0x000F0011}, // R
+        {0x0000001C, 0x0F0F0007, 0x0F00000E, 0x0F0F0007, 0x0000001C, 0x000F0015}, // F
+        {0x00000000, 0x0F0F0017, 0x0F000012, 0x0F0F0017, 0x00000000, 0x000F0005}, // D
+        {0x0000000C, 0x0F0F0003, 0x0F00000A, 0x0F0F0003, 0x0000000C, 0x000F0005}, // L
+        {0x00000008, 0x0F0F0013, 0x0F00001A, 0x0F0F0013, 0x00000008, 0x000F0001}, // B
     }
 };
 
@@ -730,7 +730,8 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
     uint32_t* vptr = _vptr;
     uint32_t* vptr2 = _vptr2;
     uint32_t baseVert[4];
-    for (int y = 0; y < 256; ++y) {
+    int maxy = 511;
+    {
         pthread_mutex_lock(&rendinf.chunks->lock);
         nx = (x - rendinf.chunks->xoff) + rendinf.chunks->info.dist;
         nz = rendinf.chunks->info.width - ((z - rendinf.chunks->zoff) + rendinf.chunks->info.dist) - 1;
@@ -739,7 +740,27 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
             free(_vptr2);
             goto lblcontinue;
         }
-        //uint64_t c = nx + nz * rendinf.chunks->info.width;
+        uint64_t c = nx + nz * rendinf.chunks->info.width;
+        while (maxy >= 0) {
+            int off = maxy * 256;
+            for (int i = 0; i < 256; ++i) {
+                if (rendinf.chunks->data[c][off + i].id) goto foundblock;
+            }
+            --maxy;
+        }
+        foundblock:;
+        //printf("maxy[%"PRId64", %"PRId64"]: %d\n", x, z, maxy);
+        pthread_mutex_unlock(&rendinf.chunks->lock);
+    }
+    for (int y = 0; y <= maxy; ++y) {
+        pthread_mutex_lock(&rendinf.chunks->lock);
+        nx = (x - rendinf.chunks->xoff) + rendinf.chunks->info.dist;
+        nz = rendinf.chunks->info.width - ((z - rendinf.chunks->zoff) + rendinf.chunks->info.dist) - 1;
+        if (nx < 0 || nz < 0 || nx >= rendinf.chunks->info.width || nz >= rendinf.chunks->info.width) {
+            free(_vptr);
+            free(_vptr2);
+            goto lblcontinue;
+        }
         for (int z = 0; z < 16; ++z) {
             for (int x = 0; x < 16; ++x) {
                 rendGetBlock(nx, nz, x, y, z, &bdata);
@@ -760,7 +781,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
                     }
                     if (bdata2[i].id == 255) continue;
 
-                    baseVert[0] = ((x << 28) | (y << 16) | (z << 8)) & 0xF0FF0F00;
+                    baseVert[0] = ((x << 28) | (y << 12) | (z << 4)) & 0xF0FFF0F0;
 
                     int16_t light_n_r = bdata2[i].light_n_r - light_n_tweak[i];
                     if (light_n_r < 0) light_n_r = 0;
@@ -1407,7 +1428,7 @@ void render() {
         rendc = rendinf.chunks->rordr[c].c;
         avec2 coord = {(int)(rendc % rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist, (int)(rendc / rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist};
         setUniform2f(rendinf.shaderprog, "ccoord", coord);
-        if ((rendinf.chunks->renddata[rendc].visible = isVisible(&frust, coord[0] * 16 - 8, 0, coord[1] * 16 - 8, coord[0] * 16 + 8, 256, coord[1] * 16 + 8)) && rendinf.chunks->renddata[rendc].buffered) {
+        if ((rendinf.chunks->renddata[rendc].visible = isVisible(&frust, coord[0] * 16 - 8, 0, coord[1] * 16 - 8, coord[0] * 16 + 8, 512, coord[1] * 16 + 8)) && rendinf.chunks->renddata[rendc].buffered) {
             if (rendinf.chunks->renddata[rendc].tcount[0]) {
                 glBindBuffer(GL_ARRAY_BUFFER, rendinf.chunks->renddata[rendc].VBO[0]);
                 glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(0));
