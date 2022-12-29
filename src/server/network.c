@@ -198,8 +198,7 @@ struct netcxn* newCxn(int type, char* addr, int port, int obs, int ibs) {
                 close(newsock);
                 return NULL;
             }
-            break;
-        }
+        } break;
         case CXN_ACTIVE:; {
             int opt = 1;
             setsockopt(newsock, IPPROTO_TCP, TCP_NODELAY, (void*)&opt, sizeof(opt));
@@ -208,8 +207,7 @@ struct netcxn* newCxn(int type, char* addr, int port, int obs, int ibs) {
                 close(newsock);
                 return NULL;
             }
-            break;
-        }
+        } break;
     }
     #ifndef _WIN32
     {int flags = fcntl(newsock, F_GETFL); fcntl(newsock, F_SETFL, flags | O_NONBLOCK);}
@@ -276,8 +274,7 @@ struct netcxn* acceptCxn(struct netcxn* cxn, int obs, int ibs) {
                 }
             };
             return newinf;
-            break;
-        }
+        } break;
     }
     return NULL;
 }
@@ -285,12 +282,8 @@ struct netcxn* acceptCxn(struct netcxn* cxn, int obs, int ibs) {
 int recvCxn(struct netcxn* cxn) {
     switch (cxn->type) {
         case CXN_ACTIVE:; {
-            //int bytes = 0;
-            //if (SOCKERR(ioctlsocket(cxn->socket, FIONREAD, &bytes))) return -1;
-            //if (bytes < 0) return -1;
             return writeSockToBuf(cxn->inbuf, cxn->socket, cxn->inbuf->size - cxn->inbuf->dlen);
-            break;
-        }
+        } break;
     }
     return 0;
 }
@@ -299,8 +292,7 @@ int sendCxn(struct netcxn* cxn) {
     switch (cxn->type) {
         case CXN_ACTIVE:; {
             return writeBufToSock(cxn->outbuf, cxn->socket);
-            break;
-        }
+        } break;
     }
     return 0;
 }
@@ -309,8 +301,7 @@ int readFromCxnBuf(struct netcxn* cxn, void* data, int size) {
     switch (cxn->type) {
         case CXN_ACTIVE:; {
             return writeBufToData(cxn->inbuf, data, size);
-            break;
-        }
+        } break;
     }
     return 0;
 }
@@ -319,8 +310,7 @@ int writeToCxnBuf(struct netcxn* cxn, void* data, int size) {
     switch (cxn->type) {
         case CXN_ACTIVE:; {
             return writeDataToBuf(cxn->outbuf, data, size);
-            break;
-        }
+        } break;
     }
     return 0;
 }

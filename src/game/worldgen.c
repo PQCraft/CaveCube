@@ -37,55 +37,30 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
             data[1].id = stone;
             data[2].id = dirt;
             data[3].id = grass_block;
-            break;
-        }
+        } break;
         case 1:; {
-            for (int y = 0; y < 65; ++y) {
-                data[y].id = water;
-            }
-            double p0 = tanhf(nperlin2d(0, cx, cz, 0.006675, 5));
-            if (p0 < 0) p0 *= 0.5;
-            double p1 = tanhf((nperlin2d(1, cx, cz, 0.001142, 2) + 0.15) * 3);
-            if (p1 < 0) p1 *= 0.7;
-            double h0 = p0 * 20 + p1 * 40;
-            double m0 = h0 / 60;
-            if (m0 < 0) m0 *= 0.75;
-            m0 += 0.25;
-            if (m0 > 1) m0 = 1;
-            if (m0 < -1) m0 = -1;
-            double m1 = (1 - (cos(2 * fabs(m0) * M_PI) / 2 + 0.5)) * 0.9 + 0.1;
-            double p2 = (tanhf((nperlin2d(2, cx, cz, 0.010231, 1) - 0.025) * 12.5) + tanhf((nperlin2d(6, cx, cz, 0.009628, 2) - 0.05) * 12.5) * 0.5) * 1.89;
-            double p3 = tanhf((nperlin2d(3, cx, cz, 0.01, 3) - 0.33) * (5 + perlin2d(7, cx, cz, 0.025, 2) * 10));
-            double p4 = (tanhf(nperlin2d(4, cx, cz, 0.012847, 3) * 2) * 1.095) * 0.33 + 0.67;
-            if (p4 < 0.05) p4 = 0.05;
-            double h1 = (p2 * 8 + p3 * 7) * p4 * m1;
-            double h2 = (tanhf(nperlin2d(5, cx, cz, 0.005291, 1) * 2) / 2 + 0.5) * 0.9 + 0.2;
-            double h = (h1 + h0) * h2 + 65 + tanhf(nperlin2d(12, cx, cz, 0.0375, 3) * 1.5) * 2;
-            double p9 = nperlin2d(13, cx, cz, 0.025148, 5);
-            double p10 = perlin2d(14, cx, cz, 0.184541, 1);
-            double p11 = perlin2d(15, cx, cz, 0.049216, 2);
-            int hi = round(h);
-            for (int y = hi; y >= 0; --y) {
-                bool c1 = y < 67 + p9 * 5;
-                bool c2 = p11 > 0.4 && y < 56 + p10 * 3;
-                uint8_t b1 = (c1) ? ((c2) ? gravel : sand) : dirt;
-                uint8_t b2 = (c1) ? ((c2) ? gravel : sand) : ((y < 64) ? dirt : grass_block);
-                uint8_t blockid = (y < hi) ? ((y < hi - (3 - round(fabs(p4) * 2))) ? stone : b1) : b2;
-                data[y].id = blockid;
-                if (blockid == stone) {
-                    int n1 = noise2d((8 + y) % 16, cx * y - y, cz * y * y);
-                    if (!(n1 % 4)) data[y].subid = stone_cobble;
+            int64_t chunkx = (cx + 16.0);
+            int64_t chunkz = (cz + 16.0);
+            if (chunkx < 0) chunkx -= 16;
+            if (chunkz > 0) chunkz += 16;
+            chunkx /= 16;
+            chunkz /= 16;
+            if (true || (chunkx + chunkz) % 2) {
+                for (int i = 0; i < 128; ++i) {
+                    if (!data[i].id) data[i].id = water;
                 }
+                for (int i = 0; i < 512; ++i) {
+                    if (data[i].id != water && noise3(0, cx / 10.45, cz / 10.45, i / 10.45) < -0.33) {
+                        data[i].id = 0;
+                    }
+                }
+                double n0 = noise3(63, cx / 2.0, cz / 2.0, 0);
+                data[0].id = bedrock; data[0].subid = 0;
+                if (n0 > -0.25) {data[1].id = bedrock; data[1].subid = 0;}
+                if (n0 > 0.0) {data[2].id = bedrock; data[2].subid = 0;}
+                if (n0 > 0.25) {data[3].id = bedrock; data[3].subid = 0;}
             }
-            int n0 = noise2d(8, cx, cz);
-            data[0].subid = 0;
-            data[1].subid = 0;
-            data[2].subid = 0;
-            data[0].id = bedrock;
-            if (!(n0 % 2) || !(n0 % 3)) data[1].id = bedrock;
-            if (!(n0 % 4)) data[2].id = bedrock;
-            break;
-        }
+        } break;
     }
 }
 
@@ -104,13 +79,19 @@ void genChunk(int64_t cx, int64_t cz, struct blockdata* data, int type) {
             float nlight = 31;
             for (int i = 511; i >= 0; --i) {
                 struct blockdata* tdata = &data[256 * i + xzoff];
-                if (sliver[i].id == water) {nlight -= 1.75; if (nlight < 0) nlight = 0;}
+                //if (sliver[i].id == water) {nlight -= 1.75; if (nlight < -128) nlight = -128;}
+                int8_t nlight_r = nlight;
+                if (nlight_r < 0) nlight_r = 0;
+                int8_t nlight_g = 31 - (31 - nlight) * 0.33;
+                if (nlight_g < 0) nlight_g = 0;
+                int8_t nlight_b = 31 - (31 - nlight) * 0.25;
+                if (nlight_b < 0) nlight_b = 0;
                 *tdata = (struct blockdata){
                     .id = sliver[i].id,
                     .subid = sliver[i].subid,
-                    .light_n_r = nlight,
-                    .light_n_g = 31 - (31 - nlight) * 0.67,
-                    .light_n_b = 31 - (31 - nlight) * 0.25
+                    .light_n_r = nlight_r,
+                    .light_n_g = nlight_g,
+                    .light_n_b = nlight_b
                 };
                 /*
                 ((uint64_t*)tdata)[0] = getRandQWord(15);

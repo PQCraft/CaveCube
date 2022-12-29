@@ -253,8 +253,7 @@ static force_inline bool calcProp(struct ui_data* elemdata, struct ui_elem* e, b
             case UI_ELEM_HOTBAR:; {
                 e->calcprop.width = 302 * elemdata->scale;
                 e->calcprop.height = 32 * elemdata->scale;
-                break;
-            }
+            } break;
             case UI_ELEM_ITEMGRID:; {
                 curprop = getProp(e, "width");
                 e->calcprop.width = (curprop) ? atoi(curprop) : 1;
@@ -262,15 +261,13 @@ static force_inline bool calcProp(struct ui_data* elemdata, struct ui_elem* e, b
                 e->calcprop.height = (curprop) ? atoi(curprop) : 1;
                 e->calcprop.width = (e->calcprop.width * 30 + 2) * elemdata->scale;
                 e->calcprop.height = (e->calcprop.height * 30 + 2) * elemdata->scale;
-                break;
-            }
+            } break;
             default:; {
                 curprop = getProp(e, "width");
                 e->calcprop.width = (curprop) ? getSize(curprop, (float)p_prop.width / elemdata->scale) * elemdata->scale : 0;
                 curprop = getProp(e, "height");
                 e->calcprop.height = (curprop) ? getSize(curprop, (float)p_prop.height / elemdata->scale) * elemdata->scale : 0;
-                break;
-            }
+            } break;
         }
         bool prev = elemValid(e->prev);
         struct ui_elem_calcprop l_prop;

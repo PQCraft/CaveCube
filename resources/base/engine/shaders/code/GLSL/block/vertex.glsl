@@ -11,6 +11,7 @@ uniform mat4 projection;
 uniform vec2 ccoord;
 uniform uint aniMult;
 uniform vec3 natLight;
+uniform vec3 skycolor;
 
 out vec2 texCoord;
 out vec3 fragPos;
@@ -25,9 +26,9 @@ void main() {
     texCoord.y = (float(((data4 >> 16) & uint(255)) + (data4 & uint(1)))) / 16.0;
     fragPos += vec3(ccoord.x, 0.0, ccoord.y) * 16.0;
     texOffset = float(((data3 >> 16) & uint(65535)) + ((aniMult / (data3 & uint(255))) % ((data3 >> 8) & uint(255))));
-    light.r = (float((data2 >> 26) & uint(31)) / 31.0) + natLight.r * (float((data2 >> 10) & uint(31)) / 31.0);
-    light.g = (float((data2 >> 21) & uint(31)) / 31.0) + natLight.g * (float((data2 >> 5) & uint(31)) / 31.0);
-    light.b = (float((data2 >> 16) & uint(31)) / 31.0) + natLight.b * (float(data2 & uint(31)) / 31.0);
+    light.r = (float((data2 >> 26) & uint(31)) / 31.0) + (natLight.r * 0.8 + skycolor.r * 0.2) * (float((data2 >> 10) & uint(31)) / 31.0);
+    light.g = (float((data2 >> 21) & uint(31)) / 31.0) + (natLight.g * 0.8 + skycolor.g * 0.2) * (float((data2 >> 5) & uint(31)) / 31.0);
+    light.b = (float((data2 >> 16) & uint(31)) / 31.0) + (natLight.b * 0.8 + skycolor.b * 0.2) * (float(data2 & uint(31)) / 31.0);
     //light = clamp(light, vec3(0.0, 0.0, 0.0), vec3(1.0, 1.0, 1.0));
     gl_Position = projection * view * vec4(fragPos, 1.0);
 }

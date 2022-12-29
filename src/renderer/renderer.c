@@ -1111,14 +1111,12 @@ static force_inline void meshUIElem(struct meshdata* md, struct ui_data* elemdat
         switch (e->type) {
             case UI_ELEM_BOX:; {
                 writeuielemrect(md, x0, y0, x1, y1, p->z, p->r, p->g, p->b, p->a);
-                break;
-            }
+            } break;
             case UI_ELEM_FANCYBOX:; {
                 writeuielemrect(md, x0, y0 + s, x1, y1 - s, p->z, p->r / 2, p->g / 2, p->b / 2, p->a);
                 writeuielemrect(md, x0 + s, y0, x1 - s, y1, p->z, p->r / 2, p->g / 2, p->b / 2, p->a);
                 writeuielemrect(md, x0 + 2 * s, y0 + 2 * s, x1 - 2 * s, y1 - 2 * s, p->z, p->r, p->g, p->b, p->a);
-                break;
-            }
+            } break;
             case UI_ELEM_HOTBAR:; {
                 int slot = -1;
                 curprop = getUIElemProperty(e, "slot");
@@ -1143,8 +1141,7 @@ static force_inline void meshUIElem(struct meshdata* md, struct ui_data* elemdat
                         r, g, b, p->a / 2
                     );
                 }
-                break;
-            }
+            } break;
             case UI_ELEM_ITEMGRID:; {
                 writeuielemrect(md, x0, y0 + s, x1, y1 - s, p->z, 63, 63, 63, p->a);
                 writeuielemrect(md, x0 + s, y0, x1 - s, y1, p->z, 63, 63, 63, p->a);
@@ -1162,14 +1159,12 @@ static force_inline void meshUIElem(struct meshdata* md, struct ui_data* elemdat
                         );
                     }
                 }
-                break;
-            }
+            } break;
             case UI_ELEM_BUTTON:; {
                 writeuielemrect(md, x0, y0 + s, x1, y1 - s, p->z, p->r / 2, p->g / 2, p->b / 2, p->a);
                 writeuielemrect(md, x0 + s, y0, x1 - s, y1, p->z, p->r / 2, p->g / 2, p->b / 2, p->a);
                 writeuielemrect(md, x0 + 2 * s,     y0 + 2 * s, x1 - 2 * s, y1 - 2 * s, p->z, p->r, p->g, p->b, p->a);
-                break;
-            }
+            } break;
         }
     }
     char* text = getUIElemProperty(e, "text");
@@ -1875,16 +1870,14 @@ bool startRenderer() {
                     switch (c) {
                         case '.':; {
                             texture += atoi(&texstr[1]);
-                            break;
-                        }
+                        } break;
                         case '$':; {
                             int stroff = 1;
                             stroff += readStrUntil(&texstr[1], '.', tmpstr) + 1;
                             int vtexid = blockSubNoFromID(i, tmpstr);
                             if (vtexid >= 0) texture = blockinf[i].data[vtexid].texstart;
                             texture += atoi(&texstr[stroff]);
-                            break;
-                        }
+                        } break;
                         case '@':; {
                             int stroff = 1;
                             stroff += readStrUntil(&texstr[1], '.', tmpstr) + 1;
@@ -1895,8 +1888,7 @@ bool startRenderer() {
                                 if (vtexid >= 0) texture = blockinf[btexid].data[vtexid].texstart;
                             }
                             texture += atoi(&texstr[stroff]);
-                            break;
-                        }
+                        } break;
                     }
                     blockinf[i].data[j].texoff[k] = texture;
                 }

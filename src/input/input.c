@@ -218,15 +218,13 @@ void sdl2getmouse(double* mx, double* my) {
             mmy += imy;
             *mx = mmx;
             *my = mmy;
-            break;
-        }
+        } break;
         case INPUT_MODE_UI:; {
             int imx, imy;
             SDL_GetMouseState(&imx, &imy);
             *mx = imx;
             *my = imy;
-            break;
-        }
+        } break;
     }
 }
 
@@ -258,11 +256,9 @@ static force_inline float _keyState(int device, int type, int key) {
                     #else
                     return (glfwGetKey(rendinf.window, key) == GLFW_PRESS);
                     #endif
-                    break;
-                }
+                } break;
             }
-            break;
-        }
+        } break;
         case 'm':; {
             switch (type) {
                 case 'b':; {
@@ -271,8 +267,7 @@ static force_inline float _keyState(int device, int type, int key) {
                     #else
                     return (glfwGetMouseButton(rendinf.window, key) == GLFW_PRESS);
                     #endif
-                    break;
-                }
+                } break;
                 case 'm':; {
                     static double nmxpos, nmypos;
                     #if defined(USESDL2)
@@ -292,8 +287,7 @@ static force_inline float _keyState(int device, int type, int key) {
                             break;
                     }
                     return ret;
-                    break;
-                }
+                } break;
                 case 'w':; {
                     switch (key) {
                         case 1:;
@@ -303,11 +297,9 @@ static force_inline float _keyState(int device, int type, int key) {
                             return mscrolldown;
                             break;
                     }
-                    break;
-                }
+                } break;
             }
-            break;
-        }
+        } break;
         case 'g':; {
             switch (type) {
                 case 'a':; {
@@ -317,8 +309,7 @@ static force_inline float _keyState(int device, int type, int key) {
                         if (fabs(glfwgpstate.axes[key]) >= 0.2) return glfwgpstate.axes[key];
                     }
                     #endif
-                    break;
-                }
+                } break;
                 case 'b':; {
                     #if defined(USESDL2)
                     #else
@@ -326,11 +317,9 @@ static force_inline float _keyState(int device, int type, int key) {
                         return glfwgpstate.buttons[key];
                     }
                     #endif
-                    break;
-                }
+                } break;
             }
-            break;
-        }
+        } break;
     }
     return 0.0;
 }
@@ -443,8 +432,7 @@ void getInput(struct input_info* _inf) {
             } else {
                 if (keyState(input_sa[lastsa]) < 0.2) lastsa = INPUT_ACTION_SINGLE__NONE;
             }
-            break;
-        }
+        } break;
         case INPUT_MODE_UI:; {
             if (lastsa == INPUT_ACTION_SINGLE__NONE) {
                 for (int i = 0; i < INPUT_ACTION_SINGLE__MAX; ++i) {
@@ -456,8 +444,7 @@ void getInput(struct input_info* _inf) {
             } else {
                 if (keyState(input_sa[lastsa]) < 0.2) lastsa = INPUT_ACTION_SINGLE__NONE;
             }
-            break;
-        }
+        } break;
     }
     polltime = altutime();
     ret:;

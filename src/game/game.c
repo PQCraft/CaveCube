@@ -128,21 +128,18 @@ static void handleServer(int msg, void* _data) {
         case SERVER_PONG:; {
             printf("Server ponged\n");
             ping = true;
-            break;
-        }
+        } break;
         case SERVER_COMPATINFO:; {
             struct server_data_compatinfo* data = _data;
             printf("Server version is %s %d.%d.%d\n", data->server_str, data->ver_major, data->ver_minor, data->ver_patch);
             if (data->flags & SERVER_FLAG_NOAUTH) puts("- No authentication required");
             if (data->flags & SERVER_FLAG_PASSWD) puts("- Password protected");
             compat = (!strcasecmp(data->server_str, PROG_NAME) && data->ver_major == VER_MAJOR && data->ver_minor == VER_MINOR && data->ver_patch == VER_PATCH) ? 1 : -1;
-            break;
-        }
+        } break;
         case SERVER_UPDATECHUNK:; {
             struct server_data_updatechunk* data = _data;
             writeChunk(rendinf.chunks, data->x, data->z, data->data);
-            break;
-        }
+        } break;
         case SERVER_SETSKYCOLOR:; {
             struct server_data_setskycolor* data = _data;
             //printf("set sky color to [#%02x%02x%02x]\n", data->r, data->g, data->b);
@@ -150,8 +147,7 @@ static void handleServer(int msg, void* _data) {
             newskycolor = (color){(float)data->r / 255.0, (float)data->g / 255.0, (float)data->b / 255.0, 1.0};
             setskycolor = true;
             pthread_mutex_unlock(&gfxlock);
-            break;
-        }
+        } break;
         case SERVER_SETNATCOLOR:; {
             struct server_data_setnatcolor* data = _data;
             //printf("set natural light to [#%02x%02x%02x]\n", data->r, data->g, data->b);
@@ -159,8 +155,7 @@ static void handleServer(int msg, void* _data) {
             newnatcolor = (color){(float)data->r / 255.0, (float)data->g / 255.0, (float)data->b / 255.0, 1.0};
             setnatcolor = true;
             pthread_mutex_unlock(&gfxlock);
-            break;
-        }
+        } break;
         case SERVER_SETBLOCK:; {
             struct server_data_setblock* data = _data;
             int64_t ucx, ucz;
@@ -168,8 +163,7 @@ static void handleServer(int msg, void* _data) {
             //printf("set block at [%"PRId64", %d, %"PRId64"] ([%"PRId64", %"PRId64"]) to [%d]\n", data->x, data->y, data->z, ucx, ucz, data->data.id);
             setBlock(rendinf.chunks, data->x, data->y, data->z, data->data);
             updateChunk(ucx, ucz, CHUNKUPDATE_PRIO_HIGH, 1);
-            break;
-        }
+        } break;
     }
 }
 
@@ -188,7 +182,7 @@ bool doGame(char* addr, int port) {
     rendinf.chunks = allocChunks(viewdist);
     if (rendinf.fps || rendinf.vsync) loopdelay = atoi(getConfigKey(config, "Game", "loopDelay"));
     printf("Allocated chunks: [%d] [%d]\n", rendinf.chunks->info.width, rendinf.chunks->info.widthsq);
-    rendinf.campos.y = 101.5;
+    rendinf.campos.y = 201.5;
     initInput();
     float pmult = posmult;
     puts("Connecting to server...");
@@ -413,7 +407,7 @@ bool doGame(char* addr, int port) {
             else if (run) rendinf.camfov += ((input.mov_up > 0.0) ? input.mov_up : 0.0) * 1.25;
             struct blockdata curbdata;
             getBlockF(rendinf.chunks, rendinf.chunks->xoff, rendinf.chunks->zoff, rendinf.campos.x, rendinf.campos.y, rendinf.campos.z, &curbdata);
-            if (curbdata.id == 7) {
+            if (false && curbdata.id == 7) {
                 setVisibility(-0.75, 0.5);
                 setScreenMult(0.425, 0.6, 0.75);
             } else {

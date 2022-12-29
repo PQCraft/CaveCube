@@ -66,24 +66,20 @@ void* makeResource(int type, char* path) {
         case RESOURCE_TEXTFILE:; {
             data = malloc(sizeof(resdata_file));
             *(file_data*)data = getTextFile(path);
-            break;
-        }
+        } break;
         case RESOURCE_BINFILE:; {
             data = malloc(sizeof(resdata_file));
             *(file_data*)data = getBinFile(path);
-            break;
-        }
+        } break;
         case RESOURCE_BMD:; {
             resdata_bmd* bmddata = data = calloc(1, sizeof(resdata_bmd));
             temploadBMD(getBinFile(path), bmddata);
-            break;
-        }
+        } break;
         case RESOURCE_IMAGE:; {
             resdata_image* imagedata = data = calloc(1, sizeof(resdata_image));
             imagedata->data = stbi_load(path, &imagedata->width, &imagedata->height, &imagedata->channels, STBI_rgb_alpha);
             imagedata->channels = 4;
-            break;
-        }
+        } break;
         case RESOURCE_TEXTURE:; {
             #if MODULEID == MODULEID_GAME
             resdata_texture* texturedata = data = calloc(1, sizeof(resdata_texture));
@@ -92,8 +88,7 @@ void* makeResource(int type, char* path) {
             createTexture(idata, texturedata);
             stbi_image_free(idata);
             #endif
-            break;
-        }	
+        } break;
     }
     return data;
 }
@@ -135,22 +130,18 @@ void freeResStub(resentry* ent) {
         case RESOURCE_TEXTFILE:;
         case RESOURCE_BINFILE:; {
             freeFile(*(file_data*)ent->data);
-            break;
-        }
+        } break;
         case RESOURCE_BMD:; {
             freeBMD((bmd_data*)ent->data);
-            break;
-        }
+        } break;
         case RESOURCE_IMAGE:; {
             stbi_image_free(((resdata_image*)ent->data)->data);
-            break;
-        }
+        } break;
         case RESOURCE_TEXTURE:; {
             #if MODULEID == MODULEID_GAME
             destroyTexture((resdata_texture*)ent->data);
             #endif
-            break;
-        }
+        } break;
     }
     free(ent->data);
     ent->data = NULL;

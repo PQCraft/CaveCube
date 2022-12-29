@@ -335,8 +335,7 @@ int main(int _argc, char** _argv) {
             stopRenderer();
             stopServer();
             ret = !game_ecode;
-            break;
-        }
+        } break;
         case 1:; {
             cores -= 3;
             if (cores < 1) cores = 1;
@@ -352,8 +351,7 @@ int main(int _argc, char** _argv) {
             bool game_ecode = doGame(cli_opt.addr, cli_opt.port);
             stopRenderer();
             ret = !game_ecode;
-            break;
-        }
+        } break;
         case 2:; {
             cores -= 1;
             if (cores < 1) cores = 1;
@@ -368,8 +366,7 @@ int main(int _argc, char** _argv) {
             }
             pause();
             stopServer();
-            break;
-        }
+        } break;
     }
     #else
     cores -= 1;
