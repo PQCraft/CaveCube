@@ -98,11 +98,11 @@ void genChunk(int64_t cx, int64_t cz, struct blockdata* data, int type) {
             int xzoff = z * 16 + x;
             double cx = (double)(nx + x) - 8;
             double cz = (double)(nz + z) - 8;
-            struct blockdata sliver[256];
+            struct blockdata sliver[512];
             memset(&sliver, 0, sizeof(sliver));
             genSliver(type, cx, cz, sliver);
             float nlight = 31;
-            for (int i = 255; i >= 0; --i) {
+            for (int i = 511; i >= 0; --i) {
                 struct blockdata* tdata = &data[256 * i + xzoff];
                 if (sliver[i].id == water) {nlight -= 1.75; if (nlight < 0) nlight = 0;}
                 *tdata = (struct blockdata){

@@ -32,7 +32,7 @@ void getChunkOfBlock(int64_t x, int64_t z, int64_t* chunkx, int64_t* chunkz) {
 }
 
 void getBlock(struct chunkdata* data, int64_t x, int y, int64_t z, struct blockdata* b) {
-    if (y < 0 || y > 255) {b->id = BLOCKNO_NULL; return;}
+    if (y < 0 || y > 511) {b->id = BLOCKNO_NULL; return;}
     int64_t cx, cz;
     _getChunkOfBlock(x, z, &cx, &cz);
     //printf("[%"PRId64"][%"PRId64"] -> [%"PRId64"][%"PRId64"]\n", x, z, cx, cz);
@@ -51,7 +51,7 @@ void getBlock(struct chunkdata* data, int64_t x, int y, int64_t z, struct blockd
 
 void setBlock(struct chunkdata* data, int64_t x, int y, int64_t z, struct blockdata bdata) {
     pthread_mutex_lock(&data->lock);
-    if (y < 0 || y > 255) return;
+    if (y < 0 || y > 511) return;
     int64_t cx, cz;
     _getChunkOfBlock(x, z, &cx, &cz);
     cx = (cx - data->xoff) + data->info.dist;
@@ -89,7 +89,7 @@ struct chunkdata* allocChunks(int dist) {
     chunks->info.widthsq = dist;
     chunks->data = malloc(dist * sizeof(*chunks->data));
     for (int i = 0; i < dist; ++i) {
-        chunks->data[i] = malloc(sizeof(**chunks->data) * 65536);
+        chunks->data[i] = malloc(sizeof(**chunks->data) * 131072);
     }
     chunks->renddata = calloc(sizeof(*chunks->renddata), dist);
     chunks->rordr = calloc(sizeof(*chunks->rordr), dist);
@@ -125,7 +125,7 @@ void resizeChunks(struct chunkdata* chunks, int dist) {
     chunks->info.widthsq = dist;
     chunks->data = malloc(dist * sizeof(*chunks->data));
     for (int i = 0; i < dist; ++i) {
-        chunks->data[i] = calloc(sizeof(**chunks->data), 65536);
+        chunks->data[i] = calloc(sizeof(**chunks->data), 131072);
     }
     chunks->renddata = calloc(sizeof(*chunks->renddata), dist);
     chunks->rordr = calloc(sizeof(*chunks->rordr), dist);

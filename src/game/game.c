@@ -42,7 +42,7 @@ static force_inline void writeChunk(struct chunkdata* chunks, int64_t x, int64_t
     }
     uint32_t coff = nx + nz * chunks->info.width;
     //printf("writing chunk to [%"PRId64", %"PRId64"] ([%"PRId64", %"PRId64"])\n", nx, nz, x, z);
-    memcpy(chunks->data[coff], data, 65536 * sizeof(struct blockdata));
+    memcpy(chunks->data[coff], data, 131072 * sizeof(struct blockdata));
     chunks->renddata[coff].generated = true;
     chunks->renddata[coff].requested = false;
     updateChunk(x, z, CHUNKUPDATE_PRIO_LOW, 1);
@@ -449,6 +449,9 @@ bool doGame(char* addr, int port) {
                 lowframe = 1000000.0 / (double)rendinf.disphz;
             }
         }
+        pcoord.x = rendinf.campos.x + rendinf.chunks->xoff * 16;
+        pcoord.y = rendinf.campos.y;
+        pcoord.z = rendinf.campos.z + rendinf.chunks->zoff * 16;
         coord_3d_dbl bcoord = w2bCoord(pcoord);
         pblockx = bcoord.x;
         pblocky = bcoord.y;
