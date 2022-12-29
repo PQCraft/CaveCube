@@ -37,9 +37,7 @@
 - Make updateChunks() use a message list
 
 ### IN-PROGRESS:
-- Redo doGame() and remove loopDelay
-    - Remove collision spaghetti
-    - Use physics code for collision and raycasting
+- Redoing worldgen
 - Add physics in `src/physics/`
     - Use ticks https://gafferongames.com/post/fix_your_timestep/ and add interpolation
     - Add AABB collision in `collision.(c|h)`

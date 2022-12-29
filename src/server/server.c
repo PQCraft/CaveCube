@@ -346,8 +346,7 @@ static void* servthread(void* args) {
                 switch (msg.id) {
                     case CLIENT_PING:; {
                         addMsg(&servmsgout[MSG_PRIO_NORMAL], SERVER_PONG, NULL, msg.uuid, msg.uind);
-                        break;
-                    }
+                    } break;
                     case CLIENT_COMPATINFO:; {
                         struct client_data_compatinfo* data = msg.data;
                         struct server_data_compatinfo* outdata = malloc(sizeof(*outdata));
@@ -358,8 +357,7 @@ static void* servthread(void* args) {
                         outdata->flags = SERVER_FLAG_NOAUTH;
                         outdata->server_str = strdup(PROG_NAME);
                         addMsg(&servmsgout[MSG_PRIO_HIGH], SERVER_COMPATINFO, outdata, msg.uuid, msg.uind);
-                        break;
-                    }
+                    } break;
                     case CLIENT_LOGININFO:; {
                         struct client_data_logininfo* data = msg.data;
                         struct server_data_logininfo* outdata = calloc(1, sizeof(*outdata));
@@ -386,8 +384,7 @@ static void* servthread(void* args) {
                             }
                         }
                         addMsg(&servmsgout[MSG_PRIO_HIGH], SERVER_LOGININFO, outdata, msg.uuid, msg.uind);
-                        break;
-                    }
+                    } break;
                     case CLIENT_GETCHUNK:; {
                         struct client_data_getchunk* data = msg.data;
                         struct server_data_updatechunk* outdata = malloc(sizeof(*outdata));
@@ -409,8 +406,7 @@ static void* servthread(void* args) {
                             addMsg(&servmsgout[MSG_PRIO_LOW], SERVER_UPDATECHUNK, outdata, msg.uuid, msg.uind);
                         }
                         //microwait(100000);
-                        break;
-                    }
+                    } break;
                     case CLIENT_SETBLOCK:; {
                         struct client_data_setblock* data = msg.data;
                         //printf("!!! [%"PRId64", %d, %"PRId64"]\n", data->x, data->y, data->z);
@@ -426,8 +422,7 @@ static void* servthread(void* args) {
                             }
                         }
                         pthread_mutex_unlock(&pdatalock);
-                        break;
-                    }
+                    } break;
                     case _SERVER_USERCONNECT:; {
                         struct server_data_setskycolor* skycolor = malloc(sizeof(*skycolor));
                         struct server_data_setnatcolor* natcolor = malloc(sizeof(*natcolor));
@@ -440,15 +435,12 @@ static void* servthread(void* args) {
 
                         addMsg(&servmsgout[MSG_PRIO_HIGH], SERVER_SETSKYCOLOR, skycolor, msg.uuid, msg.uind);
                         addMsg(&servmsgout[MSG_PRIO_HIGH], SERVER_SETNATCOLOR, natcolor, msg.uuid, msg.uind);
-                        break;
-                    }
+                    } break;
                     case _SERVER_USERDISCONNECT:; {
-                        break;
-                    }
+                    } break;
                     default:; {
                         activity = false;
-                        break;
-                    }
+                    } break;
                 }
                 if (msg.data) free(msg.data);
                 //puts("Done");
@@ -555,8 +547,7 @@ static void* servnetthread(void* args) {
                                 data->client_str[tmpword] = 0;
                                 _data = data;
                                 priority = MSG_PRIO_HIGH;
-                                break;
-                            }
+                            } break;
                             case CLIENT_GETCHUNK:; {
                                 struct client_data_getchunk* data = malloc(sizeof(*data));
                                 memcpy(&data->x, &buf[ptr], 8);
@@ -566,8 +557,7 @@ static void* servnetthread(void* args) {
                                 data->z = net2host64(data->z);
                                 _data = data;
                                 priority = MSG_PRIO_LOW;
-                                break;
-                            }
+                            } break;
                             case CLIENT_SETBLOCK:; {
                                 struct client_data_setblock* data = malloc(sizeof(*data));
                                 memcpy(&data->x, &buf[ptr], 8);
@@ -580,8 +570,7 @@ static void* servnetthread(void* args) {
                                 ptr += 1;
                                 memcpy(&data->data, &buf[ptr], sizeof(struct blockdata));
                                 _data = data;
-                                break;
-                            }
+                            } break;
                         }
                         addMsg(&servmsgin[priority], msgdataid, _data, pdata[i].uuid, i);
                         free(buf);
@@ -600,26 +589,21 @@ static void* servnetthread(void* args) {
                                 case SERVER_COMPATINFO:; {
                                     struct server_data_compatinfo* tmpdata = msg.data;
                                     msgsize += 2 + 2 + 2 + 1 + 2 + (uint16_t)(strlen(tmpdata->server_str));
-                                    break;
-                                }
+                                } break;
                                 case SERVER_UPDATECHUNK:; {
                                     struct server_data_updatechunk* tmpdata = msg.data;
                                     msgsize += 8 + 8 + tmpdata->len;
                                     //printf("msgsize: [%d]\n", msgsize);
-                                    break;
-                                }
+                                } break;
                                 case SERVER_SETSKYCOLOR:; {
                                     msgsize += 1 + 1 + 1;
-                                    break;
-                                }
+                                } break;
                                 case SERVER_SETNATCOLOR:; {
                                     msgsize += 1 + 1 + 1;
-                                    break;
-                                }
+                                } break;
                                 case SERVER_SETBLOCK:; {
                                     msgsize += 8 + 8 + 1 + sizeof(struct blockdata);
-                                    break;
-                                }
+                                } break;
                             }
                             if (getOutbufLeft(pdata[i].cxn) < (int)msgsize) {
                                 addMsg(&servmsgout[priority], msg.id, msg.data, msg.uuid, msg.uind);
@@ -643,8 +627,7 @@ static void* servnetthread(void* args) {
                                     writeToCxnBuf(pdata[i].cxn, &tmpword, 2);
                                     writeToCxnBuf(pdata[i].cxn, tmpdata->server_str, net2host16(tmpword));
                                     free(tmpdata->server_str);
-                                    break;
-                                }
+                                } break;
                                 case SERVER_UPDATECHUNK:; {
                                     struct server_data_updatechunk* tmpdata = msg.data;
                                     uint64_t tmpqword = host2net64(tmpdata->x);
@@ -653,22 +636,19 @@ static void* servnetthread(void* args) {
                                     writeToCxnBuf(pdata[i].cxn, &tmpqword, 8);
                                     writeToCxnBuf(pdata[i].cxn, tmpdata->cdata, tmpdata->len);
                                     free(tmpdata->cdata);
-                                    break;
-                                }
+                                } break;
                                 case SERVER_SETSKYCOLOR:; {
                                     struct server_data_setskycolor* tmpdata = msg.data;
                                     writeToCxnBuf(pdata[i].cxn, &tmpdata->r, 1);
                                     writeToCxnBuf(pdata[i].cxn, &tmpdata->g, 1);
                                     writeToCxnBuf(pdata[i].cxn, &tmpdata->b, 1);
-                                    break;
-                                }
+                                } break;
                                 case SERVER_SETNATCOLOR:; {
                                     struct server_data_setnatcolor* tmpdata = msg.data;
                                     writeToCxnBuf(pdata[i].cxn, &tmpdata->r, 1);
                                     writeToCxnBuf(pdata[i].cxn, &tmpdata->g, 1);
                                     writeToCxnBuf(pdata[i].cxn, &tmpdata->b, 1);
-                                    break;
-                                }
+                                } break;
                                 case SERVER_SETBLOCK:; {
                                     struct server_data_setblock* tmpdata = msg.data;
                                     uint64_t tmpqword = host2net64(tmpdata->x);
@@ -677,8 +657,7 @@ static void* servnetthread(void* args) {
                                     writeToCxnBuf(pdata[i].cxn, &tmpqword, 8);
                                     writeToCxnBuf(pdata[i].cxn, &tmpdata->y, 1);
                                     writeToCxnBuf(pdata[i].cxn, &tmpdata->data, sizeof(struct blockdata));
-                                    break;
-                                }
+                                } break;
                             }
                             if (msg.data) free(msg.data);
                             srv_nosend:;
@@ -725,9 +704,10 @@ int startServer(char* addr, int port, int mcli, char* world) {
     #if DBGLVL(1)
     puts("  Initializing noise...");
     #endif
-    //uint32_t rand = getRandWord(1);
-    //printf("rand: [%u]\n", rand);
-    setRandSeed(0, 39010);
+    uint32_t rand = getRandWord(1);
+    printf("rand: [%u]\n", rand);
+    //setRandSeed(0, 39010);
+    setRandSeed(0, rand);
     initNoiseTable(0);
     initWorldgen();
     #if DBGLVL(1)
@@ -862,8 +842,7 @@ static void* clinetthread(void* args) {
             switch (tmpbyte) {
                 case SERVER_PONG:; {
                     callback(SERVER_PONG, NULL);
-                    break;
-                }
+                } break;
                 case SERVER_COMPATINFO:; {
                     struct server_data_compatinfo data;
                     memcpy(&data.ver_major, &buf[ptr], 2);
@@ -885,8 +864,7 @@ static void* clinetthread(void* args) {
                     data.server_str[tmpword] = 0;
                     callback(SERVER_COMPATINFO, &data);
                     free(data.server_str);
-                    break;
-                }
+                } break;
                 case SERVER_UPDATECHUNK:; {
                     struct server_data_updatechunk data;
                     memcpy(&data.x, &buf[ptr], 8);
@@ -904,24 +882,21 @@ static void* clinetthread(void* args) {
                         printf("decompressed: [%"PRId64", %"PRId64"] in [%lgms]\n", data.x, data.z, time);
                         */
                     }
-                    break;
-                }
+                } break;
                 case SERVER_SETSKYCOLOR:; {
                     struct server_data_setskycolor data;
                     data.r = buf[ptr++];
                     data.g = buf[ptr++];
                     data.b = buf[ptr++];
                     callback(SERVER_SETSKYCOLOR, &data);
-                    break;
-                }
+                } break;
                 case SERVER_SETNATCOLOR:; {
                     struct server_data_setnatcolor data;
                     data.r = buf[ptr++];
                     data.g = buf[ptr++];
                     data.b = buf[ptr++];
                     callback(SERVER_SETNATCOLOR, &data);
-                    break;
-                }
+                } break;
                 case SERVER_SETBLOCK:; {
                     struct server_data_setblock data;
                     memcpy(&data.x, &buf[ptr], 8);
@@ -934,8 +909,7 @@ static void* clinetthread(void* args) {
                     ptr += 1;
                     memcpy(&data.data, &buf[ptr], sizeof(struct blockdata));
                     callback(SERVER_SETBLOCK, &data);
-                    break;
-                }
+                } break;
             }
             free(buf);
             tmpsize = 0;
@@ -950,16 +924,13 @@ static void* clinetthread(void* args) {
                     case CLIENT_COMPATINFO:; {
                         struct client_data_compatinfo* tmpdata = msg.data;
                         msgsize += 2 + 2 + 2 + 1 + 2 + (uint16_t)(strlen(tmpdata->client_str));
-                        break;
-                    }
+                    } break;
                     case CLIENT_GETCHUNK:; {
                         msgsize += 8 + 8;
-                        break;
-                    }
+                    } break;
                     case CLIENT_SETBLOCK:; {
                         msgsize += 8 + 8 + 1 + sizeof(struct blockdata);
-                        break;
-                    }
+                    } break;
                 }
                 if (getOutbufLeft(clicxn) < (int)msgsize) {
                     addMsg(&climsgout, msg.id, msg.data, msg.uuid, msg.uind);
@@ -983,16 +954,14 @@ static void* clinetthread(void* args) {
                         writeToCxnBuf(clicxn, &tmpword, 2);
                         writeToCxnBuf(clicxn, tmpdata->client_str, net2host16(tmpword));
                         free(tmpdata->client_str);
-                        break;
-                    }
+                    } break;
                     case CLIENT_GETCHUNK:; {
                         struct client_data_getchunk* tmpdata = msg.data;
                         uint64_t tmpqword = host2net64(tmpdata->x);
                         writeToCxnBuf(clicxn, &tmpqword, 8);
                         tmpqword = host2net64(tmpdata->z);
                         writeToCxnBuf(clicxn, &tmpqword, 8);
-                        break;
-                    }
+                    } break;
                     case CLIENT_SETBLOCK:; {
                         struct client_data_setblock* tmpdata = msg.data;
                         uint64_t tmpqword = host2net64(tmpdata->x);
@@ -1001,8 +970,7 @@ static void* clinetthread(void* args) {
                         writeToCxnBuf(clicxn, &tmpqword, 8);
                         writeToCxnBuf(clicxn, &tmpdata->y, 1);
                         writeToCxnBuf(clicxn, &tmpdata->data, sizeof(struct blockdata));
-                        break;
-                    }
+                    } break;
                 }
                 if (msg.data) free(msg.data);
                 cli_nosend:;
@@ -1054,15 +1022,13 @@ void cliSend(int id, ...) {
             tmpdata->flags = va_arg(args, unsigned);
             tmpdata->client_str = strdup(va_arg(args, char*));
             data = tmpdata;
-            break;
-        }
+        } break;
         case CLIENT_GETCHUNK:; {
             struct client_data_getchunk* tmpdata = malloc(sizeof(*tmpdata));
             tmpdata->x = va_arg(args, int64_t);
             tmpdata->z = va_arg(args, int64_t);
             data = tmpdata;
-            break;
-        }
+        } break;
         case CLIENT_SETBLOCK:; {
             struct client_data_setblock* tmpdata = malloc(sizeof(*tmpdata));
             tmpdata->x = va_arg(args, int64_t);
@@ -1070,8 +1036,7 @@ void cliSend(int id, ...) {
             tmpdata->z = va_arg(args, int64_t);
             tmpdata->data = va_arg(args, struct blockdata);
             data = tmpdata;
-            break;
-        }
+        } break;
     }
     addMsg(&climsgout, id, data, 0, 0);
     va_end(args);
