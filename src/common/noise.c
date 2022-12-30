@@ -5,8 +5,6 @@
 #include <math.h>
 #include <stdlib.h>
 
-#define NMAGIC(x) (fmod(fabs(x), 256.0) / 128.0)
-
 unsigned char perm[NOISE_TABLES][512];
 
 void initNoiseTable(int s) {
@@ -16,6 +14,74 @@ void initNoiseTable(int s) {
             perm[i][j] = getRandByte(s);
         }
     }
+}
+
+#define SEED (1984)
+
+static force_inline int64_t _noise2d(int t, int64_t x, int64_t y) {
+    int64_t yindex = (y + SEED) % 256;
+    if (yindex < 0) yindex += 256;
+    int64_t xindex = (perm[t][yindex] + x) % 256;
+    if (xindex < 0) xindex += 256;
+    return perm[t][xindex];
+}
+
+static force_inline double lin_inter(double x, double y, double s) {
+    return x + s * (y - x);
+}
+
+static force_inline double smooth_inter(double x, double y, double s) {
+    return lin_inter(x, y, s * s * (3 - 2 * s));
+}
+
+double noise2d(int tbl, double x, double y) {
+    const int64_t x_int = floor(x);
+    const int64_t y_int = floor(y);
+    const double x_frac = x - x_int;
+    const double y_frac = y - y_int;
+    const int64_t s = _noise2d(tbl, x_int, y_int);
+    const int64_t t = _noise2d(tbl, x_int + 1, y_int);
+    const int64_t u = _noise2d(tbl, x_int, y_int + 1);
+    const int64_t v = _noise2d(tbl, x_int + 1, y_int + 1);
+    const double low = smooth_inter(s, t, x_frac);
+    const double high = smooth_inter(u, v, x_frac);
+    const double result = smooth_inter(low, high, y_frac);
+    return result;
+}
+
+double nnoise2d(int tbl, double x, double y) {
+    const int64_t x_int = floor(x);
+    const int64_t y_int = floor(y);
+    const double x_frac = x - x_int;
+    const double y_frac = y - y_int;
+    const int64_t s = _noise2d(tbl, x_int, y_int);
+    const int64_t t = _noise2d(tbl, x_int + 1, y_int);
+    const int64_t u = _noise2d(tbl, x_int, y_int + 1);
+    const int64_t v = _noise2d(tbl, x_int + 1, y_int + 1);
+    const double low = smooth_inter(s, t, x_frac);
+    const double high = smooth_inter(u, v, x_frac);
+    const double result = smooth_inter(low, high, y_frac);
+    return result * 2 - 1;
+}
+
+double perlin2d(int t, double x, double y, double freq, int depth) {
+    double xa = x * freq;
+    double ya = y * freq;
+    double amp = 1.0;
+    double fin = 0;
+    double div = 0.0;
+    for (int i = 0; i < depth; i++) {
+        div += 256 * amp;
+        fin += noise2d(t, xa, ya) * amp;
+        amp /= 2;
+        xa += xa;
+        ya += ya;
+    }
+    return fin / div;
+}
+
+double nperlin2d(int t, double x, double y, double freq, int depth) {
+    return perlin2d(t, x, y, freq, depth) * 2 - 1;
 }
 
 // Modified version of noise1234 at https://github.com/stegu/perlin-noise

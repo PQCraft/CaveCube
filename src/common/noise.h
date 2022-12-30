@@ -6,6 +6,10 @@
 #endif
 
 void initNoiseTable(int);
+double noise2d(int, double, double);
+double nnoise2d(int, double, double);
+double perlin2d(int, double, double, double, int);
+double nperlin2d(int, double, double, double, int);
 double noise1(int, double);
 double pnoise1(int, double, int);
 double noise2(int, double, double);
