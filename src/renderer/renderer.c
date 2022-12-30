@@ -752,7 +752,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
         //printf("maxy[%"PRId64", %"PRId64"]: %d\n", x, z, maxy);
         pthread_mutex_unlock(&rendinf.chunks->lock);
     }
-    for (int y = 0; y <= maxy; ++y) {
+    for (int y = maxy; y >= 0; --y) {
         pthread_mutex_lock(&rendinf.chunks->lock);
         nx = (x - rendinf.chunks->xoff) + rendinf.chunks->info.dist;
         nz = rendinf.chunks->info.width - ((z - rendinf.chunks->zoff) + rendinf.chunks->info.dist) - 1;
