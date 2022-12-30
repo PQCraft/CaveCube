@@ -46,12 +46,25 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
             chunkx /= 16;
             chunkz /= 16;
             if (true || (chunkx + chunkz) % 2) {
-                for (int i = 0; i < 128; ++i) {
-                    if (!data[i].id) data[i].id = water;
+                double heightmult = tanhf((noise2(0, cx / 254.0, cz / 254.0) * 2.0) * 0.5 + 0.5);
+                double detail = noise2(1, cx / 30.0, cz / 30.0) * 1.0;
+                detail += noise2(2, cx / 15.0, cz / 15.0) * 0.67;
+                detail += noise2(3, cx / 7.5, cz / 7.5) * 0.33;
+                double height = tanhf(noise2(4, cx / 174.0, cz / 174.0) * 10.0) * heightmult;
+                double finalheight = round(height * 50 + detail * 2 + 128.0);
+                for (int i = 0; i < finalheight; ++i) {
+                    data[i].id = stone;
                 }
                 for (int i = 0; i < 512; ++i) {
-                    if (data[i].id != water && noise3(0, cx / 10.45, cz / 10.45, i / 10.45) < -0.33) {
+                    if (noise3(15, cx / 20.45, cz / 20.45, i / 12.95) < -0.26 - fabs((i - (50.0 + height * 35.0)) / (300.0 + height * 100.0))) {
                         data[i].id = 0;
+                    }
+                }
+                for (int i = 511; i >= 0; --i) {
+                    if (!data[i].id /*i >= finalheight*/) {
+                        if (i < 128) data[i].id = water;
+                    } else {
+                        break;
                     }
                 }
                 double n0 = noise3(63, cx / 2.0, cz / 2.0, 0);
