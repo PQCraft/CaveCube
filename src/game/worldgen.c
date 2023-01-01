@@ -56,16 +56,12 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
                     data[i].id = stone;
                 }
                 for (int i = 0; i < 512; ++i) {
-                    if (noise3(15, cx / 20.45, cz / 20.45, i / 12.95) < -0.26 - fabs((i - (50.0 + height * 35.0)) / (300.0 + height * 100.0))) {
+                    if (noise3(15, cx / 24.5, cz / 24.5, i / 14.0) < -0.26 - fabs((i - (50.0 + height * 35.0)) / (300.0 + height * 100.0))) {
                         data[i].id = 0;
                     }
                 }
-                for (int i = 511; i >= 0; --i) {
-                    if (!data[i].id /*i >= finalheight*/) {
-                        if (i < 128) data[i].id = water;
-                    } else {
-                        break;
-                    }
+                for (int i = 127; i >= finalheight; --i) {
+                    data[i].id = water;
                 }
                 double n0 = noise3(63, cx / 2.0, cz / 2.0, 0);
                 data[0].id = bedrock; data[0].subid = 0;

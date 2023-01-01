@@ -452,11 +452,12 @@ void updateScreen() {
     #endif
 }
 
-static force_inline int64_t i64_mod(int64_t v, int64_t m) {return ((v % m) + m) % m;}
+//static force_inline int64_t i64_mod(int64_t v, int64_t m) {return ((v % m) + m) % m;}
 
 static force_inline void rendGetBlock(int64_t cx, int64_t cz, int x, int y, int z, struct blockdata* b) {
     if (y < 0 || y > 511) {
         b->id = BLOCKNO_NULL;
+        b->subid = 0;
         b->light_r = 0;
         b->light_g = 0;
         b->light_b = 0;
@@ -469,6 +470,7 @@ static force_inline void rendGetBlock(int64_t cx, int64_t cz, int x, int y, int 
     cz -= z / 16 - (z < 0);
     if (cx < 0 || cz < 0 || cx >= rendinf.chunks->info.width || cz >= rendinf.chunks->info.width) {
         b->id = BLOCKNO_BORDER;
+        b->subid = 0;
         b->light_r = 0;
         b->light_g = 0;
         b->light_b = 0;
@@ -477,11 +479,12 @@ static force_inline void rendGetBlock(int64_t cx, int64_t cz, int x, int y, int 
         b->light_n_b = 31;
         return;
     }
-    x = i64_mod(x, 16);
-    z = i64_mod(z, 16);
+    x &= 0xF;
+    z &= 0xF;
     int c = cx + cz * rendinf.chunks->info.width;
     if (!rendinf.chunks->renddata[c].generated) {
         b->id = BLOCKNO_BORDER;
+        b->subid = 0;
         b->light_r = 0;
         b->light_g = 0;
         b->light_b = 0;
@@ -720,7 +723,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
     }
     pthread_mutex_unlock(&rendinf.chunks->lock);
     //printf("mesh: [%"PRId64", %"PRId64"]\n", x, z);
-    //uint64_t stime = altutime();
+    uint64_t stime = altutime();
     int vpsize = 32768;
     int vpsize2 = 32768;
     uint32_t* _vptr = malloc(vpsize * sizeof(uint32_t));
@@ -752,7 +755,9 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
         //printf("maxy[%"PRId64", %"PRId64"]: %d\n", x, z, maxy);
         pthread_mutex_unlock(&rendinf.chunks->lock);
     }
-    for (int y = maxy; y >= 0; --y) {
+    maxy /= 16;
+    maxy *= 16;
+    for (; maxy >= 0; maxy -= 16) {
         pthread_mutex_lock(&rendinf.chunks->lock);
         nx = (x - rendinf.chunks->xoff) + rendinf.chunks->info.dist;
         nz = rendinf.chunks->info.width - ((z - rendinf.chunks->zoff) + rendinf.chunks->info.dist) - 1;
@@ -761,64 +766,79 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
             free(_vptr2);
             goto lblcontinue;
         }
-        for (int z = 0; z < 16; ++z) {
-            for (int x = 0; x < 16; ++x) {
-                rendGetBlock(nx, nz, x, y, z, &bdata);
-                if (!bdata.id || !blockinf[bdata.id].id || !blockinf[bdata.id].data[bdata.subid].id) continue;
-                rendGetBlock(nx, nz, x, y + 1, z, &bdata2[0]);
-                rendGetBlock(nx, nz, x + 1, y, z, &bdata2[1]);
-                rendGetBlock(nx, nz, x, y, z + 1, &bdata2[2]);
-                rendGetBlock(nx, nz, x, y - 1, z, &bdata2[3]);
-                rendGetBlock(nx, nz, x - 1, y, z, &bdata2[4]);
-                rendGetBlock(nx, nz, x, y, z - 1, &bdata2[5]);
-                for (int i = 0; i < 6; ++i) {
-                    if (bdata2[i].id && blockinf[bdata2[i].id].id) {
-                        if (blockinf[bdata2[i].id].data[bdata2[i].subid].transparency) {
-                            if (bdata.id == bdata2[i].id && bdata.subid == bdata2[i].subid) continue;
-                        } else {
-                            continue;
+        //puts("CYCLE");
+        for (int y = maxy + 15; y >= maxy; --y) {
+            if (y > maxy && !(y % 8)) { // anti-stutter
+                //puts("anti-stutter");   
+                pthread_mutex_unlock(&rendinf.chunks->lock);
+                pthread_mutex_lock(&rendinf.chunks->lock);
+                nx = (x - rendinf.chunks->xoff) + rendinf.chunks->info.dist;
+                nz = rendinf.chunks->info.width - ((z - rendinf.chunks->zoff) + rendinf.chunks->info.dist) - 1;
+                if (nx < 0 || nz < 0 || nx >= rendinf.chunks->info.width || nz >= rendinf.chunks->info.width) {
+                    free(_vptr);
+                    free(_vptr2);
+                    goto lblcontinue;
+                }
+            }
+            for (int z = 0; z < 16; ++z) {
+                for (int x = 0; x < 16; ++x) {
+                    rendGetBlock(nx, nz, x, y, z, &bdata);
+                    if (!bdata.id || !blockinf[bdata.id].id || !blockinf[bdata.id].data[bdata.subid].id) continue;
+                    rendGetBlock(nx, nz, x, y + 1, z, &bdata2[0]);
+                    rendGetBlock(nx, nz, x + 1, y, z, &bdata2[1]);
+                    rendGetBlock(nx, nz, x, y, z + 1, &bdata2[2]);
+                    rendGetBlock(nx, nz, x, y - 1, z, &bdata2[3]);
+                    rendGetBlock(nx, nz, x - 1, y, z, &bdata2[4]);
+                    rendGetBlock(nx, nz, x, y, z - 1, &bdata2[5]);
+                    for (int i = 0; i < 6; ++i) {
+                        if (bdata2[i].id && blockinf[bdata2[i].id].id) {
+                            if (blockinf[bdata2[i].id].data[bdata2[i].subid].transparency) {
+                                if (bdata.id == bdata2[i].id && bdata.subid == bdata2[i].subid) continue;
+                            } else {
+                                continue;
+                            }
                         }
-                    }
-                    if (bdata2[i].id == 255) continue;
+                        if (bdata2[i].id == 255) continue;
 
-                    baseVert[0] = ((x << 28) | (y << 12) | (z << 4)) & 0xF0FFF0F0;
+                        baseVert[0] = ((x << 28) | (y << 12) | (z << 4)) & 0xF0FFF0F0;
 
-                    int16_t light_n_r = bdata2[i].light_n_r - light_n_tweak[i];
-                    if (light_n_r < 0) light_n_r = 0;
-                    int16_t light_n_g = bdata2[i].light_n_g - light_n_tweak[i];
-                    if (light_n_g < 0) light_n_g = 0;
-                    int16_t light_n_b = bdata2[i].light_n_b - light_n_tweak[i];
-                    if (light_n_b < 0) light_n_b = 0;
-                    baseVert[1] = (bdata2[i].light_r << 26) | (bdata2[i].light_g << 21) | (bdata2[i].light_b << 16);
-                    baseVert[1] |= (light_n_r << 10) | (light_n_g << 5) | (light_n_b);
+                        int16_t light_n_r = bdata2[i].light_n_r - light_n_tweak[i];
+                        if (light_n_r < 0) light_n_r = 0;
+                        int16_t light_n_g = bdata2[i].light_n_g - light_n_tweak[i];
+                        if (light_n_g < 0) light_n_g = 0;
+                        int16_t light_n_b = bdata2[i].light_n_b - light_n_tweak[i];
+                        if (light_n_b < 0) light_n_b = 0;
+                        baseVert[1] = (bdata2[i].light_r << 26) | (bdata2[i].light_g << 21) | (bdata2[i].light_b << 16);
+                        baseVert[1] |= (light_n_r << 10) | (light_n_g << 5) | (light_n_b);
 
-                    baseVert[2] = ((blockinf[bdata.id].data[bdata.subid].texoff[i] << 16) & 0xFFFF0000);
-                    baseVert[2] |= ((blockinf[bdata.id].data[bdata.subid].anict[i] << 8) & 0xFF00);
-                    baseVert[2] |= (blockinf[bdata.id].data[bdata.subid].anidiv & 0xFF);
+                        baseVert[2] = ((blockinf[bdata.id].data[bdata.subid].texoff[i] << 16) & 0xFFFF0000);
+                        baseVert[2] |= ((blockinf[bdata.id].data[bdata.subid].anict[i] << 8) & 0xFF00);
+                        baseVert[2] |= (blockinf[bdata.id].data[bdata.subid].anidiv & 0xFF);
 
-                    baseVert[3] = 0;
+                        baseVert[3] = 0;
 
-                    if (blockinf[bdata.id].data[bdata.subid].transparency >= 2) {
-                        if (!bdata2[i].id && blockinf[bdata.id].data[bdata.subid].backfaces) {
-                            for (int j = 5; j >= 0; --j) {
+                        if (blockinf[bdata.id].data[bdata.subid].transparency >= 2) {
+                            if (!bdata2[i].id && blockinf[bdata.id].data[bdata.subid].backfaces) {
+                                for (int j = 5; j >= 0; --j) {
+                                    mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert[0] | constBlockVert[0][i][j]);
+                                    mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert[1]/* | constBlockVert[1][i][j]*/);
+                                    mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert[2]/* | constBlockVert[2][i][j]*/);
+                                    mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert[3] | constBlockVert[3][i][j]);
+                                }
+                            }
+                            for (int j = 0; j < 6; ++j) {
                                 mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert[0] | constBlockVert[0][i][j]);
                                 mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert[1]/* | constBlockVert[1][i][j]*/);
                                 mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert[2]/* | constBlockVert[2][i][j]*/);
                                 mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert[3] | constBlockVert[3][i][j]);
                             }
-                        }
-                        for (int j = 0; j < 6; ++j) {
-                            mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert[0] | constBlockVert[0][i][j]);
-                            mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert[1]/* | constBlockVert[1][i][j]*/);
-                            mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert[2]/* | constBlockVert[2][i][j]*/);
-                            mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert[3] | constBlockVert[3][i][j]);
-                        }
-                    } else {
-                        for (int j = 0; j < 6; ++j) {
-                            mtsetvert(&_vptr, &vpsize, &vplen, &vptr, baseVert[0] | constBlockVert[0][i][j]);
-                            mtsetvert(&_vptr, &vpsize, &vplen, &vptr, baseVert[1]/* | constBlockVert[1][i][j]*/);
-                            mtsetvert(&_vptr, &vpsize, &vplen, &vptr, baseVert[2]/* | constBlockVert[2][i][j]*/);
-                            mtsetvert(&_vptr, &vpsize, &vplen, &vptr, baseVert[3] | constBlockVert[3][i][j]);
+                        } else {
+                            for (int j = 0; j < 6; ++j) {
+                                mtsetvert(&_vptr, &vpsize, &vplen, &vptr, baseVert[0] | constBlockVert[0][i][j]);
+                                mtsetvert(&_vptr, &vpsize, &vplen, &vptr, baseVert[1]/* | constBlockVert[1][i][j]*/);
+                                mtsetvert(&_vptr, &vpsize, &vplen, &vptr, baseVert[2]/* | constBlockVert[2][i][j]*/);
+                                mtsetvert(&_vptr, &vpsize, &vplen, &vptr, baseVert[3] | constBlockVert[3][i][j]);
+                            }
                         }
                     }
                 }
@@ -849,10 +869,8 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
         rendinf.chunks->renddata[c].updateid = id;
         //printf("meshed: [%"PRId64", %"PRId64"] ([%"PRId64", %"PRId64"])\n", x, z, nx, nz);
         //printf("meshed: [%"PRId64", %"PRId64"] -> [%d][%d], [%d][%d]\n", x, z, vpsize, vplen, vpsize2, vplen2);
-        /*
         double time = (altutime() - stime) / 1000.0;
         printf("meshed: [%"PRId64", %"PRId64"] in [%lgms]\n", x, z, time);
-        */
     } else {
         free(_vptr);
         free(_vptr2);
@@ -937,7 +955,7 @@ static void* meshthread(void* args) {
         }
         if (activity) {
             acttime = altutime();
-            if (lazymesh) microwait(1000);
+            microwait(250);
         } else if (altutime() - acttime > 500000) {
             microwait(10000);
         }
@@ -1823,6 +1841,7 @@ bool startRenderer() {
     int texmapsize = 0;
     texmap = malloc(texmapsize * 1024);
     char* tmpbuf = malloc(4096);
+    blockinf[0].data[0].transparency = 1;
     for (int i = 1; i < 255; ++i) {
         for (int s = 0; s < 64; ++s) {
             sprintf(tmpbuf, "game/textures/blocks/%d/%d/", i, s);
@@ -1838,10 +1857,8 @@ bool startRenderer() {
                 resdata_image* img = loadResource(RESOURCE_IMAGE, tmpbuf);
                 for (int k = 3; k < 1024; k += 4) {
                     if (img->data[k] < 255) {
-                        //printf("! [%d][%d]: [%u]\n", i, j, (uint8_t)img->data[k]);
                         if (img->data[k]) {
                             blockinf[i].data[s].transparency = 2;
-                            //img->data[k] = 215;
                             break;
                         } else {
                             blockinf[i].data[s].transparency = 1;

@@ -181,7 +181,7 @@ bool doGame(char* addr, int port) {
     int viewdist = atoi(getConfigKey(config, "Game", "viewDist"));
     rendinf.chunks = allocChunks(viewdist);
     if (rendinf.fps || rendinf.vsync) loopdelay = atoi(getConfigKey(config, "Game", "loopDelay"));
-    printf("Allocated chunks: [%d] [%d]\n", rendinf.chunks->info.width, rendinf.chunks->info.widthsq);
+    printf("Allocated chunks: [%d] [%d] [%d]\n", rendinf.chunks->info.dist, rendinf.chunks->info.width, rendinf.chunks->info.widthsq);
     rendinf.campos.y = 201.5;
     initInput();
     float pmult = posmult;
