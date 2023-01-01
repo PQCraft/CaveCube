@@ -47,7 +47,8 @@ char* input_ma_names[] = {
     "multi.jump",
     "multi.crouch",
     "multi.run",
-    "multi.playerlist"
+    "multi.playerlist",
+    "multi.debug"
 };
 char* input_sa_names[] = {
     "single.escape",
@@ -108,6 +109,7 @@ input_keys input_ma[INPUT_ACTION_MULTI__MAX] = {
     KEY('k', 'b', SDL_SCANCODE_LSHIFT, 'k', 'b', SDL_SCANCODE_RSHIFT),
     KEY('k', 'b', SDL_SCANCODE_LCTRL,  'k', 'b', SDL_SCANCODE_RCTRL),
     KEY('k', 'b', SDL_SCANCODE_TAB,    0, 0, 0),
+    KEY('k', 'b', SDL_SCANCODE_F4,     0, 0, 0),
     #else
     KEY('m', 'b', GLFW_MOUSE_BUTTON_LEFT,   0, 0, 0),
     KEY('m', 'b', GLFW_MOUSE_BUTTON_RIGHT,  0, 0, 0),
@@ -117,6 +119,7 @@ input_keys input_ma[INPUT_ACTION_MULTI__MAX] = {
     KEY('k', 'b', GLFW_KEY_LEFT_SHIFT,      'k', 'b', GLFW_KEY_RIGHT_SHIFT),
     KEY('k', 'b', GLFW_KEY_LEFT_CONTROL,    'k', 'b', GLFW_KEY_RIGHT_CONTROL),
     KEY('k', 'b', GLFW_KEY_TAB,             0, 0, 0),
+    KEY('k', 'b', GLFW_KEY_F4,              0, 0, 0),
     #endif
 };
 input_keys input_sa[INPUT_ACTION_SINGLE__MAX] = {
