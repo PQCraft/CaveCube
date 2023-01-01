@@ -1,23 +1,28 @@
 <World name corrected for general filesystem name limitations>/
     server/
         players/
-            [Player ID in 16 network order hex chars]
+            [Player ID in 16 big endian hex chars]
                 <Player data>
             ...
         config.cfg
             <Server config>
     world/
         entities/
-            [Entity ID in 16 hex chars]
+            [Entity ID in 16 big endian hex chars]
                 <Entity data>
             ...
         chunks/
             <Dimension text id>/
-                [<Chunk X coord in 16 network order hex chars><Chunk Z coord in 16 network order hex chars>]
-                    <Chunk data>
+                [<Top 7 bytes of big endian chunk X coord in 14 hex chars><Top 7 bytes of big endian chunk Z coord in 14 hex chars>]/
+                    index
+                        <Compressed 65536x 32-bit big endian offset to chunk data> (Offset is <Bottom byte of chunk X><Bottom byte of chunk X> * 4)
+                    data
+                        <Collection of compressed chunk data>
                 ...
-        state
-            <The state of certain vars at the time of writing the save>
+        state/ (The state of certain vars at the time of writing the save)
+            [Variable name]
+                <Variable data> (Should be stored as big endian)
+            ...
     dynamic.inf
         <Dynamic info about the world (modification date, playtime, etc) in a format readable by common/config.c>
     static.inf
