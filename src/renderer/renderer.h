@@ -96,10 +96,11 @@ struct chunk_renddata {
     uint32_t* sortvert;
     bool remesh[2];
     uint64_t updateid;
+    uint32_t visible;
+    bool visfull:1;
     bool ready:1;
     bool buffered:1;
     bool generated:1;
-    bool visible:1;
     bool requested:1;
 };
 

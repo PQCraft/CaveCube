@@ -56,7 +56,7 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
                     data[i].id = stone;
                 }
                 for (int i = 0; i < 512; ++i) {
-                    if (noise3(15, cx / 24.5, cz / 24.5, i / 14.0) < -0.26 - fabs((i - (50.0 + height * 35.0)) / (300.0 + height * 100.0))) {
+                    if (tanhf((noise3(15, cx / 24.5, i / 14.0, cz / 24.5) + fabs((i - (50.0 + height * 35.0)) / (400.0 + height * 200.0))) * 5.6) < -0.925) {
                         data[i].id = 0;
                     }
                 }

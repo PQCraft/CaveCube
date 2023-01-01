@@ -27,6 +27,8 @@ coord_3d_dbl pcoord;
 coord_3d pvelocity;
 int pblockx, pblocky, pblockz;
 
+bool debug_wireframe = true;
+
 struct ui_data* game_ui[4];
 
 static float posmult = 6.5;
@@ -259,10 +261,26 @@ bool doGame(char* addr, int port) {
                 setInputMode(INPUT_MODE_UI);
                 resetInput();
             }
+
+            #if defined(USESDL2)
+            #else
+            static int debugkey = 0;
+            if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_DEBUG)) {
+                input = INPUT_EMPTY_INFO;
+                if (!debugkey) {
+                    if (glfwGetKey(rendinf.window, (debugkey = GLFW_KEY_W)) == GLFW_PRESS) {
+                        debug_wireframe = !debug_wireframe;
+                        printf("DEBUG: wireframe: [%d]\n", debug_wireframe);
+                    } else {
+                        debugkey = 0;
+                    }
+                } else if (!(glfwGetKey(rendinf.window, debugkey) == GLFW_PRESS)) {
+                    debugkey = 0;
+                }
+            }
+            #endif
+
             switch (input.single_action) {
-                case INPUT_ACTION_SINGLE_DEBUG:;
-                    game_ui[UILAYER_DBGINF]->hidden = !(showDebugInfo = !showDebugInfo);
-                    break;
                 case INPUT_ACTION_SINGLE_FULLSCR:;
                     setFullscreen(!rendinf.fullscr);
                     break;
@@ -303,6 +321,9 @@ bool doGame(char* addr, int port) {
                         case INPUT_ACTION_SINGLE_ROT_Y:;
                             --blocksub;
                             if (blocksub < 0) blocksub = 0;
+                            break;
+                        case INPUT_ACTION_SINGLE_DEBUG:;
+                            game_ui[UILAYER_DBGINF]->hidden = !(showDebugInfo = !showDebugInfo);
                             break;
                         case INPUT_ACTION_SINGLE_ESC:;
                             setInputMode(INPUT_MODE_UI);

@@ -37,6 +37,7 @@
 - Make updateChunks() use a message list
 
 ### IN-PROGRESS:
+- Cave culling
 - Redoing worldgen
 - Add physics in `src/physics/`
     - Use ticks https://gafferongames.com/post/fix_your_timestep/ and add interpolation

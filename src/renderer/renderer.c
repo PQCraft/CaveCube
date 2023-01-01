@@ -454,7 +454,7 @@ void updateScreen() {
 
 //static force_inline int64_t i64_mod(int64_t v, int64_t m) {return ((v % m) + m) % m;}
 
-static force_inline void rendGetBlock(int64_t cx, int64_t cz, int x, int y, int z, struct blockdata* b) {
+static force_inline void rendGetBlock(int cx, int cz, int x, int y, int z, struct blockdata* b) {
     if (y < 0 || y > 511) {
         b->id = BLOCKNO_NULL;
         b->subid = 0;
@@ -468,7 +468,7 @@ static force_inline void rendGetBlock(int64_t cx, int64_t cz, int x, int y, int 
     }
     cx += x / 16 - (x < 0);
     cz -= z / 16 - (z < 0);
-    if (cx < 0 || cz < 0 || cx >= rendinf.chunks->info.width || cz >= rendinf.chunks->info.width) {
+    if (cx < 0 || cz < 0 || cx >= (int)rendinf.chunks->info.width || cz >= (int)rendinf.chunks->info.width) {
         b->id = BLOCKNO_BORDER;
         b->subid = 0;
         b->light_r = 0;
@@ -663,7 +663,7 @@ static force_inline float dist3d(float x0, float y0, float z0, float x1, float y
 static force_inline void _sortChunk(int32_t c, int xoff, int zoff, bool update) {
     if (c < 0) c = (xoff + rendinf.chunks->info.dist) + (rendinf.chunks->info.width - (zoff + rendinf.chunks->info.dist) - 1) * rendinf.chunks->info.width;
     if (update) {
-        if (!rendinf.chunks->renddata[c].sortvert || !rendinf.chunks->renddata[c].tcount[1] || !rendinf.chunks->renddata[c].visible) return;
+        if (!rendinf.chunks->renddata[c].sortvert || !rendinf.chunks->renddata[c].tcount[1] || !rendinf.chunks->renddata[c].visfull) return;
         float camx = sc_camx - xoff * 16;
         float camy = sc_camy;
         float camz = -sc_camz - zoff * 16;
@@ -723,7 +723,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
     }
     pthread_mutex_unlock(&rendinf.chunks->lock);
     //printf("mesh: [%"PRId64", %"PRId64"]\n", x, z);
-    uint64_t stime = altutime();
+    //uint64_t stime = altutime();
     int vpsize = 32768;
     int vpsize2 = 32768;
     uint32_t* _vptr = malloc(vpsize * sizeof(uint32_t));
@@ -734,29 +734,32 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
     uint32_t* vptr2 = _vptr2;
     uint32_t baseVert[4];
     int maxy = 511;
+    pthread_mutex_lock(&rendinf.chunks->lock);
+    nx = (x - rendinf.chunks->xoff) + rendinf.chunks->info.dist;
+    nz = rendinf.chunks->info.width - ((z - rendinf.chunks->zoff) + rendinf.chunks->info.dist) - 1;
+    if (nx < 0 || nz < 0 || nx >= rendinf.chunks->info.width || nz >= rendinf.chunks->info.width) {
+        free(_vptr);
+        free(_vptr2);
+        goto lblcontinue;
+    }
     {
-        pthread_mutex_lock(&rendinf.chunks->lock);
-        nx = (x - rendinf.chunks->xoff) + rendinf.chunks->info.dist;
-        nz = rendinf.chunks->info.width - ((z - rendinf.chunks->zoff) + rendinf.chunks->info.dist) - 1;
-        if (nx < 0 || nz < 0 || nx >= rendinf.chunks->info.width || nz >= rendinf.chunks->info.width) {
-            free(_vptr);
-            free(_vptr2);
-            goto lblcontinue;
-        }
         uint64_t c = nx + nz * rendinf.chunks->info.width;
+        struct blockdata* b = &rendinf.chunks->data[c][131071];
         while (maxy >= 0) {
-            int off = maxy * 256;
             for (int i = 0; i < 256; ++i) {
-                if (rendinf.chunks->data[c][off + i].id) goto foundblock;
+                if (b->id) goto foundblock;
+                --b;
             }
             --maxy;
         }
         foundblock:;
         //printf("maxy[%"PRId64", %"PRId64"]: %d\n", x, z, maxy);
-        pthread_mutex_unlock(&rendinf.chunks->lock);
     }
     maxy /= 16;
+    int ychunk = maxy;
     maxy *= 16;
+    pthread_mutex_unlock(&rendinf.chunks->lock);
+    #if 1
     for (; maxy >= 0; maxy -= 16) {
         pthread_mutex_lock(&rendinf.chunks->lock);
         nx = (x - rendinf.chunks->xoff) + rendinf.chunks->info.dist;
@@ -766,10 +769,8 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
             free(_vptr2);
             goto lblcontinue;
         }
-        //puts("CYCLE");
         for (int y = maxy + 15; y >= maxy; --y) {
             if (y > maxy && !(y % 8)) { // anti-stutter
-                //puts("anti-stutter");   
                 pthread_mutex_unlock(&rendinf.chunks->lock);
                 pthread_mutex_lock(&rendinf.chunks->lock);
                 nx = (x - rendinf.chunks->xoff) + rendinf.chunks->info.dist;
@@ -843,9 +844,11 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
                     }
                 }
             }
+            --ychunk;
         }
         pthread_mutex_unlock(&rendinf.chunks->lock);
     }
+    #endif
     pthread_mutex_lock(&rendinf.chunks->lock);
     nx = (x - rendinf.chunks->xoff) + rendinf.chunks->info.dist;
     nz = rendinf.chunks->info.width - ((z - rendinf.chunks->zoff) + rendinf.chunks->info.dist) - 1;
@@ -869,8 +872,10 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
         rendinf.chunks->renddata[c].updateid = id;
         //printf("meshed: [%"PRId64", %"PRId64"] ([%"PRId64", %"PRId64"])\n", x, z, nx, nz);
         //printf("meshed: [%"PRId64", %"PRId64"] -> [%d][%d], [%d][%d]\n", x, z, vpsize, vplen, vpsize2, vplen2);
+        /*
         double time = (altutime() - stime) / 1000.0;
         printf("meshed: [%"PRId64", %"PRId64"] in [%lgms]\n", x, z, time);
+        */
     } else {
         free(_vptr);
         free(_vptr2);
@@ -955,7 +960,8 @@ static void* meshthread(void* args) {
         }
         if (activity) {
             acttime = altutime();
-            microwait(250);
+            //microwait(250);
+            microwait(10);
         } else if (altutime() - acttime > 500000) {
             microwait(10000);
         }
@@ -966,7 +972,7 @@ static void* meshthread(void* args) {
 void updateChunks() {
     pthread_mutex_lock(&rendinf.chunks->lock);
     for (uint32_t c = 0; !quitRequest && c < rendinf.chunks->info.widthsq; ++c) {
-        if (!rendinf.chunks->renddata[c].ready || !rendinf.chunks->renddata[c].visible) continue;
+        if (!rendinf.chunks->renddata[c].ready || !rendinf.chunks->renddata[c].visfull) continue;
         if (!rendinf.chunks->renddata[c].init) {
             glGenBuffers(2, rendinf.chunks->renddata[c].VBO);
             rendinf.chunks->renddata[c].init = true;
@@ -1437,11 +1443,12 @@ void render() {
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     int32_t rendc = 0;
+    if (debug_wireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     for (int32_t c = rendinf.chunks->info.widthsq - 1; c >= 0; --c) {
         rendc = rendinf.chunks->rordr[c].c;
         avec2 coord = {(int)(rendc % rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist, (int)(rendc / rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist};
         setUniform2f(rendinf.shaderprog, "ccoord", coord);
-        if ((rendinf.chunks->renddata[rendc].visible = isVisible(&frust, coord[0] * 16 - 8, 0, coord[1] * 16 - 8, coord[0] * 16 + 8, 512, coord[1] * 16 + 8)) && rendinf.chunks->renddata[rendc].buffered) {
+        if (isVisible(&frust, coord[0] * 16 - 8, 0, coord[1] * 16 - 8, coord[0] * 16 + 8, 512, coord[1] * 16 + 8) && rendinf.chunks->renddata[rendc].buffered) {
             if (rendinf.chunks->renddata[rendc].tcount[0]) {
                 glBindBuffer(GL_ARRAY_BUFFER, rendinf.chunks->renddata[rendc].VBO[0]);
                 glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(0));
@@ -1457,7 +1464,8 @@ void render() {
         rendc = rendinf.chunks->rordr[c].c;
         avec2 coord = {(int)(rendc % rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist, (int)(rendc / rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist};
         setUniform2f(rendinf.shaderprog, "ccoord", coord);
-        if (rendinf.chunks->renddata[rendc].visible && rendinf.chunks->renddata[rendc].buffered) {
+        rendinf.chunks->renddata[rendc].visfull = isVisible(&frust, coord[0] * 16 - 8, 0, coord[1] * 16 - 8, coord[0] * 16 + 8, 512, coord[1] * 16 + 8);
+        if (rendinf.chunks->renddata[rendc].visfull && rendinf.chunks->renddata[rendc].buffered) {
             if (rendinf.chunks->renddata[rendc].tcount[1]) {
                 glBindBuffer(GL_ARRAY_BUFFER, rendinf.chunks->renddata[rendc].VBO[1]);
                 glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(0));
@@ -1469,6 +1477,7 @@ void render() {
         }
     }
     glDepthMask(true);
+    if (debug_wireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
     glDisable(GL_CULL_FACE);
     setShaderProg(shader_2d);
@@ -1601,7 +1610,7 @@ bool initRenderer() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
     #endif
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+    //glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_TRUE);
     glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_FALSE);
     glfwWindowHint(GLFW_SAMPLES, 0);
@@ -1702,6 +1711,12 @@ bool startRenderer() {
         glDebugMessageCallback(oglCallback, NULL);
     }
 
+    GLint range[2];
+    glGetIntegerv(GL_ALIASED_LINE_WIDTH_RANGE, range);
+    printf("GL_ALIASED_LINE_WIDTH_RANGE: [%d, %d]\n", range[0], range[1]);
+    glGetIntegerv(GL_SMOOTH_LINE_WIDTH_RANGE, range);
+    printf("GL_SMOOTH_LINE_WIDTH_RANGE: [%d, %d]\n", range[0], range[1]);
+
     #if defined(USEGLES)
     char* hdrpath = "engine/shaders/headers/OpenGL ES/header.glsl";
     #else
@@ -1763,6 +1778,8 @@ bool startRenderer() {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBlendEquation(GL_FUNC_ADD);
+    //glEnable(GL_LINE_SMOOTH);
+    glLineWidth(3.0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glClearColor(0, 0, 0, 1);
