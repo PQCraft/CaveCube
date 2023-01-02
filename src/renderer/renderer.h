@@ -89,13 +89,15 @@ struct model {
 
 struct chunk_renddata {
     bool init;
+    uint64_t updateid;
     unsigned VBO[2];
     uint32_t vcount[2];
     uint32_t* vertices[2];
     uint32_t tcount[2];
     uint32_t* sortvert;
     bool remesh[2];
-    uint64_t updateid;
+    uint32_t ytcount[32];
+    uint32_t yoff[32];
     uint32_t visible;
     bool visfull:1;
     bool ready:1;

@@ -125,7 +125,7 @@ static struct frustum __attribute__((aligned (32))) frust;
 
 static force_inline void normFrustPlane(struct frustum* frust, int plane) {
 	float len = sqrtf(frust->planes[plane][0] * frust->planes[plane][0] + frust->planes[plane][1] * frust->planes[plane][1] + frust->planes[plane][2] * frust->planes[plane][2]);
-	for (int i = 0; i < 4; i++) {
+	for (int i = 0; i < 4; ++i) {
 		frust->planes[plane][i] /= len;
 	}
 }
@@ -743,7 +743,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
         goto lblcontinue;
     }
     {
-        uint64_t c = nx + nz * rendinf.chunks->info.width;
+        int c = nx + nz * rendinf.chunks->info.width;
         struct blockdata* b = &rendinf.chunks->data[c][131071];
         while (maxy >= 0) {
             for (int i = 0; i < 256; ++i) {
@@ -759,7 +759,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
     int ychunk = maxy;
     maxy *= 16;
     pthread_mutex_unlock(&rendinf.chunks->lock);
-    #if 1
+    uint32_t vplenold = 0;
     for (; maxy >= 0; maxy -= 16) {
         pthread_mutex_lock(&rendinf.chunks->lock);
         nx = (x - rendinf.chunks->xoff) + rendinf.chunks->info.dist;
@@ -844,11 +844,15 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
                     }
                 }
             }
-            --ychunk;
         }
+        int c = nx + nz * rendinf.chunks->info.width;
+        rendinf.chunks->renddata[c].yoff[ychunk] = vplenold / 4;
+        rendinf.chunks->renddata[c].ytcount[ychunk] = (vplen - vplenold) / 4;
+        //printf("[%d]: [%d]: [%u][%u]\n", c, ychunk, rendinf.chunks->renddata[c].yoff[ychunk], rendinf.chunks->renddata[c].ytcount[ychunk]);
+        vplenold = vplen;
+        --ychunk;
         pthread_mutex_unlock(&rendinf.chunks->lock);
     }
-    #endif
     pthread_mutex_lock(&rendinf.chunks->lock);
     nx = (x - rendinf.chunks->xoff) + rendinf.chunks->info.dist;
     nz = rendinf.chunks->info.width - ((z - rendinf.chunks->zoff) + rendinf.chunks->info.dist) - 1;
@@ -857,7 +861,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
         free(_vptr2);
         goto lblcontinue;
     }
-    uint64_t c = nx + nz * rendinf.chunks->info.width;
+    int c = nx + nz * rendinf.chunks->info.width;
     if (id >= rendinf.chunks->renddata[c].updateid) {
         if (rendinf.chunks->renddata[c].vertices[0]) free(rendinf.chunks->renddata[c].vertices[0]);
         if (rendinf.chunks->renddata[c].vertices[1]) free(rendinf.chunks->renddata[c].vertices[1]);
@@ -877,6 +881,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
         printf("meshed: [%"PRId64", %"PRId64"] in [%lgms]\n", x, z, time);
         */
     } else {
+        microwait(1000); // anti-stutter
         free(_vptr);
         free(_vptr2);
     }
@@ -1447,26 +1452,32 @@ void render() {
     for (int32_t c = rendinf.chunks->info.widthsq - 1; c >= 0; --c) {
         rendc = rendinf.chunks->rordr[c].c;
         avec2 coord = {(int)(rendc % rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist, (int)(rendc / rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist};
-        setUniform2f(rendinf.shaderprog, "ccoord", coord);
-        if (isVisible(&frust, coord[0] * 16 - 8, 0, coord[1] * 16 - 8, coord[0] * 16 + 8, 512, coord[1] * 16 + 8) && rendinf.chunks->renddata[rendc].buffered) {
-            if (rendinf.chunks->renddata[rendc].tcount[0]) {
-                glBindBuffer(GL_ARRAY_BUFFER, rendinf.chunks->renddata[rendc].VBO[0]);
-                glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(0));
-                glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(sizeof(uint32_t)));
-                glVertexAttribIPointer(2, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * 2));
-                glVertexAttribIPointer(3, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * 3));
-                glDrawArrays(GL_TRIANGLES, 0, rendinf.chunks->renddata[rendc].tcount[0]);
+        if (!(rendinf.chunks->renddata[rendc].visfull = isVisible(&frust, coord[0] * 16 - 8, 0, coord[1] * 16 - 8, coord[0] * 16 + 8, 512, coord[1] * 16 + 8))) continue;
+        if (!rendinf.chunks->renddata[rendc].buffered) continue;
+        if (rendinf.chunks->renddata[rendc].tcount[0]) {
+            setUniform2f(rendinf.shaderprog, "ccoord", coord);
+            glBindBuffer(GL_ARRAY_BUFFER, rendinf.chunks->renddata[rendc].VBO[0]);
+            glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(0));
+            glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(sizeof(uint32_t)));
+            glVertexAttribIPointer(2, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * 2));
+            glVertexAttribIPointer(3, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * 3));
+            for (int y = 31; y >= 0; --y) {
+                if (isVisible(&frust, coord[0] * 16 - 8, y * 16, coord[1] * 16 - 8, coord[0] * 16 + 8, (y + 1) * 16, coord[1] * 16 + 8)) {
+                    if (rendinf.chunks->renddata[rendc].ytcount[y]) {
+                        glDrawArrays(GL_TRIANGLES, rendinf.chunks->renddata[rendc].yoff[y], rendinf.chunks->renddata[rendc].ytcount[y]);
+                    }
+                }
             }
         }
     }
     glDepthMask(false);
     for (int32_t c = 0; c < (int)rendinf.chunks->info.widthsq; ++c) {
         rendc = rendinf.chunks->rordr[c].c;
-        avec2 coord = {(int)(rendc % rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist, (int)(rendc / rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist};
-        setUniform2f(rendinf.shaderprog, "ccoord", coord);
-        rendinf.chunks->renddata[rendc].visfull = isVisible(&frust, coord[0] * 16 - 8, 0, coord[1] * 16 - 8, coord[0] * 16 + 8, 512, coord[1] * 16 + 8);
-        if (rendinf.chunks->renddata[rendc].visfull && rendinf.chunks->renddata[rendc].buffered) {
+        if (!rendinf.chunks->renddata[rendc].buffered) continue;
+        if (rendinf.chunks->renddata[rendc].visfull) {
             if (rendinf.chunks->renddata[rendc].tcount[1]) {
+                avec2 coord = {(int)(rendc % rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist, (int)(rendc / rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist};
+                setUniform2f(rendinf.shaderprog, "ccoord", coord);
                 glBindBuffer(GL_ARRAY_BUFFER, rendinf.chunks->renddata[rendc].VBO[1]);
                 glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(0));
                 glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(sizeof(uint32_t)));
