@@ -679,8 +679,8 @@ static force_inline void _sortChunk(int32_t c, int xoff, int zoff, bool update) 
                 data[i].data[2 + j * 4] = *dptr++;
                 data[i].data[3 + j * 4] = *dptr++;
                 vx += (float)(((sv >> 24) & 255) + ((sv >> 2) & 1)) / 16.0 - 8.0;
-                vy += (float)(((sv >> 12) & 4095) + ((sv >> 1) & 1)) / 16.0;
-                vz += (float)(((sv >> 4) & 255) + (sv & 1)) / 16.0 - 8.0;
+                vy += (float)(((sv >> 8) & 65536) + ((sv >> 1) & 1)) / 16.0;
+                vz += (float)((sv & 255) + (sv & 1)) / 16.0 - 8.0;
             }
             vx /= 6.0;
             vy /= 6.0;
@@ -770,6 +770,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
             goto lblcontinue;
         }
         for (int y = maxy + 15; y >= maxy; --y) {
+            #if 0
             if (y > maxy && !(y % 8)) { // anti-stutter
                 pthread_mutex_unlock(&rendinf.chunks->lock);
                 pthread_mutex_lock(&rendinf.chunks->lock);
@@ -781,6 +782,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
                     goto lblcontinue;
                 }
             }
+            #endif
             for (int z = 0; z < 16; ++z) {
                 for (int x = 0; x < 16; ++x) {
                     rendGetBlock(nx, nz, x, y, z, &bdata);
@@ -1790,7 +1792,7 @@ bool startRenderer() {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBlendEquation(GL_FUNC_ADD);
     //glEnable(GL_LINE_SMOOTH);
-    glLineWidth(3.0);
+    //glLineWidth(3.0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glClearColor(0, 0, 0, 1);
