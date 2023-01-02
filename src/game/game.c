@@ -266,7 +266,13 @@ bool doGame(char* addr, int port) {
             #else
             static int debugkey = 0;
             if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_DEBUG)) {
-                input = INPUT_EMPTY_INFO;
+                //input = INPUT_EMPTY_INFO;
+                input.mov_mult = 0;
+                input.mov_up = 0;
+                input.mov_right = 0;
+                input.mov_bal = 0;
+                input.single_action = INPUT_ACTION_SINGLE__NONE;
+                input.multi_actions = INPUT_ACTION_MULTI__NONE;
                 if (!debugkey) {
                     if (glfwGetKey(rendinf.window, (debugkey = GLFW_KEY_W)) == GLFW_PRESS) {
                         debug_wireframe = !debug_wireframe;
@@ -411,7 +417,7 @@ bool doGame(char* addr, int port) {
         }
         pvelocity.y = yvel;
         rendinf.campos.y += yvel * pmult;
-        if (rendinf.campos.y < -2.5) rendinf.campos.y = -2.5;
+        if (rendinf.campos.y < -11.5) rendinf.campos.y = -11.5;
         if ((!rendinf.vsync && !rendinf.fps) || !rendinf.fps || (altutime() - fpsstarttime2) >= (1000000 / rendinf.fps) - loopdelay) {
             if (rendinf.fps) {
                 uint64_t mwdtime = (1000000 / rendinf.fps) - (altutime() - fpsstarttime2);
