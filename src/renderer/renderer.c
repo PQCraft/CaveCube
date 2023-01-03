@@ -755,6 +755,10 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
         foundblock:;
         //printf("maxy[%"PRId64", %"PRId64"]: %d\n", x, z, maxy);
     }
+    {
+        int c = nx + nz * rendinf.chunks->info.width;
+        memset(rendinf.chunks->renddata[c].vispass, 0, sizeof(rendinf.chunks->renddata[c].vispass));
+    }
     maxy /= 16;
     int ychunk = maxy;
     maxy *= 16;
@@ -863,7 +867,6 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
             goto lblcontinue;
         }
         int c = nx + nz * rendinf.chunks->info.width;
-        memset(rendinf.chunks->renddata[c].vispass, 0, sizeof(rendinf.chunks->renddata[c].vispass));
         for (int _y = maxy + 15; _y >= maxy; --_y) {
             for (int _z = 0; _z < 16; ++_z) {
                 for (int _x = 0; _x < 16; ++_x) {
@@ -948,15 +951,33 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
                             //printf("[%d, %d, %d] [%d]\n", x, y, z, pqptr);
                         }
 
+                        /*
                         printf("FILL: [%d, %d, %d] [%d, %d] [", _x, _y, _z, maxy, maxy + 15);
                         for (int i = 0; i < 6; ++i) {
                             printf("%d", touched[i]);
                         }
                         printf("]\n");
+                        */
+                        for (int i = 0; i < 6; ++i) {
+                            for (int j = 0; j < 6; ++j) {
+                                rendinf.chunks->renddata[c].vispass[ychunk][j][i] = rendinf.chunks->renddata[c].vispass[ychunk][i][j] = (i != j && touched[i] && touched[j]);
+                            }
+                        }
                     }
                 }
             }
         }
+        /*
+        {
+            printf("VISPASS [%"PRId64", %d, %"PRId64"]:\n", nx, ychunk, nz);
+            for (int i = 0; i < 6; ++i) {
+                for (int j = 0; j < 6; ++j) {
+                    printf("%d", rendinf.chunks->renddata[c].vispass[ychunk][i][j]);
+                }
+                putchar('\n');
+            }
+        }
+        */
         rendinf.chunks->renddata[c].yoff[ychunk] = vplenold / 4;
         rendinf.chunks->renddata[c].ytcount[ychunk] = (vplen - vplenold) / 4;
         //printf("[%d]: [%d]: [%u][%u]\n", c, ychunk, rendinf.chunks->renddata[c].yoff[ychunk], rendinf.chunks->renddata[c].ytcount[ychunk]);
