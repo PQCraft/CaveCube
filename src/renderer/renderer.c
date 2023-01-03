@@ -847,7 +847,116 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
                 }
             }
         }
+        pthread_mutex_unlock(&rendinf.chunks->lock);
+        struct pq {
+            uint8_t x;
+            uint8_t y;
+            uint8_t z;
+        } posqueue[4096];
+        uint8_t visited[16][16][16] = {{{0}}};
+        pthread_mutex_lock(&rendinf.chunks->lock);
+        nx = (x - rendinf.chunks->xoff) + rendinf.chunks->info.dist;
+        nz = rendinf.chunks->info.width - ((z - rendinf.chunks->zoff) + rendinf.chunks->info.dist) - 1;
+        if (nx < 0 || nz < 0 || nx >= rendinf.chunks->info.width || nz >= rendinf.chunks->info.width) {
+            free(_vptr);
+            free(_vptr2);
+            goto lblcontinue;
+        }
         int c = nx + nz * rendinf.chunks->info.width;
+        memset(rendinf.chunks->renddata[c].vispass, 0, sizeof(rendinf.chunks->renddata[c].vispass));
+        for (int _y = maxy + 15; _y >= maxy; --_y) {
+            for (int _z = 0; _z < 16; ++_z) {
+                for (int _x = 0; _x < 16; ++_x) {
+                    rendGetBlock(nx, nz, _x, _y, _z, &bdata);
+                    if (blockinf[bdata.id].data[bdata.subid].transparency && !visited[_x][_y % 16][_z]) {
+                        uint8_t touched[6] = {0};
+                        memset(posqueue, 0, sizeof(posqueue));
+                        int pqptr = 0;
+
+                        posqueue[pqptr++] = (struct pq){.x = _x, .y = _y, .z = _z};
+                        visited[_x][_y % 16][_z] = 1;
+
+                        //printf("FILL: [%d, %d, %d] [%d, %d]\n", _x, _y, _z, maxy, maxy + 15);
+                        int x = 0, y = 0, z = 0;
+                        while (pqptr > 0) {
+                            --pqptr;
+                            x = posqueue[pqptr].x;
+                            y = posqueue[pqptr].y;
+                            z = posqueue[pqptr].z;
+
+                            if (y < maxy + 15) {
+                                rendGetBlock(nx, nz, x, y + 1, z, &bdata);
+                                if (blockinf[bdata.id].data[bdata.subid].transparency && !visited[x][(y + 1) % 16][z]) {
+                                    posqueue[pqptr++] = (struct pq){.x = x, .y = y + 1, .z = z};
+                                    visited[x][(y + 1) % 16][z] = 1;
+                                    //printf("ADD Y+1 [%d, %d, %d] [%d]\n", posqueue[pqptr - 1].x, posqueue[pqptr - 1].y, posqueue[pqptr - 1].z, pqptr);
+                                }
+                            } else {
+                                touched[CVIS_UP] = 1;
+                            }
+                            if (x < 15) {
+                                rendGetBlock(nx, nz, x + 1, y, z, &bdata);
+                                if (blockinf[bdata.id].data[bdata.subid].transparency && !visited[x + 1][y % 16][z]) {
+                                    posqueue[pqptr++] = (struct pq){.x = x + 1, .y = y, .z = z};
+                                    visited[x + 1][y % 16][z] = 1;
+                                    //printf("ADD X+1 [%d, %d, %d] [%d]\n", posqueue[pqptr - 1].x, posqueue[pqptr - 1].y, posqueue[pqptr - 1].z, pqptr);
+                                }
+                            } else {
+                                touched[CVIS_RIGHT] = 1;
+                            }
+                            if (z < 15) {
+                                rendGetBlock(nx, nz, x, y, z + 1, &bdata);
+                                if (blockinf[bdata.id].data[bdata.subid].transparency && !visited[x][y % 16][z + 1]) {
+                                    posqueue[pqptr++] = (struct pq){.x = x, .y = y, .z = z + 1};
+                                    visited[x][y % 16][z + 1] = 1;
+                                    //printf("ADD Z+1 [%d, %d, %d] [%d]\n", posqueue[pqptr - 1].x, posqueue[pqptr - 1].y, posqueue[pqptr - 1].z, pqptr);
+                                }
+                            } else {
+                                touched[CVIS_BACK] = 1;
+                            }
+                            if (y > maxy) {
+                                rendGetBlock(nx, nz, x, y - 1, z, &bdata);
+                                if (blockinf[bdata.id].data[bdata.subid].transparency && !visited[x][(y - 1) % 16][z]) {
+                                    posqueue[pqptr++] = (struct pq){.x = x, .y = y - 1, .z = z};
+                                    visited[x][(y - 1) % 16][z] = 1;
+                                    //printf("ADD Y-1 [%d, %d, %d] [%d]\n", posqueue[pqptr - 1].x, posqueue[pqptr - 1].y, posqueue[pqptr - 1].z, pqptr);
+                                }
+                            } else {
+                                touched[CVIS_DOWN] = 1;
+                            }
+                            if (x > 0) {
+                                rendGetBlock(nx, nz, x - 1, y, z, &bdata);
+                                if (blockinf[bdata.id].data[bdata.subid].transparency && !visited[x - 1][y % 16][z]) {
+                                    posqueue[pqptr++] = (struct pq){.x = x - 1, .y = y, .z = z};
+                                    visited[x - 1][y % 16][z] = 1;
+                                    //printf("ADD X-1 [%d, %d, %d] [%d]\n", posqueue[pqptr - 1].x, posqueue[pqptr - 1].y, posqueue[pqptr - 1].z, pqptr);
+                                }
+                            } else {
+                                touched[CVIS_LEFT] = 1;
+                            }
+                            if (z > 0) {
+                                rendGetBlock(nx, nz, x, y, z - 1, &bdata);
+                                if (blockinf[bdata.id].data[bdata.subid].transparency && !visited[x][y % 16][z - 1]) {
+                                    posqueue[pqptr++] = (struct pq){.x = x, .y = y, .z = z - 1};
+                                    visited[x][y % 16][z - 1] = 1;
+                                    //printf("ADD Z-1 [%d, %d, %d] [%d]\n", posqueue[pqptr - 1].x, posqueue[pqptr - 1].y, posqueue[pqptr - 1].z, pqptr);
+                                }
+                            } else {
+                                touched[CVIS_FRONT] = 1;
+                            }
+
+                            //printf("[%d, %d, %d] [%d]\n", x, y, z, pqptr);
+                        }
+
+                        printf("FILL: [%d, %d, %d] [%d, %d] [", _x, _y, _z, maxy, maxy + 15);
+                        for (int i = 0; i < 6; ++i) {
+                            printf("%d", touched[i]);
+                        }
+                        printf("]\n");
+                    }
+                }
+            }
+        }
         rendinf.chunks->renddata[c].yoff[ychunk] = vplenold / 4;
         rendinf.chunks->renddata[c].ytcount[ychunk] = (vplen - vplenold) / 4;
         //printf("[%d]: [%d]: [%u][%u]\n", c, ychunk, rendinf.chunks->renddata[c].yoff[ychunk], rendinf.chunks->renddata[c].ytcount[ychunk]);

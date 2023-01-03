@@ -87,6 +87,15 @@ struct model {
     struct model_renddata* renddata;
 };
 
+enum {
+    CVIS_UP,
+    CVIS_RIGHT,
+    CVIS_FRONT,
+    CVIS_DOWN,
+    CVIS_LEFT,
+    CVIS_BACK
+};
+
 struct chunk_renddata {
     bool init;
     uint64_t updateid;
@@ -98,6 +107,7 @@ struct chunk_renddata {
     bool remesh[2];
     uint32_t ytcount[32];
     uint32_t yoff[32];
+    uint8_t vispass[6][6];
     uint32_t visible;
     bool visfull:1;
     bool ready:1;
