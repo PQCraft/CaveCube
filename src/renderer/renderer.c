@@ -757,7 +757,8 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
     }
     {
         int c = nx + nz * rendinf.chunks->info.width;
-        memset(rendinf.chunks->renddata[c].vispass, 0, sizeof(rendinf.chunks->renddata[c].vispass));
+        printf("PREP: [%"PRId64", %"PRId64"]\n", nx, nz);
+        memset(rendinf.chunks->renddata[c].vispass, 1, sizeof(rendinf.chunks->renddata[c].vispass));
     }
     maxy /= 16;
     int ychunk = maxy;
@@ -1583,7 +1584,7 @@ void render() {
             uint8_t x;
             uint8_t y;
             uint8_t z;
-            uint8_t last;
+            uint8_t d;
         };
 
         int64_t newx = rendinf.chunks->xoff;
@@ -1597,11 +1598,97 @@ void render() {
 
             struct pq* posqueue = malloc(rendinf.chunks->info.widthsq * 32 * sizeof(*posqueue));
             int pqptr = 0;
-
-            //posqueue[pqptr++]
-
             for (int i = 0; i < (int)rendinf.chunks->info.widthsq; ++i) {
                 rendinf.chunks->renddata[i].visible = 0;
+            }
+
+            rendinf.chunks->renddata[rendinf.chunks->info.dist + rendinf.chunks->info.dist * rendinf.chunks->info.width].visible |= (1 << y);
+
+            posqueue[pqptr] = (struct pq){.x = rendinf.chunks->info.dist, .y = y + 1, .z = rendinf.chunks->info.dist, .d = CVIS_DOWN};
+            rendinf.chunks->renddata[posqueue[pqptr].x + posqueue[pqptr].z * rendinf.chunks->info.width].visible |= (1 << (posqueue[pqptr].y + 1));
+            ++pqptr;
+            posqueue[pqptr] = (struct pq){.x = rendinf.chunks->info.dist + 1, .y = y, .z = rendinf.chunks->info.dist, .d = CVIS_LEFT};
+            rendinf.chunks->renddata[(posqueue[pqptr].x + 1) + posqueue[pqptr].z * rendinf.chunks->info.width].visible |= (1 << posqueue[pqptr].y);
+            ++pqptr;
+            posqueue[pqptr] = (struct pq){.x = rendinf.chunks->info.dist, .y = y, .z = rendinf.chunks->info.dist + 1, .d = CVIS_FRONT};
+            rendinf.chunks->renddata[posqueue[pqptr].x + (posqueue[pqptr].z + 1) * rendinf.chunks->info.width].visible |= (1 << posqueue[pqptr].y);
+            ++pqptr;
+            posqueue[pqptr] = (struct pq){.x = rendinf.chunks->info.dist, .y = y - 1, .z = rendinf.chunks->info.dist, .d = CVIS_UP};
+            rendinf.chunks->renddata[posqueue[pqptr].x + posqueue[pqptr].z * rendinf.chunks->info.width].visible |= (1 << (posqueue[pqptr].y - 1));
+            ++pqptr;
+            posqueue[pqptr] = (struct pq){.x = rendinf.chunks->info.dist - 1, .y = y, .z = rendinf.chunks->info.dist, .d = CVIS_RIGHT};
+            rendinf.chunks->renddata[(posqueue[pqptr].x - 1) + posqueue[pqptr].z * rendinf.chunks->info.width].visible |= (1 << posqueue[pqptr].y);
+            ++pqptr;
+            posqueue[pqptr] = (struct pq){.x = rendinf.chunks->info.dist, .y = y, .z = rendinf.chunks->info.dist - 1, .d = CVIS_BACK};
+            rendinf.chunks->renddata[posqueue[pqptr].x + (posqueue[pqptr].z - 1) * rendinf.chunks->info.width].visible |= (1 << posqueue[pqptr].y);
+            ++pqptr;
+
+            while (pqptr > 0) {
+                --pqptr;
+                int cx = posqueue[pqptr].x;
+                int cy = posqueue[pqptr].y;
+                int cz = posqueue[pqptr].z;
+                int cd = posqueue[pqptr].d;
+
+                printf("[%d] [%d, %d, %d, %d]\n", pqptr, posqueue[pqptr].x, posqueue[pqptr].y, posqueue[pqptr].z, posqueue[pqptr].d);
+                {
+                    printf("VISPASS [%d, %d, %d]:\n", posqueue[pqptr].x, posqueue[pqptr].y, posqueue[pqptr].z);
+                    for (int i = 0; i < 6; ++i) {
+                        for (int j = 0; j < 6; ++j) {
+                            printf("%d", rendinf.chunks->renddata[posqueue[pqptr].x + posqueue[pqptr].z * rendinf.chunks->info.width].vispass[posqueue[pqptr].y][i][j]);
+                        }
+                        putchar('\n');
+                    }
+                }
+
+                if (cy < 31) {
+                    if (!(rendinf.chunks->renddata[cx + cz * rendinf.chunks->info.width].visible & (1 << (cy + 1))) &&
+                    rendinf.chunks->renddata[cx + cz * rendinf.chunks->info.width].vispass[y + 1][cd][CVIS_UP]) {
+                        posqueue[pqptr] = (struct pq){.x = cx, .y = cy + 1, .z = cz, .d = CVIS_DOWN};
+                        rendinf.chunks->renddata[cx + cz * rendinf.chunks->info.width].visible |= (1 << (cy + 1));
+                        ++pqptr;
+                    }
+                }
+                if (cx < (int)rendinf.chunks->info.width - 1) {
+                    if (!(rendinf.chunks->renddata[(cx + 1) + cz * rendinf.chunks->info.width].visible & (1 << cy)) &&
+                    rendinf.chunks->renddata[(cx + 1) + cz * rendinf.chunks->info.width].vispass[y][cd][CVIS_RIGHT]) {
+                        posqueue[pqptr] = (struct pq){.x = cx + 1, .y = cy, .z = cz, .d = CVIS_LEFT};
+                        rendinf.chunks->renddata[(cx + 1) + cz * rendinf.chunks->info.width].visible |= (1 << cy);
+                        ++pqptr;
+                    }
+                }
+                if (cz < (int)rendinf.chunks->info.width - 1) {
+                    if (!(rendinf.chunks->renddata[cx + (cz + 1) * rendinf.chunks->info.width].visible & (1 << cy)) &&
+                    rendinf.chunks->renddata[cx + (cz + 1) * rendinf.chunks->info.width].vispass[y][cd][CVIS_BACK]) {
+                        posqueue[pqptr] = (struct pq){.x = cx, .y = cy, .z = cz + 1, .d = CVIS_FRONT};
+                        rendinf.chunks->renddata[cx + (cz + 1) * rendinf.chunks->info.width].visible |= (1 << cy);
+                        ++pqptr;
+                    }
+                }
+                if (cy > 0) {
+                    if (!(rendinf.chunks->renddata[cx + cz * rendinf.chunks->info.width].visible & (1 << (cy - 1))) &&
+                    rendinf.chunks->renddata[cx + cz * rendinf.chunks->info.width].vispass[y - 1][cd][CVIS_DOWN]) {
+                        posqueue[pqptr] = (struct pq){.x = cx, .y = cy - 1, .z = cz, .d = CVIS_UP};
+                        rendinf.chunks->renddata[cx + cz * rendinf.chunks->info.width].visible |= (1 << (cy - 1));
+                        ++pqptr;
+                    }
+                }
+                if (cx > 0) {
+                    if (!(rendinf.chunks->renddata[(cx - 1) + cz * rendinf.chunks->info.width].visible & (1 << cy)) &&
+                    rendinf.chunks->renddata[(cx - 1) + cz * rendinf.chunks->info.width].vispass[y][cd][CVIS_LEFT]) {
+                        posqueue[pqptr] = (struct pq){.x = cx - 1, .y = cy, .z = cz, .d = CVIS_RIGHT};
+                        rendinf.chunks->renddata[(cx - 1) + cz * rendinf.chunks->info.width].visible |= (1 << cy);
+                        ++pqptr;
+                    }
+                }
+                if (cz > 0) {
+                    if (!(rendinf.chunks->renddata[cx + (cz - 1) * rendinf.chunks->info.width].visible & (1 << cy)) &&
+                    rendinf.chunks->renddata[cx + (cz - 1) * rendinf.chunks->info.width].vispass[y][cd][CVIS_FRONT]) {
+                        posqueue[pqptr] = (struct pq){.x = cx, .y = cy, .z = cz - 1, .d = CVIS_BACK};
+                        rendinf.chunks->renddata[cx + (cz - 1) * rendinf.chunks->info.width].visible |= (1 << cy);
+                        ++pqptr;
+                    }
+                }
             }
 
             free(posqueue);
