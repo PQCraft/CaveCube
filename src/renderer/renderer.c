@@ -854,7 +854,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
         pthread_mutex_unlock(&rendinf.chunks->lock);
         struct pq {
             uint8_t x;
-            uint8_t y;
+            uint16_t y;
             uint8_t z;
         } posqueue[4096];
         uint8_t visited[16][16][16] = {{{0}}};
@@ -873,14 +873,14 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
                     rendGetBlock(nx, nz, _x, _y, _z, &bdata);
                     if (blockinf[bdata.id].data[bdata.subid].transparency && !visited[_x][_y % 16][_z]) {
                         uint8_t touched[6] = {0};
-                        memset(posqueue, 0, sizeof(posqueue));
+                        //memset(posqueue, 0, sizeof(posqueue));
                         int pqptr = 0;
 
                         posqueue[pqptr++] = (struct pq){.x = _x, .y = _y, .z = _z};
                         visited[_x][_y % 16][_z] = 1;
 
                         //printf("FILL: [%d, %d, %d] [%d, %d]\n", _x, _y, _z, maxy, maxy + 15);
-                        int x = 0, y = 0, z = 0;
+                        int x, y, z;
                         while (pqptr > 0) {
                             --pqptr;
                             x = posqueue[pqptr].x;
@@ -1575,6 +1575,39 @@ void render() {
     _sortChunk(-1, 1, -1, true);
     _sortChunk(-1, -1, -1, true);
 
+    {
+        static int64_t x = 0;
+        static int y = INT_MIN;
+        static int64_t z = 0;
+        struct pq {
+            uint8_t x;
+            uint8_t y;
+            uint8_t z;
+            uint8_t last;
+        };
+
+        int64_t newx = rendinf.chunks->xoff;
+        int newy = (int)((rendinf.campos.y < 0) ? rendinf.campos.y - 16 : rendinf.campos.y) / 16;
+        int64_t newz = rendinf.chunks->zoff;
+        if (newz != z || newx != x || newy != y) {
+            x = newx;
+            y = newy;
+            z = newz;
+            //printf("MOVED: [%"PRId64", %d, %"PRId64"]\n", x, y, z);
+
+            struct pq* posqueue = malloc(rendinf.chunks->info.widthsq * 32 * sizeof(*posqueue));
+            int pqptr = 0;
+
+            //posqueue[pqptr++]
+
+            for (int i = 0; i < (int)rendinf.chunks->info.widthsq; ++i) {
+                rendinf.chunks->renddata[i].visible = 0;
+            }
+
+            free(posqueue);
+        }
+    }
+
     pthread_mutex_unlock(&rendinf.chunks->lock);
 
     glEnable(GL_DEPTH_TEST);
@@ -1594,6 +1627,7 @@ void render() {
             glVertexAttribIPointer(2, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * 2));
             glVertexAttribIPointer(3, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * 3));
             for (int y = 31; y >= 0; --y) {
+                if (!(rendinf.chunks->renddata[rendc].visible & (1 << y))) continue;
                 if (isVisible(&frust, coord[0] * 16 - 8, y * 16, coord[1] * 16 - 8, coord[0] * 16 + 8, (y + 1) * 16, coord[1] * 16 + 8)) {
                     if (rendinf.chunks->renddata[rendc].ytcount[y]) {
                         glDrawArrays(GL_TRIANGLES, rendinf.chunks->renddata[rendc].yoff[y], rendinf.chunks->renddata[rendc].ytcount[y]);
