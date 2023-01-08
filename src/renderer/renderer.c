@@ -968,7 +968,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
                         //touched[CVIS_BACK] = 1;
                         for (int i = 0; i < 6; ++i) {
                             for (int j = 0; j < 6; ++j) {
-                                rendinf.chunks->renddata[c].vispass[ychunk][j][i] = rendinf.chunks->renddata[c].vispass[ychunk][i][j] = (/*i != j &&*/ touched[i] && touched[j]);
+                                if (touched[i] && touched[j]) rendinf.chunks->renddata[c].vispass[ychunk][j][i] = rendinf.chunks->renddata[c].vispass[ychunk][i][j] = true;
                             }
                         }
                     }
@@ -1128,8 +1128,8 @@ void updateChunks() {
             glBufferData(GL_ARRAY_BUFFER, tmpsize, rendinf.chunks->renddata[c].vertices[0], GL_STATIC_DRAW);
             rendinf.chunks->renddata[c].tcount[0] = rendinf.chunks->renddata[c].vcount[0] / 4;
             for (int i = 0; i < 32; ++i) {
-                rendinf.chunks->renddata[c].ytoff[i] = rendinf.chunks->renddata[c].yvoff[i];
-                rendinf.chunks->renddata[c].ytcount[i] = rendinf.chunks->renddata[c].yvcount[i];
+                rendinf.chunks->renddata[c].ytoff[i] = rendinf.chunks->renddata[c].yvoff[i] / 4;
+                rendinf.chunks->renddata[c].ytcount[i] = rendinf.chunks->renddata[c].yvcount[i] / 4;
             }
             //printf("[%u][%d]: [%d]->[%d]\n", c, i, rendinf.chunks->renddata[c].vcount[0], rendinf.chunks->renddata[c].tcount[0]);
             free(rendinf.chunks->renddata[c].vertices[0]);
