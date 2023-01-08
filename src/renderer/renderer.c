@@ -872,6 +872,11 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
             goto lblcontinue;
         }
         int c = nx + nz * rendinf.chunks->info.width;
+        for (int i = 0; i < 6; ++i) {
+            for (int j = 0; j < 6; ++j) {
+                rendinf.chunks->renddata[c].vispass[ychunk][j][i] = rendinf.chunks->renddata[c].vispass[ychunk][i][j] = false;
+            }
+        }
         for (int _y = maxy + 15; _y >= maxy; --_y) {
             for (int _z = 0; _z < 16; ++_z) {
                 for (int _x = 0; _x < 16; ++_x) {
