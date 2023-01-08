@@ -745,6 +745,10 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
     {
         int c = nx + nz * rendinf.chunks->info.width;
         struct blockdata* b = &rendinf.chunks->data[c][131071];
+        for (int i = 0; i < 32; ++i) {
+            rendinf.chunks->renddata[c].yvoff[i] = 0;
+            rendinf.chunks->renddata[c].yvcount[i] = 0;
+        }
         while (maxy >= 0) {
             for (int i = 0; i < 256; ++i) {
                 if (b->id) goto foundblock;
@@ -757,7 +761,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
     }
     {
         int c = nx + nz * rendinf.chunks->info.width;
-        printf("PREP: [%"PRId64", %"PRId64"]\n", nx, nz);
+        //printf("PREP: [%"PRId64", %"PRId64"]\n", nx, nz);
         memset(rendinf.chunks->renddata[c].vispass, 1, sizeof(rendinf.chunks->renddata[c].vispass));
     }
     maxy /= 16;
@@ -959,9 +963,12 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
                         }
                         printf("]\n");
                         */
+                        //memset(touched, 0, 6);
+                        //touched[CVIS_FRONT] = 1;
+                        //touched[CVIS_BACK] = 1;
                         for (int i = 0; i < 6; ++i) {
                             for (int j = 0; j < 6; ++j) {
-                                rendinf.chunks->renddata[c].vispass[ychunk][j][i] = rendinf.chunks->renddata[c].vispass[ychunk][i][j] = (i != j && touched[i] && touched[j]);
+                                rendinf.chunks->renddata[c].vispass[ychunk][j][i] = rendinf.chunks->renddata[c].vispass[ychunk][i][j] = (/*i != j &&*/ touched[i] && touched[j]);
                             }
                         }
                     }
@@ -979,9 +986,9 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
             }
         }
         */
-        rendinf.chunks->renddata[c].yoff[ychunk] = vplenold / 4;
-        rendinf.chunks->renddata[c].ytcount[ychunk] = (vplen - vplenold) / 4;
-        //printf("[%d]: [%d]: [%u][%u]\n", c, ychunk, rendinf.chunks->renddata[c].yoff[ychunk], rendinf.chunks->renddata[c].ytcount[ychunk]);
+        rendinf.chunks->renddata[c].yvoff[ychunk] = vplenold;
+        rendinf.chunks->renddata[c].yvcount[ychunk] = vplen - vplenold;
+        //printf("[%d]: [%d]: [%u][%u]\n", c, ychunk, rendinf.chunks->renddata[c].yvoff[ychunk], rendinf.chunks->renddata[c].yvcount[ychunk]);
         vplenold = vplen;
         --ychunk;
         pthread_mutex_unlock(&rendinf.chunks->lock);
@@ -1120,6 +1127,10 @@ void updateChunks() {
             glBindBuffer(GL_ARRAY_BUFFER, rendinf.chunks->renddata[c].VBO[0]);
             glBufferData(GL_ARRAY_BUFFER, tmpsize, rendinf.chunks->renddata[c].vertices[0], GL_STATIC_DRAW);
             rendinf.chunks->renddata[c].tcount[0] = rendinf.chunks->renddata[c].vcount[0] / 4;
+            for (int i = 0; i < 32; ++i) {
+                rendinf.chunks->renddata[c].ytoff[i] = rendinf.chunks->renddata[c].yvoff[i];
+                rendinf.chunks->renddata[c].ytcount[i] = rendinf.chunks->renddata[c].yvcount[i];
+            }
             //printf("[%u][%d]: [%d]->[%d]\n", c, i, rendinf.chunks->renddata[c].vcount[0], rendinf.chunks->renddata[c].tcount[0]);
             free(rendinf.chunks->renddata[c].vertices[0]);
             rendinf.chunks->renddata[c].vertices[0] = NULL;
@@ -1577,121 +1588,75 @@ void render() {
     _sortChunk(-1, -1, -1, true);
 
     {
-        static int64_t x = 0;
-        static int y = INT_MIN;
-        static int64_t z = 0;
+        static int64_t cx = 0;
+        static int cy = INT_MIN;
+        static int64_t cz = 0;
         struct pq {
-            uint8_t x;
-            uint8_t y;
-            uint8_t z;
-            uint8_t d;
+            int8_t x;
+            int8_t y;
+            int8_t z;
+            int8_t from;
+            int8_t dir[6];
         };
 
-        int64_t newx = rendinf.chunks->xoff;
-        int newy = (int)((rendinf.campos.y < 0) ? rendinf.campos.y - 16 : rendinf.campos.y) / 16;
-        int64_t newz = rendinf.chunks->zoff;
-        if (newz != z || newx != x || newy != y) {
-            x = newx;
-            y = newy;
-            z = newz;
-            //printf("MOVED: [%"PRId64", %d, %"PRId64"]\n", x, y, z);
+        int64_t newcx = rendinf.chunks->xoff;
+        int newcy = (int)((rendinf.campos.y < 0) ? rendinf.campos.y - 16 : rendinf.campos.y) / 16;
+        int64_t newcz = rendinf.chunks->zoff;
+        if (newcz != cz || newcx != cx || newcy != cy) {
+            cx = newcx;
+            cy = newcy;
+            cz = newcz;
+            printf("MOVED: [%"PRId64", %d, %"PRId64"]\n", cx, cy, cz);
 
-            struct pq* posqueue = malloc(rendinf.chunks->info.widthsq * 32 * sizeof(*posqueue));
+            struct pq* posqueue = malloc(rendinf.chunks->info.widthsq * 32 * 2 * sizeof(*posqueue));
             int pqptr = 0;
+            #define pqpush(_x, _y, _z, _f) {\
+                posqueue[pqptr++] = (struct pq){.x = (_x), .y = (_y), .z = (_z), .from = (_f)};\
+            }
+            #define pqpop() {\
+                --pqptr;\
+            }
+            uint8_t* visited = calloc(rendinf.chunks->info.widthsq * 32, 1);
+
             for (int i = 0; i < (int)rendinf.chunks->info.widthsq; ++i) {
                 rendinf.chunks->renddata[i].visible = 0;
             }
+            //rendinf.chunks->renddata[rendinf.chunks->info.dist + rendinf.chunks->info.dist * rendinf.chunks->info.width].visible |= (1 << cy);
 
-            rendinf.chunks->renddata[rendinf.chunks->info.dist + rendinf.chunks->info.dist * rendinf.chunks->info.width].visible |= (1 << y);
-
-            posqueue[pqptr] = (struct pq){.x = rendinf.chunks->info.dist, .y = y + 1, .z = rendinf.chunks->info.dist, .d = CVIS_DOWN};
-            rendinf.chunks->renddata[posqueue[pqptr].x + posqueue[pqptr].z * rendinf.chunks->info.width].visible |= (1 << (posqueue[pqptr].y + 1));
-            ++pqptr;
-            posqueue[pqptr] = (struct pq){.x = rendinf.chunks->info.dist + 1, .y = y, .z = rendinf.chunks->info.dist, .d = CVIS_LEFT};
-            rendinf.chunks->renddata[(posqueue[pqptr].x + 1) + posqueue[pqptr].z * rendinf.chunks->info.width].visible |= (1 << posqueue[pqptr].y);
-            ++pqptr;
-            posqueue[pqptr] = (struct pq){.x = rendinf.chunks->info.dist, .y = y, .z = rendinf.chunks->info.dist + 1, .d = CVIS_FRONT};
-            rendinf.chunks->renddata[posqueue[pqptr].x + (posqueue[pqptr].z + 1) * rendinf.chunks->info.width].visible |= (1 << posqueue[pqptr].y);
-            ++pqptr;
-            posqueue[pqptr] = (struct pq){.x = rendinf.chunks->info.dist, .y = y - 1, .z = rendinf.chunks->info.dist, .d = CVIS_UP};
-            rendinf.chunks->renddata[posqueue[pqptr].x + posqueue[pqptr].z * rendinf.chunks->info.width].visible |= (1 << (posqueue[pqptr].y - 1));
-            ++pqptr;
-            posqueue[pqptr] = (struct pq){.x = rendinf.chunks->info.dist - 1, .y = y, .z = rendinf.chunks->info.dist, .d = CVIS_RIGHT};
-            rendinf.chunks->renddata[(posqueue[pqptr].x - 1) + posqueue[pqptr].z * rendinf.chunks->info.width].visible |= (1 << posqueue[pqptr].y);
-            ++pqptr;
-            posqueue[pqptr] = (struct pq){.x = rendinf.chunks->info.dist, .y = y, .z = rendinf.chunks->info.dist - 1, .d = CVIS_BACK};
-            rendinf.chunks->renddata[posqueue[pqptr].x + (posqueue[pqptr].z - 1) * rendinf.chunks->info.width].visible |= (1 << posqueue[pqptr].y);
-            ++pqptr;
-
+            pqpush(rendinf.chunks->info.dist, cy, rendinf.chunks->info.dist, -1);
+            memset(posqueue[pqptr].dir, 0, 6);
             while (pqptr > 0) {
-                --pqptr;
-                int cx = posqueue[pqptr].x;
-                int cy = posqueue[pqptr].y;
-                int cz = posqueue[pqptr].z;
-                int cd = posqueue[pqptr].d;
+                pqpop();
+                struct pq* p = &posqueue[pqptr];
 
-                printf("[%d] [%d, %d, %d, %d]\n", pqptr, posqueue[pqptr].x, posqueue[pqptr].y, posqueue[pqptr].z, posqueue[pqptr].d);
-                {
-                    printf("VISPASS [%d, %d, %d]:\n", posqueue[pqptr].x, posqueue[pqptr].y, posqueue[pqptr].z);
-                    for (int i = 0; i < 6; ++i) {
-                        for (int j = 0; j < 6; ++j) {
-                            printf("%d", rendinf.chunks->renddata[posqueue[pqptr].x + posqueue[pqptr].z * rendinf.chunks->info.width].vispass[posqueue[pqptr].y][i][j]);
-                        }
-                        putchar('\n');
+                bool visit(int x, int y, int z, int face) {
+                    if (p->dir[5 - face]) return false;
+                    if (x < 0 || y < 0 || z < 0 || x >= (int)rendinf.chunks->info.width || y >= 32 || z >= (int)rendinf.chunks->info.width) return false;
+                    int c = x + z * rendinf.chunks->info.width;
+                    int v = c + y * rendinf.chunks->info.widthsq;
+                    if (visited[v]) return false;
+                    if (p->from > -1) {
+                        if (!rendinf.chunks->renddata[c].vispass[y][p->from][face]) return false;
                     }
+                    visited[v] = true;
+                    pqpush(x, y, z, 5 - face);
+                    memcpy(posqueue[pqptr].dir, p->dir, 6);
+                    posqueue[pqptr].dir[face] = true;
+                    rendinf.chunks->renddata[c].visible |= (1 << y);
+                    //printf("OK: [%d, %d, %d]\n", x, y, z);
+                    return true;
                 }
 
-                if (cy < 31) {
-                    if (!(rendinf.chunks->renddata[cx + cz * rendinf.chunks->info.width].visible & (1 << (cy + 1))) &&
-                    rendinf.chunks->renddata[cx + cz * rendinf.chunks->info.width].vispass[y + 1][cd][CVIS_UP]) {
-                        posqueue[pqptr] = (struct pq){.x = cx, .y = cy + 1, .z = cz, .d = CVIS_DOWN};
-                        rendinf.chunks->renddata[cx + cz * rendinf.chunks->info.width].visible |= (1 << (cy + 1));
-                        ++pqptr;
-                    }
-                }
-                if (cx < (int)rendinf.chunks->info.width - 1) {
-                    if (!(rendinf.chunks->renddata[(cx + 1) + cz * rendinf.chunks->info.width].visible & (1 << cy)) &&
-                    rendinf.chunks->renddata[(cx + 1) + cz * rendinf.chunks->info.width].vispass[y][cd][CVIS_RIGHT]) {
-                        posqueue[pqptr] = (struct pq){.x = cx + 1, .y = cy, .z = cz, .d = CVIS_LEFT};
-                        rendinf.chunks->renddata[(cx + 1) + cz * rendinf.chunks->info.width].visible |= (1 << cy);
-                        ++pqptr;
-                    }
-                }
-                if (cz < (int)rendinf.chunks->info.width - 1) {
-                    if (!(rendinf.chunks->renddata[cx + (cz + 1) * rendinf.chunks->info.width].visible & (1 << cy)) &&
-                    rendinf.chunks->renddata[cx + (cz + 1) * rendinf.chunks->info.width].vispass[y][cd][CVIS_BACK]) {
-                        posqueue[pqptr] = (struct pq){.x = cx, .y = cy, .z = cz + 1, .d = CVIS_FRONT};
-                        rendinf.chunks->renddata[cx + (cz + 1) * rendinf.chunks->info.width].visible |= (1 << cy);
-                        ++pqptr;
-                    }
-                }
-                if (cy > 0) {
-                    if (!(rendinf.chunks->renddata[cx + cz * rendinf.chunks->info.width].visible & (1 << (cy - 1))) &&
-                    rendinf.chunks->renddata[cx + cz * rendinf.chunks->info.width].vispass[y - 1][cd][CVIS_DOWN]) {
-                        posqueue[pqptr] = (struct pq){.x = cx, .y = cy - 1, .z = cz, .d = CVIS_UP};
-                        rendinf.chunks->renddata[cx + cz * rendinf.chunks->info.width].visible |= (1 << (cy - 1));
-                        ++pqptr;
-                    }
-                }
-                if (cx > 0) {
-                    if (!(rendinf.chunks->renddata[(cx - 1) + cz * rendinf.chunks->info.width].visible & (1 << cy)) &&
-                    rendinf.chunks->renddata[(cx - 1) + cz * rendinf.chunks->info.width].vispass[y][cd][CVIS_LEFT]) {
-                        posqueue[pqptr] = (struct pq){.x = cx - 1, .y = cy, .z = cz, .d = CVIS_RIGHT};
-                        rendinf.chunks->renddata[(cx - 1) + cz * rendinf.chunks->info.width].visible |= (1 << cy);
-                        ++pqptr;
-                    }
-                }
-                if (cz > 0) {
-                    if (!(rendinf.chunks->renddata[cx + (cz - 1) * rendinf.chunks->info.width].visible & (1 << cy)) &&
-                    rendinf.chunks->renddata[cx + (cz - 1) * rendinf.chunks->info.width].vispass[y][cd][CVIS_FRONT]) {
-                        posqueue[pqptr] = (struct pq){.x = cx, .y = cy, .z = cz - 1, .d = CVIS_BACK};
-                        rendinf.chunks->renddata[cx + (cz - 1) * rendinf.chunks->info.width].visible |= (1 << cy);
-                        ++pqptr;
-                    }
-                }
+                visit(p->x, p->y + 1, p->z, CVIS_DOWN);
+                visit(p->x, p->y - 1, p->z, CVIS_UP);
+                visit(p->x + 1, p->y, p->z, CVIS_LEFT);
+                visit(p->x - 1, p->y, p->z, CVIS_RIGHT);
+                visit(p->x, p->y, p->z + 1, CVIS_FRONT);
+                visit(p->x, p->y, p->z - 1, CVIS_BACK);
             }
 
             free(posqueue);
+            free(visited);
         }
     }
 
@@ -1717,7 +1682,7 @@ void render() {
                 if (!(rendinf.chunks->renddata[rendc].visible & (1 << y))) continue;
                 if (isVisible(&frust, coord[0] * 16 - 8, y * 16, coord[1] * 16 - 8, coord[0] * 16 + 8, (y + 1) * 16, coord[1] * 16 + 8)) {
                     if (rendinf.chunks->renddata[rendc].ytcount[y]) {
-                        glDrawArrays(GL_TRIANGLES, rendinf.chunks->renddata[rendc].yoff[y], rendinf.chunks->renddata[rendc].ytcount[y]);
+                        glDrawArrays(GL_TRIANGLES, rendinf.chunks->renddata[rendc].ytoff[y], rendinf.chunks->renddata[rendc].ytcount[y]);
                     }
                 }
             }
