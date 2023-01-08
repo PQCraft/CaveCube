@@ -91,9 +91,9 @@ enum {
     CVIS_UP,
     CVIS_RIGHT,
     CVIS_FRONT,
-    CVIS_DOWN,
+    CVIS_BACK,
     CVIS_LEFT,
-    CVIS_BACK
+    CVIS_DOWN
 };
 
 struct chunk_renddata {
@@ -105,8 +105,10 @@ struct chunk_renddata {
     uint32_t tcount[2];
     uint32_t* sortvert;
     bool remesh[2];
+    uint32_t yvcount[32];
+    uint32_t yvoff[32];
     uint32_t ytcount[32];
-    uint32_t yoff[32];
+    uint32_t ytoff[32];
     uint8_t vispass[32][6][6];
     uint32_t visible;
     bool visfull:1;
