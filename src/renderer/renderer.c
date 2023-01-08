@@ -874,7 +874,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
         int c = nx + nz * rendinf.chunks->info.width;
         for (int i = 0; i < 6; ++i) {
             for (int j = 0; j < 6; ++j) {
-                rendinf.chunks->renddata[c].vispass[ychunk][j][i] = rendinf.chunks->renddata[c].vispass[ychunk][i][j] = false;
+                rendinf.chunks->renddata[c].vispass[ychunk][i][j] = false;
             }
         }
         for (int _y = maxy + 15; _y >= maxy; --_y) {
@@ -904,7 +904,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
                                     visited[x][(y + 1) % 16][z] = 1;
                                     //printf("ADD Y+1 [%d, %d, %d] [%d]\n", posqueue[pqptr - 1].x, posqueue[pqptr - 1].y, posqueue[pqptr - 1].z, pqptr);
                                 }
-                            } else {
+                            } else if (blockinf[bdata.id].data[bdata.subid].transparency) {
                                 touched[CVIS_UP] = 1;
                             }
                             if (x < 15) {
@@ -914,7 +914,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
                                     visited[x + 1][y % 16][z] = 1;
                                     //printf("ADD X+1 [%d, %d, %d] [%d]\n", posqueue[pqptr - 1].x, posqueue[pqptr - 1].y, posqueue[pqptr - 1].z, pqptr);
                                 }
-                            } else {
+                            } else if (blockinf[bdata.id].data[bdata.subid].transparency) {
                                 touched[CVIS_RIGHT] = 1;
                             }
                             if (z < 15) {
@@ -924,7 +924,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
                                     visited[x][y % 16][z + 1] = 1;
                                     //printf("ADD Z+1 [%d, %d, %d] [%d]\n", posqueue[pqptr - 1].x, posqueue[pqptr - 1].y, posqueue[pqptr - 1].z, pqptr);
                                 }
-                            } else {
+                            } else if (blockinf[bdata.id].data[bdata.subid].transparency) {
                                 touched[CVIS_BACK] = 1;
                             }
                             if (y > maxy) {
@@ -934,7 +934,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
                                     visited[x][(y - 1) % 16][z] = 1;
                                     //printf("ADD Y-1 [%d, %d, %d] [%d]\n", posqueue[pqptr - 1].x, posqueue[pqptr - 1].y, posqueue[pqptr - 1].z, pqptr);
                                 }
-                            } else {
+                            } else if (blockinf[bdata.id].data[bdata.subid].transparency) {
                                 touched[CVIS_DOWN] = 1;
                             }
                             if (x > 0) {
@@ -944,7 +944,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
                                     visited[x - 1][y % 16][z] = 1;
                                     //printf("ADD X-1 [%d, %d, %d] [%d]\n", posqueue[pqptr - 1].x, posqueue[pqptr - 1].y, posqueue[pqptr - 1].z, pqptr);
                                 }
-                            } else {
+                            } else if (blockinf[bdata.id].data[bdata.subid].transparency) {
                                 touched[CVIS_LEFT] = 1;
                             }
                             if (z > 0) {
@@ -954,7 +954,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
                                     visited[x][y % 16][z - 1] = 1;
                                     //printf("ADD Z-1 [%d, %d, %d] [%d]\n", posqueue[pqptr - 1].x, posqueue[pqptr - 1].y, posqueue[pqptr - 1].z, pqptr);
                                 }
-                            } else {
+                            } else if (blockinf[bdata.id].data[bdata.subid].transparency) {
                                 touched[CVIS_FRONT] = 1;
                             }
 
@@ -973,7 +973,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
                         //touched[CVIS_BACK] = 1;
                         for (int i = 0; i < 6; ++i) {
                             for (int j = 0; j < 6; ++j) {
-                                if (touched[i] && touched[j]) rendinf.chunks->renddata[c].vispass[ychunk][j][i] = rendinf.chunks->renddata[c].vispass[ychunk][i][j] = true;
+                                if (touched[i] && touched[j]) rendinf.chunks->renddata[c].vispass[ychunk][i][j] = true;
                             }
                         }
                     }
