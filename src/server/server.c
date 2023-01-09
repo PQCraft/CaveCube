@@ -706,10 +706,10 @@ int startServer(char* addr, int port, int mcli, char* world) {
     #if DBGLVL(1)
     puts("  Initializing noise...");
     #endif
-    uint32_t rand = getRandWord(1);
-    printf("rand: [%u]\n", rand);
-    //setRandSeed(0, 39010);
-    setRandSeed(0, rand);
+    //uint32_t rand = getRandWord(1);
+    //printf("rand: [%u]\n", rand);
+    setRandSeed(0, 8449);
+    //setRandSeed(0, rand);
     initNoiseTable(0);
     initWorldgen();
     #if DBGLVL(1)

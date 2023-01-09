@@ -45,30 +45,27 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
             if (chunkz > 0) chunkz += 16;
             chunkx /= 16;
             chunkz /= 16;
-            if (true || (chunkx + chunkz) % 2) {
-                double heightmult = tanh((noise2(0, cx / 254.0, cz / 254.0) * 2.0) * 0.5 + 0.5);
-                double detail = noise2(1, cx / 30.0, cz / 30.0) * 1.0;
-                detail += noise2(2, cx / 15.0, cz / 15.0) * 0.67;
-                detail += noise2(3, cx / 7.5, cz / 7.5) * 0.33;
-                double height = tanh(noise2(4, cx / 174.0, cz / 174.0) * 10.0) * heightmult;
-                double finalheight = round(height * 50 + detail * 2 + 128.0);
-                for (int i = 0; i < finalheight; ++i) {
-                    data[i].id = stone;
-                }
-                for (int i = 0; i < 512; ++i) {
-                    if ((noise3(15, cx / 24.5, i / 14.0, cz / 24.5) + fabs((i - (50.0 + height * 35.0)) / (400.0 + height * 200.0))) < -0.25) {
-                        data[i].id = 0;
-                    }
-                }
-                for (int i = 127; i >= finalheight; --i) {
-                    data[i].id = water;
-                }
-                double n0 = noise3(63, cx / 2.0, cz / 2.0, 0);
-                data[0].id = bedrock; data[0].subid = 0;
-                if (n0 > -0.25) {data[1].id = bedrock; data[1].subid = 0;}
-                if (n0 > 0.0) {data[2].id = bedrock; data[2].subid = 0;}
-                if (n0 > 0.25) {data[3].id = bedrock; data[3].subid = 0;}
+            double heightmult = tanh((noise2(0, cx / 274.0, cz / 274.0) * 2.0) * 0.5 + 0.5);
+            double detail = nperlin2d(1, cx, cz, 0.034559, 5) * 1.5;
+            double height = tanh(nperlin2d(2, cx, cz, 0.002253, 2) * 5.0) * heightmult;
+            height += ((1.0 - tanhf(perlin2d(3, cx, cz, 0.004992, 4) * 2.5)) * 2.5 - 0.5) * (heightmult + 0.5 + height * 0.1);
+            double finalheight = round(height * 50 + detail * 2 + 128.0);
+            for (int i = 0; i < finalheight; ++i) {
+                data[i].id = stone;
             }
+            for (int i = 0; i < 512; ++i) {
+                if ((noise3(15, cx / 24.5, i / 14.0, cz / 24.5) + fabs((i - (50.0 + height * 35.0)) / (400.0 + height * 200.0))) < -0.25) {
+                    data[i].id = 0;
+                }
+            }
+            for (int i = 127; i >= finalheight; --i) {
+                data[i].id = water;
+            }
+            double n0 = noise3(63, cx / 2.0, cz / 2.0, 0);
+            data[0].id = bedrock; data[0].subid = 0;
+            if (n0 > -0.25) {data[1].id = bedrock; data[1].subid = 0;}
+            if (n0 > 0.0) {data[2].id = bedrock; data[2].subid = 0;}
+            if (n0 > 0.25) {data[3].id = bedrock; data[3].subid = 0;}
         } break;
     }
 }
