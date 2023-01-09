@@ -39,12 +39,15 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
             data[3].id = grass_block;
         } break;
         case 1:; {
-            int64_t chunkx = (cx + 16.0);
-            int64_t chunkz = (cz + 16.0);
+            /*
+            int64_t chunkx = (cx + 8.0);
+            int64_t chunkz = (cz + 8.0);
             if (chunkx < 0) chunkx -= 16;
             if (chunkz > 0) chunkz += 16;
             chunkx /= 16;
             chunkz /= 16;
+            if ((chunkx + chunkz) % 2) {
+            */
             double heightmult = tanh((noise2(0, cx / 274.0, cz / 274.0) * 2.0) * 0.5 + 0.5);
             double detail = nperlin2d(1, cx, cz, 0.034559, 5) * 1.5;
             double height = tanh(nperlin2d(2, cx, cz, 0.002253, 2) * 5.0) * heightmult;
@@ -66,6 +69,9 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
             if (n0 > -0.25) {data[1].id = bedrock; data[1].subid = 0;}
             if (n0 > 0.0) {data[2].id = bedrock; data[2].subid = 0;}
             if (n0 > 0.25) {data[3].id = bedrock; data[3].subid = 0;}
+            /*
+            }
+            */
         } break;
     }
 }
