@@ -1557,7 +1557,7 @@ static force_inline bool pqvisit(struct pq* p, int x, int y, int z, int face) {
     if (p->from > -1) {
         int c2 = p->x + p->z * rendinf.chunks->info.width;
         if (!rendinf.chunks->renddata[c2].vispass[p->y][p->from][face]) {
-            //printf("[%d, %d, %d] -> [%d, %d, %d]: Cannot go from [%s] to [%s]\n", p->x, p->y, p->z, x, y, z, dirstr[p->from], dirstr[face]);
+            printf("[%d, %d, %d] -> [%d, %d, %d]: Cannot go from [%s] to [%s]\n", p->x, p->y, p->z, x, y, z, dirstr[p->from], dirstr[face]);
             return false;
         }
     }
