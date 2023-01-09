@@ -904,7 +904,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
                                     visited[x][(y + 1) % 16][z] = 1;
                                     //printf("ADD Y+1 [%d, %d, %d] [%d]\n", posqueue[pqptr - 1].x, posqueue[pqptr - 1].y, posqueue[pqptr - 1].z, pqptr);
                                 }
-                            } else if (blockinf[bdata.id].data[bdata.subid].transparency) {
+                            } else {
                                 touched[CVIS_UP] = 1;
                             }
                             if (x < 15) {
@@ -914,7 +914,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
                                     visited[x + 1][y % 16][z] = 1;
                                     //printf("ADD X+1 [%d, %d, %d] [%d]\n", posqueue[pqptr - 1].x, posqueue[pqptr - 1].y, posqueue[pqptr - 1].z, pqptr);
                                 }
-                            } else if (blockinf[bdata.id].data[bdata.subid].transparency) {
+                            } else {
                                 touched[CVIS_RIGHT] = 1;
                             }
                             if (z < 15) {
@@ -924,7 +924,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
                                     visited[x][y % 16][z + 1] = 1;
                                     //printf("ADD Z+1 [%d, %d, %d] [%d]\n", posqueue[pqptr - 1].x, posqueue[pqptr - 1].y, posqueue[pqptr - 1].z, pqptr);
                                 }
-                            } else if (blockinf[bdata.id].data[bdata.subid].transparency) {
+                            } else {
                                 touched[CVIS_BACK] = 1;
                             }
                             if (y > maxy) {
@@ -934,7 +934,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
                                     visited[x][(y - 1) % 16][z] = 1;
                                     //printf("ADD Y-1 [%d, %d, %d] [%d]\n", posqueue[pqptr - 1].x, posqueue[pqptr - 1].y, posqueue[pqptr - 1].z, pqptr);
                                 }
-                            } else if (blockinf[bdata.id].data[bdata.subid].transparency) {
+                            } else {
                                 touched[CVIS_DOWN] = 1;
                             }
                             if (x > 0) {
@@ -944,7 +944,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
                                     visited[x - 1][y % 16][z] = 1;
                                     //printf("ADD X-1 [%d, %d, %d] [%d]\n", posqueue[pqptr - 1].x, posqueue[pqptr - 1].y, posqueue[pqptr - 1].z, pqptr);
                                 }
-                            } else if (blockinf[bdata.id].data[bdata.subid].transparency) {
+                            } else {
                                 touched[CVIS_LEFT] = 1;
                             }
                             if (z > 0) {
@@ -954,7 +954,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
                                     visited[x][y % 16][z - 1] = 1;
                                     //printf("ADD Z-1 [%d, %d, %d] [%d]\n", posqueue[pqptr - 1].x, posqueue[pqptr - 1].y, posqueue[pqptr - 1].z, pqptr);
                                 }
-                            } else if (blockinf[bdata.id].data[bdata.subid].transparency) {
+                            } else {
                                 touched[CVIS_FRONT] = 1;
                             }
 
@@ -971,9 +971,12 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
                         //memset(touched, 0, 6);
                         //touched[CVIS_FRONT] = 1;
                         //touched[CVIS_BACK] = 1;
+                        //printf("touched: [%d, %d, %d, %d, %d, %d]\n", touched[0], touched[1], touched[2], touched[3], touched[4], touched[5]);
                         for (int i = 0; i < 6; ++i) {
                             for (int j = 0; j < 6; ++j) {
-                                if (touched[i] && touched[j]) rendinf.chunks->renddata[c].vispass[ychunk][i][j] = true;
+                                if (touched[i] && touched[j]) {
+                                    rendinf.chunks->renddata[c].vispass[ychunk][j][i] = rendinf.chunks->renddata[c].vispass[ychunk][i][j] = true;
+                                }
                             }
                         }
                     }
@@ -1520,6 +1523,53 @@ static resdata_texture* crosshair;
 
 static int dbgtextuih = -1;
 
+struct pq {
+    int8_t x;
+    int8_t y;
+    int8_t z;
+    int8_t from;
+    int8_t dir[6];
+};
+
+struct pq* posqueue;
+int pqptr;
+#define pqpush(_x, _y, _z, _f) {\
+    posqueue[pqptr].x = (_x);\
+    posqueue[pqptr].y = (_y);\
+    posqueue[pqptr].z = (_z);\
+    posqueue[pqptr].from = (_f);\
+    ++pqptr;\
+}
+#define pqpop() {\
+    --pqptr;\
+}
+uint8_t* visited;
+
+char* dirstr[] = {"UP", "RIGHT", "FRONT", "BACK", "LEFT", "DOWN"};
+
+static force_inline bool pqvisit(struct pq* p, int x, int y, int z, int face) {
+    //printf("visit: [%d, %d, %d]: [%d]\n", x, y, z, pqptr);
+    if (p->dir[5 - face]) return false;
+    if (x < 0 || y < 0 || z < 0 || x >= (int)rendinf.chunks->info.width || y >= 32 || z >= (int)rendinf.chunks->info.width) return false;
+    int c = x + z * rendinf.chunks->info.width;
+    int v = c + y * rendinf.chunks->info.widthsq;
+    if (visited[v]) return false;
+    if (p->from > -1) {
+        int c2 = p->x + p->z * rendinf.chunks->info.width;
+        if (!rendinf.chunks->renddata[c2].vispass[p->y][p->from][face]) {
+            //printf("[%d, %d, %d] -> [%d, %d, %d]: Cannot go from [%s] to [%s]\n", p->x, p->y, p->z, x, y, z, dirstr[p->from], dirstr[face]);
+            return false;
+        }
+    }
+    visited[v] = true;
+    memcpy(posqueue[pqptr].dir, p->dir, 6);
+    posqueue[pqptr].dir[face] = true;
+    pqpush(x, y, z, 5 - face);
+    rendinf.chunks->renddata[c].visible |= (1 << y);
+    //printf("OK: [%d, %d, %d]\n", x, y, z);
+    return true;
+}
+
 void render() {
     if (showDebugInfo) {
         static char tbuf[1][32768];
@@ -1596,13 +1646,6 @@ void render() {
         static int64_t cx = 0;
         static int cy = INT_MIN;
         static int64_t cz = 0;
-        struct pq {
-            int8_t x;
-            int8_t y;
-            int8_t z;
-            int8_t from;
-            int8_t dir[6];
-        };
 
         int64_t newcx = rendinf.chunks->xoff;
         int newcy = (int)((rendinf.campos.y < 0) ? rendinf.campos.y - 16 : rendinf.campos.y) / 16;
@@ -1613,51 +1656,49 @@ void render() {
             cz = newcz;
             printf("MOVED: [%"PRId64", %d, %"PRId64"]\n", cx, cy, cz);
 
-            struct pq* posqueue = malloc(rendinf.chunks->info.widthsq * 32 * 2 * sizeof(*posqueue));
-            int pqptr = 0;
-            #define pqpush(_x, _y, _z, _f) {\
-                posqueue[pqptr++] = (struct pq){.x = (_x), .y = (_y), .z = (_z), .from = (_f)};\
-            }
-            #define pqpop() {\
-                --pqptr;\
-            }
-            uint8_t* visited = calloc(rendinf.chunks->info.widthsq * 32, 1);
+            posqueue = malloc(rendinf.chunks->info.widthsq * 32 * sizeof(*posqueue));
+            pqptr = 0;
+            visited = calloc(rendinf.chunks->info.widthsq * 32, 1);
 
             for (int i = 0; i < (int)rendinf.chunks->info.widthsq; ++i) {
                 rendinf.chunks->renddata[i].visible = 0;
             }
             //rendinf.chunks->renddata[rendinf.chunks->info.dist + rendinf.chunks->info.dist * rendinf.chunks->info.width].visible |= (1 << cy);
 
-            pqpush(rendinf.chunks->info.dist, cy, rendinf.chunks->info.dist, -1);
             memset(posqueue[pqptr].dir, 0, 6);
+            pqpush(rendinf.chunks->info.dist, cy, rendinf.chunks->info.dist, -1);
+            int c = rendinf.chunks->info.dist + rendinf.chunks->info.dist * rendinf.chunks->info.width;
+            rendinf.chunks->renddata[c].visible |= (1 << cy);
+            int v = c + cy * rendinf.chunks->info.widthsq;
+            visited[v] = true;
             while (pqptr > 0) {
                 pqpop();
-                struct pq* p = &posqueue[pqptr];
+                struct pq p = posqueue[pqptr];
 
-                bool visit(int x, int y, int z, int face) {
-                    if (p->dir[5 - face]) return false;
-                    if (x < 0 || y < 0 || z < 0 || x >= (int)rendinf.chunks->info.width || y >= 32 || z >= (int)rendinf.chunks->info.width) return false;
-                    int c = x + z * rendinf.chunks->info.width;
-                    int v = c + y * rendinf.chunks->info.widthsq;
-                    if (visited[v]) return false;
-                    if (p->from > -1) {
-                        if (!rendinf.chunks->renddata[c].vispass[y][p->from][face]) return false;
-                    }
-                    visited[v] = true;
-                    pqpush(x, y, z, 5 - face);
-                    memcpy(posqueue[pqptr].dir, p->dir, 6);
-                    posqueue[pqptr].dir[face] = true;
-                    rendinf.chunks->renddata[c].visible |= (1 << y);
-                    //printf("OK: [%d, %d, %d]\n", x, y, z);
-                    return true;
-                }
+                /*
+                pqvisit(&p, p.x, p.y + 1, p.z, CVIS_DOWN);
+                pqvisit(&p, p.x, p.y - 1, p.z, CVIS_UP);
+                pqvisit(&p, p.x + 1, p.y, p.z, CVIS_LEFT);
+                pqvisit(&p, p.x - 1, p.y, p.z, CVIS_RIGHT);
+                pqvisit(&p, p.x, p.y, p.z + 1, CVIS_FRONT);
+                pqvisit(&p, p.x, p.y, p.z - 1, CVIS_BACK);
+                */
 
-                visit(p->x, p->y + 1, p->z, CVIS_DOWN);
-                visit(p->x, p->y - 1, p->z, CVIS_UP);
-                visit(p->x + 1, p->y, p->z, CVIS_LEFT);
-                visit(p->x - 1, p->y, p->z, CVIS_RIGHT);
-                visit(p->x, p->y, p->z + 1, CVIS_FRONT);
-                visit(p->x, p->y, p->z - 1, CVIS_BACK);
+                pqvisit(&p, p.x, p.y + 1, p.z, CVIS_UP);
+                pqvisit(&p, p.x, p.y - 1, p.z, CVIS_DOWN);
+                pqvisit(&p, p.x + 1, p.y, p.z, CVIS_RIGHT);
+                pqvisit(&p, p.x - 1, p.y, p.z, CVIS_LEFT);
+                pqvisit(&p, p.x, p.y, p.z + 1, CVIS_BACK);
+                pqvisit(&p, p.x, p.y, p.z - 1, CVIS_FRONT);
+
+                /*
+                pqvisit(&p, p.x, p.y + 1, p.z, CVIS_DOWN);
+                pqvisit(&p, p.x, p.y - 1, p.z, CVIS_UP);
+                pqvisit(&p, p.x + 1, p.y, p.z, CVIS_RIGHT);
+                pqvisit(&p, p.x - 1, p.y, p.z, CVIS_LEFT);
+                pqvisit(&p, p.x, p.y, p.z + 1, CVIS_FRONT);
+                pqvisit(&p, p.x, p.y, p.z - 1, CVIS_BACK);
+                */
             }
 
             free(posqueue);
