@@ -671,16 +671,17 @@ static force_inline void _sortChunk(int32_t c, int xoff, int zoff, bool update) 
         struct tricmp* data = malloc(tmpsize * sizeof(struct tricmp));
         uint32_t* dptr = rendinf.chunks->renddata[c].sortvert;
         for (int i = 0; i < tmpsize; ++i) {
-            uint32_t sv;
+            uint32_t sv1;
+            uint32_t sv2;
             float vx = 0, vy = 0, vz = 0;
             for (int j = 0; j < 6; ++j) {
-                data[i].data[0 + j * 4] = sv = *dptr++;
+                data[i].data[0 + j * 4] = sv1 = *dptr++;
                 data[i].data[1 + j * 4] = *dptr++;
                 data[i].data[2 + j * 4] = *dptr++;
-                data[i].data[3 + j * 4] = *dptr++;
-                vx += (float)(((sv >> 24) & 255) + ((sv >> 2) & 1)) / 16.0 - 8.0;
-                vy += (float)(((sv >> 8) & 65536) + ((sv >> 1) & 1)) / 16.0;
-                vz += (float)((sv & 255) + (sv & 1)) / 16.0 - 8.0;
+                data[i].data[3 + j * 4] = sv2 = *dptr++;
+                vx += (float)(((sv1 >> 24) & 255) + ((sv2 >> 4) & 1)) / 16.0 - 8.0;
+                vy += (float)(((sv1 >> 8) & 65535) + ((sv2 >> 3) & 1)) / 16.0;
+                vz += (float)((sv1 & 255) + ((sv2 >> 2) & 1)) / 16.0 - 8.0;
             }
             vx /= 6.0;
             vy /= 6.0;
