@@ -16,6 +16,7 @@
     - Add event for handling game logic
 - Make it so that timers are not pushed again until an acknowledge (prevents overflow)
 - Make server ask for and handle player's positions
+- Clean up cave culling crust in renderer
 - Redo BMD to CCM (delete `src/bmd/` and add `src/ccm/`)
     - Add parts, model types (3D, BLOCK, 2D, etc), and data types (VERT, ANI, AABB, etc)
     - Block models use quads instead of triangles
@@ -37,7 +38,6 @@
 - Make updateChunks() use a message list
 
 ### IN-PROGRESS:
-- Cave culling
 - Redoing worldgen
 - Add physics in `src/physics/`
     - Use ticks https://gafferongames.com/post/fix_your_timestep/ and add interpolation
