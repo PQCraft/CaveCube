@@ -925,7 +925,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
                                     //printf("ADD Z+1 [%d, %d, %d] [%d]\n", posqueue[pqptr - 1].x, posqueue[pqptr - 1].y, posqueue[pqptr - 1].z, pqptr);
                                 }
                             } else {
-                                touched[CVIS_BACK] = 1;
+                                touched[CVIS_FRONT] = 1;
                             }
                             if (y > maxy) {
                                 rendGetBlock(nx, nz, x, y - 1, z, &bdata);
@@ -955,7 +955,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
                                     //printf("ADD Z-1 [%d, %d, %d] [%d]\n", posqueue[pqptr - 1].x, posqueue[pqptr - 1].y, posqueue[pqptr - 1].z, pqptr);
                                 }
                             } else {
-                                touched[CVIS_FRONT] = 1;
+                                touched[CVIS_BACK] = 1;
                             }
 
                             //printf("[%d, %d, %d] [%d]\n", x, y, z, pqptr);
@@ -1122,6 +1122,8 @@ static void* meshthread(void* args) {
     return NULL;
 }
 
+static bool opaqueUpdate = false;
+
 void updateChunks() {
     pthread_mutex_lock(&rendinf.chunks->lock);
     for (uint32_t c = 0; !quitRequest && c < rendinf.chunks->info.widthsq; ++c) {
@@ -1143,6 +1145,7 @@ void updateChunks() {
             free(rendinf.chunks->renddata[c].vertices[0]);
             rendinf.chunks->renddata[c].vertices[0] = NULL;
             rendinf.chunks->renddata[c].remesh[0] = false;
+            opaqueUpdate = true;
         }
         if (rendinf.chunks->renddata[c].remesh[1]) {
             uint32_t tmpsize = rendinf.chunks->renddata[c].vcount[1] * sizeof(uint32_t);
@@ -1545,7 +1548,7 @@ int pqptr;
 }
 uint8_t* visited;
 
-char* dirstr[] = {"UP", "RIGHT", "FRONT", "BACK", "LEFT", "DOWN"};
+//char* dirstr[] = {"UP", "RIGHT", "FRONT", "BACK", "LEFT", "DOWN"};
 
 static force_inline bool pqvisit(struct pq* p, int x, int y, int z, int face) {
     //printf("visit: [%d, %d, %d]: [%d]\n", x, y, z, pqptr);
@@ -1557,7 +1560,18 @@ static force_inline bool pqvisit(struct pq* p, int x, int y, int z, int face) {
     if (p->from > -1) {
         int c2 = p->x + p->z * rendinf.chunks->info.width;
         if (!rendinf.chunks->renddata[c2].vispass[p->y][p->from][face]) {
+            /*
             printf("[%d, %d, %d] -> [%d, %d, %d]: Cannot go from [%s] to [%s]\n", p->x, p->y, p->z, x, y, z, dirstr[p->from], dirstr[face]);
+            {
+                printf("VISPASS [%d, %d, %d]:\n", p->x, p->y, p->z);
+                for (int i = 0; i < 6; ++i) {
+                    for (int j = 0; j < 6; ++j) {
+                        printf("%d", rendinf.chunks->renddata[c2].vispass[p->y][i][j]);
+                    }
+                    putchar('\n');
+                }
+            }
+            */
             return false;
         }
     }
@@ -1650,11 +1664,12 @@ void render() {
         int64_t newcx = rendinf.chunks->xoff;
         int newcy = (int)((rendinf.campos.y < 0) ? rendinf.campos.y - 16 : rendinf.campos.y) / 16;
         int64_t newcz = rendinf.chunks->zoff;
-        if (newcz != cz || newcx != cx || newcy != cy) {
+        if (opaqueUpdate || newcz != cz || newcx != cx || newcy != cy) {
+            opaqueUpdate = false;
             cx = newcx;
             cy = newcy;
             cz = newcz;
-            printf("MOVED: [%"PRId64", %d, %"PRId64"]\n", cx, cy, cz);
+            //printf("MOVED: [%"PRId64", %d, %"PRId64"]\n", cx, cy, cz);
 
             posqueue = malloc(rendinf.chunks->info.widthsq * 32 * sizeof(*posqueue));
             pqptr = 0;
