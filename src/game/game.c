@@ -27,7 +27,7 @@ coord_3d_dbl pcoord;
 coord_3d pvelocity;
 int pblockx, pblocky, pblockz;
 
-bool debug_wireframe = true;
+bool debug_wireframe = false;
 
 struct ui_data* game_ui[4];
 
