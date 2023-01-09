@@ -974,7 +974,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
                         //printf("touched: [%d, %d, %d, %d, %d, %d]\n", touched[0], touched[1], touched[2], touched[3], touched[4], touched[5]);
                         for (int i = 0; i < 6; ++i) {
                             for (int j = 0; j < 6; ++j) {
-                                if (touched[i] && touched[j]) {
+                                if (i != j && touched[i] && touched[j]) {
                                     rendinf.chunks->renddata[c].vispass[ychunk][j][i] = rendinf.chunks->renddata[c].vispass[ychunk][i][j] = true;
                                 }
                             }
@@ -1122,8 +1122,6 @@ static void* meshthread(void* args) {
     return NULL;
 }
 
-static bool opaqueUpdate = false;
-
 void updateChunks() {
     pthread_mutex_lock(&rendinf.chunks->lock);
     for (uint32_t c = 0; !quitRequest && c < rendinf.chunks->info.widthsq; ++c) {
@@ -1145,7 +1143,6 @@ void updateChunks() {
             free(rendinf.chunks->renddata[c].vertices[0]);
             rendinf.chunks->renddata[c].vertices[0] = NULL;
             rendinf.chunks->renddata[c].remesh[0] = false;
-            opaqueUpdate = true;
         }
         if (rendinf.chunks->renddata[c].remesh[1]) {
             uint32_t tmpsize = rendinf.chunks->renddata[c].vcount[1] * sizeof(uint32_t);
@@ -1576,6 +1573,9 @@ static force_inline bool pqvisit(struct pq* p, int x, int y, int z, int face) {
             return false;
         }
     }
+    int nx = x - rendinf.chunks->info.dist;
+    int nz = z - rendinf.chunks->info.dist;
+    if (!isVisible(&frust, nx * 16 - 8, y * 16, nz * 16 - 8, nx * 16 + 8, (y + 1) * 16, nz * 16 + 8)) return false;
     visited[v] = true;
     memcpy(posqueue[pqptr].dir, p->dir, 6);
     posqueue[pqptr].dir[face] = true;
@@ -1657,85 +1657,74 @@ void render() {
     _sortChunk(-1, -1, -1, true);
 
     if (!debug_nocavecull) {
-        static int64_t cx = 0;
-        static int cy = INT_MIN;
-        static int64_t cz = 0;
+        //int64_t cx = rendinf.chunks->xoff;
+        int cy = (int)((rendinf.campos.y < 0) ? rendinf.campos.y - 16 : rendinf.campos.y) / 16;
+        //int64_t cz = rendinf.chunks->zoff;
+        //if (newcz != cz || newcx != cx || newcy != cy) printf("MOVED: [%"PRId64", %d, %"PRId64"]\n", cx, cy, cz);
 
-        int64_t newcx = rendinf.chunks->xoff;
-        int newcy = (int)((rendinf.campos.y < 0) ? rendinf.campos.y - 16 : rendinf.campos.y) / 16;
-        int64_t newcz = rendinf.chunks->zoff;
-        if (opaqueUpdate || newcz != cz || newcx != cx || newcy != cy) {
-            opaqueUpdate = false;
-            //if (newcz != cz || newcx != cx || newcy != cy) printf("MOVED: [%"PRId64", %d, %"PRId64"]\n", cx, cy, cz);
-            cx = newcx;
-            cy = newcy;
-            cz = newcz;
+        posqueue = malloc(rendinf.chunks->info.widthsq * 32 * sizeof(*posqueue));
+        pqptr = 0;
+        visited = calloc(rendinf.chunks->info.widthsq * 34, 1);
+        visited += rendinf.chunks->info.widthsq;
 
-            posqueue = malloc(rendinf.chunks->info.widthsq * 32 * sizeof(*posqueue));
-            pqptr = 0;
-            visited = calloc(rendinf.chunks->info.widthsq * 34, 1);
-            visited += rendinf.chunks->info.widthsq;
+        for (int i = 0; i < (int)rendinf.chunks->info.widthsq; ++i) {
+            rendinf.chunks->renddata[i].visible = 0;
+        }
 
-            for (int i = 0; i < (int)rendinf.chunks->info.widthsq; ++i) {
-                rendinf.chunks->renddata[i].visible = 0;
-            }
+        memset(posqueue[pqptr].dir, 0, 6);
+        {
+            int ncy = cy;
+            if (ncy < -1) ncy = -1;
+            else if (ncy > 32) ncy = 32;
+            pqpush(rendinf.chunks->info.dist, ncy, rendinf.chunks->info.dist, -1);
+            int v = rendinf.chunks->info.dist + rendinf.chunks->info.dist * rendinf.chunks->info.width + ncy * rendinf.chunks->info.widthsq;
+            visited[v] = true;
+        }
+        while (pqptr > 0) {
+            pqpop();
+            struct pq p = posqueue[pqptr];
 
-            memset(posqueue[pqptr].dir, 0, 6);
-            {
-                int ncy = cy;
-                if (ncy < -1) ncy = -1;
-                else if (ncy > 32) ncy = 32;
-                pqpush(rendinf.chunks->info.dist, ncy, rendinf.chunks->info.dist, -1);
-                int v = rendinf.chunks->info.dist + rendinf.chunks->info.dist * rendinf.chunks->info.width + ncy * rendinf.chunks->info.widthsq;
-                visited[v] = true;
-            }
-            while (pqptr > 0) {
-                pqpop();
-                struct pq p = posqueue[pqptr];
+            pqvisit(&p, p.x, p.y + 1, p.z, CVIS_UP);
+            pqvisit(&p, p.x, p.y - 1, p.z, CVIS_DOWN);
+            pqvisit(&p, p.x + 1, p.y, p.z, CVIS_RIGHT);
+            pqvisit(&p, p.x - 1, p.y, p.z, CVIS_LEFT);
+            pqvisit(&p, p.x, p.y, p.z + 1, CVIS_BACK);
+            pqvisit(&p, p.x, p.y, p.z - 1, CVIS_FRONT);
+        }
 
-                pqvisit(&p, p.x, p.y + 1, p.z, CVIS_UP);
-                pqvisit(&p, p.x, p.y - 1, p.z, CVIS_DOWN);
-                pqvisit(&p, p.x + 1, p.y, p.z, CVIS_RIGHT);
-                pqvisit(&p, p.x - 1, p.y, p.z, CVIS_LEFT);
-                pqvisit(&p, p.x, p.y, p.z + 1, CVIS_BACK);
-                pqvisit(&p, p.x, p.y, p.z - 1, CVIS_FRONT);
-            }
+        #define setvis(_x, _y, _z) {\
+            if ((_x) >= 0 && (_y) >= 0 && (_z) >= 0 && (_x) < (int)rendinf.chunks->info.width && (_y) < 32 && (_z) < (int)rendinf.chunks->info.width) {\
+                rendinf.chunks->renddata[(_x) + (_z) * rendinf.chunks->info.width].visible |= (1 << (_y));\
+            }\
+        }
+        for (int z = 0; z < (int)rendinf.chunks->info.width; ++z) {
+            for (int x = 0; x < (int)rendinf.chunks->info.width; ++x) {
+                for (int y = 0; y < 32; ++y) {
+                    if (visited[x + z * rendinf.chunks->info.width + y * rendinf.chunks->info.widthsq]) {
+                        setvis(x, y, z);
+                        setvis(x + 1, y, z);
+                        setvis(x - 1, y, z);
+                        setvis(x, y + 1, z);
+                        setvis(x, y - 1, z);
+                        setvis(x, y, z + 1);
+                        setvis(x, y, z - 1);
 
-            #define setvis(_x, _y, _z) {\
-                if ((_x) >= 0 && (_y) >= 0 && (_z) >= 0 && (_x) < (int)rendinf.chunks->info.width && (_y) < 32 && (_z) < (int)rendinf.chunks->info.width) {\
-                    rendinf.chunks->renddata[(_x) + (_z) * rendinf.chunks->info.width].visible |= (1 << (_y));\
-                }\
-            }
-            for (int z = 0; z < (int)rendinf.chunks->info.width; ++z) {
-                for (int x = 0; x < (int)rendinf.chunks->info.width; ++x) {
-                    for (int y = 0; y < 32; ++y) {
-                        if (visited[x + z * rendinf.chunks->info.width + y * rendinf.chunks->info.widthsq]) {
-                            setvis(x, y, z);
-                            setvis(x + 1, y, z);
-                            setvis(x - 1, y, z);
-                            setvis(x, y + 1, z);
-                            setvis(x, y - 1, z);
-                            setvis(x, y, z + 1);
-                            setvis(x, y, z - 1);
-                            /*
-                            setvis(x + 1, y + 1, z + 1);
-                            setvis(x - 1, y + 1, z + 1);
-                            setvis(x + 1, y - 1, z + 1);
-                            setvis(x - 1, y - 1, z + 1);
-                            setvis(x + 1, y + 1, z - 1);
-                            setvis(x - 1, y + 1, z - 1);
-                            setvis(x + 1, y - 1, z - 1);
-                            setvis(x - 1, y - 1, z - 1);
-                            */
-                        }
+                        setvis(x + 1, y + 1, z + 1);
+                        setvis(x - 1, y + 1, z + 1);
+                        setvis(x + 1, y - 1, z + 1);
+                        setvis(x - 1, y - 1, z + 1);
+                        setvis(x + 1, y + 1, z - 1);
+                        setvis(x - 1, y + 1, z - 1);
+                        setvis(x + 1, y - 1, z - 1);
+                        setvis(x - 1, y - 1, z - 1);
                     }
                 }
             }
-
-            free(posqueue);
-            visited -= rendinf.chunks->info.widthsq;
-            free(visited);
         }
+
+        free(posqueue);
+        visited -= rendinf.chunks->info.widthsq;
+        free(visited);
     }
 
     pthread_mutex_unlock(&rendinf.chunks->lock);
