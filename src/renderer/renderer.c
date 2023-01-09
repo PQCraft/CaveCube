@@ -1655,7 +1655,7 @@ void render() {
     _sortChunk(-1, 1, -1, true);
     _sortChunk(-1, -1, -1, true);
 
-    {
+    if (!debug_nocavecull) {
         static int64_t cx = 0;
         static int cy = INT_MIN;
         static int64_t cz = 0;
@@ -1767,7 +1767,7 @@ void render() {
             glVertexAttribIPointer(2, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * 2));
             glVertexAttribIPointer(3, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * 3));
             for (int y = 31; y >= 0; --y) {
-                if (!(rendinf.chunks->renddata[rendc].visible & (1 << y))) continue;
+                if (!debug_nocavecull && !(rendinf.chunks->renddata[rendc].visible & (1 << y))) continue;
                 if (isVisible(&frust, coord[0] * 16 - 8, y * 16, coord[1] * 16 - 8, coord[0] * 16 + 8, (y + 1) * 16, coord[1] * 16 + 8)) {
                     if (rendinf.chunks->renddata[rendc].ytcount[y]) {
                         glDrawArrays(GL_TRIANGLES, rendinf.chunks->renddata[rendc].ytoff[y], rendinf.chunks->renddata[rendc].ytcount[y]);

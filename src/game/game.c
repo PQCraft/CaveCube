@@ -28,6 +28,7 @@ coord_3d pvelocity;
 int pblockx, pblocky, pblockz;
 
 bool debug_wireframe = false;
+bool debug_nocavecull = false;
 
 struct ui_data* game_ui[4];
 
@@ -274,9 +275,56 @@ bool doGame(char* addr, int port) {
                 input.single_action = INPUT_ACTION_SINGLE__NONE;
                 input.multi_actions = INPUT_ACTION_MULTI__NONE;
                 if (!debugkey) {
-                    if (glfwGetKey(rendinf.window, (debugkey = GLFW_KEY_W)) == GLFW_PRESS) {
-                        debug_wireframe = !debug_wireframe;
-                        printf("DEBUG: wireframe: [%d]\n", debug_wireframe);
+                    if (glfwGetKey(rendinf.window, (debugkey = GLFW_KEY_H)) == GLFW_PRESS) {
+                        puts("DEBUG HELP:");
+                        puts("Hold the multi.debug key (F4 by default) and press one of the following:");
+                        puts("H - Display the debug help");
+                        puts("W - Toggle wireframe mode");
+                        puts("M - Remesh chunks");
+                        puts("R - Reload chunks");
+                        puts("- - Decrease view distance");
+                        puts("= - Increase view distance");
+                        puts("C - Toggle disabling cave culling");
+                    } else if (glfwGetKey(rendinf.window, (debugkey = GLFW_KEY_W)) == GLFW_PRESS) {
+                        printf("DEBUG: Wireframe: [%d]\n", (debug_wireframe = !debug_wireframe));
+                    } else if (glfwGetKey(rendinf.window, (debugkey = GLFW_KEY_M)) == GLFW_PRESS) {
+                        printf("DEBUG: Remeshing chunks...\n");
+                        int64_t xo = rendinf.chunks->xoff;
+                        int64_t zo = rendinf.chunks->zoff;
+                        for (int i = 1; i <= (int)rendinf.chunks->info.dist; ++i) {
+                            updateChunk(xo + i, zo, CHUNKUPDATE_PRIO_HIGH, 0);
+                            updateChunk(xo - i, zo, CHUNKUPDATE_PRIO_HIGH, 0);
+                            updateChunk(xo, zo + i, CHUNKUPDATE_PRIO_HIGH, 0);
+                            updateChunk(xo, zo - i, CHUNKUPDATE_PRIO_HIGH, 0);
+                            for (int j = 1; j < i; ++j) {
+                                updateChunk(xo - j, zo + i, CHUNKUPDATE_PRIO_HIGH, 0);
+                                updateChunk(xo + j, zo + i, CHUNKUPDATE_PRIO_HIGH, 0);
+                                updateChunk(xo + j, zo - i, CHUNKUPDATE_PRIO_HIGH, 0);
+                                updateChunk(xo - j, zo - i, CHUNKUPDATE_PRIO_HIGH, 0);
+                                updateChunk(xo - i, zo - j, CHUNKUPDATE_PRIO_HIGH, 0);
+                                updateChunk(xo - i, zo + j, CHUNKUPDATE_PRIO_HIGH, 0);
+                                updateChunk(xo + i, zo + j, CHUNKUPDATE_PRIO_HIGH, 0);
+                                updateChunk(xo + i, zo - j, CHUNKUPDATE_PRIO_HIGH, 0);
+                            }
+                            updateChunk(xo - i, zo + i, CHUNKUPDATE_PRIO_HIGH, 0);
+                            updateChunk(xo + i, zo - i, CHUNKUPDATE_PRIO_HIGH, 0);
+                            updateChunk(xo - i, zo - i, CHUNKUPDATE_PRIO_HIGH, 0);
+                            updateChunk(xo + i, zo + i, CHUNKUPDATE_PRIO_HIGH, 0);
+                        }
+                    } else if (glfwGetKey(rendinf.window, (debugkey = GLFW_KEY_R)) == GLFW_PRESS) {
+                        printf("DEBUG: Reloading chunks...\n");
+                        resizeChunks(rendinf.chunks, viewdist);
+                        reqChunks(rendinf.chunks);
+                    } else if (glfwGetKey(rendinf.window, (debugkey = GLFW_KEY_MINUS)) == GLFW_PRESS && (viewdist > 1)) {
+                        printf("DEBUG: View distance: [%d]\n", (--viewdist));
+                        resizeChunks(rendinf.chunks, viewdist);
+                        reqChunks(rendinf.chunks);
+                    } else if (glfwGetKey(rendinf.window, (debugkey = GLFW_KEY_EQUAL)) == GLFW_PRESS) {
+                        printf("DEBUG: View distance: [%d]\n", (++viewdist));
+                        resizeChunks(rendinf.chunks, viewdist);
+                        reqChunks(rendinf.chunks);
+                    } else if (glfwGetKey(rendinf.window, (debugkey = GLFW_KEY_C)) == GLFW_PRESS) {
+                        printf("DEBUG: Disable cave culling: [%d]\n", (debug_nocavecull = !debug_nocavecull));
                     } else {
                         debugkey = 0;
                     }

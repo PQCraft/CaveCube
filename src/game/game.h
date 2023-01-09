@@ -24,6 +24,7 @@ extern coord_3d pvelocity;
 extern int pblockx, pblocky, pblockz;
 
 extern bool debug_wireframe;
+extern bool debug_nocavecull;
 
 extern struct ui_data* game_ui[4];
 
