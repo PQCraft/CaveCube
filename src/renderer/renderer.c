@@ -1553,11 +1553,12 @@ uint8_t* visited;
 static force_inline bool pqvisit(struct pq* p, int x, int y, int z, int face) {
     //printf("visit: [%d, %d, %d]: [%d]\n", x, y, z, pqptr);
     if (p->dir[5 - face]) return false;
-    if (x < 0 || y < 0 || z < 0 || x >= (int)rendinf.chunks->info.width || y >= 32 || z >= (int)rendinf.chunks->info.width) return false;
+    if (x < 0 || z < 0 || x >= (int)rendinf.chunks->info.width || z >= (int)rendinf.chunks->info.width) return false;
+    if (y < -1 || y > 32) return false;
     int c = x + z * rendinf.chunks->info.width;
     int v = c + y * rendinf.chunks->info.widthsq;
     if (visited[v]) return false;
-    if (p->from > -1) {
+    if (p->y >= 0 && p->y < 32 && p->from > -1) {
         int c2 = p->x + p->z * rendinf.chunks->info.width;
         if (!rendinf.chunks->renddata[c2].vispass[p->y][p->from][face]) {
             /*
@@ -1592,7 +1593,7 @@ void render() {
                 game_ui[UILAYER_DBGINF], UI_ELEM_CONTAINER, "debugText", -1, -1,
                 "width", "100%", "height", "100%",
                 "text_align", "-1,-1", "text_fgc", "14", "text_bga", "0.5",
-                "text", "[Please wait...]",
+                "text", "",
                 NULL
             );
         }
@@ -1665,35 +1666,32 @@ void render() {
         int64_t newcz = rendinf.chunks->zoff;
         if (opaqueUpdate || newcz != cz || newcx != cx || newcy != cy) {
             opaqueUpdate = false;
+            //if (newcz != cz || newcx != cx || newcy != cy) printf("MOVED: [%"PRId64", %d, %"PRId64"]\n", cx, cy, cz);
             cx = newcx;
             cy = newcy;
             cz = newcz;
-            //printf("MOVED: [%"PRId64", %d, %"PRId64"]\n", cx, cy, cz);
 
             posqueue = malloc(rendinf.chunks->info.widthsq * 32 * sizeof(*posqueue));
             pqptr = 0;
-            visited = calloc(rendinf.chunks->info.widthsq * 32, 1);
+            visited = calloc(rendinf.chunks->info.widthsq * 34, 1);
+            visited += rendinf.chunks->info.widthsq;
 
             for (int i = 0; i < (int)rendinf.chunks->info.widthsq; ++i) {
                 rendinf.chunks->renddata[i].visible = 0;
             }
 
             memset(posqueue[pqptr].dir, 0, 6);
-            pqpush(rendinf.chunks->info.dist, cy, rendinf.chunks->info.dist, -1);
-            int v = rendinf.chunks->info.dist + rendinf.chunks->info.dist * rendinf.chunks->info.width + cy * rendinf.chunks->info.widthsq;
-            visited[v] = true;
+            {
+                int ncy = cy;
+                if (ncy < -1) ncy = -1;
+                else if (ncy > 32) ncy = 32;
+                pqpush(rendinf.chunks->info.dist, ncy, rendinf.chunks->info.dist, -1);
+                int v = rendinf.chunks->info.dist + rendinf.chunks->info.dist * rendinf.chunks->info.width + ncy * rendinf.chunks->info.widthsq;
+                visited[v] = true;
+            }
             while (pqptr > 0) {
                 pqpop();
                 struct pq p = posqueue[pqptr];
-
-                /*
-                pqvisit(&p, p.x, p.y + 1, p.z, CVIS_DOWN);
-                pqvisit(&p, p.x, p.y - 1, p.z, CVIS_UP);
-                pqvisit(&p, p.x + 1, p.y, p.z, CVIS_LEFT);
-                pqvisit(&p, p.x - 1, p.y, p.z, CVIS_RIGHT);
-                pqvisit(&p, p.x, p.y, p.z + 1, CVIS_FRONT);
-                pqvisit(&p, p.x, p.y, p.z - 1, CVIS_BACK);
-                */
 
                 pqvisit(&p, p.x, p.y + 1, p.z, CVIS_UP);
                 pqvisit(&p, p.x, p.y - 1, p.z, CVIS_DOWN);
@@ -1701,15 +1699,6 @@ void render() {
                 pqvisit(&p, p.x - 1, p.y, p.z, CVIS_LEFT);
                 pqvisit(&p, p.x, p.y, p.z + 1, CVIS_BACK);
                 pqvisit(&p, p.x, p.y, p.z - 1, CVIS_FRONT);
-
-                /*
-                pqvisit(&p, p.x, p.y + 1, p.z, CVIS_DOWN);
-                pqvisit(&p, p.x, p.y - 1, p.z, CVIS_UP);
-                pqvisit(&p, p.x + 1, p.y, p.z, CVIS_RIGHT);
-                pqvisit(&p, p.x - 1, p.y, p.z, CVIS_LEFT);
-                pqvisit(&p, p.x, p.y, p.z + 1, CVIS_FRONT);
-                pqvisit(&p, p.x, p.y, p.z - 1, CVIS_BACK);
-                */
             }
 
             #define setvis(_x, _y, _z) {\
@@ -1744,6 +1733,7 @@ void render() {
             }
 
             free(posqueue);
+            visited -= rendinf.chunks->info.widthsq;
             free(visited);
         }
     }
