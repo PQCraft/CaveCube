@@ -38,6 +38,7 @@
 - Make updateChunks() use a message list
 
 ### IN-PROGRESS:
+- Translate blocks into a standard uin64_t when transferring over the network (bitfields are unreliable)
 - Redoing worldgen
 - Add physics in `src/physics/`
     - Use ticks https://gafferongames.com/post/fix_your_timestep/ and add interpolation
@@ -55,3 +56,4 @@
 - Changed lighting from 12-bit RGB (R4G4B4) to 15-bit RGB (R5G5B5)
 - Changed bedrock texture
 - Increased world height to 512
+- Added cave culling

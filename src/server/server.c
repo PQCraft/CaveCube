@@ -566,8 +566,9 @@ static void* servnetthread(void* args) {
                                 memcpy(&data->z, &buf[ptr], 8);
                                 ptr += 8;
                                 data->z = net2host64(data->z);
-                                memcpy(&data->y, &buf[ptr], 1);
-                                ptr += 1;
+                                memcpy(&data->y, &buf[ptr], 2);
+                                ptr += 2;
+                                data->y = net2host16(data->y);
                                 memcpy(&data->data, &buf[ptr], sizeof(struct blockdata));
                                 _data = data;
                             } break;
@@ -602,7 +603,7 @@ static void* servnetthread(void* args) {
                                     msgsize += 1 + 1 + 1;
                                 } break;
                                 case SERVER_SETBLOCK:; {
-                                    msgsize += 8 + 8 + 1 + sizeof(struct blockdata);
+                                    msgsize += 8 + 8 + 2 + sizeof(struct blockdata);
                                 } break;
                             }
                             if (getOutbufLeft(pdata[i].cxn) < (int)msgsize) {
@@ -655,7 +656,8 @@ static void* servnetthread(void* args) {
                                     writeToCxnBuf(pdata[i].cxn, &tmpqword, 8);
                                     tmpqword = host2net64(tmpdata->z);
                                     writeToCxnBuf(pdata[i].cxn, &tmpqword, 8);
-                                    writeToCxnBuf(pdata[i].cxn, &tmpdata->y, 1);
+                                    uint16_t tmpword = host2net16(tmpdata->y);
+                                    writeToCxnBuf(pdata[i].cxn, &tmpword, 2);
                                     writeToCxnBuf(pdata[i].cxn, &tmpdata->data, sizeof(struct blockdata));
                                 } break;
                             }
@@ -905,8 +907,9 @@ static void* clinetthread(void* args) {
                     memcpy(&data.z, &buf[ptr], 8);
                     ptr += 8;
                     data.z = net2host64(data.z);
-                    memcpy(&data.y, &buf[ptr], 1);
-                    ptr += 1;
+                    memcpy(&data.y, &buf[ptr], 2);
+                    ptr += 2;
+                    data.y = net2host16(data.y);
                     memcpy(&data.data, &buf[ptr], sizeof(struct blockdata));
                     callback(SERVER_SETBLOCK, &data);
                 } break;
@@ -929,7 +932,7 @@ static void* clinetthread(void* args) {
                         msgsize += 8 + 8;
                     } break;
                     case CLIENT_SETBLOCK:; {
-                        msgsize += 8 + 8 + 1 + sizeof(struct blockdata);
+                        msgsize += 8 + 8 + 2 + sizeof(struct blockdata);
                     } break;
                 }
                 if (getOutbufLeft(clicxn) < (int)msgsize) {
@@ -968,7 +971,8 @@ static void* clinetthread(void* args) {
                         writeToCxnBuf(clicxn, &tmpqword, 8);
                         tmpqword = host2net64(tmpdata->z);
                         writeToCxnBuf(clicxn, &tmpqword, 8);
-                        writeToCxnBuf(clicxn, &tmpdata->y, 1);
+                        uint16_t tmpword = host2net16(tmpdata->y);
+                        writeToCxnBuf(clicxn, &tmpword, 2);
                         writeToCxnBuf(clicxn, &tmpdata->data, sizeof(struct blockdata));
                     } break;
                 }

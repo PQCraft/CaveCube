@@ -106,7 +106,7 @@ struct server_data_setnatcolor {
 struct server_data_setblock {
     int64_t x;
     int64_t z;
-    uint8_t y;
+    int16_t y;
     struct blockdata data;
 };
 
@@ -132,7 +132,7 @@ struct client_data_getchunk {
 struct client_data_setblock {
     int64_t x;
     int64_t z;
-    uint8_t y;
+    int16_t y;
     struct blockdata data;
 };
 
