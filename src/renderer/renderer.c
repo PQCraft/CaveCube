@@ -1573,10 +1573,10 @@ static force_inline bool pqvisit(struct pq* p, int x, int y, int z, int face) {
             */
             return false;
         }
+        int nx = x - rendinf.chunks->info.dist;
+        int nz = z - rendinf.chunks->info.dist;
+        if (!isVisible(&frust, nx * 16 - 8, y * 16, nz * 16 - 8, nx * 16 + 8, (y + 1) * 16, nz * 16 + 8)) return false;
     }
-    int nx = x - rendinf.chunks->info.dist;
-    int nz = z - rendinf.chunks->info.dist;
-    if (!isVisible(&frust, nx * 16 - 8, y * 16, nz * 16 - 8, nx * 16 + 8, (y + 1) * 16, nz * 16 + 8)) return false;
     visited[v] = true;
     memcpy(posqueue[pqptr].dir, p->dir, 6);
     posqueue[pqptr].dir[face] = true;
@@ -1672,8 +1672,8 @@ void render() {
             rendinf.chunks->renddata[i].visible = 0;
         }
 
-        memset(posqueue[pqptr].dir, 0, 6);
         {
+            memset(posqueue[pqptr].dir, 0, 6);
             int ncy = cy;
             if (ncy < -1) ncy = -1;
             else if (ncy > 32) ncy = 32;
