@@ -50,16 +50,20 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
             chunkz /= 16;
             if ((chunkx + chunkz) % 2) {
             */
-            double heightmult = tanh((noise2(0, cx / 274.0, cz / 274.0) * 2.0) * 0.5 + 0.5);
-            double detail = nperlin2d(1, cx, cz, 0.034559, 5) * 1.5;
-            double height = tanh(nperlin2d(2, cx, cz, 0.002253, 2) * 5.0) * heightmult;
-            height += ((1.0 - tanhf(perlin2d(3, cx, cz, 0.004992, 4) * 2.5)) * 2.5 - 0.5) * (heightmult + 0.5 + height * 0.1);
-            double finalheight = round(height * 50 + detail * 2 + 128.0);
+            double heightmult = tanh((perlin2d(0, cx, cz, 0.003649, 2) * 2.0) * 0.5 + 0.5);
+            double detail = nperlin2d(1, cx, cz, 0.034559, 4) * 1.5;
+            double height = tanh(nperlin2d(2, cx, cz, 0.002253, 2) * 4.0) * heightmult;
+            height *= (1.0 - (height * 0.5 - 0.33)) * 1.25 * heightmult;
+            double mountainheight = ((1.0 - tanhf(perlin2d(3, cx, cz, 0.003432, 4) * 2.5)) * (1.5 + 0.25 * heightmult)) * (heightmult + 0.67 + height * 0.1);
+            mountainheight *= mountainheight * 2;
+            mountainheight /= 10;
+            double caveheight = height * 0.8 + mountainheight * 0.9 * (height * 0.75 + 0.25);
+            double finalheight = round((mountainheight + height) * 50 + detail * 2 + 128.0);
             for (int i = 0; i < finalheight; ++i) {
                 data[i].id = stone;
             }
             for (int i = 0; i < 512; ++i) {
-                if ((noise3(15, cx / 24.5, i / 14.0, cz / 24.5) + fabs((i - (50.0 + height * 35.0)) / (400.0 + height * 200.0))) < -0.25) {
+                if ((noise3(15, cx / 24.5, i / 14.0, cz / 24.5) + fabs((i - (50.0 + caveheight * 35.0)) / (400.0 + caveheight * 150.0))) < -0.25) {
                     data[i].id = 0;
                 }
             }
