@@ -709,7 +709,7 @@ int startServer(char* addr, int port, int mcli, char* world) {
     uint32_t rand = getRandDWord(1);
     printf("rand: [%u]\n", rand);
     setRandSeed(0, rand);
-    //setRandSeed(0, 8449);
+    setRandSeed(0, 8449);
     //setRandSeed(0, 1429720735);
     //setRandSeed(0, 290000187);
     initNoiseTable(0);

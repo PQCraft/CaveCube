@@ -1123,6 +1123,8 @@ static void* meshthread(void* args) {
     return NULL;
 }
 
+static bool opaqueUpdate = false;
+
 void updateChunks() {
     pthread_mutex_lock(&rendinf.chunks->lock);
     for (uint32_t c = 0; !quitRequest && c < rendinf.chunks->info.widthsq; ++c) {
@@ -1144,6 +1146,7 @@ void updateChunks() {
             free(rendinf.chunks->renddata[c].vertices[0]);
             rendinf.chunks->renddata[c].vertices[0] = NULL;
             rendinf.chunks->renddata[c].remesh[0] = false;
+            opaqueUpdate = true;
         }
         if (rendinf.chunks->renddata[c].remesh[1]) {
             uint32_t tmpsize = rendinf.chunks->renddata[c].vcount[1] * sizeof(uint32_t);
@@ -1573,9 +1576,9 @@ static force_inline bool pqvisit(struct pq* p, int x, int y, int z, int face) {
             */
             return false;
         }
-        int nx = x - rendinf.chunks->info.dist;
-        int nz = z - rendinf.chunks->info.dist;
-        if (!isVisible(&frust, nx * 16 - 8, y * 16, nz * 16 - 8, nx * 16 + 8, (y + 1) * 16, nz * 16 + 8)) return false;
+        //int nx = x - rendinf.chunks->info.dist;
+        //int nz = z - rendinf.chunks->info.dist;
+        //if (!isVisible(&frust, nx * 16 - 8, y * 16, nz * 16 - 8, nx * 16 + 8, (y + 1) * 16, nz * 16 + 8)) return false;
     }
     visited[v] = true;
     memcpy(posqueue[pqptr].dir, p->dir, 6);
@@ -1657,11 +1660,23 @@ void render() {
     _sortChunk(-1, 1, -1, true);
     _sortChunk(-1, -1, -1, true);
 
-    if (!debug_nocavecull) {
-        //int64_t cx = rendinf.chunks->xoff;
-        int cy = (int)((rendinf.campos.y < 0) ? rendinf.campos.y - 16 : rendinf.campos.y) / 16;
-        //int64_t cz = rendinf.chunks->zoff;
+    static int64_t cx = 0;
+    static int cy = -INT_MAX;
+    static int64_t cz = 0;
+    int64_t newcx = rendinf.chunks->xoff;
+    int newcy = (int)((rendinf.campos.y < 0) ? rendinf.campos.y - 16 : rendinf.campos.y) / 16;
+    int64_t newcz = rendinf.chunks->zoff;
+    if ((opaqueUpdate || newcz != cz || newcx != cx || newcy != cy) && !debug_nocavecull) {
         //if (newcz != cz || newcx != cx || newcy != cy) printf("MOVED: [%"PRId64", %d, %"PRId64"]\n", cx, cy, cz);
+
+        //int64_t cx = rendinf.chunks->xoff;
+        //int cy = (int)((rendinf.campos.y < 0) ? rendinf.campos.y - 16 : rendinf.campos.y) / 16;
+        //int64_t cz = rendinf.chunks->zoff;
+        cx = newcx;
+        cy = newcy;
+        cz = newcz;
+
+        opaqueUpdate = false;
 
         posqueue = malloc(rendinf.chunks->info.widthsq * 32 * sizeof(*posqueue));
         pqptr = 0;
@@ -1686,10 +1701,10 @@ void render() {
             struct pq p = posqueue[pqptr];
 
             pqvisit(&p, p.x, p.y + 1, p.z, CVIS_UP);
-            pqvisit(&p, p.x, p.y - 1, p.z, CVIS_DOWN);
             pqvisit(&p, p.x + 1, p.y, p.z, CVIS_RIGHT);
-            pqvisit(&p, p.x - 1, p.y, p.z, CVIS_LEFT);
             pqvisit(&p, p.x, p.y, p.z + 1, CVIS_BACK);
+            pqvisit(&p, p.x, p.y - 1, p.z, CVIS_DOWN);
+            pqvisit(&p, p.x - 1, p.y, p.z, CVIS_LEFT);
             pqvisit(&p, p.x, p.y, p.z - 1, CVIS_FRONT);
         }
 
@@ -1747,11 +1762,12 @@ void render() {
             glVertexAttribIPointer(2, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * 2));
             glVertexAttribIPointer(3, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * 3));
             for (int y = 31; y >= 0; --y) {
-                if (!debug_nocavecull && !(rendinf.chunks->renddata[rendc].visible & (1 << y))) continue;
-                if (isVisible(&frust, coord[0] * 16 - 8, y * 16, coord[1] * 16 - 8, coord[0] * 16 + 8, (y + 1) * 16, coord[1] * 16 + 8)) {
-                    if (rendinf.chunks->renddata[rendc].ytcount[y]) {
-                        glDrawArrays(GL_TRIANGLES, rendinf.chunks->renddata[rendc].ytoff[y], rendinf.chunks->renddata[rendc].ytcount[y]);
-                    }
+                if (!debug_nocavecull) {
+                    if (!(rendinf.chunks->renddata[rendc].visible & (1 << y))) continue;
+                }
+                if (!isVisible(&frust, coord[0] * 16 - 8, y * 16, coord[1] * 16 - 8, coord[0] * 16 + 8, (y + 1) * 16, coord[1] * 16 + 8)) continue;
+                if (rendinf.chunks->renddata[rendc].ytcount[y]) {
+                    glDrawArrays(GL_TRIANGLES, rendinf.chunks->renddata[rendc].ytoff[y], rendinf.chunks->renddata[rendc].ytcount[y]);
                 }
             }
         }
