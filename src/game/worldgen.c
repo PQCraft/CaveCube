@@ -15,6 +15,7 @@ static uint8_t grass_block;
 static uint8_t gravel;
 static uint8_t sand;
 static uint8_t water;
+static uint8_t lava;
 static uint8_t bedrock;
 
 bool initWorldgen() {
@@ -25,6 +26,7 @@ bool initWorldgen() {
     gravel = blockNoFromID("gravel");
     sand = blockNoFromID("sand");
     water = blockNoFromID("water");
+    lava = blockNoFromID("lava");
     bedrock = blockNoFromID("bedrock");
     //setRandSeed(15, altutime());
     return true;
@@ -64,11 +66,15 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
             for (int i = 127; i >= finalheight; --i) {
                 data[i].id = water;
             }
-            double n0 = noise3(63, cx / 2.0, cz / 2.0, 0);
             data[0].id = bedrock; data[0].subid = 0;
+            double n0 = nperlin2d(63, cx, cz, 0.4, 2);
             if (n0 > -0.25) {data[1].id = bedrock; data[1].subid = 0;}
             if (n0 > 0.0) {data[2].id = bedrock; data[2].subid = 0;}
             if (n0 > 0.25) {data[3].id = bedrock; data[3].subid = 0;}
+            if (!data[4].id && n0 > 0.5) {data[4].id = bedrock; data[4].subid = 0;}
+            for (int i = 4; i > 0; --i) {
+                if (!data[i].id) data[i].id = lava;
+            }
             /*
             }
             */

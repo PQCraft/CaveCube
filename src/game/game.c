@@ -465,7 +465,7 @@ bool doGame(char* addr, int port) {
         }
         pvelocity.y = yvel;
         rendinf.campos.y += yvel * pmult;
-        if (rendinf.campos.y < -11.5) rendinf.campos.y = -11.5;
+        //if (rendinf.campos.y < -11.5) rendinf.campos.y = -11.5;
         if ((!rendinf.vsync && !rendinf.fps) || !rendinf.fps || (altutime() - fpsstarttime2) >= (1000000 / rendinf.fps) - loopdelay) {
             if (rendinf.fps) {
                 uint64_t mwdtime = (1000000 / rendinf.fps) - (altutime() - fpsstarttime2);
