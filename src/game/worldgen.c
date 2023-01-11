@@ -57,9 +57,9 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
             float mountainheight = (1.0 - tanhf(perlin2d(3, cx, cz, 0.00075, 7) * 4.0)) * 4.15;
             mountainheight *= mountainheight * 2.0;
             mountainheight /= 10.0;
-            float caveheight = height * 0.8 + mountainheight * 0.9 * (height * 0.25 + 0.75);
+            float caveheight = height + mountainheight;
             float finalheight = round((mountainheight + height) * 50.0 + detail * 1.5 + 128.0);
-            float grounddiff = round((perlin2d(4, cx, cz, 0.071, 1) * 1.0 + 2.5) - tanhf((finalheight - 128.0) / 25.0) * 2.0);
+            float grounddiff = round((perlin2d(4, cx, cz, 0.071, 3) * 1.0 + 2.0) - tanhf(height + mountainheight) * 1.25);
             for (int i = 0; i <= finalheight; ++i) {
                 if (i > finalheight - grounddiff) {
                     if ((mountainheight + height) > 0.05 + detail * 0.05) {
@@ -72,8 +72,9 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
                 }
             }
             for (int i = 0; i < 512; ++i) {
-                float cave = noise3(15, cx / 23.25, i / 15.0, cz / 23.25) + fabs((i - (50.0 + caveheight * 35.0)) / (400.0 + caveheight * 150.0));
-                if (cave < -0.24) {
+                float fi = i;
+                float cave = noise3(15, cx / 23.25, fi / (25.0 - fi / 512.0 * 25.0), cz / 23.25) + fabs((fi - (30.0 + caveheight * 20.0)) / (300.0 + caveheight * 175.0));
+                if (cave < -(0.22 + fi / 512.0 * 0.06)) {
                     data[i].id = 0;
                 }
             }
