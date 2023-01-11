@@ -50,15 +50,14 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
             chunkz /= 16;
             if ((chunkx + chunkz) % 2) {
             */
-            double heightmult = tanh((perlin2d(0, cx, cz, 0.003649, 2) * 2.0) * 0.5 + 0.5);
-            double detail = nperlin2d(1, cx, cz, 0.034559, 4) * 1.5;
-            double height = tanh(nperlin2d(2, cx, cz, 0.002253, 2) * 4.0) * heightmult;
+            float heightmult = tanhf((perlin2d(0, cx, cz, 0.003649, 2) * 2.0) * 0.5 + 0.5);
+            float height = tanhf(nperlin2d(2, cx, cz, 0.002253, 7) * 4.0) * heightmult;
             height *= (1.0 - (height * 0.5 - 0.33)) * 1.25 * heightmult;
-            double mountainheight = ((1.0 - tanhf(perlin2d(3, cx, cz, 0.003432, 4) * 2.5)) * (1.5 + 0.25 * heightmult)) * (heightmult + 0.67 + height * 0.1);
-            mountainheight *= mountainheight * 2;
-            mountainheight /= 10;
-            double caveheight = height * 0.8 + mountainheight * 0.9 * (height * 0.75 + 0.25);
-            double finalheight = round((mountainheight + height) * 50 + detail * 2 + 128.0);
+            float mountainheight = (1.0 - tanhf(perlin2d(3, cx, cz, 0.001, 7) * 3.0)) * 4.15;
+            mountainheight *= mountainheight * 2.0;
+            mountainheight /= 10.0;
+            float caveheight = height * 0.8 + mountainheight * 0.9 * (height * 0.75 + 0.25);
+            float finalheight = round((mountainheight + height) * 50 + 128.0);
             for (int i = 0; i < finalheight; ++i) {
                 data[i].id = stone;
             }
@@ -71,7 +70,7 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
                 data[i].id = water;
             }
             data[0].id = bedrock; data[0].subid = 0;
-            double n0 = nperlin2d(63, cx, cz, 0.4, 2);
+            float n0 = nperlin2d(63, cx, cz, 0.4, 2);
             if (n0 > -0.25) {data[1].id = bedrock; data[1].subid = 0;}
             if (n0 > 0.0) {data[2].id = bedrock; data[2].subid = 0;}
             if (n0 > 0.25) {data[3].id = bedrock; data[3].subid = 0;}
