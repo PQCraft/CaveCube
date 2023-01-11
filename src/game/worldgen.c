@@ -51,22 +51,33 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
             if ((chunkx + chunkz) % 2) {
             */
             float heightmult = tanhf((perlin2d(0, cx, cz, 0.003649, 2) * 2.0) * 0.5 + 0.5);
-            float height = tanhf(nperlin2d(2, cx, cz, 0.002253, 7) * 4.0) * heightmult;
+            float height = tanhf(nperlin2d(1, cx, cz, 0.002253, 7) * 4.5) * heightmult;
+            float detail = nperlin2d(2, cx, cz, 0.04253, 2);
             height *= (1.0 - (height * 0.5 - 0.33)) * 1.25 * heightmult;
-            float mountainheight = (1.0 - tanhf(perlin2d(3, cx, cz, 0.001, 7) * 3.0)) * 4.15;
+            float mountainheight = (1.0 - tanhf(perlin2d(3, cx, cz, 0.00075, 7) * 4.0)) * 4.15;
             mountainheight *= mountainheight * 2.0;
             mountainheight /= 10.0;
-            float caveheight = height * 0.8 + mountainheight * 0.9 * (height * 0.75 + 0.25);
-            float finalheight = round((mountainheight + height) * 50 + 128.0);
-            for (int i = 0; i < finalheight; ++i) {
-                data[i].id = stone;
+            float caveheight = height * 0.8 + mountainheight * 0.9 * (height * 0.25 + 0.75);
+            float finalheight = round((mountainheight + height) * 50.0 + detail * 1.5 + 128.0);
+            float grounddiff = round((perlin2d(4, cx, cz, 0.071, 1) * 1.0 + 2.5) - tanhf((finalheight - 128.0) / 25.0) * 2.0);
+            for (int i = 0; i <= finalheight; ++i) {
+                if (i > finalheight - grounddiff) {
+                    if ((mountainheight + height) > 0.05 + detail * 0.05) {
+                        data[i].id = (i == finalheight) ? grass_block : dirt;
+                    } else {
+                        data[i].id = ((float)i + (detail * 0.5 + 0.5) * 2.0 >= finalheight) ? sand : dirt;
+                    }
+                } else {
+                    data[i].id = stone;
+                }
             }
             for (int i = 0; i < 512; ++i) {
-                if ((noise3(15, cx / 24.5, i / 14.0, cz / 24.5) + fabs((i - (50.0 + caveheight * 35.0)) / (400.0 + caveheight * 150.0))) < -0.25) {
+                float cave = noise3(15, cx / 23.25, i / 15.0, cz / 23.25) + fabs((i - (50.0 + caveheight * 35.0)) / (400.0 + caveheight * 150.0));
+                if (cave < -0.24) {
                     data[i].id = 0;
                 }
             }
-            for (int i = 127; i >= finalheight; --i) {
+            for (int i = 127; i > finalheight; --i) {
                 data[i].id = water;
             }
             data[0].id = bedrock; data[0].subid = 0;
