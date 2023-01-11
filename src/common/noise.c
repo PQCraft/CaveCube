@@ -125,7 +125,7 @@ double noise1(int tbl, double x) {
     double fx0, fx1;
     double s, n0, n1;
 
-    x += perm[tbl][0] * 0.1984;
+    x += perm[tbl][0] * 0.003906;
 
     ix0 = FASTFLOOR(x);
     fx0 = x - ix0;
@@ -146,7 +146,7 @@ double pnoise1(int tbl, double x, int px) {
     double fx0, fx1;
     double s, n0, n1;
 
-    x += perm[tbl][0] * 0.1984;
+    x += perm[tbl][0] * 0.003906;
 
     ix0 = FASTFLOOR(x);
     fx0 = x - ix0;
@@ -167,8 +167,8 @@ double noise2(int tbl, double x, double y) {
     double fx0, fy0, fx1, fy1;
     double s, t, nx0, nx1, n0, n1;
 
-    x += perm[tbl][0] * 0.1984;
-    y += perm[tbl][1] * 0.1984;
+    x += perm[tbl][0] * 0.003906;
+    y += perm[tbl][1] * 0.003906;
 
     ix0 = FASTFLOOR(x);
     iy0 = FASTFLOOR(y);
@@ -200,8 +200,8 @@ double pnoise2(int tbl, double x, double y, int px, int py) {
     double fx0, fy0, fx1, fy1;
     double s, t, nx0, nx1, n0, n1;
 
-    x += perm[tbl][0] * 0.1984;
-    y += perm[tbl][1] * 0.1984;
+    x += perm[tbl][0] * 0.003906;
+    y += perm[tbl][1] * 0.003906;
 
     ix0 = FASTFLOOR(x);
     iy0 = FASTFLOOR(y);
@@ -234,9 +234,9 @@ double noise3(int tbl, double x, double y, double z) {
     double s, t, r;
     double nxy0, nxy1, nx0, nx1, n0, n1;
 
-    x += perm[tbl][0] * 0.1984;
-    y += perm[tbl][1] * 0.1984;
-    z += perm[tbl][2] * 0.1984;
+    x += perm[tbl][0] * 0.003906;
+    y += perm[tbl][1] * 0.003906;
+    z += perm[tbl][2] * 0.003906;
 
     ix0 = FASTFLOOR(x);
     iy0 = FASTFLOOR(y);
@@ -287,9 +287,9 @@ double pnoise3(int tbl, double x, double y, double z, int px, int py, int pz) {
     double s, t, r;
     double nxy0, nxy1, nx0, nx1, n0, n1;
 
-    x += perm[tbl][0] * 0.1984;
-    y += perm[tbl][1] * 0.1984;
-    z += perm[tbl][2] * 0.1984;
+    x += perm[tbl][0] * 0.003906;
+    y += perm[tbl][1] * 0.003906;
+    z += perm[tbl][2] * 0.003906;
 
     ix0 = FASTFLOOR(x);
     iy0 = FASTFLOOR(y);
@@ -340,10 +340,10 @@ double noise4(int tbl, double x, double y, double z, double w) {
     double s, t, r, q;
     double nxyz0, nxyz1, nxy0, nxy1, nx0, nx1, n0, n1;
 
-    x += perm[tbl][0] * 0.1984;
-    y += perm[tbl][1] * 0.1984;
-    z += perm[tbl][2] * 0.1984;
-    w += perm[tbl][3] * 0.1984;
+    x += perm[tbl][0] * 0.003906;
+    y += perm[tbl][1] * 0.003906;
+    z += perm[tbl][2] * 0.003906;
+    w += perm[tbl][3] * 0.003906;
 
     ix0 = FASTFLOOR(x);
     iy0 = FASTFLOOR(y);
@@ -424,10 +424,10 @@ double pnoise4(int tbl, double x, double y, double z, double w, int px, int py, 
     double s, t, r, q;
     double nxyz0, nxyz1, nxy0, nxy1, nx0, nx1, n0, n1;
 
-    x += perm[tbl][0] * 0.1984;
-    y += perm[tbl][1] * 0.1984;
-    z += perm[tbl][2] * 0.1984;
-    w += perm[tbl][3] * 0.1984;
+    x += perm[tbl][0] * 0.003906;
+    y += perm[tbl][1] * 0.003906;
+    z += perm[tbl][2] * 0.003906;
+    w += perm[tbl][3] * 0.003906;
 
     ix0 = FASTFLOOR(x);
     iy0 = FASTFLOOR(y);
