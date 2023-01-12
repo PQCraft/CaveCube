@@ -2021,7 +2021,9 @@ bool startRenderer() {
     printf("Renderer string: %s\n", glrend);
     if (GL_KHR_debug) {
         puts("KHR_debug supported");
+        #ifndef __EMSCRIPTEN__
         glDebugMessageCallback(oglCallback, NULL);
+        #endif
     }
 
     GLint range[2];
@@ -2029,6 +2031,9 @@ bool startRenderer() {
     printf("GL_ALIASED_LINE_WIDTH_RANGE: [%d, %d]\n", range[0], range[1]);
     glGetIntegerv(GL_SMOOTH_LINE_WIDTH_RANGE, range);
     printf("GL_SMOOTH_LINE_WIDTH_RANGE: [%d, %d]\n", range[0], range[1]);
+    GLint texunits;
+    glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &texunits);
+    printf("GL_MAX_TEXTURE_IMAGE_UNITS: [%d]\n", texunits);
 
     #if defined(USEGLES)
     char* hdrpath = "engine/shaders/headers/OpenGL ES/header.glsl";

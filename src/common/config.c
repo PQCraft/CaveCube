@@ -100,6 +100,9 @@ void deleteConfigKey(struct config* cfg, char* sect, char* key) {
 }
 
 struct config* openConfig(char* path) {
+    #if DBGLVL(1)
+    printf("openConfig: {%s}\n", path);
+    #endif
     if (!path) return calloc(1, sizeof(struct config));
     file_data fdata = getTextFile(path);
     if (!fdata.data) return NULL;
