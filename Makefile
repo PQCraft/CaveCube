@@ -158,9 +158,8 @@ ifdef M32
     endif
 endif
 
-BINFLAGS += -pthread -lm
+BINFLAGS += -lm
 ifndef OS
-    BINFLAGS += -lpthread
     ifdef EMSCR
         ifdef DEBUG
             BINFLAGS += -g
@@ -172,6 +171,8 @@ ifndef OS
             BINFLAGS += -s USE_SDL=2
         endif
         BINFLAGS += --preload-file resources/
+    else
+        BINFLAGS += -pthread -lpthread
     endif
 else
     BINFLAGS += -l:libwinpthread.a -lws2_32
