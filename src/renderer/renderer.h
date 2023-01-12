@@ -137,9 +137,9 @@ enum {
 
 #endif
 
-typedef unsigned int texture_t;
-
 #ifndef RENDERER_H_STUB
+
+typedef unsigned int texture_t;
 
 extern struct renderer_info rendinf;
 extern int MESHER_THREADS;

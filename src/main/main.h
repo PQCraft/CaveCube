@@ -15,7 +15,7 @@
 
 #define DBGLVL(x) (DEBUG >= (x))
 
-#if DBGLVL(0)
+#if DBGLVL(0) && !defined(__EMSCRIPTEN__)
     #define NAME_THREADS
 #endif
 

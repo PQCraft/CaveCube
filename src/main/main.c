@@ -257,9 +257,14 @@ int main(int _argc, char** _argv) {
             return 1;
         }
     }
+    #ifndef __EMSCRIPTEN__
     maindir = strdup(pathfilename(execpath()));
+    #else
+    maindir = strdup("/");
+    #endif
     startdir = realpath(".", NULL);
     MAIN_STRPATH(startdir);
+    #ifndef __EMSCRIPTEN__
     #if MODULEID == MODULEID_GAME
     {
         #ifndef _WIN32
@@ -281,6 +286,7 @@ int main(int _argc, char** _argv) {
     strcat(configpath, "config.cfg");
     #else
     strcpy(configpath, "ccserver.cfg");
+    #endif
     #endif
     #if DBGLVL(1)
     printf("Main directory: {%s}\n", maindir);

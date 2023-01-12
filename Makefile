@@ -13,20 +13,26 @@ else
 endif
 
 ifndef OS
-    ifndef WINCROSS
-        CC ?= gcc
-        STRIP ?= strip
-        WINDRES ?= true
-    else
-        ifndef M32
-            CC = x86_64-w64-mingw32-gcc
-            STRIP = x86_64-w64-mingw32-strip
-            WINDRES = x86_64-w64-mingw32-windres
+    ifndef EMSCR
+        ifndef WINCROSS
+            CC ?= gcc
+            STRIP ?= strip
+            WINDRES ?= true
         else
-            CC = i686-w64-mingw32-gcc
-            STRIP = i686-w64-mingw32-strip
-            WINDRES = i686-w64-mingw32-windres
+            ifndef M32
+                CC = x86_64-w64-mingw32-gcc
+                STRIP = x86_64-w64-mingw32-strip
+                WINDRES = x86_64-w64-mingw32-windres
+            else
+                CC = i686-w64-mingw32-gcc
+                STRIP = i686-w64-mingw32-strip
+                WINDRES = i686-w64-mingw32-windres
+            endif
         endif
+    else
+        CC = emcc
+        STRIP ?= true
+        WINDRES ?= true
     endif
 else
     CC = gcc
@@ -41,9 +47,6 @@ ifdef WINCROSS
     OS := Windows_NT
 endif
 
-ifdef NATIVE
-    CC := $(CC) -march=native -mtune=native
-endif
 ifdef M32
     CC := $(CC) -m32
 endif
@@ -95,6 +98,9 @@ SRCDIR := $(patsubst %\,%,$(SRCDIR))
 OBJDIR := $(patsubst %\,%,$(OBJDIR))
 
 DIRS := $(sort $(dir $(wildcard $(SRCDIR)/*/)))
+ifdef EMSCR
+    DIRS := $(filter-out $(wildcard $(SRCDIR)/zlib/),$(DIRS))
+endif
 DIRS := $(patsubst %/,%,$(DIRS))
 DIRS := $(patsubst %\,%,$(DIRS))
 DIRS := $(patsubst $(SRCDIR),,$(DIRS))
@@ -106,6 +112,10 @@ endif
 
 ifdef OS
     BINEXT := .exe
+else
+    ifdef EMSCR
+        BINEXT := .html
+    endif
 endif
 
 ifeq ($(MODULE),game)
@@ -120,6 +130,15 @@ CFLAGS += -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -pthread
 CFLAGS += $(MODULECFLAGS) -DMODULEID=$(MODULEID) -DMODULE=$(MODULE)
 ifdef OS
     WRFLAGS += $(MODULECFLAGS) -DMODULE=$(MODULE)
+else
+    ifdef EMSCR
+        CFLAGS += -DUSEGLES -s USE_ZLIB=1
+        ifndef EMSCR
+            CFLAGS += -s USE_GLFW=3
+        else
+            CFLAGS += -s USE_SDL=2
+        endif
+    endif
 endif
 ifdef DEBUG
     CFLAGS += -Og -g -DDEBUG=$(DEBUG)
@@ -128,6 +147,9 @@ ifdef DEBUG
     endif
 else
     CFLAGS += -O2
+endif
+ifdef NATIVE
+    CC := $(CC) -march=native -mtune=native
 endif
 ifdef M32
     CFLAGS += -DM32
@@ -139,6 +161,18 @@ endif
 BINFLAGS += -pthread -lm
 ifndef OS
     BINFLAGS += -lpthread
+    ifdef EMSCR
+        ifdef DEBUG
+            BINFLAGS += -g
+        endif
+        BINFLAGS += -O2 -s USE_WEBGL2=1 -s USE_ZLIB=1
+        ifndef USESDL2
+            BINFLAGS += -s USE_GLFW=3
+        else
+            BINFLAGS += -s USE_SDL=2
+        endif
+        BINFLAGS += --preload-file resources/
+    endif
 else
     BINFLAGS += -l:libwinpthread.a -lws2_32
 endif
@@ -153,8 +187,12 @@ ifeq ($(MODULE),game)
         CFLAGS += -DUSESDL2
         ifdef OS
             WRFLAGS += -DUSESDL2
+            BINFLAGS += -lSDL2
+        else
+            ifndef EMSCR
+                BINFLAGS += -lSDL2
+            endif
         endif
-        BINFLAGS += -lSDL2
     else
         ifndef OS
             BINFLAGS += -lglfw

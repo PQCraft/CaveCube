@@ -159,6 +159,7 @@ char* execpath() {
 }
 
 int isFile(char* path) {
+    if (!path || !(*path)) return -1;
     struct stat pathstat;
     if (stat(path, &pathstat)) return -1;
     return !(S_ISDIR(pathstat.st_mode));
