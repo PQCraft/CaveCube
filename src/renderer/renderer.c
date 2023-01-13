@@ -1958,7 +1958,11 @@ bool initRenderer() {
     }
     rendinf.full_width = rendinf.monitor.w;
     rendinf.full_height = rendinf.monitor.h;
+    #ifndef __EMSCRIPTEN__
     rendinf.disphz = rendinf.monitor.refresh_rate;
+    #else
+    rendinf.disphz = 60;
+    #endif
     rendinf.win_fps = rendinf.disphz;
     SDL_DestroyWindow(rendinf.window);
     #else

@@ -168,14 +168,14 @@ ifndef OS
         ifdef DEBUG
             BINFLAGS += -g
         endif
-        BINFLAGS += -O2 -s WASM=1 -s ASYNCIFY -s ALLOW_MEMORY_GROWTH=1
+        BINFLAGS += -O2 -s WASM=1 -s USE_PTHREADS=1 -s ALLOW_MEMORY_GROWTH=1 -s ASYNCIFY=1
         BINFLAGS += -s USE_WEBGL2=1 -s FULL_ES2 -s FULL_ES3 -s USE_ZLIB=1
         ifndef USESDL2
             BINFLAGS += -s USE_GLFW=3
         else
             BINFLAGS += -s USE_SDL=2
         endif
-        BINFLAGS += --preload-file resources/ --shell-file extras/emscr_shell.html -s SINGLE_FILE
+        BINFLAGS += --preload-file resources/ --shell-file extras/emscr_shell.html
     else
         BINFLAGS += -pthread -lpthread
     endif

@@ -594,7 +594,7 @@ static void* servnetthread(void* args) {
                                 case SERVER_UPDATECHUNK:; {
                                     struct server_data_updatechunk* tmpdata = msg.data;
                                     msgsize += 8 + 8 + tmpdata->len;
-                                    //printf("msgsize: [%d]\n", msgsize);
+                                    //printf("msgsize: [%d]\n", tmpdata->len);
                                 } break;
                                 case SERVER_SETSKYCOLOR:; {
                                     msgsize += 1 + 1 + 1;
@@ -843,7 +843,7 @@ static void* clinetthread(void* args) {
             readFromCxnBuf(clicxn, buf, tmpsize);
             int ptr = 0;
             uint8_t tmpbyte = buf[ptr++];
-            //printf("FROM SERVER: [%d]\n", tmpbyte);
+            printf("FROM SERVER: [%d]:[%d]\n", tmpbyte, tmpsize);
             switch (tmpbyte) {
                 case SERVER_PONG:; {
                     callback(SERVER_PONG, NULL);
