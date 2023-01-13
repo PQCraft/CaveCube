@@ -62,10 +62,14 @@ ${space} := ${space}
 
 SRCDIR ?= src
 ifndef OS
-    ifndef M32
-        PLATFORM := $(subst ${ },_,$(subst /,_,$(shell uname -s)_$(shell uname -m)))
+    ifndef EMSCR
+        ifndef M32
+            PLATFORM := $(subst ${ },_,$(subst /,_,$(shell uname -s)_$(shell uname -m)))
+        else
+            PLATFORM := $(subst ${ },_,$(subst /,_,$(shell i386 uname -s)_$(shell i386 uname -m)))
+        endif
     else
-        PLATFORM := $(subst ${ },_,$(subst /,_,$(shell i386 uname -s)_$(shell i386 uname -m)))
+        PLATFORM := Emscripten
     endif
 else
     ifndef WINCROSS
@@ -90,7 +94,7 @@ else
         endif
     endif
 endif
-OBJDIR ?= obj/$(MODULE)/$(PLATFORM)
+OBJDIR ?= obj/$(PLATFORM)/$(MODULE)
 
 SRCDIR := $(patsubst %/,%,$(SRCDIR))
 OBJDIR := $(patsubst %/,%,$(OBJDIR))
@@ -164,13 +168,14 @@ ifndef OS
         ifdef DEBUG
             BINFLAGS += -g
         endif
-        BINFLAGS += -O2 -s USE_WEBGL2=1 -s FULL_ES2 -s FULL_ES3 -s USE_ZLIB=1
+        BINFLAGS += -O2 -s WASM=1 -s ASYNCIFY -s ALLOW_MEMORY_GROWTH=1
+        BINFLAGS += -s USE_WEBGL2=1 -s FULL_ES2 -s FULL_ES3 -s USE_ZLIB=1
         ifndef USESDL2
             BINFLAGS += -s USE_GLFW=3
         else
             BINFLAGS += -s USE_SDL=2
         endif
-        BINFLAGS += --preload-file resources/
+        BINFLAGS += --preload-file resources/ --shell-file extras/emscr_shell.html -s SINGLE_FILE
     else
         BINFLAGS += -pthread -lpthread
     endif
