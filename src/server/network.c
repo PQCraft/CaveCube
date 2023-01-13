@@ -47,6 +47,11 @@ static force_inline bool startwsa() {
 }
 #endif
 
+#ifdef __EMSCRIPTEN__
+static struct netbuf lhbuf;
+static bool lhcxn = false;
+#endif
+
 static force_inline int rsock(sock_t sock, void* buf, int len) {
     //puts("RECV...");
     //uint64_t t = altutime();
@@ -165,13 +170,15 @@ static force_inline int writeBufToSock(struct netbuf* buf, sock_t sock) {
 }
 
 struct netcxn* newCxn(int type, char* addr, int port, int obs, int ibs) {
+    #if DBGLVL(1)
+    printf("newCxn: type:[%d] addr:{%s} port:[%d] obs:[%d] ibs:[%d]\n", type, addr, port, obs, ibs);
+    #endif
     if (type <= CXN__MIN || type >= CXN__MAX) return NULL;
     sock_t newsock = INVALID_SOCKET;
     if (SOCKINVAL(newsock = socket(AF_INET, SOCK_STREAM, 0))) return NULL;
     struct sockaddr_in* address = calloc(1, sizeof(*address));
     address->sin_family = AF_INET;
     if (addr) {
-        #ifndef __EMSCRIPTEN__
         struct hostent* hentry;
         if (!(hentry = gethostbyname(addr))) {
             fputs("newCxn: Failed to get IP address\n", stderr);
@@ -179,13 +186,6 @@ struct netcxn* newCxn(int type, char* addr, int port, int obs, int ibs) {
             return NULL;
         }
         address->sin_addr.s_addr = *((in_addr_t*)hentry->h_addr_list[0]);
-        #else
-        if (!inet_aton(addr, &address->sin_addr)) {
-            fputs("newCxn: Failed to get IP address\n", stderr);
-            close(newsock);
-            return NULL;
-        }
-        #endif
     } else {
         address->sin_addr.s_addr = INADDR_ANY;
     }
@@ -196,6 +196,7 @@ struct netcxn* newCxn(int type, char* addr, int port, int obs, int ibs) {
             setsockopt(newsock, SOL_SOCKET, SO_REUSEADDR, (void*)&opt, sizeof(opt));
             opt = 1;
             setsockopt(newsock, IPPROTO_TCP, TCP_NODELAY, (void*)&opt, sizeof(opt));
+            #ifndef __EMSCRIPTEN__
             if (bind(newsock, (const struct sockaddr*)address, sizeof(*address))) {
                 fputs("newCxn: Failed to bind socket\n", stderr);
                 close(newsock);
@@ -206,15 +207,18 @@ struct netcxn* newCxn(int type, char* addr, int port, int obs, int ibs) {
                 close(newsock);
                 return NULL;
             }
+            #endif
         } break;
         case CXN_ACTIVE:; {
             int opt = 1;
             setsockopt(newsock, IPPROTO_TCP, TCP_NODELAY, (void*)&opt, sizeof(opt));
+            #ifndef __EMSCRIPTEN__
             if (connect(newsock, (struct sockaddr*)address, sizeof(*address))) {
                 fputs("newCxn: Failed to connect\n", stderr);
                 close(newsock);
                 return NULL;
             }
+            #endif
         } break;
     }
     #ifndef _WIN32

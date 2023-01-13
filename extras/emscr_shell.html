@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en-us">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+        <title>CaveCube</title>
+        <style>
+            .emscripten { padding-right: 0; margin-left: auto; margin-right: auto; display: block; }
+            textarea.emscripten { font-family: monospace; width: 80%; }
+            div.emscripten { text-align: center; }
+            canvas.emscripten { border: 0px none; background-color: black; }
+
+            @-webkit-keyframes rotation {
+                from {-webkit-transform: rotate(0deg);}
+                to {-webkit-transform: rotate(360deg);}
+            }
+            @-moz-keyframes rotation {
+                from {-moz-transform: rotate(0deg);}
+                to {-moz-transform: rotate(360deg);}
+            }
+            @-o-keyframes rotation {
+                from {-o-transform: rotate(0deg);}
+                to {-o-transform: rotate(360deg);}
+            }
+            @keyframes rotation {
+                from {transform: rotate(0deg);}
+                to {transform: rotate(360deg);}
+            }
+
+        </style>
+    </head>
+    <body style="margin: 0px; background-color: #111; color: #ddd;">
+        <div class="emscripten" style="margin-top: 4px;">
+            <input type="button" value="Fullscreen" style="background-color: #333; color: #ddd;"
+            onclick="Module.requestFullscreen(document.getElementById('pointerLock').checked, document.getElementById('resize').checked)">
+            &nbsp;
+            <input type="checkbox" id="resize">Resize canvas
+            &nbsp;
+            <input type="checkbox" id="pointerLock" checked>Lock/hide mouse pointer
+        </div>
+        <div class="emscripten" id="status" hidden=1 style="margin-top: 4px;"></div>
+        <div class="emscripten">
+            <progress value="0" max="100" id="progress" hidden=0></progress>
+        </div>
+        <div class="emscripten" style="margin-top: 4px;">
+            <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex=-1></canvas>
+        </div>
+        <textarea class="emscripten" id="output" rows="8" style="background-color: #333; color: #ddd;"></textarea>
+        <script type='text/javascript'>
+            var statusElement = document.getElementById('status');
+            var progressElement = document.getElementById('progress');
+
+            var Module = {
+                preRun: [],
+                postRun: [],
+                print: (function() {
+                    var element = document.getElementById('output');
+                    if (element) element.value = '';
+                    return function(text) {
+                        if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
+                        console.log(text);
+                        if (element) {
+                            element.value += text + "\n";
+                            element.scrollTop = element.scrollHeight;
+                        }
+                    };
+                })(),
+                canvas: (function() {
+                    var canvas = document.getElementById('canvas');
+                    canvas.addEventListener("webglcontextlost", function(e) {alert('WebGL context lost. You will need to reload the page.'); e.preventDefault();}, false);
+                    new ResizeObserver(function() {
+                        var c = document.getElementById('canvas');
+                        var o = document.getElementById('output');
+                        o.style = 'background-color: #333; color: #ddd; width: ' + (c.width - 6) + 'px'
+                    }).observe(canvas);
+                    return canvas;
+                })(),
+                setStatus: function(text) {
+                    if (!Module.setStatus.last) Module.setStatus.last = { time: Date.now(), text: '' };
+                    if (text === Module.setStatus.last.text) return;
+                    var m = text.match(/([^(]+)\((\d+(\.\d+)?)\/(\d+)\)/);
+                    var now = Date.now();
+                    if (m && now - Module.setStatus.last.time < 30) return;
+                    Module.setStatus.last.time = now;
+                    Module.setStatus.last.text = text;
+                    if (m) {
+                        text = m[1];
+                        progressElement.value = parseInt(m[2])*100;
+                        progressElement.max = parseInt(m[4])*100;
+                        progressElement.hidden = false;
+                    } else {
+                        progressElement.value = null;
+                        progressElement.max = null;
+                        progressElement.hidden = true;
+                    }
+                    statusElement.innerHTML = text;
+                },
+                totalDependencies: 0,
+                monitorRunDependencies: function(left) {
+                    this.totalDependencies = Math.max(this.totalDependencies, left);
+                    Module.setStatus(left ? 'Preparing... (' + (this.totalDependencies-left) + '/' + this.totalDependencies + ')' : 'All downloads complete.');
+                }
+            };
+            Module.setStatus('Downloading...');
+            window.onerror = function() {
+                Module.setStatus('Exception thrown, see JavaScript console');
+                Module.setStatus = function(text) {
+                    if (text) console.error('[post-exception status] ' + text);
+                };
+            };
+        </script>
+        {{{ SCRIPT }}}
+    </body>
+</html>

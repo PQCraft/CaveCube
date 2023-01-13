@@ -90,6 +90,7 @@ struct emscr_doGame_args {
 static void emscr_doGame(void* _args) {
     struct emscr_doGame_args* args = _args;
     doGame(args->addr, args->port);
+    emscripten_cancel_main_loop();
 }
 #endif
 
@@ -349,18 +350,10 @@ int main(int _argc, char** _argv) {
                 fputs("Failed to start server\n", stderr);
                 return 1;
             }
-            puts("OK");
-            #ifndef __EMSCRIPTEN__
             bool game_ecode = doGame(NULL, servport);
-            #else
-            struct emscr_doGame_args eargs = {.addr = NULL, .port = servport};
-            emscripten_set_main_loop_arg(emscr_doGame, &eargs, -1, false);
-            #endif
             stopRenderer();
             stopServer();
-            #ifndef __EMSCRIPTEN__
             ret = !game_ecode;
-            #endif
         } break;
         case 1:; {
             cores -= 3;
