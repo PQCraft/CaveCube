@@ -48,7 +48,8 @@ static force_inline bool startwsa() {
 #endif
 
 #ifdef __EMSCRIPTEN__
-static struct netbuf lhbuf;
+static struct netbuf* lhpassivebuf;
+static struct netbuf* lhactivebuf;
 static bool lhcxn = false;
 #endif
 
@@ -104,6 +105,25 @@ static force_inline void freeBuf(struct netbuf* buf) {
     free(buf->data);
     free(buf);
 }
+
+#ifdef __EMSCRIPTEN__
+static force_inline int writeBufToBuf(struct netbuf* inbuf, struct netbuf* outbuf) {
+    int size = inbuf->dlen;
+    if (size < 1) return 0;
+    if (outbuf->dlen + size > outbuf->size) {
+        size = outbuf->size - outbuf->dlen;
+        if (size < 1) return 0;
+    }
+    outbuf->dlen += size;
+    for (int i = 0; i < size; ++i) {
+        outbuf->data[outbuf->wptr] = inbuf->data[inbuf->rptr];
+        outbuf->wptr = (outbuf->wptr + 1) % outbuf->size;
+        inbuf->rptr = (inbuf->rptr + 1) % inbuf->size;
+    }
+    inbuf->dlen -= size;
+    return size;
+}
+#endif
 
 static force_inline int writeDataToBuf(struct netbuf* buf, unsigned char* data, int size) {
     if (size < 1) return 0;
@@ -218,6 +238,10 @@ struct netcxn* newCxn(int type, char* addr, int port, int obs, int ibs) {
                 close(newsock);
                 return NULL;
             }
+            #else
+            if (address->sin_addr.s_addr == 0x0100007F) {
+                lhcxn = true;
+            }
             #endif
         } break;
     }
@@ -228,7 +252,9 @@ struct netcxn* newCxn(int type, char* addr, int port, int obs, int ibs) {
     #endif
     struct netcxn* newinf = calloc(1, sizeof(*newinf));
     socklen_t socklen = sizeof(*address);
+    #ifndef __EMSCRIPTEN__
     getsockname(newsock, (struct sockaddr*)address, &socklen);
+    #endif
     *newinf = (struct netcxn){
         .type = type,
         .socket = newsock,
@@ -259,6 +285,7 @@ void closeCxn(struct netcxn* cxn) {
 struct netcxn* acceptCxn(struct netcxn* cxn, int obs, int ibs) {
     switch (cxn->type) {
         case CXN_PASSIVE:; {
+            #ifndef __EMSCRIPTEN__
             sock_t newsock = INVALID_SOCKET;
             struct sockaddr_in* address = calloc(1, sizeof(*address));
             socklen_t socklen = sizeof(*address);
@@ -286,6 +313,29 @@ struct netcxn* acceptCxn(struct netcxn* cxn, int obs, int ibs) {
                 }
             };
             return newinf;
+            #else
+            if (lhcxn) {
+                struct netcxn* newinf = malloc(sizeof(*newinf));
+                *newinf = (struct netcxn){
+                    .type = CXN_ACTIVE,
+                    .socket = 0,
+                    .inbuf = allocBuf(ibs),
+                    .outbuf = allocBuf(obs),
+                    .address = NULL,
+                    .info = (struct netinfo){
+                        .addr[0] = 0,
+                        .addr[1] = 0,
+                        .addr[2] = 0,
+                        .addr[3] = 0,
+                        .port = 0
+                    }
+                };
+                lhcxn = false;
+                return newinf;
+            } else {
+                return NULL;
+            }
+            #endif
         } break;
     }
     return NULL;
@@ -294,6 +344,19 @@ struct netcxn* acceptCxn(struct netcxn* cxn, int obs, int ibs) {
 int recvCxn(struct netcxn* cxn) {
     switch (cxn->type) {
         case CXN_ACTIVE:; {
+            #ifdef __EMSCRIPTEN__
+            if (cxn->info.addr[0] == 0) {
+                int size = writeBufToBuf(lhpassivebuf, cxn->inbuf);
+                //if (size > 0) printf("R: 0: [%d]\n", size);
+                return size;
+            } else if (cxn->info.addr[0] == 127) {
+                int size = writeBufToBuf(lhactivebuf, cxn->inbuf);
+                //if (size > 0) printf("R: 127: [%d]\n", size);
+                return size;
+            } else {
+                //printf("R: [%d]\n", cxn->info.addr[0]);
+            }
+            #endif
             return writeSockToBuf(cxn->inbuf, cxn->socket, cxn->inbuf->size - cxn->inbuf->dlen);
         } break;
     }
@@ -303,6 +366,19 @@ int recvCxn(struct netcxn* cxn) {
 int sendCxn(struct netcxn* cxn) {
     switch (cxn->type) {
         case CXN_ACTIVE:; {
+            #ifdef __EMSCRIPTEN__
+            if (cxn->info.addr[0] == 0) {
+                int size = writeBufToBuf(cxn->outbuf, lhactivebuf);
+                //if (size > 0) printf("W: 0: [%d]\n", size);
+                return size;
+            } else if (cxn->info.addr[0] == 127) {
+                int size = writeBufToBuf(cxn->outbuf, lhpassivebuf);
+                //if (size > 0) printf("W: 127: [%d]\n", size);
+                return size;
+            } else {
+                //printf("W: [%d]\n", cxn->info.addr[0]);
+            }
+            #endif
             return writeBufToSock(cxn->outbuf, cxn->socket);
         } break;
     }
@@ -341,6 +417,10 @@ char* getCxnAddrStr(struct netcxn* cxn, char* str) {
 bool initNet() {
     #ifdef _WIN32
     if (!startwsa()) return false;
+    #endif
+    #ifdef __EMSCRIPTEN__
+    lhactivebuf = allocBuf(1048576);
+    lhpassivebuf = allocBuf(1048576);
     #endif
     return true;
 }

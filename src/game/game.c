@@ -173,7 +173,6 @@ static void handleServer(int msg, void* _data) {
 static int loopdelay = 0;
 
 bool doGame(char* addr, int port) {
-    printf("doGame: {%s} [%d]\n", addr, port);
     char** tmpbuf = malloc(16 * sizeof(char*));
     for (int i = 0; i < 16; ++i) {
         tmpbuf[i] = malloc(4096);
@@ -196,7 +195,8 @@ bool doGame(char* addr, int port) {
     }
     puts("Sending ping...");
     cliSend(CLIENT_PING);
-    while (false && !ping && !quitRequest) {
+    while (!ping && !quitRequest) {
+        emscripten_sleep(0);
         getInput(NULL);
         microwait(100000);
     }
@@ -204,11 +204,12 @@ bool doGame(char* addr, int port) {
     puts("Server responded to ping");
     puts("Exchanging compatibility info...");
     cliSend(CLIENT_COMPATINFO, VER_MAJOR, VER_MINOR, VER_PATCH, 0, PROG_NAME);
-    while (false && !compat && !quitRequest) {
+    while (!compat && !quitRequest) {
+        emscripten_sleep(0);
         getInput(NULL);
         microwait(100000);
     }
-    if (false && compat < 0) {
+    if (compat < 0) {
         fputs("Server version mismatch\n", stderr);
         return false;
     }
