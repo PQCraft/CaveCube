@@ -171,6 +171,7 @@ struct netcxn* newCxn(int type, char* addr, int port, int obs, int ibs) {
     struct sockaddr_in* address = calloc(1, sizeof(*address));
     address->sin_family = AF_INET;
     if (addr) {
+        #ifndef __EMSCRIPTEN__
         struct hostent* hentry;
         if (!(hentry = gethostbyname(addr))) {
             fputs("newCxn: Failed to get IP address\n", stderr);
@@ -178,6 +179,13 @@ struct netcxn* newCxn(int type, char* addr, int port, int obs, int ibs) {
             return NULL;
         }
         address->sin_addr.s_addr = *((in_addr_t*)hentry->h_addr_list[0]);
+        #else
+        if (!inet_aton(addr, &address->sin_addr)) {
+            fputs("newCxn: Failed to get IP address\n", stderr);
+            close(newsock);
+            return NULL;
+        }
+        #endif
     } else {
         address->sin_addr.s_addr = INADDR_ANY;
     }

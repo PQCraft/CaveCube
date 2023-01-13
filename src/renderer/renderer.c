@@ -3,7 +3,9 @@
 #include <main/main.h>
 #include "renderer.h"
 #include "ui.h"
-#include "glad.h"
+#ifndef __EMSCRIPTEN__
+    #include "glad.h"
+#endif
 #include <main/version.h>
 #include <common/common.h>
 #include <common/resource.h>
@@ -18,7 +20,15 @@
 #include <pthread.h>
 
 #if defined(USESDL2)
-    #include <SDL2/SDL.h>
+    #ifndef __EMSCRIPTEN__
+        #include <SDL2/SDL.h>
+    #else
+        #include <SDL.h>
+        #include <GLES3/gl3.h>
+        //#include <emscripten/html5.h>
+        #define glFramebufferTexture(a, b, c, d) glFramebufferTexture2D((a), (b), GL_TEXTURE_2D, (c), (d));
+        #define glPolygonMode(a, b)
+    #endif
 #else
     #include <GLFW/glfw3.h>
 #endif
@@ -1840,6 +1850,7 @@ static void errorcb(int e, const char* m) {
 }
 #endif
 
+#ifndef __EMSCRIPTEN__
 #if defined(_WIN32) && !defined(_WIN64)
 __attribute__((stdcall))
 #endif
@@ -1875,6 +1886,7 @@ static void oglCallback(GLenum source, GLenum type, GLuint id, GLenum severity, 
     if (ignore) return;
     fprintf(stderr, "OpenGL debug [%s]: [%d] {%s}\n", sevstr, id, msg);
 }
+#endif
 
 bool initRenderer() {
     declareConfigKey(config, "Renderer", "compositing", "true", false);
@@ -1902,8 +1914,9 @@ bool initRenderer() {
     #endif
 
     #if defined(USESDL2)
-    bool compositing = getBool(getConfigKey(config, "Renderer", "compositing"));
+    #ifndef __EMSCRIPTEN__
     SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
+    #endif
     #if defined(USEGLES)
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
@@ -1912,7 +1925,10 @@ bool initRenderer() {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
     #endif
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-    if (compositing) SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0");
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+    #ifndef __EMSCRIPTEN__
+    if (getBool(getConfigKey(config, "Renderer", "compositing"))) SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0");
+    #endif
     #else
     #if defined(USEGLES)
     glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
@@ -1981,7 +1997,18 @@ bool startRenderer() {
         sdlerror("startRenderer: Failed to create window");
         return false;
     }
-    SDL_GL_SetAttribute(SDL_GL_SHARE_WITH_CURRENT_CONTEXT, 1);
+    #ifdef __EMSCRIPTEN__
+    /*
+    EmscriptenWebGLContextAttributes attrs;
+    attrs.antialias = false;
+    attrs.majorVersion = 2;
+    attrs.minorVersion = 0;
+    attrs.alpha = false;
+    EMSCRIPTEN_WEBGL_CONTEXT_HANDLE webgl_context = emscripten_webgl_create_context(0, &attrs);
+    emscripten_webgl_make_context_current(webgl_context);
+    SDL_CreateRenderer(rendinf.window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE);
+    */
+    #endif
     SDL_SetHintWithPriority(SDL_HINT_MOUSE_RELATIVE_MODE_WARP, "1", SDL_HINT_OVERRIDE);
     SDL_SetRelativeMouseMode(SDL_TRUE);
     rendinf.context = SDL_GL_CreateContext(rendinf.window);
@@ -2001,6 +2028,7 @@ bool startRenderer() {
     glfwMakeContextCurrent(rendinf.window);
     #endif
 
+    #ifndef __EMSCRIPTEN__
     GLADloadproc glproc;
     #if defined(USESDL2)
     glproc = (GLADloadproc)SDL_GL_GetProcAddress;
@@ -2011,6 +2039,7 @@ bool startRenderer() {
         fputs("startRenderer: Failed to initialize GLAD\n", stderr);
         return false;
     }
+    #endif
     glver = glGetString(GL_VERSION);
     printf("OpenGL version: %s\n", glver);
     glslver = glGetString(GL_SHADING_LANGUAGE_VERSION);
@@ -2019,18 +2048,20 @@ bool startRenderer() {
     printf("Vendor string: %s\n", glvend);
     glrend = glGetString(GL_RENDERER);
     printf("Renderer string: %s\n", glrend);
+    #ifndef __EMSCRIPTEN__
     if (GL_KHR_debug) {
         puts("KHR_debug supported");
-        #ifndef __EMSCRIPTEN__
         glDebugMessageCallback(oglCallback, NULL);
-        #endif
     }
+    #endif
 
     GLint range[2];
     glGetIntegerv(GL_ALIASED_LINE_WIDTH_RANGE, range);
     printf("GL_ALIASED_LINE_WIDTH_RANGE: [%d, %d]\n", range[0], range[1]);
+    #ifndef __EMSCRIPTEN__
     glGetIntegerv(GL_SMOOTH_LINE_WIDTH_RANGE, range);
     printf("GL_SMOOTH_LINE_WIDTH_RANGE: [%d, %d]\n", range[0], range[1]);
+    #endif
     GLint texunits;
     glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &texunits);
     printf("GL_MAX_TEXTURE_IMAGE_UNITS: [%d]\n", texunits);
