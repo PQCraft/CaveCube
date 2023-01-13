@@ -173,6 +173,7 @@ static void handleServer(int msg, void* _data) {
 static int loopdelay = 0;
 
 bool doGame(char* addr, int port) {
+    printf("doGame: {%s} [%d]\n", addr, port);
     char** tmpbuf = malloc(16 * sizeof(char*));
     for (int i = 0; i < 16; ++i) {
         tmpbuf[i] = malloc(4096);

@@ -6,13 +6,20 @@
 
 #define RENDERER_RENDERER_H
 
-#include "glad.h"
+#ifndef __EMSCRIPTEN__
+    #include "glad.h"
+#endif
 #include <common/resource.h>
 
 #if defined(USESDL2)
-#include <SDL2/SDL.h>
+    #ifndef __EMSCRIPTEN__
+        #include <SDL2/SDL.h>
+    #else
+        #include <SDL.h>
+        #include <GLES3/gl3.h>
+    #endif
 #else
-#include <GLFW/glfw3.h>
+    #include <GLFW/glfw3.h>
 #endif
 
 #include <stdbool.h>

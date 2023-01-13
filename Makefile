@@ -164,7 +164,7 @@ ifndef OS
         ifdef DEBUG
             BINFLAGS += -g
         endif
-        BINFLAGS += -O2 -s USE_WEBGL2=1 -s USE_ZLIB=1
+        BINFLAGS += -O2 -s USE_WEBGL2=1 -s FULL_ES2 -s FULL_ES3 -s USE_ZLIB=1
         ifndef USESDL2
             BINFLAGS += -s USE_GLFW=3
         else

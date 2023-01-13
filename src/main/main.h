@@ -1,6 +1,10 @@
 #ifndef MAIN_MAIN_H
 #define MAIN_MAIN_H
 
+#ifdef __EMSCRIPTEN__
+    #include <emscripten.h>
+#endif
+
 #include <common/config.h>
 
 #ifndef DEBUG
