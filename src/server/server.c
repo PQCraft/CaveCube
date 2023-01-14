@@ -511,6 +511,7 @@ static void* servnetthread(void* args) {
                         if (dsize >= 4) {
                             readFromCxnBuf(pdata[i].cxn, &pdata[i].tmpsize, 4);
                             pdata[i].tmpsize = net2host32(pdata[i].tmpsize);
+                            //printf("CLIENT[%d] TMPSIZE: [%d]\n", i, pdata[i].tmpsize);
                             // TODO: Disconnect if size is larger than half of buffer
                         }
                         if (dsize > 0) {
@@ -524,7 +525,7 @@ static void* servnetthread(void* args) {
                         void* _data = NULL;
                         uint8_t msgdataid = buf[ptr++];
                         int priority = MSG_PRIO_NORMAL;
-                        //printf("FROM CLIENT[%d]: [%d]\n", i, msgdataid);
+                        //printf("FROM CLIENT[%d]: [%d]:[%d]\n", i, msgdataid, pdata[i].tmpsize);
                         switch (msgdataid) {
                             case CLIENT_COMPATINFO:; {
                                 struct client_data_compatinfo* data = malloc(sizeof(*data));
@@ -834,6 +835,7 @@ static void* clinetthread(void* args) {
             if (dsize >= 4) {
                 readFromCxnBuf(clicxn, &tmpsize, 4);
                 tmpsize = net2host32(tmpsize);
+                //printf("SERVER TMPSIZE: [%d]\n", tmpsize);
                 // TODO: Disconnect if size is larger than half of buffer
             }
             if (dsize > 0) activity = true;
@@ -843,7 +845,7 @@ static void* clinetthread(void* args) {
             readFromCxnBuf(clicxn, buf, tmpsize);
             int ptr = 0;
             uint8_t tmpbyte = buf[ptr++];
-            printf("FROM SERVER: [%d]:[%d]\n", tmpbyte, tmpsize);
+            //printf("FROM SERVER: [%d]:[%d]\n", tmpbyte, tmpsize);
             switch (tmpbyte) {
                 case SERVER_PONG:; {
                     callback(SERVER_PONG, NULL);

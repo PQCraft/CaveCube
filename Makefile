@@ -168,7 +168,7 @@ ifndef OS
         ifdef DEBUG
             BINFLAGS += -g
         endif
-        BINFLAGS += -O2 -s WASM=1 -s USE_PTHREADS=1 -s ALLOW_MEMORY_GROWTH=1 -s ASYNCIFY=1
+        BINFLAGS += -O2 -s WASM=1 -s USE_PTHREADS=1 -s PTHREAD_POOL_SIZE=8 -s INITIAL_MEMORY=1024MB -s ASYNCIFY=1
         BINFLAGS += -s USE_WEBGL2=1 -s FULL_ES2 -s FULL_ES3 -s USE_ZLIB=1
         ifndef USESDL2
             BINFLAGS += -s USE_GLFW=3
@@ -358,6 +358,12 @@ endif
 	@echo Removing $(BIN)...
 ifndef OS
 	@rm -f $(BIN)
+ifdef EMSCR
+	@rm -f $(BINNAME)*.html
+	@rm -f $(BINNAME)*.js
+	@rm -f $(BINNAME)*.wasm
+	@rm -f $(BINNAME)*.data
+endif
 else
 	@if exist $(BIN) del /Q $(BIN)
 endif

@@ -59,10 +59,14 @@ uint64_t altutime() {
 
 void microwait(uint64_t d) {
     #ifndef _WIN32
+    #ifndef __EMSCRIPTEN__
     struct timespec dts;
     dts.tv_sec = d / 1000000;
     dts.tv_nsec = (d % 1000000) * 1000;
     nanosleep(&dts, NULL);
+    #else
+    emscripten_sleep(round((double)(d) / (double)(1000.0)));
+    #endif
     #else
     Sleep(round((double)(d) / (double)(1000.0)));
     #endif
