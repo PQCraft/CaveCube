@@ -121,6 +121,8 @@ static force_inline int writeBufToBuf(struct netbuf* inbuf, struct netbuf* outbu
         inbuf->rptr = (inbuf->rptr + 1) % inbuf->size;
     }
     inbuf->dlen -= size;
+    emscripten_sleep(15);
+    //printf("copied [%d], in:[%d/%d], out:[%d/%d]\n", size, inbuf->dlen, inbuf->size, outbuf->dlen, outbuf->size);
     return size;
 }
 #endif
@@ -419,8 +421,8 @@ bool initNet() {
     if (!startwsa()) return false;
     #endif
     #ifdef __EMSCRIPTEN__
-    lhactivebuf = allocBuf(1048576);
-    lhpassivebuf = allocBuf(1048576);
+    lhactivebuf = allocBuf(65536);
+    lhpassivebuf = allocBuf(65536);
     #endif
     return true;
 }

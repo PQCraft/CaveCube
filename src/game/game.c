@@ -196,7 +196,9 @@ bool doGame(char* addr, int port) {
     puts("Sending ping...");
     cliSend(CLIENT_PING);
     while (!ping && !quitRequest) {
+        #ifdef __EMSCRIPTEN__
         emscripten_sleep(0);
+        #endif
         getInput(NULL);
         microwait(100000);
     }
@@ -205,7 +207,9 @@ bool doGame(char* addr, int port) {
     puts("Exchanging compatibility info...");
     cliSend(CLIENT_COMPATINFO, VER_MAJOR, VER_MINOR, VER_PATCH, 0, PROG_NAME);
     while (!compat && !quitRequest) {
+        #ifdef __EMSCRIPTEN__
         emscripten_sleep(0);
+        #endif
         getInput(NULL);
         microwait(100000);
     }
@@ -529,7 +533,9 @@ bool doGame(char* addr, int port) {
         pblockz = bcoord.z;
         fpsmult = (double)((uint64_t)altutime() - (uint64_t)st1) / 1000000.0;
         pmult = posmult * fpsmult;
+        #ifdef __EMSCRIPTEN__
         emscripten_sleep(0);
+        #endif
     }
     for (int i = 0; i < 4; ++i) {
         freeUI(game_ui[i]);
