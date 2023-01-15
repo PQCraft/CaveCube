@@ -65,7 +65,15 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
                     if ((mountainheight + height) > 0.05 + detail * 0.05) {
                         data[i].id = (i == finalheight) ? grass_block : dirt;
                     } else {
-                        data[i].id = ((float)i + (detail * 0.5 + 0.5) * 2.0 >= finalheight) ? sand : dirt;
+                        if ((float)i + (detail * 0.5 + 1.0) * 2.0 >= finalheight) {
+                            if (noise3(5, cx / 21.124, (float)(i) / 21.124, cz / 21.124) < -0.64 - ((finalheight - 128.0) / 128.0)) {
+                                data[i].id = gravel;
+                            } else {
+                                data[i].id = sand;
+                            }
+                        } else {
+                            data[i].id = dirt;
+                        }
                     }
                 } else {
                     data[i].id = stone;
