@@ -54,12 +54,12 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
             float height = tanhf(nperlin2d(1, cx, cz, 0.001953, 7) * 3.0) * heightmult;
             float detail = nperlin2d(2, cx, cz, 0.03653, 2);
             height *= (1.0 - (height * 0.5 - 0.33)) * 1.25 * heightmult;
-            float mountainheight = (1.0 - tanhf(perlin2d(3, cx, cz, 0.000825, 7) * 4.0)) * 4.25;
+            float mountainheight = (1.0 - tanhf(perlin2d(3, cx, cz, 0.000825, 7) * 3.5)) * 4.25;
             mountainheight *= mountainheight * 2.0;
             mountainheight /= 10.0;
             float caveheight = height + mountainheight;
             float finalheight = round((mountainheight + height) * 50.0 + detail * 1.25 + 128.0);
-            float grounddiff = round((perlin2d(4, cx, cz, 0.071, 3) * 1.0 + 4.0) - tanhf(height * 0.25 + mountainheight) * 3.25);
+            float grounddiff = round((perlin2d(4, cx, cz, 0.05, 4) * 0.2 + 4.0) - tanhf((finalheight - mountainheight * 5.0 - 128.0) / 100.0) * 4.25);
             for (int i = 0; i <= finalheight; ++i) {
                 if (i > finalheight - grounddiff) {
                     if ((mountainheight + height) > 0.05 + detail * 0.05) {

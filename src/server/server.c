@@ -713,7 +713,7 @@ int startServer(char* addr, int port, int mcli, char* world) {
     //setRandSeed(0, 8449);
     //setRandSeed(0, 1429720735);
     //setRandSeed(0, 290000187);
-    setRandSeed(0, 4049192255);
+    //setRandSeed(0, 4049192255);
     initNoiseTable(0);
     initWorldgen();
     #if DBGLVL(1)
