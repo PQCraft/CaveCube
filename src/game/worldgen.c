@@ -10,6 +10,8 @@
 
 static uint8_t stone;
 static uint8_t stone_cobble;
+static uint8_t stone_basalt;
+static uint8_t stone_granite;
 static uint8_t dirt;
 static uint8_t grass_block;
 static uint8_t gravel;
@@ -21,6 +23,8 @@ static uint8_t bedrock;
 bool initWorldgen() {
     stone = blockNoFromID("stone");
     stone_cobble = blockSubNoFromID(stone, "cobble");
+    stone_basalt = blockSubNoFromID(stone, "basalt");
+    stone_granite = blockSubNoFromID(stone, "granite");
     dirt = blockNoFromID("dirt");
     grass_block = blockNoFromID("grass_block");
     gravel = blockNoFromID("gravel");
@@ -55,11 +59,11 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
             float detail = nperlin2d(2, cx, cz, 0.03653, 2);
             height *= (1.0 - (height * 0.5 - 0.33)) * 1.25 * heightmult;
             float mountainheight = (1.0 - tanhf(perlin2d(3, cx, cz, 0.000825, 7) * 3.5)) * 4.25;
-            mountainheight *= mountainheight * 2.0;
-            mountainheight /= 10.0;
+            mountainheight *= mountainheight;
+            mountainheight /= 5.0;
             float caveheight = height + mountainheight;
             float finalheight = round((mountainheight + height) * 50.0 + detail * 1.25 + 128.0);
-            float grounddiff = round((perlin2d(4, cx, cz, 0.05, 4) * 0.2 + 4.0) - tanhf((finalheight - mountainheight * 5.0 - 128.0) / 100.0) * 4.25);
+            float grounddiff = round((perlin2d(4, cx, cz, 0.05, 4) * 0.2 + 4.0) - tanhf((finalheight - mountainheight * 5.0 - 128.0) / 95.0) * 4.25);
             for (int i = 0; i <= finalheight; ++i) {
                 if (i > finalheight - grounddiff) {
                     if ((mountainheight + height) > 0.05 + detail * 0.05) {
@@ -77,6 +81,14 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
                     }
                 } else {
                     data[i].id = stone;
+                    float granite = noise3(6, cx / 10.15, (float)(i) / 3.25, cz / 10.15);
+                    if (granite < ((float)(i) / 512.0) * 1.5 - 1.0) {
+                        data[i].subid = stone_granite;
+                    } else if (noise3(7, cx / 10.45, (float)(i) / 10.45, cz / 10.45) + 0.5 > (float)(i) / 40.0) {
+                        data[i].subid = stone_basalt;
+                    } else if (noise3(8, cx / 5.56, (float)(i) / 5.56, cz / 5.56) + 0.25 < 0.0) {
+                        data[i].subid = stone_cobble;
+                    }
                 }
             }
             for (int i = 0; i < 512; ++i) {
@@ -84,19 +96,22 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
                 float cave = noise3(15, cx / 23.25, fi / (25.0 - fi / 512.0 * 20.0), cz / 23.25) + fabs((fi - (30.0 + caveheight * 20.0)) / (300.0 + caveheight * 175.0));
                 if (cave < -(0.23 + fi / 512.0 * 0.05)) {
                     data[i].id = 0;
+                    data[i].subid = 0;
                 }
             }
             for (int i = 127; i > finalheight; --i) {
                 data[i].id = water;
+                data[i].subid = 0;
             }
-            data[0].id = bedrock; data[0].subid = 0;
+            data[0].id = bedrock;
+            data[0].subid = 0;
             float n0 = nperlin2d(63, cx, cz, 0.4, 2);
             if (n0 > -0.25) {data[1].id = bedrock; data[1].subid = 0;}
             if (n0 > 0.0) {data[2].id = bedrock; data[2].subid = 0;}
             if (n0 > 0.25) {data[3].id = bedrock; data[3].subid = 0;}
             if (!data[4].id && n0 > 0.5) {data[4].id = bedrock; data[4].subid = 0;}
             for (int i = 4; i > 0; --i) {
-                if (!data[i].id) data[i].id = lava;
+                if (!data[i].id) {data[i].id = lava; data[i].subid = 0;}
             }
             /*
             }
