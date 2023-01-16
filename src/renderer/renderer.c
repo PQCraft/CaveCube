@@ -1688,7 +1688,7 @@ void render() {
 
         opaqueUpdate = false;
 
-        posqueue = malloc(rendinf.chunks->info.widthsq * 32 * sizeof(*posqueue));
+        posqueue = malloc(rendinf.chunks->info.widthsq * sizeof(*posqueue));
         pqptr = 0;
         visited = calloc(rendinf.chunks->info.widthsq * 34, 1);
         visited += rendinf.chunks->info.widthsq;
