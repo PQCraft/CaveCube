@@ -74,14 +74,14 @@ double perlin2d(int t, double x, double y, double freq, int depth) {
         div += 256 * amp;
         fin += noise2d(t, xa, ya) * amp;
         amp /= 2;
-        xa += xa;
-        ya += ya;
+        xa += xa + 1;
+        ya += ya + 1;
     }
     return fin / div;
 }
 
 double nperlin2d(int t, double x, double y, double freq, int depth) {
-    return perlin2d(t, x, y, freq, depth) * 2 - 1;
+    return perlin2d(t, x, y, freq, depth) * 2.0 - 1.0;
 }
 
 // Modified version of noise1234 at https://github.com/stegu/perlin-noise
