@@ -735,8 +735,8 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
     pthread_mutex_unlock(&rendinf.chunks->lock);
     //printf("mesh: [%"PRId64", %"PRId64"]\n", x, z);
     //uint64_t stime = altutime();
-    int vpsize = 32768;
-    int vpsize2 = 32768;
+    int vpsize = 65536;
+    int vpsize2 = 65536;
     uint32_t* _vptr = malloc(vpsize * sizeof(uint32_t));
     uint32_t* _vptr2 = malloc(vpsize2 * sizeof(uint32_t));
     int vplen = 0;
