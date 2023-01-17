@@ -710,7 +710,7 @@ int startServer(char* addr, int port, int mcli, char* world) {
     uint32_t rand = getRandDWord(1);
     printf("rand: [%u]\n", rand);
     setRandSeed(0, rand);
-    //setRandSeed(0, 4023561707);
+    //setRandSeed(0, 779031053);
     initNoiseTable(0);
     initWorldgen();
     #if DBGLVL(1)
