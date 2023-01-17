@@ -1688,7 +1688,7 @@ void render() {
 
         opaqueUpdate = false;
 
-        posqueue = malloc(rendinf.chunks->info.widthsq * sizeof(*posqueue));
+        posqueue = malloc((rendinf.chunks->info.width * 6) * sizeof(*posqueue));
         pqptr = 0;
         visited = calloc(rendinf.chunks->info.widthsq * 34, 1);
         visited += rendinf.chunks->info.widthsq;
@@ -1706,7 +1706,9 @@ void render() {
             int v = rendinf.chunks->info.dist + rendinf.chunks->info.dist * rendinf.chunks->info.width + ncy * rendinf.chunks->info.widthsq;
             visited[v] = true;
         }
+        int pqptrmax = 0;
         while (pqptr > 0) {
+            if (pqptr > pqptrmax) pqptrmax = pqptr;
             pqpop();
             struct pq p = posqueue[pqptr];
 

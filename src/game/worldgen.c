@@ -58,7 +58,7 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
             float height = tanhf(nperlin2d(1, cx, cz, 0.001953, 7) * 3.0) * heightmult;
             float detail = nperlin2d(2, cx, cz, 0.03653, 2);
             height *= (1.0 - (height * 0.5 - 0.33)) * 1.25 * heightmult;
-            float mountainheight = (1.0 - tanhf(perlin2d(3, cx, cz, 0.00175, 6) * 5.0)) * 4.5;
+            float mountainheight = (1.0 - tanhf(perlin2d(3, cx, cz, 0.001, 6) * 7.5)) * 6.25;
             //mountainheight *= mountainheight;
             //mountainheight *= mountainheight * 2.0;
             mountainheight *= 1.33;
@@ -94,7 +94,7 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
             for (int i = 0; i < 512 && i < 512; ++i) {
                 float fi = i;
                 float cave = noise3(15, cx / 23.25, fi / (25.0 - fi / 512.0 * 20.0), cz / 23.25) + fabs((fi - (30.0 + caveheight * 20.0)) / (300.0 + caveheight * 175.0));
-                if (cave < -(0.23 + fi / 512.0 * 0.05)) {
+                if (cave < -(0.25 + fi / 512.0 * 0.04)) {
                     data[i].id = 0;
                     data[i].subid = 0;
                 }
@@ -132,22 +132,14 @@ void genChunk(int64_t cx, int64_t cz, struct blockdata* data, int type) {
             struct blockdata sliver[512];
             memset(&sliver, 0, sizeof(sliver));
             genSliver(type, cx, cz, sliver);
-            float nlight = 31;
             for (int i = 511; i >= 0; --i) {
                 struct blockdata* tdata = &data[256 * i + xzoff];
-                //if (sliver[i].id == water) {nlight -= 1.75; if (nlight < -128) nlight = -128;}
-                int8_t nlight_r = nlight;
-                if (nlight_r < 0) nlight_r = 0;
-                int8_t nlight_g = 31 - (31 - nlight) * 0.33;
-                if (nlight_g < 0) nlight_g = 0;
-                int8_t nlight_b = 31 - (31 - nlight) * 0.25;
-                if (nlight_b < 0) nlight_b = 0;
                 *tdata = (struct blockdata){
                     .id = sliver[i].id,
                     .subid = sliver[i].subid,
-                    .light_n_r = nlight_r,
-                    .light_n_g = nlight_g,
-                    .light_n_b = nlight_b
+                    .light_n_r = 30,
+                    .light_n_g = 30,
+                    .light_n_b = 30
                 };
                 /*
                 ((uint64_t*)tdata)[0] = getRandQWord(15);
