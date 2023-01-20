@@ -336,7 +336,10 @@ static void* servthread(void* args) {
     while (serveralive) {
         bool activity = false;
         struct msgdata_msg msg;
-        if (getNextMsg(&servmsgin[MSG_PRIO_HIGH], &msg) || getNextMsg(&servmsgin[MSG_PRIO_NORMAL], &msg) || getNextMsg(&servmsgin[MSG_PRIO_LOW], &msg)) {
+        int p;
+        if (getNextMsg(&servmsgin[(p = MSG_PRIO_HIGH)], &msg) ||
+        getNextMsg(&servmsgin[(p = MSG_PRIO_NORMAL)], &msg) ||
+        getNextMsg(&servmsgin[(p = MSG_PRIO_LOW)], &msg)) {
             activity = true;
             //printf("Received message [%d] for player handle [%d]\n", msg.id, msg.uind);
             pthread_mutex_lock(&pdatalock);
@@ -374,7 +377,7 @@ static void* servthread(void* args) {
                                 outdata->reason = strdup("Username cannot be longer than 31 characters.");
                             } else {
                                 pthread_mutex_lock(&pdatalock);
-                                if (pdata[msg.uind].uuid == msg.uuid) {
+                                if (pdata[msg.uind].uuid == msg.uuid && !pdata[msg.uind].player.login) {
                                     pdata[msg.uind].player.login = true;
                                     pdata[msg.uind].player.username = strdup(data->username);
                                     // TODO: handle uid and password when no NOAUTH
@@ -440,6 +443,7 @@ static void* servthread(void* args) {
                     case _SERVER_USERDISCONNECT:; {
                     } break;
                     default:; {
+                        printf("Invalid message id [%d] from player [%d] (uuid: [%"PRId64"])\n", msg.id, msg.uind, msg.uuid);
                         activity = false;
                     } break;
                 }
@@ -704,7 +708,8 @@ int startServer(char* addr, int port, int mcli, char* world) {
     for (int i = 0; i < MSG_PRIO__MAX; ++i) {
         initMsgData(&servmsgout[i]);
     }
-    servmsgout[MSG_PRIO_LOW].async = true;
+    servmsgin[MSG_PRIO_LOW].async = true;
+    //servmsgout[MSG_PRIO_LOW].async = true;
     #if DBGLVL(1)
     puts("  Initializing noise...");
     #endif
