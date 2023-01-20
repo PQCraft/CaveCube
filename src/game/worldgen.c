@@ -54,24 +54,21 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
             chunkz /= 16;
             if ((chunkx + chunkz) % 2) {
             */
-            float heightmult = tanhf((perlin2d(0, cx, cz, 0.003649, 2) * 3.0) * 0.5 + 0.65);
-            float height = tanhf(nperlin2d(1, cx, cz, 0.001953, 7) * 3.0) * heightmult;
-            float detail = nperlin2d(2, cx, cz, 0.03653, 2);
-            height *= (1.0 - (height * 0.5 - 0.33)) * 1.25 * heightmult;
-            float mountainheight = (1.0 - tanhf(perlin2d(3, cx, cz, 0.001, 6) * 7.5)) * 6.25;
-            //mountainheight *= mountainheight;
-            //mountainheight *= mountainheight * 2.0;
-            mountainheight *= 1.33;
-            float caveheight = height + mountainheight;
-            float finalheight = round((mountainheight + height) * 50.0 + detail * 1.25 + 128.0);
-            float grounddiff = round((perlin2d(4, cx, cz, 0.05, 4) * 0.2 + 4.0) - tanhf((finalheight - mountainheight * 5.0 - 128.0) / 95.0) * 4.25);
+            float heightmult = tanhf((perlin2d(0, cx, cz, 0.003649, 2) * 3.75) * 0.5 + 0.65);
+            float height = tanhf(nperlin2d(1, cx, cz, 0.001253, 7) * 3.0) * heightmult;
+            float detail = nperlin2d(2, cx, cz, 0.03153, 3);
+            height *= (1.0 - (height * 0.5 - 0.33)) * 0.825 * heightmult;
+            height += 0.33;
+            float caveheight = height * 1.2;
+            float finalheight = round((height) * 75.0 + detail * 2.0 * heightmult + 128.0);
+            float grounddiff = round((perlin2d(3, cx, cz, 0.05, 4) * 0.2 + 4.0) - tanhf((finalheight + (detail - 0.75) * 25.0 - 128.0) / 95.0) * 4.25);
             for (int i = 0; i <= finalheight && i < 512; ++i) {
                 if (i > finalheight - grounddiff) {
-                    if ((mountainheight + height) > 0.05 + detail * 0.05) {
+                    if ((height) > 0.05 + detail * 0.05) {
                         data[i].id = (i == finalheight) ? grass_block : dirt;
                     } else {
                         if ((float)i + (detail * 0.5 + 1.0) * 2.0 >= finalheight) {
-                            if (noise3(5, cx / 21.124, (float)(i) / 21.124, cz / 21.124) < -0.64 - ((finalheight - 128.0) / 128.0)) {
+                            if (noise3(4, cx / 21.124, (float)(i) / 16.384, cz / 21.124) < -0.64 - ((finalheight - 128.0) / 128.0)) {
                                 data[i].id = gravel;
                             } else {
                                 data[i].id = sand;
@@ -82,11 +79,11 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
                     }
                 } else {
                     data[i].id = stone;
-                    if (noise3(6, cx / 12.75, (float)(i) / 3.5, cz / 12.75) < ((float)(i) / 512.0) * 1.75 - 1.0) {
+                    if (noise3(5, cx / 12.75, (float)(i) / 3.5, cz / 12.75) < ((float)(i) / 512.0) * 1.75 - 1.0) {
                         data[i].subid = stone_granite;
-                    } else if (noise3(7, cx / 10.45, (float)(i) / 10.45, cz / 10.45) + 0.5 > (float)(i) / 40.0) {
+                    } else if (noise3(6, cx / 10.45, (float)(i) / 10.45, cz / 10.45) + 0.5 > (float)(i) / 40.0) {
                         data[i].subid = stone_basalt;
-                    } else if (noise3(8, cx / 5.56, (float)(i) / 5.56, cz / 5.56) + 0.25 < 0.0) {
+                    } else if (noise3(7, cx / 5.56, (float)(i) / 5.56, cz / 5.56) + 0.25 < 0.0) {
                         data[i].subid = stone_cobble;
                     }
                 }
@@ -99,7 +96,7 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
                     data[i].subid = 0;
                 }
             }
-            for (int i = 127; i > finalheight; --i) {
+            for (int i = 127; i > finalheight && i > 0; --i) {
                 data[i].id = water;
                 data[i].subid = 0;
             }
