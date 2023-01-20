@@ -1066,22 +1066,24 @@ static void* meshthread(void* args) {
     while (!quitRequest) {
         bool activity = false;
         int p = 0;
-        if (getNextMsg(&chunkmsgs[(p = CHUNKUPDATE_PRIO_HIGH)], &msg) || getNextMsg(&chunkmsgs[(p = CHUNKUPDATE_PRIO_LOW)], &msg)) {
+        if (getNextMsg(&chunkmsgs[(p = CHUNKUPDATE_PRIO_HIGH)], &msg) ||
+        getNextMsg(&chunkmsgs[(p = CHUNKUPDATE_PRIO_NORMAL)], &msg) ||
+        getNextMsg(&chunkmsgs[(p = CHUNKUPDATE_PRIO_LOW)], &msg)) {
             //uint64_t stime = altutime();
             activity = true;
             mesh(msg.x, msg.z, msg.id);
             if (!msg.dep) {
                 if (lazymesh || p != CHUNKUPDATE_PRIO_HIGH) {
                     if (msg.lvl >= 1) {
-                        addMsg(&chunkmsgs[p], msg.x, msg.z + 1, msg.id, true, msg.lvl);
-                        addMsg(&chunkmsgs[p], msg.x, msg.z - 1, msg.id, true, msg.lvl);
-                        addMsg(&chunkmsgs[p], msg.x + 1, msg.z, msg.id, true, msg.lvl);
-                        addMsg(&chunkmsgs[p], msg.x - 1, msg.z, msg.id, true, msg.lvl);
+                        addMsg(&chunkmsgs[CHUNKUPDATE_PRIO_LOW], msg.x, msg.z + 1, msg.id, true, msg.lvl);
+                        addMsg(&chunkmsgs[CHUNKUPDATE_PRIO_LOW], msg.x, msg.z - 1, msg.id, true, msg.lvl);
+                        addMsg(&chunkmsgs[CHUNKUPDATE_PRIO_LOW], msg.x + 1, msg.z, msg.id, true, msg.lvl);
+                        addMsg(&chunkmsgs[CHUNKUPDATE_PRIO_LOW], msg.x - 1, msg.z, msg.id, true, msg.lvl);
                         if (msg.lvl >= 2) {
-                            addMsg(&chunkmsgs[p], msg.x + 1, msg.z + 1, msg.id, true, msg.lvl);
-                            addMsg(&chunkmsgs[p], msg.x + 1, msg.z - 1, msg.id, true, msg.lvl);
-                            addMsg(&chunkmsgs[p], msg.x - 1, msg.z + 1, msg.id, true, msg.lvl);
-                            addMsg(&chunkmsgs[p], msg.x - 1, msg.z - 1, msg.id, true, msg.lvl);
+                            addMsg(&chunkmsgs[CHUNKUPDATE_PRIO_LOW], msg.x + 1, msg.z + 1, msg.id, true, msg.lvl);
+                            addMsg(&chunkmsgs[CHUNKUPDATE_PRIO_LOW], msg.x + 1, msg.z - 1, msg.id, true, msg.lvl);
+                            addMsg(&chunkmsgs[CHUNKUPDATE_PRIO_LOW], msg.x - 1, msg.z + 1, msg.id, true, msg.lvl);
+                            addMsg(&chunkmsgs[CHUNKUPDATE_PRIO_LOW], msg.x - 1, msg.z - 1, msg.id, true, msg.lvl);
                         }
                     }
                 } else {
@@ -1126,8 +1128,8 @@ static void* meshthread(void* args) {
             acttime = altutime();
             //microwait(250);
             microwait(10);
-        } else if (altutime() - acttime > 500000) {
-            microwait(10000);
+        } else if (altutime() - acttime > 250000) {
+            microwait(5000);
         }
     }
     return NULL;
@@ -1737,6 +1739,7 @@ void render() {
                         setvis(x, y, z + 1);
                         setvis(x, y, z - 1);
 
+                        /*
                         setvis(x + 1, y + 1, z + 1);
                         setvis(x - 1, y + 1, z + 1);
                         setvis(x + 1, y - 1, z + 1);
@@ -1745,6 +1748,7 @@ void render() {
                         setvis(x - 1, y + 1, z - 1);
                         setvis(x + 1, y - 1, z - 1);
                         setvis(x - 1, y - 1, z - 1);
+                        */
                     }
                 }
             }
@@ -2331,8 +2335,9 @@ bool startRenderer() {
 
     free(tmpbuf);
 
-    initMsgData(&chunkmsgs[CHUNKUPDATE_PRIO_LOW]);
-    initMsgData(&chunkmsgs[CHUNKUPDATE_PRIO_HIGH]);
+    for (int i = 0; i < CHUNKUPDATE_PRIO__MAX; ++i) {
+        initMsgData(&chunkmsgs[i]);
+    }
 
     return true;
 }

@@ -24,6 +24,7 @@ struct msgdata_msg {
 };
 
 struct msgdata {
+    bool async;
     int size;
     int rptr;
     int wptr;
@@ -48,104 +49,104 @@ static force_inline void deinitMsgData(struct msgdata* mdata) {
 
 static force_inline void addMsg(struct msgdata* mdata, int id, void* data, uint64_t uuid, int uind) {
     pthread_mutex_lock(&mdata->lock);
-    #if SERVER_ASYNC_MSG
-    int index = -1;
-    for (int i = 0; i < mdata->size; ++i) {
-        if (mdata->msg[i].id < 0) {
-            index = i;
-            break;
+    if (mdata->async) {
+        int index = -1;
+        for (int i = 0; i < mdata->size; ++i) {
+            if (mdata->msg[i].id < 0) {
+                index = i;
+                break;
+            }
         }
-    }
-    if (index == -1) {
-        index = mdata->size++;
+        if (index == -1) {
+            index = mdata->size++;
+            mdata->msg = realloc(mdata->msg, mdata->size * sizeof(*mdata->msg));
+        }
+        mdata->msg[index].id = id;
+        mdata->msg[index].data = data;
+        mdata->msg[index].uuid = uuid;
+        mdata->msg[index].uind = uind;
+    } else {
+        if (mdata->wptr < 0 || mdata->rptr >= mdata->size) {
+            mdata->rptr = 0;
+            mdata->size = 0;
+        }
+        mdata->wptr = mdata->size++;
+        //printf("[%lu]: wptr: [%d] size: [%d]\n", (uintptr_t)mdata, mdata->wptr, mdata->size);
         mdata->msg = realloc(mdata->msg, mdata->size * sizeof(*mdata->msg));
+        mdata->msg[mdata->wptr].id = id;
+        mdata->msg[mdata->wptr].data = data;
+        mdata->msg[mdata->wptr].uuid = uuid;
+        mdata->msg[mdata->wptr].uind = uind;
     }
-    mdata->msg[index].id = id;
-    mdata->msg[index].data = data;
-    mdata->msg[index].uuid = uuid;
-    mdata->msg[index].uind = uind;
-    #else
-    if (mdata->wptr < 0 || mdata->rptr >= mdata->size) {
-        mdata->rptr = 0;
-        mdata->size = 0;
-    }
-    mdata->wptr = mdata->size++;
-    //printf("[%lu]: wptr: [%d] size: [%d]\n", (uintptr_t)mdata, mdata->wptr, mdata->size);
-    mdata->msg = realloc(mdata->msg, mdata->size * sizeof(*mdata->msg));
-    mdata->msg[mdata->wptr].id = id;
-    mdata->msg[mdata->wptr].data = data;
-    mdata->msg[mdata->wptr].uuid = uuid;
-    mdata->msg[mdata->wptr].uind = uind;
-    #endif
     pthread_mutex_unlock(&mdata->lock);
 }
 
 static force_inline bool getNextMsg(struct msgdata* mdata, struct msgdata_msg* msg) {
     pthread_mutex_lock(&mdata->lock);
-    #if SERVER_ASYNC_MSG
-    for (int i = 0; i < mdata->size; ++i) {
-        if (mdata->msg[i].id >= 0) {
-            msg->id = mdata->msg[i].id;
-            msg->data = mdata->msg[i].data;
-            msg->uuid = mdata->msg[i].uuid;
-            msg->uind = mdata->msg[i].uind;
-            mdata->msg[i].id = -1;
-            pthread_mutex_unlock(&mdata->lock);
-            return true;
-        }
-    }
-    #else
-    if (mdata->rptr >= 0) {
-        for (int i = mdata->rptr; i < mdata->size; ++i) {
+    if (mdata->async) {
+        for (int i = 0; i < mdata->size; ++i) {
             if (mdata->msg[i].id >= 0) {
                 msg->id = mdata->msg[i].id;
                 msg->data = mdata->msg[i].data;
                 msg->uuid = mdata->msg[i].uuid;
                 msg->uind = mdata->msg[i].uind;
                 mdata->msg[i].id = -1;
-                mdata->rptr = i + 1;
-                //printf("[%lu]: rptr: [%d] size: [%d]\n", (uintptr_t)mdata, mdata->rptr, mdata->size);
                 pthread_mutex_unlock(&mdata->lock);
                 return true;
             }
         }
+    } else {
+        if (mdata->rptr >= 0) {
+            for (int i = mdata->rptr; i < mdata->size; ++i) {
+                if (mdata->msg[i].id >= 0) {
+                    msg->id = mdata->msg[i].id;
+                    msg->data = mdata->msg[i].data;
+                    msg->uuid = mdata->msg[i].uuid;
+                    msg->uind = mdata->msg[i].uind;
+                    mdata->msg[i].id = -1;
+                    mdata->rptr = i + 1;
+                    //printf("[%lu]: rptr: [%d] size: [%d]\n", (uintptr_t)mdata, mdata->rptr, mdata->size);
+                    pthread_mutex_unlock(&mdata->lock);
+                    return true;
+                }
+            }
+        }
     }
-    #endif
     pthread_mutex_unlock(&mdata->lock);
     return false;
 }
 
 static force_inline bool getNextMsgForUUID(struct msgdata* mdata, struct msgdata_msg* msg, uint64_t uuid) {
     pthread_mutex_lock(&mdata->lock);
-    #if SERVER_ASYNC_MSG
-    for (int i = 0; i < mdata->size; ++i) {
-        if (mdata->msg[i].id >= 0 && mdata->msg[i].uuid == uuid) {
-            msg->id = mdata->msg[i].id;
-            msg->data = mdata->msg[i].data;
-            msg->uuid = mdata->msg[i].uuid;
-            msg->uind = mdata->msg[i].uind;
-            mdata->msg[i].id = -1;
-            pthread_mutex_unlock(&mdata->lock);
-            return true;
-        }
-    }
-    #else
-    if (mdata->rptr >= 0) {
-        for (int i = mdata->rptr; i < mdata->size; ++i) {
+    if (mdata->async) {
+        for (int i = 0; i < mdata->size; ++i) {
             if (mdata->msg[i].id >= 0 && mdata->msg[i].uuid == uuid) {
                 msg->id = mdata->msg[i].id;
                 msg->data = mdata->msg[i].data;
                 msg->uuid = mdata->msg[i].uuid;
                 msg->uind = mdata->msg[i].uind;
                 mdata->msg[i].id = -1;
-                mdata->rptr = i + 1;
-                //printf("[%lu]: rptr: [%d] size: [%d]\n", (uintptr_t)mdata, mdata->rptr, mdata->size);
                 pthread_mutex_unlock(&mdata->lock);
                 return true;
             }
         }
+    } else {
+        if (mdata->rptr >= 0) {
+            for (int i = mdata->rptr; i < mdata->size; ++i) {
+                if (mdata->msg[i].id >= 0 && mdata->msg[i].uuid == uuid) {
+                    msg->id = mdata->msg[i].id;
+                    msg->data = mdata->msg[i].data;
+                    msg->uuid = mdata->msg[i].uuid;
+                    msg->uind = mdata->msg[i].uind;
+                    mdata->msg[i].id = -1;
+                    mdata->rptr = i + 1;
+                    //printf("[%lu]: rptr: [%d] size: [%d]\n", (uintptr_t)mdata, mdata->rptr, mdata->size);
+                    pthread_mutex_unlock(&mdata->lock);
+                    return true;
+                }
+            }
+        }
     }
-    #endif
     pthread_mutex_unlock(&mdata->lock);
     return false;
 }
@@ -356,7 +357,7 @@ static void* servthread(void* args) {
                         outdata->ver_patch = VER_PATCH;
                         outdata->flags = SERVER_FLAG_NOAUTH;
                         outdata->server_str = strdup(PROG_NAME);
-                        addMsg(&servmsgout[MSG_PRIO_HIGH], SERVER_COMPATINFO, outdata, msg.uuid, msg.uind);
+                        addMsg(&servmsgout[MSG_PRIO_NORMAL], SERVER_COMPATINFO, outdata, msg.uuid, msg.uind);
                     } break;
                     case CLIENT_LOGININFO:; {
                         struct client_data_logininfo* data = msg.data;
@@ -383,7 +384,7 @@ static void* servthread(void* args) {
                                 pthread_mutex_unlock(&pdatalock);
                             }
                         }
-                        addMsg(&servmsgout[MSG_PRIO_HIGH], SERVER_LOGININFO, outdata, msg.uuid, msg.uind);
+                        addMsg(&servmsgout[MSG_PRIO_NORMAL], SERVER_LOGININFO, outdata, msg.uuid, msg.uind);
                     } break;
                     case CLIENT_GETCHUNK:; {
                         struct client_data_getchunk* data = msg.data;
@@ -547,7 +548,6 @@ static void* servnetthread(void* args) {
                                 memcpy(data->client_str, &buf[ptr], tmpword);
                                 data->client_str[tmpword] = 0;
                                 _data = data;
-                                priority = MSG_PRIO_HIGH;
                             } break;
                             case CLIENT_GETCHUNK:; {
                                 struct client_data_getchunk* data = malloc(sizeof(*data));
@@ -674,7 +674,7 @@ static void* servnetthread(void* args) {
         }
         if (activity) {
             acttime = altutime();
-        } else if (altutime() - acttime > 1500000) {
+        } else if (altutime() - acttime > 500000) {
             microwait(5000);
         }
     }
@@ -704,13 +704,14 @@ int startServer(char* addr, int port, int mcli, char* world) {
     for (int i = 0; i < MSG_PRIO__MAX; ++i) {
         initMsgData(&servmsgout[i]);
     }
+    servmsgout[MSG_PRIO_LOW].async = true;
     #if DBGLVL(1)
     puts("  Initializing noise...");
     #endif
     uint32_t rand = getRandDWord(1);
     printf("rand: [%u]\n", rand);
     setRandSeed(0, rand);
-    //setRandSeed(0, 779031053);
+    //setRandSeed(0, 119952304);
     initNoiseTable(0);
     initWorldgen();
     #if DBGLVL(1)
@@ -985,7 +986,8 @@ static void* clinetthread(void* args) {
         sendCxn(clicxn);
         if (activity) {
             acttime = altutime();
-        } else if (altutime() - acttime > 500000) {
+            microwait(1000);
+        } else if (altutime() - acttime > 100000) {
             microwait(50000);
         }
     }
@@ -996,8 +998,10 @@ bool cliConnect(char* addr, int port, void (*cb)(int, void*)) {
     if (!(clicxn = newCxn(CXN_ACTIVE, addr, port, CLIENT_OUTBUF_SIZE, CLIENT_INBUF_SIZE))) {
         fputs("cliConnect: Failed to create connection\n", stderr);
         return false;
-    }setCxnBufSize(clicxn, CLIENT_SNDBUF_SIZE, CLIENT_RCVBUF_SIZE);
+    }
+    setCxnBufSize(clicxn, CLIENT_SNDBUF_SIZE, CLIENT_RCVBUF_SIZE);
     initMsgData(&climsgout);
+    climsgout.async = true;
     callback = cb;
     #ifdef NAME_THREADS
     char name[256];

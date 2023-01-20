@@ -48,15 +48,15 @@ static force_inline void writeChunk(struct chunkdata* chunks, int64_t x, int64_t
     memcpy(chunks->data[coff], data, 131072 * sizeof(struct blockdata));
     chunks->renddata[coff].generated = true;
     chunks->renddata[coff].requested = false;
-    updateChunk(x, z, CHUNKUPDATE_PRIO_LOW, 1);
+    updateChunk(x, z, CHUNKUPDATE_PRIO_NORMAL, 1);
     pthread_mutex_unlock(&chunks->lock);
 }
 
 static force_inline void reqChunk(struct chunkdata* chunks, int64_t x, int64_t z) {
     uint32_t coff = (z + chunks->info.dist) * chunks->info.width + (x + chunks->info.dist);
     if (!chunks->renddata[coff].generated && !chunks->renddata[coff].requested) {
-        //printf("REQ [%"PRId64", %"PRId64"]\n", (int64_t)((int64_t)(x) + xo), (int64_t)((int64_t)(-z) + zo));
-        //chunks->renddata[coff].requested = true; //TODO: figure out why this doesn't unset
+        //printf("REQ [%"PRId64", %"PRId64"]\n", (int64_t)((int64_t)(x) + chunks->xoff), (int64_t)((int64_t)(-z) + chunks->zoff));
+        chunks->renddata[coff].requested = true;
         cliSend(CLIENT_GETCHUNK, (int64_t)((int64_t)(x) + chunks->xoff), (int64_t)((int64_t)(-z) + chunks->zoff));
     }
 }
@@ -183,8 +183,8 @@ bool doGame(char* addr, int port) {
     declareConfigKey(config, "Player", "skin", "", false);
     int viewdist = atoi(getConfigKey(config, "Game", "viewDist"));
     rendinf.chunks = allocChunks(viewdist);
-    rendinf.chunks->xoff = 0;
-    rendinf.chunks->zoff = 0;
+    //rendinf.chunks->xoff = 230;
+    //rendinf.chunks->zoff = 550;
     if (rendinf.fps || rendinf.vsync) loopdelay = atoi(getConfigKey(config, "Game", "loopDelay"));
     printf("Allocated chunks: [%d] [%d] [%d]\n", rendinf.chunks->info.dist, rendinf.chunks->info.width, rendinf.chunks->info.widthsq);
     rendinf.campos.y = 201.5;

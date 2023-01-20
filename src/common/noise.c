@@ -72,8 +72,8 @@ double perlin2d(int t, double x, double y, double freq, int depth) {
     double div = 0.0;
     for (int i = 0; i < depth; i++) {
         div += 256 * amp;
-        fin += noise2d((t + (i / 2)) % 64, xa, ya) * amp;
-        amp /= 2;
+        fin += noise2d(t, xa, ya) * amp;
+        amp /= 2.0;
         xa += xa;
         ya += ya;
     }

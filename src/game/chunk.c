@@ -141,12 +141,14 @@ void resizeChunks(struct chunkdata* chunks, int dist) {
 }
 
 static force_inline void nullattrib(struct chunkdata* chunks, int c) {
-    chunks->renddata[c].vcount[0] = 0;
-    chunks->renddata[c].vcount[1] = 0;
-    chunks->renddata[c].tcount[0] = 0;
-    chunks->renddata[c].tcount[1] = 0;
-    chunks->renddata[c].buffered = false;
-    chunks->renddata[c].generated = false;
+    if (chunks->renddata[c].generated) {
+        chunks->renddata[c].vcount[0] = 0;
+        chunks->renddata[c].vcount[1] = 0;
+        chunks->renddata[c].tcount[0] = 0;
+        chunks->renddata[c].tcount[1] = 0;
+        chunks->renddata[c].buffered = false;
+        chunks->renddata[c].generated = false;
+    }
     chunks->renddata[c].requested = false;
 }
 
@@ -180,9 +182,7 @@ void moveChunks(struct chunkdata* chunks, int cx, int cz) {
             c = z * chunks->info.width;
             chunks->data[c] = swap;
             chunks->renddata[c] = rdswap;
-            if (chunks->renddata[c].generated) {
-                nullattrib(chunks, c);
-            }
+            nullattrib(chunks, c);
         }
     }
     for (; cx > 0; --cx) { // move right (player goes left)
@@ -198,9 +198,7 @@ void moveChunks(struct chunkdata* chunks, int cx, int cz) {
             c = (chunks->info.width - 1) + z * chunks->info.width;
             chunks->data[c] = swap;
             chunks->renddata[c] = rdswap;
-            if (chunks->renddata[c].generated) {
-                nullattrib(chunks, c);
-            }
+            nullattrib(chunks, c);
         }
     }
     for (; cz < 0; ++cz) { // move forward (player goes backward)
@@ -216,9 +214,7 @@ void moveChunks(struct chunkdata* chunks, int cx, int cz) {
             c = x + (chunks->info.width - 1) * chunks->info.width;
             chunks->data[c] = swap;
             chunks->renddata[c] = rdswap;
-            if (chunks->renddata[c].generated) {
-                nullattrib(chunks, c);
-            }
+            nullattrib(chunks, c);
         }
     }
     for (; cz > 0; --cz) { // move backward (player goes forward)
@@ -234,9 +230,7 @@ void moveChunks(struct chunkdata* chunks, int cx, int cz) {
             c = x;
             chunks->data[c] = swap;
             chunks->renddata[c] = rdswap;
-            if (chunks->renddata[c].generated) {
-                nullattrib(chunks, c);
-            }
+            nullattrib(chunks, c);
         }
     }
     pthread_mutex_unlock(&chunks->lock);
