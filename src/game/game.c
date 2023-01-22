@@ -494,7 +494,7 @@ bool doGame(char* addr, int port) {
                 setVisibility(-0.75, 0.5);
                 setScreenMult(0.425, 0.6, 0.75);
             } else {
-                setVisibility(0.5, 1.0);
+                setVisibility(0.25, 1.0);
                 setScreenMult(1.0, 1.0, 1.0);
             }
             pthread_mutex_lock(&gfxlock);
