@@ -1,0 +1,15 @@
+- All data should be stored in big endian
+
+Model data: <Part data>...
+
+Part data: <char[]: Null-terminated name>
+           <float: X offset from parent center><float: Y offset from parent center><float: Z offset from parent center>
+           <uint32_t: # of indices>[<uint32_t: Index>]...
+           <uint32_t: # of vertices><Vertex data>
+           <uint32_t: # of animations>[<char[]: Null-terminated name><uint32_t: Size>[<uint8_t[]: Compressed animation assembly>]]...
+           <uint32_t: # of children>[<Part data>]...
+
+Vertex data: {<uint8_t: CCM_VERT_XYZ>[<float: X><float: Y><float: Z>]...|
+              <uint8_t: CCM_VERT_XYZUV>[<float: X><float: Y><float: Z><float: U><float: V>]...|
+              <uint8_t: CCM_VERT_XY>[<float: X><float: Y>]...|
+              <uint8_t: CCM_VERT_XYUV>[<float: X><float: Y><float: U><float: V>]...}

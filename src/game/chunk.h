@@ -13,7 +13,6 @@ struct __attribute__((packed)) blockdata {
     uint8_t rotz:2;
     uint8_t charge:4;
     uint8_t /*padding*/:8;
-    uint16_t /*padding*/:1;
     uint16_t light_r:5;
     uint16_t light_g:5;
     uint16_t light_b:5;
@@ -21,6 +20,7 @@ struct __attribute__((packed)) blockdata {
     uint16_t light_n_r:5;
     uint16_t light_n_g:5;
     uint16_t light_n_b:5;
+    uint16_t /*padding*/:1;
 };
 
 #if MODULEID == MODULEID_GAME
