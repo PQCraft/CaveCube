@@ -36,12 +36,6 @@ void initResource() {
     packct = 1;
     packs = malloc(sizeof(struct pack));
     packs[0].dir = strdup("base");
-    /*
-    packct = 2;
-    packs = malloc(sizeof(struct pack) * 2);
-    packs[0].dir = strdup("base");
-    packs[1].dir = strdup("ps1");
-    */
 }
 
 bool addResourcePack(char* dir, int pos) {
