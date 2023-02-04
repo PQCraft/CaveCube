@@ -337,6 +337,8 @@ void setFullscreen(bool fullscreen) {
     updateUIScale();
     setUniform1f(rendinf.shaderprog, "xsize", rendinf.width);
     setUniform1f(rendinf.shaderprog, "ysize", rendinf.height);
+    setShaderProg(shader_framebuffer);
+    setUniform2f(rendinf.shaderprog, "fbsize", (float[]){rendinf.width, rendinf.height});
 
     glBindTexture(GL_TEXTURE_2D, FBTEX);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, rendinf.width, rendinf.height, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
