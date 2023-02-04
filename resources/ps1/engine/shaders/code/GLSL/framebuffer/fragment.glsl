@@ -1,6 +1,7 @@
 in vec2 texCoord;
 uniform sampler2D texData;
 uniform vec3 mcolor;
+uniform int fbtype;
 
 uniform float h;
 uniform float s;
@@ -25,15 +26,19 @@ vec3 hsv2rgb(vec3 c) {
 
 void main() {
     vec2 texCoord2;
-    texCoord2.x = floor(texCoord.x * 384.0) / 384.0;
-    texCoord2.y = floor(texCoord.y * 240.0) / 240.0;
+    if (fbtype == 0) {
+        texCoord2.x = floor(texCoord.x * 320.0) / 320.0;
+        texCoord2.y = floor(texCoord.y * 240.0) / 240.0;
+    } else {
+        texCoord2 = texCoord;
+    }
     fragColor = texture(texData, texCoord2);
-    float mult = 31;
+    float mult = 31.0;
     fragColor = floor(fragColor * mult);
     fragColor /= mult;
     vec3 hsvFrag = rgb2hsv(fragColor.rgb);
-    hsvFrag.x *= (1 + h);
-    hsvFrag.y *= (1 + s);
-    hsvFrag.z *= (1 + v);
+    hsvFrag.x *= (1.0 + h);
+    hsvFrag.y *= (1.0 + s);
+    hsvFrag.z *= (1.0 + v);
     fragColor.rgb = hsv2rgb(hsvFrag) * mcolor;
 }

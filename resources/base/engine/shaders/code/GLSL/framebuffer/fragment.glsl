@@ -1,6 +1,7 @@
 in vec2 texCoord;
 uniform sampler2D texData;
 uniform vec3 mcolor;
+uniform int fbtype;
 
 uniform float h;
 uniform float s;

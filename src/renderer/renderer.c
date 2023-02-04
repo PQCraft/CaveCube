@@ -1818,6 +1818,7 @@ void render() {
 
     setShaderProg(shader_framebuffer);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "fbtype"), 0);
     glDisable(GL_DEPTH_TEST);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), FBTEXID - GL_TEXTURE0);
     setUniform3f(rendinf.shaderprog, "mcolor", (float[]){screenmult.r, screenmult.g, screenmult.b});
@@ -1834,6 +1835,7 @@ void render() {
         if (renderUI(game_ui[i])) {
             //printf("renderUI(game_ui[%d])\n", i);
             setShaderProg(shader_framebuffer);
+            glUniform1i(glGetUniformLocation(rendinf.shaderprog, "fbtype"), 1);
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
             glDisable(GL_DEPTH_TEST);
             glEnable(GL_BLEND);
