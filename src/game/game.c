@@ -95,12 +95,9 @@ static force_inline void getBlockF(struct chunkdata* chunks, int64_t xoff, int64
 }
 
 static force_inline coord_3d_dbl w2bCoord(coord_3d_dbl in) {
-    in.x -= (in.x < 0) ? 1.0 : 0.0;
-    in.y -= (in.y < 0) ? 1.0 : 0.0;
-    in.z -= (in.z < 0) ? 1.0 : 0.0;
-    in.x = (int64_t)in.x;
-    in.y = (int64_t)in.y;
-    in.z = (int64_t)in.z;
+    in.x = (int64_t)floor(in.x);
+    in.y = (int64_t)floor(in.y);
+    in.z = (int64_t)floor(in.z);
     return in;
 }
 

@@ -46,12 +46,12 @@ vec3 yiq2rgb(vec3 c) {
 }
 
 vec4 grabPixel(float x, float y, int smear) {
-    vec4 tmp = texture(texData, vec2(x / (fbsize.x - 1), y / (fbsize.y - 1)));
+    vec4 tmp = texture(texData, vec2(x / fbsize.x, y / fbsize.y));
     for (int i = smear; i > 0; --i) {
         if ((x - float(i)) < 0.0) {
             tmp += vec4(0.0, 0.0, 0.0, 0.5);
         } else {
-            tmp += texture(texData, vec2((x - float(i)) / (fbsize.x - 1), y / (fbsize.y - 1)));
+            tmp += texture(texData, vec2((x - float(i)) / fbsize.x, y / fbsize.y));
         }
     }
     tmp /= 1.0 + float(smear);
@@ -71,12 +71,12 @@ void main() {
     } else {
         texCoord2 = texCoord;
     }
-    texCoord2.x *= fbsize.x - 1;
-    texCoord2.y *= fbsize.y - 1;
+    texCoord2.x *= fbsize.x;
+    texCoord2.y *= fbsize.y;
     vec3 yiq1;
     vec4 tmp[2];
     tmp[0] = grabPixel(texCoord2.x, texCoord2.y, 2);
-    tmp[1] = grabPixel(texCoord2.x - 1.0, texCoord2.y, 15);
+    tmp[1] = grabPixel(texCoord2.x + 7.0, texCoord2.y, 25);
     tmp[0].xyz = rgb2yiq(tmp[0].rgb);
     tmp[1].xyz = rgb2yiq(tmp[1].rgb);
     fragColor.a = tmp[0].a * 0.9 + tmp[1].a * 0.1;
