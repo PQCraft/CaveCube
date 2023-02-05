@@ -1527,16 +1527,6 @@ const unsigned char* glslver;
 const unsigned char* glvend;
 const unsigned char* glrend;
 
-static force_inline coord_3d_dbl intCoord_dbl(coord_3d_dbl in) {
-    in.x -= (in.x < 0) ? 1.0 : 0.0;
-    in.y -= (in.y < 0) ? 1.0 : 0.0;
-    in.z += (in.z > 0) ? 1.0 : 0.0;
-    in.x = (int)in.x;
-    in.y = (int)in.y;
-    in.z = (int)in.z;
-    return in;
-}
-
 static resdata_texture* crosshair;
 
 static int dbgtextuih = -1;
@@ -1811,6 +1801,7 @@ void render() {
     if (debug_wireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
     glDisable(GL_CULL_FACE);
+    glDisable(GL_DEPTH_TEST);
     setShaderProg(shader_2d);
     glBindBuffer(GL_ARRAY_BUFFER, VBO2D);
     glUniform1f(glGetUniformLocation(rendinf.shaderprog, "xratio"), ((float)(crosshair->width)) / (float)rendinf.width);
@@ -1821,7 +1812,6 @@ void render() {
     setShaderProg(shader_framebuffer);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "fbtype"), 0);
-    glDisable(GL_DEPTH_TEST);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), FBTEXID - GL_TEXTURE0);
     setUniform3f(rendinf.shaderprog, "mcolor", (float[]){screenmult.r, screenmult.g, screenmult.b});
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);

@@ -32,25 +32,42 @@ struct pack {
 static int packct;
 static struct pack* packs;
 
-void initResource() {
-    packct = 1;
-    packs = malloc(sizeof(struct pack));
-    packs[0].dir = strdup("base");
-}
-
-bool addResourcePack(char* dir, int pos) {
-    (void)dir; (void)pos;
-    return true;
-}
-
-bool removeResourcePack(char* dir) {
-    (void)dir;
-    return true;
+void setResourcePacks(int ct, char** dirs) {
+    for (int i = 1; i < packct; ++i) {
+        free(packs[i].dir);
+        free(packs[i].name);
+        free(packs[i].id);
+    }
+    packct = 1 + ct;
+    packs = realloc(packs, sizeof(struct pack) * packct);
+    char* npath = malloc(MAX_PATH + 1);
+    file_data fdata;
+    for (int i = 1; i < packct; ++i) {
+        packs[i].dir = strdup(dirs[i - 1]);
+        sprintf(npath, "resources/%s/info.inf", packs[i].dir);
+        fdata = getTextFile(npath);
+        if (fdata.data) {
+            packs[i].name = getInfoVarAlloc((char*)fdata.data, "name", packs[i].dir, 256);
+            packs[i].id = getInfoVarAlloc((char*)fdata.data, "id", packs[i].dir, 256);
+            freeFile(fdata);
+        } else {
+            packs[i].name = strdup(packs[i].dir);
+            packs[i].id = strdup(packs[i].dir);
+        }
+    }
+    #if DBGLVL(1)
+    for (int i = 0; i < packct; ++i) {
+        printf("Resource pack #%d:\n", i);
+        printf("    dir: \"%s\"\n", packs[i].dir);
+        printf("    name: \"%s\"\n", packs[i].name);
+        printf("    id: \"%s\"\n", packs[i].id);
+    }
+    #endif
+    free(npath);
 }
 
 char* getResourcePath(char* path) {
-    static char* npath = NULL;
-    if (!npath) npath = malloc(MAX_PATH + 1);
+    char* npath = malloc(MAX_PATH + 1);
     for (int i = packct - 1; i >= 0; --i) {
         if (!packs[i].dir) continue;
         sprintf(npath, "resources/%s/%s", packs[i].dir, path);
@@ -103,6 +120,7 @@ void* loadResource(int type, char* path) {
     char* npath = getResourcePath(path);
     if (!npath) return NULL;
     void* data = makeResource(type, npath);
+    free(npath);
     if (!data) return NULL;
     resentry* ent = NULL;
     for (int i = 0; i < reslist.entries; ++i) {
@@ -121,8 +139,14 @@ void* loadResource(int type, char* path) {
 
 int resourceExists(char* path) {
     char* npath = getResourcePath(path);
-    if (!npath) return -1;
-    return isFile(npath);
+    int ret;
+    if (!npath) {
+        return -1;
+    } else {
+        ret = isFile(npath);
+        free(npath);
+    }
+    return ret;
 }
 
 void freeResStub(resentry* ent) {
@@ -146,6 +170,21 @@ void freeResStub(resentry* ent) {
     free(ent->data);
     ent->data = NULL;
     free(ent->path);
+}
+
+void initResource() {
+    packct = 1;
+    packs = malloc(sizeof(struct pack));
+    packs[0].dir = strdup("base");
+    char* npath = malloc(MAX_PATH + 1);
+    strcpy(npath, "resources/base/info.inf");
+    file_data data = getTextFile(npath);
+    packs[0].name = getInfoVarAlloc((char*)data.data, "name", "base", 256);
+    packs[0].id = getInfoVarAlloc((char*)data.data, "id", "base", 256);
+    freeFile(data);
+    free(npath);
+    char* extrapacks[] = {};
+    setResourcePacks(sizeof(extrapacks) / sizeof(*extrapacks), extrapacks);
 }
 
 void freeResource(void* data) {

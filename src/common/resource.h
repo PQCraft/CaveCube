@@ -43,9 +43,8 @@ enum {
 void initResource(void);
 void* loadResource(int, char*);
 int resourceExists(char*);
+void setResourcePacks(int, char**);
 void freeResource(void*);
 void freeAllResources(void);
-bool addResourcePack(char*, int);
-bool removeResourcePack(char*);
 
 #endif
