@@ -90,7 +90,7 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
             }
             for (int i = 0; i <= finalheight && i < 512; ++i) {
                 float fi = i;
-                float cave = noise3(15, cx / 19.3614, fi / (15.4386 - fi / 512.0 * 3.0), cz / 19.3614) + fabs((fi - (20.0 + caveheight * 20.0)) / (250.0 + caveheight * 150.0));
+                float cave = noise3(15, cx / 18.9614, fi / (15.7436 - fi / 512.0 * 3.0), cz / 18.9614) + fabs((fi - (20.0 + caveheight * 20.0)) / (250.0 + caveheight * 150.0));
                 if (cave < -(0.23 + fi / 512.0 * 0.05)) {
                     data[i].id = 0;
                     data[i].subid = 0;
