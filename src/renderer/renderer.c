@@ -656,7 +656,7 @@ static int light_n_tweak[6] = {0, 2, 1, 4, 2, 3};
 
 struct tricmp {
     float dist;
-    uint32_t data[24];
+    uint32_t data[12];
 };
 
 static int compare(const void* b, const void* a) {
@@ -667,11 +667,15 @@ static int compare(const void* b, const void* a) {
 
 static force_inline float dist3d(float x0, float y0, float z0, float x1, float y1, float z1) {
     float dx = x1 - x0;
+    dx *= dx;
     float dy = y1 - y0;
+    dy *= dy;
     float dz = z1 - z0;
-    return sqrt(dx * dx + dy * dy + dz * dz);
+    dz *= dz;
+    return sqrtf(dx + dy + dz);
 }
 
+//TODO: Optimize
 static force_inline void _sortChunk(int32_t c, int xoff, int zoff, bool update) {
     if (c < 0) c = (xoff + rendinf.chunks->info.dist) + (rendinf.chunks->info.width - (zoff + rendinf.chunks->info.dist) - 1) * rendinf.chunks->info.width;
     if (update) {
@@ -679,37 +683,37 @@ static force_inline void _sortChunk(int32_t c, int xoff, int zoff, bool update) 
         float camx = sc_camx - xoff * 16;
         float camy = sc_camy;
         float camz = -sc_camz - zoff * 16;
-        int32_t tmpsize = rendinf.chunks->renddata[c].tcount[1] / 3 / 2;
+        int32_t tmpsize = rendinf.chunks->renddata[c].tcount[1] / 3;
         struct tricmp* data = malloc(tmpsize * sizeof(struct tricmp));
         uint32_t* dptr = rendinf.chunks->renddata[c].sortvert;
         for (int i = 0; i < tmpsize; ++i) {
             uint32_t sv1;
             uint32_t sv2;
-            float vx = 0, vy = 0, vz = 0;
-            for (int j = 0; j < 6; ++j) {
+            float vx, vy, vz;
+            float dist = 0.0;
+            for (int j = 0; j < 3; ++j) {
                 data[i].data[0 + j * 4] = sv1 = *dptr++;
                 data[i].data[1 + j * 4] = *dptr++;
                 data[i].data[2 + j * 4] = *dptr++;
                 data[i].data[3 + j * 4] = sv2 = *dptr++;
-                vx += (float)(((sv1 >> 24) & 255) + ((sv2 >> 4) & 1)) / 16.0 - 8.0;
-                vy += (float)(((sv1 >> 8) & 65535) + ((sv2 >> 3) & 1)) / 16.0;
-                vz += (float)((sv1 & 255) + ((sv2 >> 2) & 1)) / 16.0 - 8.0;
+                vx = (float)(((sv1 >> 24) & 255) + ((sv2 >> 4) & 1)) / 16.0 - 8.0;
+                vy = (float)(((sv1 >> 8) & 65535) + ((sv2 >> 3) & 1)) / 16.0;
+                vz = (float)((sv1 & 255) + ((sv2 >> 2) & 1)) / 16.0 - 8.0;
+                float tmpdist = dist3d(camx, camy, camz, vx, vy, vz);
+                if (tmpdist > dist) dist = tmpdist;
             }
-            vx /= 6.0;
-            vy /= 6.0;
-            vz /= 6.0;
-            data[i].dist = dist3d(camx, camy, camz, vx, vy, vz);
+            data[i].dist = dist;
         }
         qsort(data, tmpsize, sizeof(struct tricmp), compare);
         dptr = rendinf.chunks->renddata[c].sortvert;
         for (int i = 0; i < tmpsize; ++i) {
-            for (int j = 0; j < 24; ++j) {
+            for (int j = 0; j < 12; ++j) {
                 *dptr++ = data[i].data[j];
             }
         }
         free(data);
         glBindBuffer(GL_ARRAY_BUFFER, rendinf.chunks->renddata[c].VBO[1]);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, tmpsize * sizeof(uint32_t) * 4 * 3 * 2, rendinf.chunks->renddata[c].sortvert);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, tmpsize * sizeof(uint32_t) * 4 * 3, rendinf.chunks->renddata[c].sortvert);
     } else {
         rendinf.chunks->renddata[c].remesh[1] = true;
         rendinf.chunks->renddata[c].ready = true;
