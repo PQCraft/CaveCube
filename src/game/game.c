@@ -126,7 +126,7 @@ static void handleServer(int msg, void* _data) {
     //printf("Recieved [%d] from server\n", msg);
     switch (msg) {
         case SERVER_PONG:; {
-            printf("Server ponged\n");
+            //printf("Server ponged\n");
             ping = true;
         } break;
         case SERVER_COMPATINFO:; {
@@ -134,7 +134,18 @@ static void handleServer(int msg, void* _data) {
             printf("Server version is %s %d.%d.%d\n", data->server_str, data->ver_major, data->ver_minor, data->ver_patch);
             if (data->flags & SERVER_FLAG_NOAUTH) puts("- No authentication required");
             if (data->flags & SERVER_FLAG_PASSWD) puts("- Password protected");
-            compat = (!strcasecmp(data->server_str, PROG_NAME) && data->ver_major == VER_MAJOR && data->ver_minor == VER_MINOR && data->ver_patch == VER_PATCH) ? 1 : -1;
+            if (strcasecmp(data->server_str, PROG_NAME)) {
+                printf("Incompatible game (%s (server) != %s (client))\n", data->server_str, PROG_NAME);
+                compat = -1;
+            } else if (data->ver_major != VER_MAJOR || data->ver_minor != VER_MINOR || data->ver_patch != VER_PATCH) {
+                printf("Incompatible game version (%d.%d.%d (server) != %d.%d.%d (client))\n",
+                    data->ver_major, data->ver_minor, data->ver_patch,
+                    VER_MAJOR, VER_MINOR, VER_PATCH
+                );
+                compat = -1;
+            } else {
+                compat = 1;
+            }
         } break;
         case SERVER_UPDATECHUNK:; {
             struct server_data_updatechunk* data = _data;
@@ -213,7 +224,7 @@ bool doGame(char* addr, int port) {
         microwait(100000);
     }
     if (compat < 0) {
-        fputs("Server version mismatch\n", stderr);
+        fputs("Server compatibility error\n", stderr);
         return false;
     }
     if (quitRequest) return false;

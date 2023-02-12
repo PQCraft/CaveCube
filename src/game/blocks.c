@@ -61,9 +61,9 @@ void initBlocks() {
                 }
             }
             blockinf[i].data[j].anidiv = atoi(getInfoVarStatic((char*)varcfg->data, "animationdiv", "1", 16));
-            blockinf[i].data[j].light_r = atoi(getInfoVarStatic((char*)varcfg->data, "light_r", "0", 16));
-            blockinf[i].data[j].light_g = atoi(getInfoVarStatic((char*)varcfg->data, "light_g", "0", 16));
-            blockinf[i].data[j].light_b = atoi(getInfoVarStatic((char*)varcfg->data, "light_b", "0", 16));
+            blockinf[i].data[j].light_r = atof(getInfoVarStatic((char*)varcfg->data, "light_r", "0", 16));
+            blockinf[i].data[j].light_g = atof(getInfoVarStatic((char*)varcfg->data, "light_g", "0", 16));
+            blockinf[i].data[j].light_b = atof(getInfoVarStatic((char*)varcfg->data, "light_b", "0", 16));
             blockinf[i].data[j].backfaces = getBool(getInfoVarStatic((char*)varcfg->data, "backfaces", "false", 16));
             freeResource(varcfg);
             #if DBGLVL(1)

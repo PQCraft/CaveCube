@@ -8,12 +8,14 @@
 struct config_key {
     char* name;
     char* value;
+    bool changed;
 };
 
 struct config_sect {
     char* name;
     int keys;
     struct config_key* keydata;
+    bool changed;
 };
 
 struct config {

@@ -2,8 +2,8 @@
 #define MAIN_VERSION_H
 
 #define VER_MAJOR 0
-#define VER_MINOR 5
-#define VER_PATCH 5
+#define VER_MINOR 6
+#define VER_PATCH 0
 
 #define _STR(x) #x
 #define STR(x) _STR(x)
