@@ -1,0 +1,107 @@
+[Renderer]
+compositing = true
+resolution = 1024x768
+fullScreenRes = 
+vSync = true
+fullScreen = false
+FOV = 85
+nearPlane = 0.05
+farPlane = 2500
+lazyMesher = false
+
+[Game]
+viewDist = 8
+loopDelay = 1000
+
+[Player]
+name = Player
+skin = 
+
+[Input]
+xSen = 1
+ySen = 1
+rawMouse = true
+
+[GLFW Keybinds]
+move.forward = k,b,87;\0,\0,0
+move.backward = k,b,83;\0,\0,0
+move.left = k,b,65;\0,\0,0
+move.right = k,b,68;\0,\0,0
+move.lookUp = m,m,1;\0,\0,0
+move.lookDown = \0,\0,0;\0,\0,0
+move.lookLeft = \0,\0,0;\0,\0,0
+move.lookRight = m,m,0;\0,\0,0
+multi.place = m,b,0;\0,\0,0
+multi.destroy = m,b,1;\0,\0,0
+multi.pick = m,b,2;\0,\0,0
+multi.zoom = k,b,90;\0,\0,0
+multi.jump = k,b,32;\0,\0,0
+multi.crouch = k,b,340;k,b,344
+multi.run = k,b,341;k,b,345
+multi.playerlist = k,b,258;\0,\0,0
+multi.debug = k,b,293;\0,\0,0
+single.escape = k,b,256;\0,\0,0
+single.inventory = k,b,73;\0,\0,0
+single.invSlot0 = k,b,49;\0,\0,0
+single.invSlot1 = k,b,50;\0,\0,0
+single.invSlot2 = k,b,51;\0,\0,0
+single.invSlot3 = k,b,52;\0,\0,0
+single.invSlot4 = k,b,53;\0,\0,0
+single.invSlot5 = k,b,54;\0,\0,0
+single.invSlot6 = k,b,55;\0,\0,0
+single.invSlot7 = k,b,56;\0,\0,0
+single.invSlot8 = k,b,57;\0,\0,0
+single.invSlot9 = k,b,48;\0,\0,0
+single.invNext = k,b,93;m,w,1
+single.invPrev = k,b,91;m,w,-1
+single.invShiftUp = k,b,61;\0,\0,0
+single.invShiftDown = k,b,45;\0,\0,0
+single.rotBlockX = k,b,82;\0,\0,0
+single.rotBlockY = k,b,70;\0,\0,0
+single.rotBlockZ = k,b,67;\0,\0,0
+single.chat = k,b,84;\0,\0,0
+single.command = k,b,47;\0,\0,0
+single.fullscreen = k,b,300;\0,\0,0
+single.debug = k,b,292;\0,\0,0
+
+[SDL2 Keybinds]
+move.forward = k,b,26;\0,\0,0
+move.backward = k,b,22;\0,\0,0
+move.left = k,b,4;\0,\0,0
+move.right = k,b,7;\0,\0,0
+move.lookUp = m,m,1;\0,\0,0
+move.lookDown = \0,\0,0;\0,\0,0
+move.lookLeft = \0,\0,0;\0,\0,0
+move.lookRight = m,m,0;\0,\0,0
+multi.place = m,b,1;\0,\0,0
+multi.destroy = m,b,4;\0,\0,0
+multi.pick = m,b,2;\0,\0,0
+multi.zoom = k,b,29;\0,\0,0
+multi.jump = k,b,44;\0,\0,0
+multi.crouch = k,b,225;k,b,229
+multi.run = k,b,224;k,b,228
+multi.playerlist = k,b,43;\0,\0,0
+multi.debug = k,b,61;\0,\0,0
+single.escape = k,b,41;\0,\0,0
+single.inventory = k,b,12;\0,\0,0
+single.invSlot0 = k,b,30;\0,\0,0
+single.invSlot1 = k,b,31;\0,\0,0
+single.invSlot2 = k,b,32;\0,\0,0
+single.invSlot3 = k,b,33;\0,\0,0
+single.invSlot4 = k,b,34;\0,\0,0
+single.invSlot5 = k,b,35;\0,\0,0
+single.invSlot6 = k,b,36;\0,\0,0
+single.invSlot7 = k,b,37;\0,\0,0
+single.invSlot8 = k,b,38;\0,\0,0
+single.invSlot9 = k,b,39;\0,\0,0
+single.invNext = k,b,48;m,w,1
+single.invPrev = k,b,47;m,w,-1
+single.invShiftUp = k,b,46;\0,\0,0
+single.invShiftDown = k,b,45;\0,\0,0
+single.rotBlockX = k,b,21;\0,\0,0
+single.rotBlockY = k,b,9;\0,\0,0
+single.rotBlockZ = k,b,6;\0,\0,0
+single.chat = k,b,23;\0,\0,0
+single.command = k,b,56;\0,\0,0
+single.fullscreen = k,b,68;\0,\0,0
+single.debug = k,b,60;\0,\0,0

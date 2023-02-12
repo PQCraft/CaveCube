@@ -41,13 +41,19 @@ void declareConfigKey(struct config* cfg, char* sect, char* key, char* val, bool
         memset(&cfg->sectdata[secti].keydata[keyi], 0, sizeof(*cfg->sectdata[secti].keydata));
         cfg->sectdata[secti].keydata[keyi].name = strdup(key);
         cfg->sectdata[secti].keydata[keyi].value = strdup(val);
-        cfg->changed = true;
+        if (overwrite) {
+            cfg->sectdata[secti].keydata[keyi].changed = true;
+            cfg->sectdata[secti].changed = true;
+            cfg->changed = true;
+        }
     } else if (overwrite) {
         #if DBGLVL(1)
         printf("Rewriting key {%s} in section {%s} with old value {%s} with new value {%s}...\n", key, sect, cfg->sectdata[secti].keydata[keyi].value, val);
         #endif
         free(cfg->sectdata[secti].keydata[keyi].value);
         cfg->sectdata[secti].keydata[keyi].value = strdup(val);
+        cfg->sectdata[secti].keydata[keyi].changed = true;
+        cfg->sectdata[secti].changed = true;
         cfg->changed = true;
     }
 }
@@ -283,6 +289,7 @@ struct config* openConfig(char* path) {
 
 static force_inline void writeKeys(struct config* cfg, int i, FILE* outfile) {
     for (int j = 0; j < cfg->sectdata[i].keys; ++j) {
+        if (!cfg->sectdata[i].keydata[j].changed) continue;
         fputs(cfg->sectdata[i].keydata[j].name, outfile);
         fputs(" = ", outfile);
         bool q = false;
@@ -367,12 +374,12 @@ bool writeConfig(struct config* cfg, char* name) {
     }
     bool first = true;
     for (int i = 0; i < cfg->sects; ++i) {
-        if (!cfg->sectdata[i].keys || *cfg->sectdata[i].name) continue;
+        if (!cfg->sectdata[i].keys || *cfg->sectdata[i].name || !cfg->sectdata[i].changed) continue;
         writeKeys(cfg, i, outfile);
         first = false;
     }
     for (int i = 0; i < cfg->sects; ++i) {
-        if (!cfg->sectdata[i].keys || !*cfg->sectdata[i].name) continue;
+        if (!cfg->sectdata[i].keys || !*cfg->sectdata[i].name || !cfg->sectdata[i].changed) continue;
         if (first) {first = false;} else {fputc('\n', outfile);}
         fputc('[', outfile);
         fputs(cfg->sectdata[i].name, outfile);

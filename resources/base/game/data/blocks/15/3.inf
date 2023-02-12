@@ -1,5 +1,5 @@
 name=Photonium Ore
 id=photonium
 texa=.0
-light_r=1
-light_g=2
+light_r=0.1
+light_g=0.1

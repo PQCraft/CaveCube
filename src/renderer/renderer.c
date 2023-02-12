@@ -2073,6 +2073,7 @@ bool startRenderer() {
     }
     #endif
 
+    #if DBGLVL(1)
     GLint range[2];
     glGetIntegerv(GL_ALIASED_LINE_WIDTH_RANGE, range);
     printf("GL_ALIASED_LINE_WIDTH_RANGE: [%d, %d]\n", range[0], range[1]);
@@ -2083,6 +2084,7 @@ bool startRenderer() {
     GLint texunits;
     glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &texunits);
     printf("GL_MAX_TEXTURE_IMAGE_UNITS: [%d]\n", texunits);
+    #endif
 
     #if defined(USEGLES)
     char* hdrpath = "engine/shaders/headers/OpenGL ES/header.glsl";

@@ -2,7 +2,9 @@
 - Next version: 0.6.0
 
 ### NEED TO DO:
+- Decrustify doGame
 - Implement server chunk cache/pool
+- Add back block placement
 - Implement world saves in `src/server/saves.(c|h)`
 - Flesh out UI
     - More UI elements (buttons, text boxes, etc)
@@ -38,7 +40,7 @@
 - Make updateChunks() use a message list
 
 ### IN-PROGRESS:
-- Translate blocks into a standard uin64_t when transferring over the network (bitfields are unreliable)
+- Translate blocks into a standard uint64_t when transferring over the network (bitfields are unreliable)
 - Redoing worldgen
 - Add physics in `src/physics/`
     - Use ticks https://gafferongames.com/post/fix_your_timestep/ and add interpolation
@@ -57,3 +59,4 @@
 - Changed bedrock texture
 - Increased world height to 512
 - Added cave culling
+- Improve config loading

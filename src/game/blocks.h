@@ -14,9 +14,9 @@ struct blockinfo_data {
     uint16_t texoff[6];
     uint8_t anict[6];
     uint8_t anidiv;
-    uint8_t light_r:4;
-    uint8_t light_g:4;
-    uint8_t light_b:4;
+    float light_r;
+    float light_g;
+    float light_b;
     bool backfaces;
 };
 
