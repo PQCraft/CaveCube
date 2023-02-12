@@ -1146,7 +1146,7 @@ static bool opaqueUpdate = false;
 void updateChunks() {
     pthread_mutex_lock(&rendinf.chunks->lock);
     for (uint32_t c = 0; !quitRequest && c < rendinf.chunks->info.widthsq; ++c) {
-        if (!rendinf.chunks->renddata[c].ready || !rendinf.chunks->renddata[c].visfull) continue;
+        if (!rendinf.chunks->renddata[c].ready/* || !rendinf.chunks->renddata[c].visfull*/) continue;
         if (!rendinf.chunks->renddata[c].init) {
             glGenBuffers(2, rendinf.chunks->renddata[c].VBO);
             rendinf.chunks->renddata[c].init = true;
@@ -1761,25 +1761,35 @@ void render() {
     glEnable(GL_CULL_FACE);
     int32_t rendc = 0;
     if (debug_wireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    avec2 coord;
+    avec2 corner1;
+    avec2 corner2;
     for (int32_t c = rendinf.chunks->info.widthsq - 1; c >= 0; --c) {
         rendc = rendinf.chunks->rordr[c].c;
-        avec2 coord = {(int)(rendc % rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist, (int)(rendc / rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist};
-        if (!(rendinf.chunks->renddata[rendc].visfull = isVisible(&frust, coord[0] * 16 - 8, 0, coord[1] * 16 - 8, coord[0] * 16 + 8, 512, coord[1] * 16 + 8))) continue;
-        if (!rendinf.chunks->renddata[rendc].buffered) continue;
-        if (rendinf.chunks->renddata[rendc].tcount[0]) {
-            setUniform2f(rendinf.shaderprog, "ccoord", coord);
-            glBindBuffer(GL_ARRAY_BUFFER, rendinf.chunks->renddata[rendc].VBO[0]);
-            glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(0));
-            glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(sizeof(uint32_t)));
-            glVertexAttribIPointer(2, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * 2));
-            glVertexAttribIPointer(3, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * 3));
-            for (int y = 31; y >= 0; --y) {
-                if (!debug_nocavecull) {
-                    if (!(rendinf.chunks->renddata[rendc].visible & (1 << y))) continue;
-                }
-                if (!isVisible(&frust, coord[0] * 16 - 8, y * 16, coord[1] * 16 - 8, coord[0] * 16 + 8, (y + 1) * 16, coord[1] * 16 + 8)) continue;
-                if (rendinf.chunks->renddata[rendc].ytcount[y]) {
-                    glDrawArrays(GL_TRIANGLES, rendinf.chunks->renddata[rendc].ytoff[y], rendinf.chunks->renddata[rendc].ytcount[y]);
+        coord[0] = (int)(rendc % rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist;
+        coord[1] = (int)(rendc / rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist;
+        corner1[0] = coord[0] * 16.0 - 8.0;
+        corner1[1] = coord[1] * 16.0 + 8.0;
+        corner2[0] = coord[0] * 16.0 + 8.0;
+        corner2[1] = coord[1] * 16.0 - 8.0;
+        if ((rendinf.chunks->renddata[rendc].visfull = isVisible(&frust, corner1[0], 512.0, corner1[1], corner2[0], 0.0, corner2[1]))) {
+            if (rendinf.chunks->renddata[rendc].buffered) {
+                if (rendinf.chunks->renddata[rendc].tcount[0]) {
+                    coord[0] = (int)(rendc % rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist;
+                    coord[1] = (int)(rendc / rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist;
+                    setUniform2f(rendinf.shaderprog, "ccoord", coord);
+                    glBindBuffer(GL_ARRAY_BUFFER, rendinf.chunks->renddata[rendc].VBO[0]);
+                    glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(0));
+                    glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(sizeof(uint32_t)));
+                    glVertexAttribIPointer(2, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * 2));
+                    glVertexAttribIPointer(3, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * 3));
+                    for (int y = 31; y >= 0; --y) {
+                        if ((!debug_nocavecull && !(rendinf.chunks->renddata[rendc].visible & (1 << y))) || !rendinf.chunks->renddata[rendc].ytcount[y]) continue;
+                        if (isVisible(&frust, corner1[0], y * 16.0, corner1[1], corner2[0], (y + 1) * 16.0, corner2[1])) {
+                            //printf("REND OPAQUE: [%d]:[%d]\n", rendc, y);
+                            glDrawArrays(GL_TRIANGLES, rendinf.chunks->renddata[rendc].ytoff[y], rendinf.chunks->renddata[rendc].ytcount[y]);
+                        }
+                    }
                 }
             }
         }
@@ -1787,10 +1797,10 @@ void render() {
     glDepthMask(false);
     for (int32_t c = 0; c < (int)rendinf.chunks->info.widthsq; ++c) {
         rendc = rendinf.chunks->rordr[c].c;
-        if (!rendinf.chunks->renddata[rendc].buffered) continue;
-        if (rendinf.chunks->renddata[rendc].visfull) {
+        if (rendinf.chunks->renddata[rendc].visfull && rendinf.chunks->renddata[rendc].buffered) {
             if (rendinf.chunks->renddata[rendc].tcount[1]) {
-                avec2 coord = {(int)(rendc % rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist, (int)(rendc / rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist};
+                coord[0] = (int)(rendc % rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist;
+                coord[1] = (int)(rendc / rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist;
                 setUniform2f(rendinf.shaderprog, "ccoord", coord);
                 glBindBuffer(GL_ARRAY_BUFFER, rendinf.chunks->renddata[rendc].VBO[1]);
                 glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(0));
