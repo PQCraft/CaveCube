@@ -48,15 +48,3 @@
     - Add raycasting in `raycasting.(c|h)`
 
 ### DONE:
-- Redid logo
-- Decrustified some chunkdata stuff
-- Added view distance resizing
-- Added a lazy meshing option
-- Optimized chunk requests
-- Added natural lighting
-- Made the random number algorithm slightly more random
-- Changed lighting from 12-bit RGB (R4G4B4) to 15-bit RGB (R5G5B5)
-- Changed bedrock texture
-- Increased world height to 512
-- Added cave culling
-- Improve config loading

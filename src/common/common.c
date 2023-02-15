@@ -285,11 +285,19 @@ file_data getBinFile(char* name) {
 
 file_data getTextFile(char* name) {
     file_data file = getFile(name, "r");
-    if ((file.size > 0 && file.data[file.size - 1]) || file.size == 0) {
-        ++file.size;
-        file.data = realloc(file.data, file.size);
-        file.data[file.size - 1] = 0;
+    char* newdata = malloc(file.size + 1);
+    int newsize = 0;
+    for (int i = 0; i < file.size && file.data[i]; ++i) {
+        if (file.data[i] != '\r') {
+            newdata[newsize++] = file.data[i];
+        }
     }
+    newdata[newsize++] = 0;
+    newdata = realloc(newdata, newsize);
+    free(file.data);
+    file.data = (unsigned char*)newdata;
+    file.size = newsize;
+    //printf("getTextFile: %s:\n%s\n", name, newdata);
     return file;
 }
 

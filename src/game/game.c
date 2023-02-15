@@ -498,7 +498,7 @@ bool doGame(char* addr, int port) {
             else if (run) rendinf.camfov += ((input.mov_up > 0.0) ? input.mov_up : 0.0) * 1.25;
             struct blockdata curbdata;
             getBlockF(rendinf.chunks, rendinf.chunks->xoff, rendinf.chunks->zoff, rendinf.campos.x, rendinf.campos.y, rendinf.campos.z, &curbdata);
-            if (false && curbdata.id == 7) {
+            if (curbdata.id == 7) {
                 setVisibility(-0.75, 0.5);
                 setScreenMult(0.425, 0.6, 0.75);
             } else {

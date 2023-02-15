@@ -22,5 +22,5 @@ void main() {
     float fogdmin = (float(dist) * 16.0) * fogNear;
     float fogdmax = (float(dist) * 16.0) * fogFar;
     fragColor.rgb *= light;
-    fragColor = mix(fragColor, vec4(skycolor, fragColor.a), 1.0 - clamp((fogdmax - fogdist) / (fogdmax - fogdmin), 0.0, 1.0));
+    fragColor = mix(vec4(skycolor, fragColor.a), fragColor, clamp((fogdmax - fogdist) / (fogdmax - fogdmin), 0.0, 1.0));
 }
