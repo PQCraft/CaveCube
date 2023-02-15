@@ -741,6 +741,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
     pthread_mutex_unlock(&rendinf.chunks->lock);
     //printf("mesh: [%"PRId64", %"PRId64"]\n", x, z);
     //uint64_t stime = altutime();
+    //uint64_t secttime[4] = {0};
     int vpsize = 65536;
     int vpsize2 = 65536;
     uint32_t* _vptr = malloc(vpsize * sizeof(uint32_t));
@@ -751,6 +752,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
     uint32_t* vptr2 = _vptr2;
     uint32_t baseVert[4];
     int maxy = 511;
+    //secttime[0] = altutime();
     pthread_mutex_lock(&rendinf.chunks->lock);
     nx = (x - rendinf.chunks->xoff) + rendinf.chunks->info.dist;
     nz = rendinf.chunks->info.width - ((z - rendinf.chunks->zoff) + rendinf.chunks->info.dist) - 1;
@@ -781,12 +783,15 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
         //printf("PREP: [%"PRId64", %"PRId64"]\n", nx, nz);
         memset(rendinf.chunks->renddata[c].vispass, 1, sizeof(rendinf.chunks->renddata[c].vispass));
     }
+    //secttime[0] = altutime() - secttime[0];
     maxy /= 16;
     int ychunk = maxy;
     maxy *= 16;
     pthread_mutex_unlock(&rendinf.chunks->lock);
     uint32_t vplenold = 0;
     for (; maxy >= 0; maxy -= 16) {
+        //uint64_t secttime2[2];
+        //secttime2[0] = altutime();
         pthread_mutex_lock(&rendinf.chunks->lock);
         nx = (x - rendinf.chunks->xoff) + rendinf.chunks->info.dist;
         nz = rendinf.chunks->info.width - ((z - rendinf.chunks->zoff) + rendinf.chunks->info.dist) - 1;
@@ -873,6 +878,8 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
                 }
             }
         }
+        //secttime2[0] = altutime() - secttime2[0];
+        //secttime2[1] = altutime();
         pthread_mutex_unlock(&rendinf.chunks->lock);
         struct pq {
             uint8_t x;
@@ -1000,6 +1007,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
                 }
             }
         }
+        //secttime2[1] = altutime() - secttime2[1];
         /*
         {
             printf("VISPASS [%"PRId64", %d, %"PRId64"]:\n", nx, ychunk, nz);
@@ -1011,6 +1019,8 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
             }
         }
         */
+        //secttime[1] += secttime2[0];
+        //secttime[2] += secttime2[1];
         rendinf.chunks->renddata[c].yvoff[ychunk] = vplenold;
         rendinf.chunks->renddata[c].yvcount[ychunk] = vplen - vplenold;
         //printf("[%d]: [%d]: [%u][%u]\n", c, ychunk, rendinf.chunks->renddata[c].yvoff[ychunk], rendinf.chunks->renddata[c].yvcount[ychunk]);
@@ -1044,6 +1054,12 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
         /*
         double time = (altutime() - stime) / 1000.0;
         printf("meshed: [%"PRId64", %"PRId64"] in [%lgms]\n", x, z, time);
+        time = secttime[0] / 1000.0;
+        printf("    find low: [%lgms]\n", time);
+        time = secttime[1] / 1000.0;
+        printf("    mesh: [%lgms]\n", time);
+        time = secttime[2] / 1000.0;
+        printf("    flood fill: [%lgms]\n", time);
         */
     } else {
         microwait(1000); // anti-stutter
@@ -1686,7 +1702,8 @@ void render() {
 
         opaqueUpdate = false;
 
-        posqueue = malloc((rendinf.chunks->info.width * 6) * sizeof(*posqueue));
+        int w = (rendinf.chunks->info.width < 5) ? 5 : rendinf.chunks->info.width;
+        posqueue = malloc((w * 6) * sizeof(*posqueue));
         pqptr = 0;
         visited = calloc(rendinf.chunks->info.widthsq * 34, 1);
         visited += rendinf.chunks->info.widthsq;
@@ -1757,13 +1774,14 @@ void render() {
 
     pthread_mutex_unlock(&rendinf.chunks->lock);
 
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
     int32_t rendc = 0;
-    if (debug_wireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     avec2 coord;
     avec2 corner1;
     avec2 corner2;
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glDisable(GL_BLEND);
+    if (debug_wireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     for (int32_t c = rendinf.chunks->info.widthsq - 1; c >= 0; --c) {
         rendc = rendinf.chunks->rordr[c].c;
         coord[0] = (int)(rendc % rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist;
@@ -1794,6 +1812,7 @@ void render() {
             }
         }
     }
+    glEnable(GL_BLEND);
     glDepthMask(false);
     for (int32_t c = 0; c < (int)rendinf.chunks->info.widthsq; ++c) {
         rendc = rendinf.chunks->rordr[c].c;

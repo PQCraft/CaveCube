@@ -86,14 +86,6 @@ struct model_renddata {
     resdata_texture* texture;
 };
 
-struct model {
-    coord_3d pos;
-    coord_3d rot;
-    coord_3d scale;
-    resdata_bmd* model;
-    struct model_renddata* renddata;
-};
-
 enum {
     CVIS_UP,
     CVIS_RIGHT,
@@ -158,7 +150,6 @@ bool startRenderer(void);
 void stopRenderer(void);
 void createTexture(unsigned char*, resdata_texture*);
 void destroyTexture(resdata_texture*);
-struct model* loadModel(char*, char**);
 void updateCam(void);
 void updateScreen(void);
 void setMeshChunks(void*);
