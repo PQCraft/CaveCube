@@ -325,7 +325,7 @@ enum {
     _SERVER_USERDISCONNECT,
 };
 
-static int worldtype = 0;
+static int worldtype = 1;
 
 static pthread_t servpthreads[MAX_THREADS];
 
