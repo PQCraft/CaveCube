@@ -473,9 +473,7 @@ static force_inline void rendGetBlock(int cx, int cz, int x, int y, int z, struc
         b->light_r = 0;
         b->light_g = 0;
         b->light_b = 0;
-        b->light_n_r = 31;
-        b->light_n_g = 31;
-        b->light_n_b = 31;
+        b->light_n = 31;
         return;
     }
     cx += x / 16 - (x < 0);
@@ -486,9 +484,7 @@ static force_inline void rendGetBlock(int cx, int cz, int x, int y, int z, struc
         b->light_r = 0;
         b->light_g = 0;
         b->light_b = 0;
-        b->light_n_r = 31;
-        b->light_n_g = 31;
-        b->light_n_b = 31;
+        b->light_n = 31;
         return;
     }
     x &= 0xF;
@@ -500,9 +496,7 @@ static force_inline void rendGetBlock(int cx, int cz, int x, int y, int z, struc
         b->light_r = 0;
         b->light_g = 0;
         b->light_b = 0;
-        b->light_n_r = 31;
-        b->light_n_g = 31;
-        b->light_n_b = 31;
+        b->light_n = 31;
         return;
     }
     *b = rendinf.chunks->data[c][y * 256 + z * 16 + x];
@@ -836,14 +830,9 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
 
                         baseVert[0] = ((x << 28) | (y << 12) | (z << 4)) & 0xF0FFF0F0;
 
-                        int16_t light_n_r = bdata2[i].light_n_r - light_n_tweak[i];
-                        if (light_n_r < 0) light_n_r = 0;
-                        int16_t light_n_g = bdata2[i].light_n_g - light_n_tweak[i];
-                        if (light_n_g < 0) light_n_g = 0;
-                        int16_t light_n_b = bdata2[i].light_n_b - light_n_tweak[i];
-                        if (light_n_b < 0) light_n_b = 0;
-                        baseVert[1] = (bdata2[i].light_r << 26) | (bdata2[i].light_g << 21) | (bdata2[i].light_b << 16);
-                        baseVert[1] |= (light_n_r << 10) | (light_n_g << 5) | (light_n_b);
+                        int16_t light_n = bdata2[i].light_n - light_n_tweak[i];
+                        if (light_n < 0) light_n = 0;
+                        baseVert[1] = (bdata2[i].light_r << 24) | (bdata2[i].light_g << 16) | (bdata2[i].light_b << 8) | light_n;
 
                         baseVert[2] = ((blockinf[bdata.id].data[bdata.subid].texoff[i] << 16) & 0xFFFF0000);
                         baseVert[2] |= ((blockinf[bdata.id].data[bdata.subid].anict[i] << 8) & 0xFF00);
@@ -1612,6 +1601,8 @@ static force_inline bool pqvisit(struct pq* p, int x, int y, int z, int face) {
     return true;
 }
 
+int cavecull;
+
 void render() {
     if (showDebugInfo) {
         static char tbuf[1][32768];
@@ -1745,23 +1736,24 @@ void render() {
                 for (int y = 0; y < 32; ++y) {
                     if (visited[x + z * rendinf.chunks->info.width + y * rendinf.chunks->info.widthsq]) {
                         setvis(x, y, z);
-                        setvis(x + 1, y, z);
-                        setvis(x - 1, y, z);
-                        setvis(x, y + 1, z);
-                        setvis(x, y - 1, z);
-                        setvis(x, y, z + 1);
-                        setvis(x, y, z - 1);
-
-                        /*
-                        setvis(x + 1, y + 1, z + 1);
-                        setvis(x - 1, y + 1, z + 1);
-                        setvis(x + 1, y - 1, z + 1);
-                        setvis(x - 1, y - 1, z + 1);
-                        setvis(x + 1, y + 1, z - 1);
-                        setvis(x - 1, y + 1, z - 1);
-                        setvis(x + 1, y - 1, z - 1);
-                        setvis(x - 1, y - 1, z - 1);
-                        */
+                        if (cavecull >= 1) {
+                            setvis(x + 1, y, z);
+                            setvis(x - 1, y, z);
+                            setvis(x, y + 1, z);
+                            setvis(x, y - 1, z);
+                            setvis(x, y, z + 1);
+                            setvis(x, y, z - 1);
+                            if (cavecull >= 2) {
+                                setvis(x + 1, y + 1, z + 1);
+                                setvis(x - 1, y + 1, z + 1);
+                                setvis(x + 1, y - 1, z + 1);
+                                setvis(x - 1, y - 1, z + 1);
+                                setvis(x + 1, y + 1, z - 1);
+                                setvis(x - 1, y + 1, z - 1);
+                                setvis(x + 1, y - 1, z - 1);
+                                setvis(x - 1, y - 1, z - 1);
+                            }
+                        }
                     }
                 }
             }
@@ -1931,9 +1923,12 @@ bool initRenderer() {
     declareConfigKey(config, "Renderer", "nearPlane", "0.05", false);
     declareConfigKey(config, "Renderer", "farPlane", "2500", false);
     declareConfigKey(config, "Renderer", "lazyMesher", "false", false);
+    declareConfigKey(config, "Renderer", "caveCullLevel", "1", false);
 
     rendinf.campos = GFX_DEFAULT_POS;
     rendinf.camrot = GFX_DEFAULT_ROT;
+
+    cavecull = atoi(getConfigKey(config, "Renderer", "caveCullLevel"));
 
     #if defined(USESDL2)
     SDL_SetHint(SDL_HINT_NO_SIGNAL_HANDLERS, "1");

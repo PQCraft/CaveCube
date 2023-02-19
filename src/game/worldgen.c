@@ -134,9 +134,7 @@ void genChunk(int64_t cx, int64_t cz, struct blockdata* data, int type) {
                 *tdata = (struct blockdata){
                     .id = sliver[i].id,
                     .subid = sliver[i].subid,
-                    .light_n_r = 30,
-                    .light_n_g = 30,
-                    .light_n_b = 30
+                    .light_n = 30
                 };
                 /*
                 ((uint64_t*)tdata)[0] = getRandQWord(15);

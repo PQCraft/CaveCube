@@ -48,3 +48,4 @@
     - Add raycasting in `raycasting.(c|h)`
 
 ### DONE:
+- Made natural light monochrome to save bits
