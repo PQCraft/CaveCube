@@ -4,6 +4,9 @@
 ### NEED TO DO:
 - Translate block structs into a standard format when transferring over the network (bitfields are unreliable)
 - Redo worldgen
+    - Add better caves
+    - Add mountains
+    - Add rivers
 - Add physics in `src/physics/`
     - Use ticks https://gafferongames.com/post/fix_your_timestep/ and add interpolation
     - Add AABB collision in `collision.(c|h)`
