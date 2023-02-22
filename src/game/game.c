@@ -122,31 +122,20 @@ static color newskycolor;
 static bool setnatcolor = false;
 static color newnatcolor;
 
+static int shouldQuit() {
+    getInput(NULL);
+    return quitRequest;
+}
+
 static void handleServer(int msg, void* _data) {
     //printf("Recieved [%d] from server\n", msg);
     switch (msg) {
+        /*
         case SERVER_PONG:; {
             //printf("Server ponged\n");
             ping = true;
         } break;
-        case SERVER_COMPATINFO:; {
-            struct server_data_compatinfo* data = _data;
-            printf("Server version is %s %d.%d.%d\n", data->server_str, data->ver_major, data->ver_minor, data->ver_patch);
-            if (data->flags & SERVER_FLAG_NOAUTH) puts("- No authentication required");
-            if (data->flags & SERVER_FLAG_PASSWD) puts("- Password protected");
-            if (strcasecmp(data->server_str, PROG_NAME)) {
-                printf("Incompatible game (%s (server) != %s (client))\n", data->server_str, PROG_NAME);
-                compat = -1;
-            } else if (data->ver_major != VER_MAJOR || data->ver_minor != VER_MINOR || data->ver_patch != VER_PATCH) {
-                printf("Incompatible game version (%d.%d.%d (server) != %d.%d.%d (client))\n",
-                    data->ver_major, data->ver_minor, data->ver_patch,
-                    VER_MAJOR, VER_MINOR, VER_PATCH
-                );
-                compat = -1;
-            } else {
-                compat = 1;
-            }
-        } break;
+        */
         case SERVER_UPDATECHUNK:; {
             struct server_data_updatechunk* data = _data;
             writeChunk(rendinf.chunks, data->x, data->z, data->data);
@@ -199,34 +188,14 @@ bool doGame(char* addr, int port) {
     initInput();
     float pmult = posmult;
     puts("Connecting to server...");
-    if (!cliConnect((addr) ? addr : "127.0.0.1", port, handleServer)) {
-        fputs("Failed to connect to server\n", stderr);
-        return false;
+    {
+        char err[4096];
+        if (!cliConnectAndSetup((addr) ? addr : "127.0.0.1", port, handleServer, err, sizeof(err), shouldQuit)) {
+            fprintf(stderr, "Failed to connect to server: %s\n", err);
+            return false;
+        }
     }
-    puts("Sending ping...");
-    cliSend(CLIENT_PING);
-    while (!ping && !quitRequest) {
-        #ifdef __EMSCRIPTEN__
-        emscripten_sleep(0);
-        #endif
-        getInput(NULL);
-        microwait(100000);
-    }
-    if (quitRequest) return false;
-    puts("Server responded to ping");
-    puts("Exchanging compatibility info...");
-    cliSend(CLIENT_COMPATINFO, VER_MAJOR, VER_MINOR, VER_PATCH, 0, PROG_NAME);
-    while (!compat && !quitRequest) {
-        #ifdef __EMSCRIPTEN__
-        emscripten_sleep(0);
-        #endif
-        getInput(NULL);
-        microwait(100000);
-    }
-    if (compat < 0) {
-        fputs("Server compatibility error\n", stderr);
-        return false;
-    }
+    puts("Connected to server.");
     if (quitRequest) return false;
     reqChunks(rendinf.chunks);
 

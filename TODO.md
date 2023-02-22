@@ -4,7 +4,7 @@
 ### NEED TO DO:
 - Translate block structs into a standard format when transferring over the network (bitfields are unreliable)
 - Redo worldgen
-    - Add better caves
+    - Better caves
     - Add mountains
     - Add rivers
 - Add physics in `src/physics/`
@@ -35,8 +35,9 @@
 - Redo worldgen in `src/game/worldgen.(c|h)`
     - Add structures to worldgen (trees, buildings, etc)
     - Generate values for height, spikes, details, moisture, and structures
-- Implement gameplay in `src/server/game.(c|h)`
-- Implement extensions in `src/main/extmgr.(c|h)` using libdl
+- Integrate BCBASIC
+- Implement gameplay
+- Add a sky (sun, moon, and stars)
 - Smoothen out head tilts
 - Make a translator to allow connecting to older servers (once there is a stable protocol)
 
@@ -46,6 +47,7 @@
 - Greedy mesher in `src/renderer/renderer.c`
 - Android support (requires that it be buildable from the command-line using `make` so it can be used in `mkrelease.sh`)
 - Make updateChunks() use a message list
+- Implement extensions in `src/main/extmgr.(c|h)` using libdl
 
 ### IN-PROGRESS:
 - Decrustify doGame
