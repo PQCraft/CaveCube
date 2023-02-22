@@ -144,11 +144,12 @@ enum {
 extern int SERVER_THREADS;
 
 bool initServer(void);
-int startServer(char*, int, int, char*);
+int startServer(char* /*addr*/, int /*port*/, int /*mcli*/, char* /*world*/);
 void stopServer(void);
 
-bool cliConnect(char*, int, void (*)(int, void*));
+bool cliConnect(char* /*addr*/, int /*port*/, void (*/*cb*/)(int /*id*/, void* /*data*/));
+bool cliConnectAndSetup(char* /*addr*/, int /*port*/, void (*/*cb*/)(int /*id*/, void* /*data*/), char* /*err*/, int /*errlen*/, int (*/*quit*/)(void));
 void cliDisconnect(void);
-void cliSend(int, ...);
+void cliSend(int /*id*/, /*data*/...);
 
 #endif

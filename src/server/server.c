@@ -818,10 +818,10 @@ void stopServer() {
 #include <stdarg.h>
 
 static struct netcxn* clicxn;
+static struct msgdata climsgout;
+static bool clientalive = false;
 
 static void (*callback)(int, void*);
-
-static struct msgdata climsgout;
 
 static pthread_t clinetthreadh;
 
@@ -829,7 +829,7 @@ static void* clinetthread(void* args) {
     (void)args;
     int tmpsize = 0;
     uint64_t acttime = altutime();
-    while (true) {
+    while (clientalive) {
         bool activity = false;
         /*int bytes = */recvCxn(clicxn);
         //if (bytes) printf("client read [%d]\n", bytes);
@@ -1004,6 +1004,7 @@ bool cliConnect(char* addr, int port, void (*cb)(int, void*)) {
         fputs("cliConnect: Failed to create connection\n", stderr);
         return false;
     }
+    clientalive = true;
     setCxnBufSize(clicxn, CLIENT_SNDBUF_SIZE, CLIENT_RCVBUF_SIZE);
     initMsgData(&climsgout);
     climsgout.async = true;
@@ -1021,6 +1022,89 @@ bool cliConnect(char* addr, int port, void (*cb)(int, void*)) {
     pthread_setname_np(clinetthreadh, name);
     #endif
     return true;
+}
+
+static char* setuperr;
+static int setuperrsz;
+static bool ping = false;
+static int compat = 0;
+
+static void _tmpcb(int msg, void* _data) {
+    switch (msg) {
+        case SERVER_PONG:; {
+            //printf("Server ponged\n");
+            ping = true;
+        } break;
+        case SERVER_COMPATINFO:; {
+            struct server_data_compatinfo* data = _data;
+            printf("Server version is %s %d.%d.%d\n", data->server_str, data->ver_major, data->ver_minor, data->ver_patch);
+            if (data->flags & SERVER_FLAG_NOAUTH) puts("- No authentication required");
+            if (data->flags & SERVER_FLAG_PASSWD) puts("- Password protected");
+            if (strcasecmp(data->server_str, PROG_NAME)) {
+                snprintf(setuperr, setuperrsz, "Incompatible game (%s (server) vs %s (client))\n", data->server_str, PROG_NAME);
+                compat = -1;
+            } else if (data->ver_major != VER_MAJOR || data->ver_minor != VER_MINOR || data->ver_patch != VER_PATCH) {
+                snprintf(setuperr, setuperrsz, "Incompatible game version (%d.%d.%d (server) vs %d.%d.%d (client))\n",
+                    data->ver_major, data->ver_minor, data->ver_patch,
+                    VER_MAJOR, VER_MINOR, VER_PATCH
+                );
+                compat = -1;
+            } else {
+                compat = 1;
+            }
+        } break;
+    }
+}
+
+bool cliConnectAndSetup(char* addr, int port, void (*cb)(int, void*), char* err, int errlen, int (*quit)(void)) {
+    setuperr = err;
+    setuperrsz = errlen;
+    if (!cliConnect(addr, port, _tmpcb)) {
+        snprintf(err, errlen, "Could not connect to server");
+        return false;
+    }
+
+    puts("Pinging server...");
+    cliSend(CLIENT_PING);
+    uint64_t pingtime = altutime();
+    while (!ping) {
+        if (quit()) {err[0] = 0; return false;}
+        microwait(1000);
+    }
+    pingtime = (altutime() - pingtime) / 1000;
+    printf("Server responded in %"PRId64" ms.\n", pingtime);
+
+    puts("Sending compatibility info...");
+    cliSend(CLIENT_COMPATINFO, VER_MAJOR, VER_MINOR, VER_PATCH, 0, PROG_NAME);
+    while (!compat && !quitRequest) {
+        if (quit()) {err[0] = 0; return false;}
+        microwait(1000);
+    }
+    if (compat < 0) return false;
+
+    clientalive = false;
+    pthread_join(clinetthreadh, NULL);
+
+    callback = cb;
+    clientalive = true;
+    #ifdef NAME_THREADS
+    char name[256];
+    char name2[256];
+    name[0] = 0;
+    name2[0] = 0;
+    #endif
+    pthread_create(&clinetthreadh, NULL, &clinetthread, NULL);
+    #ifdef NAME_THREADS
+    pthread_getname_np(clinetthreadh, name2, 256);
+    sprintf(name, "%.8s:ct", name2);
+    pthread_setname_np(clinetthreadh, name);
+    #endif
+    return true;
+}
+
+void cliDisconnect() {
+    clientalive = false;
+    pthread_join(clinetthreadh, NULL);
 }
 
 void cliSend(int id, ...) {
