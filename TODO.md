@@ -1,5 +1,5 @@
 ### INFO
-- Next version: 0.6.0
+- Next version: 0.6.1
 
 ### NEED TO DO:
 - Translate block structs into a standard format when transferring over the network (bitfields are unreliable)

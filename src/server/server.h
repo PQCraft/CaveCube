@@ -11,7 +11,7 @@
 #endif
 
 #ifndef SERVER_SNDBUF_SIZE
-    #define SERVER_SNDBUF_SIZE (1 << 17)
+    #define SERVER_SNDBUF_SIZE (1 << 16)
 #endif
 
 #ifndef SERVER_RCVBUF_SIZE
@@ -23,7 +23,7 @@
 #endif
 
 #ifndef SERVER_INBUF_SIZE
-    #define SERVER_INBUF_SIZE (1 << 17)
+    #define SERVER_INBUF_SIZE (1 << 16)
 #endif
 
 #ifndef CLIENT_SNDBUF_SIZE
@@ -31,11 +31,11 @@
 #endif
 
 #ifndef CLIENT_RCVBUF_SIZE
-    #define CLIENT_RCVBUF_SIZE (1 << 17)
+    #define CLIENT_RCVBUF_SIZE (1 << 16)
 #endif
 
 #ifndef CLIENT_OUTBUF_SIZE
-    #define CLIENT_OUTBUF_SIZE (1 << 17)
+    #define CLIENT_OUTBUF_SIZE (1 << 16)
 #endif
 
 #ifndef CLIENT_INBUF_SIZE
@@ -46,7 +46,9 @@ enum {
     SERVER__MIN = -1,
     SERVER_PONG,
     SERVER_COMPATINFO,
-    SERVER_LOGININFO,
+    SERVER_NEWUID,
+    SERVER_LOGINOK,
+    SERVER_DISCONNECT,
     SERVER_UPDATECHUNK,
     SERVER_SETSKYCOLOR,
     SERVER_SETNATCOLOR,
@@ -58,7 +60,8 @@ enum {
     CLIENT__MIN = -1,
     CLIENT_PING,
     CLIENT_COMPATINFO,
-    CLIENT_LOGININFO,
+    CLIENT_NEWUID,
+    CLIENT_LOGIN,
     CLIENT_GETCHUNK,
     CLIENT_SETBLOCK,
     CLIENT__MAX,
@@ -72,11 +75,12 @@ struct server_data_compatinfo {
     char* server_str;
 };
 
-struct server_data_logininfo {
-    uint8_t failed;
-    char* reason;
+struct server_data_newuid {
     uint64_t uid;
-    uint64_t password;
+};
+
+struct server_data_disconnect {
+    char* reason;
 };
 
 struct server_data_updatechunk {
@@ -110,14 +114,17 @@ struct client_data_compatinfo {
     uint16_t ver_major;
     uint16_t ver_minor;
     uint16_t ver_patch;
-    uint8_t flags;
     char* client_str;
 };
 
-struct client_data_logininfo {
+struct client_data_newuid {
+    uint64_t password;
+};
+
+struct client_data_login {
+    uint8_t flags;
     uint64_t uid;
     uint64_t password;
-    char* username;
 };
 
 struct client_data_getchunk {
@@ -147,9 +154,41 @@ bool initServer(void);
 int startServer(char* /*addr*/, int /*port*/, int /*mcli*/, char* /*world*/);
 void stopServer(void);
 
+#if MODULEID == MODULEID_GAME
+
+struct cliSetupInfo {
+    struct {
+        int (*quit)(void);
+        struct {
+            uint64_t uid;
+            uint64_t password;
+            uint8_t flags;
+            char* username;
+        } login;
+    } in;
+    struct {
+        struct {
+            uint64_t uid;
+            uint64_t password;
+            char* username;
+            char* failreason;
+        } login;
+        struct {
+            struct {
+                int major;
+                int minor;
+                int patch;
+            } ver;
+            char* name;
+        } srv;
+    } out;
+};
+
 bool cliConnect(char* /*addr*/, int /*port*/, void (*/*cb*/)(int /*id*/, void* /*data*/));
-bool cliConnectAndSetup(char* /*addr*/, int /*port*/, void (*/*cb*/)(int /*id*/, void* /*data*/), char* /*err*/, int /*errlen*/, int (*/*quit*/)(void));
+bool cliConnectAndSetup(char* /*addr*/, int /*port*/, void (*/*cb*/)(int /*id*/, void* /*data*/), char* /*err*/, int /*errlen*/, struct cliSetupInfo* /*inf*/);
 void cliDisconnect(void);
 void cliSend(int /*id*/, /*data*/...);
+
+#endif
 
 #endif
