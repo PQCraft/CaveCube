@@ -190,7 +190,10 @@ bool doGame(char* addr, int port) {
     puts("Connecting to server...");
     {
         char err[4096];
-        if (!cliConnectAndSetup((addr) ? addr : "127.0.0.1", port, handleServer, err, sizeof(err), shouldQuit)) {
+        struct cliSetupInfo inf;
+        inf.in.quit = shouldQuit;
+        inf.in.login.username = getConfigKey(config, "Player", "name");
+        if (!cliConnectAndSetup((addr) ? addr : "127.0.0.1", port, handleServer, err, sizeof(err), &inf)) {
             fprintf(stderr, "Failed to connect to server: %s\n", err);
             return false;
         }
