@@ -360,7 +360,7 @@ static void* servthread(void* args) {
                         outdata->ver_major = VER_MAJOR;
                         outdata->ver_minor = VER_MINOR;
                         outdata->ver_patch = VER_PATCH;
-                        outdata->flags = SERVER_FLAG_NOAUTH;
+                        outdata->flags = SERVER_COMPATINFO_FLAG_NOAUTH;
                         outdata->server_str = strdup(PROG_NAME);
                         addMsg(&servmsgout[MSG_PRIO_NORMAL], SERVER_COMPATINFO, outdata, msg.uuid, msg.uind);
                     } break;
@@ -436,9 +436,11 @@ static void* servthread(void* args) {
                                         char addr[22];
                                         printf("Player on %s logged in as %s\n", getCxnAddrStr(pdata[msg.uind].cxn, addr), pdata[msg.uind].player.username);
                                     }
+                                    struct server_data_loginok* outdata = calloc(1, sizeof(*outdata));
+                                    outdata->username = strdup(pdata[msg.uind].player.username);
                                     pthread_mutex_unlock(&pdatalock);
                                     addMsg(&servmsgout[MSG_PRIO_NORMAL], SERVER_LOGINOK, outdata, msg.uuid, msg.uind);
-                                    addMsg(&servmsgin[MSG_PRIO_HIGH], _SERVER_USERLOGIN, outdata, msg.uuid, msg.uind);
+                                    addMsg(&servmsgin[MSG_PRIO_HIGH], _SERVER_USERLOGIN, NULL, msg.uuid, msg.uind);
                                 }
                             }
                         } break;
@@ -563,25 +565,31 @@ static void* servnetthread(void* args) {
                                 memcpy(&data->ver_patch, &buf[ptr], 2);
                                 ptr += 2;
                                 data->ver_patch = net2host16(data->ver_patch);
-                                int tmpsize = (int)pdata[i].tmpsize - ptr;
-                                data->client_str = calloc(tmpsize + 1, 1);
-                                memcpy(data->client_str, &buf[ptr], tmpsize);
-                                data->client_str[tmpsize] = 0;
+                                int tmplen = pdata[i].tmpsize - ptr;
+                                data->client_str = malloc(tmplen + 1);
+                                memcpy(data->client_str, &buf[ptr], tmplen);
+                                data->client_str[tmplen] = 0;
                                 _data = data;
                             } break;
-                            case CLIENT_LOGININFO:; {
-                                struct client_data_logininfo* data = malloc(sizeof(*data));
-                                memcpy(&data->uid, &buf[ptr], 8);
+                            case CLIENT_NEWUID:; {
+                                struct client_data_newuid* data = malloc(sizeof(*data));
+                                memcpy(&data->password, &buf[ptr], 8);
+                                data->password = net2host64(data->password);
+                                _data = data;
+                            } break;
+                            case CLIENT_LOGIN:; {
+                                struct client_data_login* data = malloc(sizeof(*data));
+                                data->flags = buf[ptr++];
+                                memcpy(&data->password, &buf[ptr], 8);
                                 ptr += 8;
                                 data->uid = net2host64(data->uid);
                                 memcpy(&data->password, &buf[ptr], 8);
                                 ptr += 8;
                                 data->password = net2host64(data->password);
-                                data->flags = buf[ptr++];
-                                uint8_t tmpbyte = buf[ptr++];
-                                data->username = malloc((int)tmpbyte + 1);
-                                memcpy(data->username, &buf[ptr], tmpbyte);
-                                data->username[tmpbyte] = 0;
+                                int tmplen = pdata[i].tmpsize - ptr;
+                                data->username = malloc(tmplen + 1);
+                                memcpy(data->username, &buf[ptr], tmplen);
+                                data->username[tmplen] = 0;
                                 _data = data;
                             } break;
                             case CLIENT_GETCHUNK:; {
@@ -625,12 +633,18 @@ static void* servnetthread(void* args) {
                             switch (msg.id) {
                                 case SERVER_COMPATINFO:; {
                                     struct server_data_compatinfo* tmpdata = msg.data;
-                                    msgsize += 2 + 2 + 2 + 1 + 2 + (uint16_t)(strlen(tmpdata->server_str));
+                                    msgsize += 2 + 2 + 2 + 1 + strlen(tmpdata->server_str);
                                 } break;
-                                case SERVER_LOGININFO:; {
-                                    struct server_data_logininfo* tmpdata = msg.data;
-                                    msgsize += 1 + 1 /*+ reason*/ + 8 + 8;
-                                    if (tmpdata->reason) msgsize += (uint8_t)(strlen(tmpdata->reason));
+                                case SERVER_NEWUID:; {
+                                    msgsize += 8;
+                                } break;
+                                case SERVER_LOGINOK:; {
+                                    struct server_data_loginok* tmpdata = msg.data;
+                                    if (tmpdata->username) msgsize += strlen(tmpdata->username);
+                                } break;
+                                case SERVER_DISCONNECT:; {
+                                    struct server_data_disconnect* tmpdata = msg.data;
+                                    if (tmpdata->reason) msgsize += strlen(tmpdata->reason);
                                 } break;
                                 case SERVER_UPDATECHUNK:; {
                                     struct server_data_updatechunk* tmpdata = msg.data;
@@ -665,27 +679,25 @@ static void* servnetthread(void* args) {
                                     tmpword = host2net16(tmpdata->ver_patch);
                                     writeToCxnBuf(pdata[i].cxn, &tmpword, 2);
                                     writeToCxnBuf(pdata[i].cxn, &tmpdata->flags, 1);
-                                    tmpword = host2net16(strlen(tmpdata->server_str));
-                                    writeToCxnBuf(pdata[i].cxn, &tmpword, 2);
-                                    writeToCxnBuf(pdata[i].cxn, tmpdata->server_str, net2host16(tmpword));
+                                    writeToCxnBuf(pdata[i].cxn, tmpdata->server_str, strlen(tmpdata->server_str));
                                     free(tmpdata->server_str);
                                 } break;
-                                case SERVER_LOGININFO:; {
-                                    struct server_data_logininfo* tmpdata = msg.data;
-                                    writeToCxnBuf(pdata[i].cxn, &tmpdata->failed, 1);
-                                    uint8_t tmpbyte;
-                                    if (tmpdata->reason) {
-                                        tmpbyte = strlen(tmpdata->reason);
-                                        writeToCxnBuf(pdata[i].cxn, tmpdata->reason, tmpbyte);
-                                        free(tmpdata->reason);
-                                    } else {
-                                        tmpbyte = 0;
-                                        writeToCxnBuf(pdata[i].cxn, &tmpbyte, 1);
-                                    }
+                                case SERVER_NEWUID:; {
+                                    struct server_data_newuid* tmpdata = msg.data;
                                     uint64_t tmpqword = host2net64(tmpdata->uid);
                                     writeToCxnBuf(pdata[i].cxn, &tmpqword, 8);
-                                    tmpqword = host2net64(tmpdata->password);
-                                    writeToCxnBuf(pdata[i].cxn, &tmpqword, 8);
+                                } break;
+                                case SERVER_LOGINOK:; {
+                                    struct server_data_loginok* tmpdata = msg.data;
+                                    writeToCxnBuf(pdata[i].cxn, tmpdata->username, strlen(tmpdata->username));
+                                    free(tmpdata->username);
+                                } break;
+                                case SERVER_DISCONNECT:; {
+                                    struct server_data_disconnect* tmpdata = msg.data;
+                                    if (tmpdata->reason) {
+                                        writeToCxnBuf(pdata[i].cxn, tmpdata->reason, strlen(tmpdata->reason));
+                                        free(tmpdata->reason);
+                                    }
                                 } break;
                                 case SERVER_UPDATECHUNK:; {
                                     struct server_data_updatechunk* tmpdata = msg.data;
@@ -918,32 +930,36 @@ static void* clinetthread(void* args) {
                     ptr += 2;
                     data.ver_patch = net2host16(data.ver_patch);
                     data.flags = buf[ptr++];
-                    uint16_t tmpword = 0;
-                    memcpy(&tmpword, &buf[ptr], 2);
-                    ptr += 2;
-                    tmpword = net2host16(tmpword);
-                    data.server_str = malloc((int)(tmpword) + 1);
-                    memcpy(data.server_str, &buf[ptr], tmpword);
-                    data.server_str[tmpword] = 0;
+                    int tmplen = tmpsize - ptr;
+                    data.server_str = malloc(tmplen + 1);
+                    memcpy(data.server_str, &buf[ptr], tmplen);
+                    data.server_str[tmplen] = 0;
                     callback(SERVER_COMPATINFO, &data);
                     free(data.server_str);
                 } break;
-                case SERVER_LOGININFO:; {
-                    struct server_data_logininfo data;
-                    data.failed = buf[ptr++];
-                    uint8_t tmpbyte = buf[ptr++];
-                    data.reason = malloc((int)(tmpbyte) + 1);
-                    memcpy(data.reason, &buf[ptr], tmpbyte);
-                    ptr += tmpbyte;
-                    data.reason[tmpbyte] = 0;
-                    callback(SERVER_LOGININFO, &data);
-                    free(data.reason);
+                case SERVER_NEWUID:; {
+                    struct server_data_newuid data;
                     memcpy(&data.uid, &buf[ptr], 8);
-                    ptr += 8;
                     data.uid = net2host64(data.uid);
-                    memcpy(&data.password, &buf[ptr], 8);
-                    ptr += 8;
-                    data.password = net2host64(data.password);
+                    callback(SERVER_NEWUID, &data);
+                } break;
+                case SERVER_LOGINOK:; {
+                    struct server_data_loginok data;
+                    int tmplen = tmpsize - ptr;
+                    data.username = malloc(tmplen + 1);
+                    memcpy(data.username, &buf[ptr], tmplen);
+                    data.username[tmplen] = 0;
+                    callback(SERVER_LOGINOK, &data);
+                    free(data.username);
+                } break;
+                case SERVER_DISCONNECT:; {
+                    struct server_data_disconnect data;
+                    int tmplen = tmpsize - ptr;
+                    data.reason = malloc(tmplen + 1);
+                    memcpy(data.reason, &buf[ptr], tmplen);
+                    data.reason[tmplen] = 0;
+                    callback(SERVER_DISCONNECT, &data);
+                    free(data.reason);
                 } break;
                 case SERVER_UPDATECHUNK:; {
                     struct server_data_updatechunk data;
@@ -1004,11 +1020,14 @@ static void* clinetthread(void* args) {
                 switch (msg.id) {
                     case CLIENT_COMPATINFO:; {
                         struct client_data_compatinfo* tmpdata = msg.data;
-                        msgsize += 2 + 2 + 2 + 2 + (uint16_t)(strlen(tmpdata->client_str));
+                        msgsize += 2 + 2 + 2 + 2 + strlen(tmpdata->client_str);
                     } break;
-                    case CLIENT_LOGININFO:; {
-                        struct client_data_logininfo* tmpdata = msg.data;
-                        msgsize += 8 + 8 + 1 + 1 + (uint8_t)(strlen(tmpdata->username));
+                    case CLIENT_NEWUID:; {
+                        msgsize += 8;
+                    } break;
+                    case CLIENT_LOGIN:; {
+                        struct client_data_login* tmpdata = msg.data;
+                        msgsize += 1 + 8 + 8 + strlen(tmpdata->username);
                     } break;
                     case CLIENT_GETCHUNK:; {
                         msgsize += 8 + 8;
@@ -1039,16 +1058,19 @@ static void* clinetthread(void* args) {
                         writeToCxnBuf(clicxn, tmpdata->client_str, net2host16(tmpword));
                         free(tmpdata->client_str);
                     } break;
-                    case CLIENT_LOGININFO:; {
-                        struct client_data_logininfo* tmpdata = msg.data;
+                    case CLIENT_NEWUID:; {
+                        struct client_data_newuid* tmpdata = msg.data;
+                        uint64_t tmpqword = host2net64(tmpdata->password);
+                        writeToCxnBuf(clicxn, &tmpqword, 8);
+                    } break;
+                    case CLIENT_LOGIN:; {
+                        struct client_data_login* tmpdata = msg.data;
+                        writeToCxnBuf(clicxn, &tmpdata->flags, 1);
                         uint64_t tmpqword = host2net64(tmpdata->uid);
                         writeToCxnBuf(clicxn, &tmpqword, 8);
                         tmpqword = host2net64(tmpdata->password);
                         writeToCxnBuf(clicxn, &tmpqword, 8);
-                        writeToCxnBuf(clicxn, &tmpdata->flags, 1);
-                        uint8_t tmpbyte = strlen(tmpdata->username);
-                        writeToCxnBuf(clicxn, &tmpbyte, 1);
-                        writeToCxnBuf(clicxn, tmpdata->username, tmpbyte);
+                        writeToCxnBuf(clicxn, tmpdata->username, strlen(tmpdata->username));
                         free(tmpdata->username);
                     } break;
                     case CLIENT_GETCHUNK:; {
@@ -1112,8 +1134,10 @@ bool cliConnect(char* addr, int port, void (*cb)(int, void*)) {
 static char* setuperr;
 static int setuperrsz;
 static bool ping = false;
-static int compat = 0;
-static int login = 0;
+static bool compatinfo = false;
+static bool newuid = false;
+static bool loginok = false;
+static bool disconnect = false;
 static struct cliSetupInfo* setupinf;
 
 static void _tmpcb(int msg, void* _data) {
@@ -1124,9 +1148,10 @@ static void _tmpcb(int msg, void* _data) {
         } break;
         case SERVER_COMPATINFO:; {
             struct server_data_compatinfo* data = _data;
+            /*
             printf("Server version is %s %d.%d.%d\n", data->server_str, data->ver_major, data->ver_minor, data->ver_patch);
-            if (data->flags & SERVER_FLAG_NOAUTH) puts("- No authentication required");
-            if (data->flags & SERVER_FLAG_PASSWD) puts("- Password protected");
+            if (data->flags & SERVER_COMPATINFO_FLAG_NOAUTH) puts("- No authentication required");
+            if (data->flags & SERVER_COMPATINFO_FLAG_PASSWD) puts("- Password protected");
             if (strcasecmp(data->server_str, PROG_NAME)) {
                 snprintf(setuperr, setuperrsz, "Incompatible game (%s (server) vs %s (client))\n", data->server_str, PROG_NAME);
                 compat = -1;
@@ -1144,20 +1169,31 @@ static void _tmpcb(int msg, void* _data) {
                 setupinf->out.srv.name = strdup(data->server_str);
                 compat = 1;
             }
+            */
+            setupinf->out.srv.ver.major = data->ver_major;
+            setupinf->out.srv.ver.minor = data->ver_minor;
+            setupinf->out.srv.ver.patch = data->ver_patch;
+            free(setupinf->out.srv.name);
+            setupinf->out.srv.name = strdup(data->server_str);
+            compatinfo = true;
         } break;
-        case SERVER_LOGININFO:; {
-            struct server_data_logininfo* data = _data;
+        case SERVER_NEWUID:; {
+            struct server_data_newuid* data = _data;
             setupinf->out.login.uid = data->uid;
-            setupinf->out.login.password = data->password;
+            newuid = true;
+        } break;
+        case SERVER_LOGINOK:; {
+            struct server_data_loginok* data = _data;
             free(setupinf->out.login.username);
             setupinf->out.login.username = stdup(data->username);
-            login = 1;
+            loginok = true;
         } break;
-        case SERVER_BADLOGIN:; {
-            struct server_data_badlogin* data = _data;
+        case SERVER_DISCONNECT:; {
+            struct server_data_disconnect* data = _data;
+            setupinf->out.login.failed = true;
             free(setupinf->out.login.failreason);
             setupinf->out.login.failreason = stdup(data->reason);
-            login = -1;
+            disconnect = true;
         } break;
     }
 }
@@ -1175,11 +1211,11 @@ bool cliConnectAndSetup(char* addr, int port, void (*cb)(int, void*), char* err,
     cliSend(CLIENT_PING);
     uint64_t time = altutime();
     while (!ping) {
-        if (inf->in.quit && inf->in.quit()) {err[0] = 0; return false;}
-        microwait(1000);
+        if (inf->in.quit && inf->in.quit()) {err[0] = 0; goto retfalse;}
+        microwait(250);
         if (altutime() - time > 15000000) {
             snprintf(err, errlen, "Timed out waiting for pong");
-            return false;
+            goto retfalse;
         }
     }
     time = (altutime() - time) / 1000;
@@ -1189,34 +1225,48 @@ bool cliConnectAndSetup(char* addr, int port, void (*cb)(int, void*), char* err,
     cliSend(CLIENT_COMPATINFO, VER_MAJOR, VER_MINOR, VER_PATCH, PROG_NAME);
     time = altutime();
     while (!compat) {
-        if (inf->in.quit && inf->in.quit()) {err[0] = 0; return false;}
+        if (inf->in.quit && inf->in.quit()) {err[0] = 0; goto retfalse;}
         microwait(1000);
         if (altutime() - time > 15000000) {
             snprintf(err, errlen, "Timed out waiting for compatibility info");
-            return false;
+            goto retfalse;
         }
     }
-    if (compat < 0) {
-        snprintf(err, errlen, "Incompatible server");
-        return false;
-    }
 
+    uint64_t uid;
+    if (inf->in.login.newlogin) {
+        puts("Requesting new UID...");
+        cliSend(CLIENT_NEWUID, inf->in.login.password);
+        time = altutime();
+        while (!newuid) {
+            if (inf->in.quit && inf->in.quit()) {err[0] = 0; goto retfalse;}
+            microwait(1000);
+            if (altutime() - time > 15000000) {
+                snprintf(err, errlen, "Timed out waiting for new UID");
+                goto retfalse;
+            }
+        }
+        printf("New UID from server: %016"PRIX64"\n", setupinf->out.login.uid);
+        uid = setupinf->out.login.uid;
+    } else {
+        uid = setupinf->in.login.uid;
+    }
     puts("Sending login info...");
-    printf("    Login code: %016"PRIX64"%016"PRIX64"\n", inf->in.login.uid, inf->in.login.password);
+    printf("    Login code: %016"PRIX64"%016"PRIX64"\n", uid, inf->in.login.password);
     printf("    Username: %s\n", inf->in.login.username);
-    cliSend(CLIENT_LOGININFO, inf->in.login.uid, inf->in.login.password, inf->in.login.flags, inf->in.login.username);
+    cliSend(CLIENT_LOGIN, uid, inf->in.login.password, inf->in.login.flags, inf->in.login.username);
     time = altutime();
-    while (!login) {
-        if (inf->in.quit && inf->in.quit()) {err[0] = 0; return false;}
+    while (!loginok && !disconnect) {
+        if (inf->in.quit && inf->in.quit()) {err[0] = 0; goto retfalse;}
         microwait(1000);
         if (altutime() - time > 15000000) {
             snprintf(err, errlen, "Timed out waiting for login");
-            return false;
+            goto retfalse;
         }
     }
-    if (login < 0) {
-        snprintf(err, errlen, "Failed to login: %s", inf->out.login.failreason);
-        return false;
+    if (disconnect) {
+        snprintf(err, errlen, "%s", inf->out.login.failreason);
+        goto retfalse;
     }
 
     clientalive = false;
@@ -1237,6 +1287,11 @@ bool cliConnectAndSetup(char* addr, int port, void (*cb)(int, void*), char* err,
     pthread_setname_np(clinetthreadh, name);
     #endif
     return true;
+
+    retfalse:;
+    clientalive = false;
+    pthread_join(clinetthreadh, NULL);
+    return false;
 }
 
 void cliDisconnect() {

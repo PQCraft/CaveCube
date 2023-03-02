@@ -79,6 +79,10 @@ struct server_data_newuid {
     uint64_t uid;
 };
 
+struct server_data_loginok {
+    char* username;
+};
+
 struct server_data_disconnect {
     char* reason;
 };
@@ -125,6 +129,7 @@ struct client_data_login {
     uint8_t flags;
     uint64_t uid;
     uint64_t password;
+    char* username;
 };
 
 struct client_data_getchunk {
@@ -140,12 +145,12 @@ struct client_data_setblock {
 };
 
 enum {
-    SERVER_FLAG_NOAUTH = 1 << 0,
-    SERVER_FLAG_PASSWD = 1 << 1,
+    SERVER_COMPATINFO_FLAG_NOAUTH = 1 << 0,
+    SERVER_COMPATINFO_FLAG_PASSWD = 1 << 1,
 };
 
 enum {
-    CLIENT_FLAG_CONONLY = 1 << 0,
+    CLIENT_LOGIN_FLAG_CONONLY = 1 << 0,
 };
 
 extern int SERVER_THREADS;
@@ -160,16 +165,17 @@ struct cliSetupInfo {
     struct {
         int (*quit)(void);
         struct {
+            bool new;
+            bool conOnly;
             uint64_t uid;
             uint64_t password;
-            uint8_t flags;
             char* username;
         } login;
     } in;
     struct {
         struct {
+            bool failed;
             uint64_t uid;
-            uint64_t password;
             char* username;
             char* failreason;
         } login;
