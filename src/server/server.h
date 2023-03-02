@@ -166,11 +166,12 @@ struct cliSetupInfo {
         int (*quit)(void);
         struct {
             bool new;
-            bool conOnly;
+            uint8_t flags;
             uint64_t uid;
             uint64_t password;
             char* username;
         } login;
+        int timeout;
     } in;
     struct {
         struct {
@@ -185,13 +186,14 @@ struct cliSetupInfo {
                 int minor;
                 int patch;
             } ver;
+            uint8_t flags;
             char* name;
         } srv;
     } out;
 };
 
-bool cliConnect(char* /*addr*/, int /*port*/, void (*/*cb*/)(int /*id*/, void* /*data*/));
-bool cliConnectAndSetup(char* /*addr*/, int /*port*/, void (*/*cb*/)(int /*id*/, void* /*data*/), char* /*err*/, int /*errlen*/, struct cliSetupInfo* /*inf*/);
+bool cliConnect(char* /*addr*/, int /*port*/, bool (*/*cb*/)(int /*id*/, void* /*data*/));
+bool cliConnectAndSetup(char* /*addr*/, int /*port*/, bool (*/*cb*/)(int /*id*/, void* /*data*/), char* /*err*/, int /*errlen*/, struct cliSetupInfo* /*inf*/);
 void cliDisconnect(void);
 void cliSend(int /*id*/, /*data*/...);
 
