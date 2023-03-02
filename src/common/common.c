@@ -461,8 +461,8 @@ uint64_t qhash(char* str, int max) {
 }
 
 #define SEED_DEFAULT (0xDE8BADADBEF0EF0D)
-#define SEED_OP1 (0xF0E1D2C3B4A59687)
-#define SEED_OP2 (0x1F7BC9250917AD9C)
+#define SEED_OP1 (0xA101D0C304A09683)
+#define SEED_OP2 (0xB070C0050907A09C)
 
 uint64_t randSeed[16] = {
     SEED_DEFAULT,
