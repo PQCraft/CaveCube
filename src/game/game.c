@@ -115,8 +115,6 @@ static force_inline void updateHotbar(int hb, int slot) {
 }
 
 static pthread_mutex_t gfxlock = PTHREAD_MUTEX_INITIALIZER;
-static bool ping = false;
-static int compat = 0;
 static bool setskycolor = false;
 static color newskycolor;
 static bool setnatcolor = false;
@@ -127,7 +125,7 @@ static int shouldQuit() {
     return quitRequest;
 }
 
-static void handleServer(int msg, void* _data) {
+static bool handleServer(int msg, void* _data) {
     //printf("Recieved [%d] from server\n", msg);
     switch (msg) {
         /*
@@ -164,7 +162,16 @@ static void handleServer(int msg, void* _data) {
             setBlock(rendinf.chunks, data->x, data->y, data->z, data->data);
             updateChunk(ucx, ucz, CHUNKUPDATE_PRIO_HIGH, 1);
         } break;
+        case SERVER_DISCONNECT:; {
+            struct server_data_disconnect* data = _data;
+            printf("Disconnected: %s\n", data->reason);
+            return false;
+        } break;
+        default:; {
+            printf("Unhandled message from server: [%d]\n", msg);
+        } break;
     }
+    return true;
 }
 
 static int loopdelay = 0;
@@ -190,8 +197,15 @@ bool doGame(char* addr, int port) {
     puts("Connecting to server...");
     {
         char err[4096];
-        struct cliSetupInfo inf;
+        static bool firsttime = true;
+        static struct cliSetupInfo inf;
+        if (firsttime) {
+            memset(&inf, 0, sizeof(inf));
+            firsttime = false;
+        }
         inf.in.quit = shouldQuit;
+        inf.in.timeout = 10000;
+        inf.in.login.new = true;
         inf.in.login.username = getConfigKey(config, "Player", "name");
         if (!cliConnectAndSetup((addr) ? addr : "127.0.0.1", port, handleServer, err, sizeof(err), &inf)) {
             fprintf(stderr, "Failed to connect to server: %s\n", err);
