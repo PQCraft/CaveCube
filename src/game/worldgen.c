@@ -137,7 +137,9 @@ void genChunk(int64_t cx, int64_t cz, struct blockdata* data, int type) {
                     .light_n = 30
                 };
                 /*
-                ((uint64_t*)tdata)[0] = getRandQWord(15);
+                ((uint16_t*)tdata)[0] = getRandDWord(15);
+                ((uint16_t*)tdata)[1] = getRandDWord(15);
+                ((uint16_t*)tdata)[2] = getRandDWord(15);
                 int maxsub = 64;
                 while (1) {
                     if (blockinf[tdata->id].data[maxsub - 1].id) break;
@@ -145,9 +147,6 @@ void genChunk(int64_t cx, int64_t cz, struct blockdata* data, int type) {
                     --maxsub;
                 }
                 tdata->subid = tdata->subid % maxsub;
-                //tdata->light_n_r = 31;
-                //tdata->light_n_g = 31;
-                //tdata->light_n_b = 31;
                 */
             }
         }

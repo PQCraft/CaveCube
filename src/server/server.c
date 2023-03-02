@@ -1150,28 +1150,6 @@ static bool _tmpcb(int msg, void* _data) {
         } break;
         case SERVER_COMPATINFO:; {
             struct server_data_compatinfo* data = _data;
-            /*
-            printf("Server version is %s %d.%d.%d\n", data->server_str, data->ver_major, data->ver_minor, data->ver_patch);
-            if (data->flags & SERVER_COMPATINFO_FLAG_NOAUTH) puts("- No authentication required");
-            if (data->flags & SERVER_COMPATINFO_FLAG_PASSWD) puts("- Password protected");
-            if (strcasecmp(data->server_str, PROG_NAME)) {
-                snprintf(setuperr, setuperrsz, "Incompatible game (%s (server) vs %s (client))\n", data->server_str, PROG_NAME);
-                compat = -1;
-            } else if (data->ver_major != VER_MAJOR || data->ver_minor != VER_MINOR || data->ver_patch != VER_PATCH) {
-                snprintf(setuperr, setuperrsz, "Incompatible game version (%d.%d.%d (server) vs %d.%d.%d (client))\n",
-                    data->ver_major, data->ver_minor, data->ver_patch,
-                    VER_MAJOR, VER_MINOR, VER_PATCH
-                );
-                compat = -1;
-            } else {
-                setupinf->out.srv.ver.major = data->ver_major;
-                setupinf->out.srv.ver.minor = data->ver_minor;
-                setupinf->out.srv.ver.patch = data->ver_patch;
-                free(setupinf->out.srv.name);
-                setupinf->out.srv.name = strdup(data->server_str);
-                compat = 1;
-            }
-            */
             setupinf->out.srv.ver.major = data->ver_major;
             setupinf->out.srv.ver.minor = data->ver_minor;
             setupinf->out.srv.ver.patch = data->ver_patch;
@@ -1242,6 +1220,19 @@ bool cliConnectAndSetup(char* addr, int port, bool (*cb)(int, void*), char* err,
             goto retfalse;
         }
     }
+    printf("Server version is %s %d.%d.%d\n", inf->out.srv.name, inf->out.srv.ver.major, inf->out.srv.ver.minor, inf->out.srv.ver.patch);
+    if (inf->out.srv.flags & SERVER_COMPATINFO_FLAG_NOAUTH) puts("- No authentication required");
+    if (inf->out.srv.flags & SERVER_COMPATINFO_FLAG_PASSWD) puts("- Password protected");
+    if (strcasecmp(inf->out.srv.name, PROG_NAME)) {
+        snprintf(err, errlen, "Incompatible game (%s (server) vs %s (client))", inf->out.srv.name, PROG_NAME);
+        goto retfalse;
+    } else if (inf->out.srv.ver.major != VER_MAJOR || inf->out.srv.ver.minor != VER_MINOR || inf->out.srv.ver.patch != VER_PATCH) {
+        snprintf(err, errlen, "Incompatible game version (%d.%d.%d (server) vs %d.%d.%d (client))",
+            inf->out.srv.ver.major, inf->out.srv.ver.minor, inf->out.srv.ver.patch,
+            VER_MAJOR, VER_MINOR, VER_PATCH
+        );
+        goto retfalse;
+    }
 
     uint64_t uid;
     if (setupinf->out.srv.flags & SERVER_COMPATINFO_FLAG_NOAUTH) {
@@ -1268,8 +1259,8 @@ bool cliConnectAndSetup(char* addr, int port, bool (*cb)(int, void*), char* err,
         uid = setupinf->in.login.uid;
     }
     puts("Sending login info...");
-    printf("  - Login code: %016"PRIX64"%016"PRIX64"\n", uid, inf->in.login.password);
-    printf("  - Username: %s\n", inf->in.login.username);
+    printf("- Login code: %016"PRIX64"%016"PRIX64"\n", uid, inf->in.login.password);
+    printf("- Username: %s\n", inf->in.login.username);
     cliSend(CLIENT_LOGIN, inf->in.login.flags, uid, inf->in.login.password, inf->in.login.username);
     time = altutime();
     while (!loginok && !disconnect) {
