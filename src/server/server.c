@@ -253,7 +253,7 @@ static void* servtimerthread(void* vargs) {
                 microwait(wait);
             }
             pthread_mutex_lock(&tdata->lock);
-            //addMsg(&servmsgin[tdata->tmr[index].priority], event, NULL, -1, -1);
+            //addMsg(&servmsgin[tdata->tmr[index].priority], event, NULL, 0, -1);
             tdata->tmr[index].intertime = altutime() + tdata->tmr[index].interval;
             //printf("Firing event [%d]: [%d]\n", index, event);
             pthread_mutex_unlock(&tdata->lock);
@@ -270,7 +270,7 @@ enum {
 
 static struct timerdata servtimer;
 
-static force_inline int getInbufSize(struct netcxn* cxn) {
+static force_inline unsigned getInbufSize(struct netcxn* cxn) {
     return cxn->inbuf->dlen;
 }
 
@@ -312,7 +312,7 @@ struct player {
 struct playerdata {
     bool valid;
     uint64_t uuid;
-    int tmpsize;
+    unsigned tmpsize;
     struct netcxn* cxn;
     struct player player;
 };
@@ -324,6 +324,10 @@ enum {
     _SERVER_USERCONNECT = 256,
     _SERVER_USERDISCONNECT,
     _SERVER_USERLOGIN,
+};
+struct _server_data_userlogin {
+    uint64_t uuid;
+    int uind;
 };
 
 static int worldtype = 1;
@@ -342,138 +346,152 @@ static void* servthread(void* args) {
         getNextMsg(&servmsgin[(p = MSG_PRIO_NORMAL)], &msg) ||
         getNextMsg(&servmsgin[(p = MSG_PRIO_LOW)], &msg)) {
             activity = true;
-            //printf("Received message [%d] for player handle [%d]\n", msg.id, msg.uind);
-            pthread_mutex_lock(&pdatalock);
-            bool cond = (pdata[msg.uind].valid && pdata[msg.uind].uuid == msg.uuid);
-            bool login = pdata[msg.uind].player.login;
-            pthread_mutex_unlock(&pdatalock);
-            if (cond) {
-                //puts("Processing message...");
-                switch (msg.id) {
-                    case CLIENT_PING:; {
-                        addMsg(&servmsgout[MSG_PRIO_NORMAL], SERVER_PONG, NULL, msg.uuid, msg.uind);
-                    } break;
-                    case CLIENT_COMPATINFO:; {
-                        struct client_data_compatinfo* data = msg.data;
-                        struct server_data_compatinfo* outdata = malloc(sizeof(*outdata));
-                        free(data->client_str);
-                        outdata->ver_major = VER_MAJOR;
-                        outdata->ver_minor = VER_MINOR;
-                        outdata->ver_patch = VER_PATCH;
-                        outdata->flags = SERVER_COMPATINFO_FLAG_NOAUTH;
-                        outdata->server_str = strdup(PROG_NAME);
-                        addMsg(&servmsgout[MSG_PRIO_HIGH], SERVER_COMPATINFO, outdata, msg.uuid, msg.uind);
-                    } break;
-                    case CLIENT_NEWUID:; {
-                        if (login) goto invalmsg;
-                        // TODO: only pay attention to 1 NEWID request per connection
-                        // TODO: add configurable max number ids that can be created per ip
-                        struct server_data_disconnect* outdata = calloc(1, sizeof(*outdata));
-                        outdata->reason = strdup("Server authentication not enabled.");
-                        addMsg(&servmsgout[MSG_PRIO_HIGH], SERVER_DISCONNECT, outdata, msg.uuid, msg.uind);
-                    } break;
-                    case CLIENT_LOGIN:; {
-                        if (login) goto invalmsg;
-                        struct client_data_login* data = msg.data;
-                        if (false /*purposely fail if true*/) {
+            if (msg.uuid) {
+                //printf("Received message [%d] for player handle [%d]:[%"PRId64"]\n", msg.id, msg.uind, msg.uuid);
+                pthread_mutex_lock(&pdatalock);
+                bool cond = (pdata[msg.uind].valid && pdata[msg.uind].uuid == msg.uuid);
+                bool login = pdata[msg.uind].player.login;
+                pthread_mutex_unlock(&pdatalock);
+                if (cond) {
+                    //puts("Processing message...");
+                    switch (msg.id) {
+                        case CLIENT_PING:; {
+                            addMsg(&servmsgout[MSG_PRIO_NORMAL], SERVER_PONG, NULL, msg.uuid, msg.uind);
+                        } break;
+                        case CLIENT_COMPATINFO:; {
+                            struct client_data_compatinfo* data = msg.data;
+                            struct server_data_compatinfo* outdata = malloc(sizeof(*outdata));
+                            free(data->client_str);
+                            outdata->ver_major = VER_MAJOR;
+                            outdata->ver_minor = VER_MINOR;
+                            outdata->ver_patch = VER_PATCH;
+                            outdata->flags = SERVER_COMPATINFO_FLAG_NOAUTH;
+                            outdata->server_str = strdup(PROG_NAME);
+                            addMsg(&servmsgout[MSG_PRIO_HIGH], SERVER_COMPATINFO, outdata, msg.uuid, msg.uind);
+                        } break;
+                        case CLIENT_NEWUID:; {
+                            if (login) goto invalmsg;
+                            // TODO: only pay attention to 1 NEWID request per connection
+                            // TODO: add configurable max number ids that can be created per ip
                             struct server_data_disconnect* outdata = calloc(1, sizeof(*outdata));
-                            outdata->reason = strdup("Debug.");
+                            outdata->reason = strdup("Server authentication not enabled.");
                             addMsg(&servmsgout[MSG_PRIO_HIGH], SERVER_DISCONNECT, outdata, msg.uuid, msg.uind);
-                        } else {
-                            if (!*data->username) {
+                        } break;
+                        case CLIENT_LOGIN:; {
+                            if (login) goto invalmsg;
+                            struct client_data_login* data = msg.data;
+                            if (false /*purposely fail if true*/) {
                                 struct server_data_disconnect* outdata = calloc(1, sizeof(*outdata));
-                                outdata->reason = strdup("Username cannot be empty.");
-                                addMsg(&servmsgout[MSG_PRIO_HIGH], SERVER_DISCONNECT, outdata, msg.uuid, msg.uind);
-                            } else if (strlen(data->username) > 31 /*TODO: make max configurable*/) {
-                                struct server_data_disconnect* outdata = calloc(1, sizeof(*outdata));
-                                outdata->reason = strdup("Username cannot be longer than 31 characters.");
+                                outdata->reason = strdup("Debug.");
                                 addMsg(&servmsgout[MSG_PRIO_HIGH], SERVER_DISCONNECT, outdata, msg.uuid, msg.uind);
                             } else {
-                                pthread_mutex_lock(&pdatalock);
-                                if (pdata[msg.uind].uuid == msg.uuid && !pdata[msg.uind].player.login) {
-                                    pdata[msg.uind].player.login = true;
-                                    pdata[msg.uind].player.username = strdup(data->username);
-                                    // TODO: handle uid and password when no NOAUTH
-                                    char addr[22];
-                                    printf("Player on %s logged in as %s\n", getCxnAddrStr(pdata[msg.uind].cxn, addr), pdata[msg.uind].player.username);
+                                if (!*data->username) {
+                                    struct server_data_disconnect* outdata = calloc(1, sizeof(*outdata));
+                                    outdata->reason = strdup("Username cannot be empty.");
+                                    addMsg(&servmsgout[MSG_PRIO_HIGH], SERVER_DISCONNECT, outdata, msg.uuid, msg.uind);
+                                } else if (strlen(data->username) > 31 /*TODO: make max configurable*/) {
+                                    struct server_data_disconnect* outdata = calloc(1, sizeof(*outdata));
+                                    outdata->reason = strdup("Username cannot be longer than 31 characters.");
+                                    addMsg(&servmsgout[MSG_PRIO_HIGH], SERVER_DISCONNECT, outdata, msg.uuid, msg.uind);
+                                } else {
+                                    pthread_mutex_lock(&pdatalock);
+                                    if (pdata[msg.uind].uuid == msg.uuid && !pdata[msg.uind].player.login) {
+                                        pdata[msg.uind].player.login = true;
+                                        pdata[msg.uind].player.username = strdup(data->username);
+                                        // TODO: handle uid and password when no NOAUTH
+                                        char addr[22];
+                                        printf("Player on %s logged in as %s\n", getCxnAddrStr(pdata[msg.uind].cxn, addr), pdata[msg.uind].player.username);
+                                    }
+                                    struct server_data_loginok* outdata = calloc(1, sizeof(*outdata));
+                                    outdata->username = strdup(pdata[msg.uind].player.username);
+                                    pthread_mutex_unlock(&pdatalock);
+                                    addMsg(&servmsgout[MSG_PRIO_HIGH], SERVER_LOGINOK, outdata, msg.uuid, msg.uind);
+                                    {
+                                        struct _server_data_userlogin* _outdata = calloc(1, sizeof(*_outdata));
+                                        _outdata->uuid = msg.uuid;
+                                        _outdata->uind = msg.uind;
+                                        addMsg(&servmsgin[MSG_PRIO_HIGH], _SERVER_USERLOGIN, _outdata, 0, -1);
+                                    }
                                 }
-                                struct server_data_loginok* outdata = calloc(1, sizeof(*outdata));
-                                outdata->username = strdup(pdata[msg.uind].player.username);
-                                pthread_mutex_unlock(&pdatalock);
-                                addMsg(&servmsgout[MSG_PRIO_HIGH], SERVER_LOGINOK, outdata, msg.uuid, msg.uind);
-                                addMsg(&servmsgin[MSG_PRIO_HIGH], _SERVER_USERLOGIN, NULL, msg.uuid, msg.uind);
                             }
-                        }
-                    } break;
-                    case CLIENT_GETCHUNK:; {
-                        if (!login) goto invalmsg;
-                        struct client_data_getchunk* data = msg.data;
-                        struct server_data_updatechunk* outdata = malloc(sizeof(*outdata));
-                        outdata->x = data->x;
-                        outdata->z = data->z;
-                        genChunk(data->x, data->z, outdata->data, worldtype);
-                        int len = 2 << 19;
-                        int complvl;
-                        #if MODULEID == MODULEID_SERVER
-                        complvl = 3;
-                        #else
-                        complvl = 1;
-                        #endif
-                        len = ezCompress(complvl, 131072 * sizeof(struct blockdata), outdata->data, len, (outdata->cdata = malloc(len)));
-                        if (len >= 0) {
-                            outdata->len = len;
-                            outdata->cdata = realloc(outdata->cdata, outdata->len);
-                            //printf("chunk [%"PRId64", %"PRId64"]: [%d]\n", outdata->x, outdata->z, outdata->len);
-                            addMsg(&servmsgout[MSG_PRIO_LOW], SERVER_UPDATECHUNK, outdata, msg.uuid, msg.uind);
-                        }
-                        //microwait(100000);
-                    } break;
-                    case CLIENT_SETBLOCK:; {
-                        if (!login) goto invalmsg;
-                        struct client_data_setblock* data = msg.data;
-                        //printf("!!! [%"PRId64", %d, %"PRId64"]\n", data->x, data->y, data->z);
-                        pthread_mutex_lock(&pdatalock);
-                        for (int i = 0; i < maxclients; ++i) {
-                            if (pdata[i].valid) {
-                                struct server_data_setblock* tmpdata = malloc(sizeof(*tmpdata));
-                                tmpdata->x = data->x;
-                                tmpdata->z = data->z;
-                                tmpdata->y = data->y;
-                                tmpdata->data = data->data;
-                                addMsg(&servmsgout[MSG_PRIO_NORMAL], SERVER_SETBLOCK, tmpdata, pdata[i].uuid, i);
+                        } break;
+                        case CLIENT_GETCHUNK:; {
+                            if (!login) goto invalmsg;
+                            struct client_data_getchunk* data = msg.data;
+                            struct server_data_updatechunk* outdata = malloc(sizeof(*outdata));
+                            outdata->x = data->x;
+                            outdata->z = data->z;
+                            genChunk(data->x, data->z, outdata->data, worldtype);
+                            int len = 2 << 19;
+                            int complvl;
+                            #if MODULEID == MODULEID_SERVER
+                            complvl = 3;
+                            #else
+                            complvl = 1;
+                            #endif
+                            len = ezCompress(complvl, 131072 * sizeof(struct blockdata), outdata->data, len, (outdata->cdata = malloc(len)));
+                            if (len >= 0) {
+                                outdata->len = len;
+                                outdata->cdata = realloc(outdata->cdata, outdata->len);
+                                //printf("chunk [%"PRId64", %"PRId64"]: [%d]\n", outdata->x, outdata->z, outdata->len);
+                                addMsg(&servmsgout[MSG_PRIO_LOW], SERVER_UPDATECHUNK, outdata, msg.uuid, msg.uind);
                             }
-                        }
-                        pthread_mutex_unlock(&pdatalock);
-                    } break;
-
+                            //microwait(100000);
+                        } break;
+                        case CLIENT_SETBLOCK:; {
+                            if (!login) goto invalmsg;
+                            struct client_data_setblock* data = msg.data;
+                            //printf("!!! [%"PRId64", %d, %"PRId64"]\n", data->x, data->y, data->z);
+                            pthread_mutex_lock(&pdatalock);
+                            for (int i = 0; i < maxclients; ++i) {
+                                if (pdata[i].valid) {
+                                    struct server_data_setblock* tmpdata = malloc(sizeof(*tmpdata));
+                                    tmpdata->x = data->x;
+                                    tmpdata->z = data->z;
+                                    tmpdata->y = data->y;
+                                    tmpdata->data = data->data;
+                                    addMsg(&servmsgout[MSG_PRIO_NORMAL], SERVER_SETBLOCK, tmpdata, pdata[i].uuid, i);
+                                }
+                            }
+                            pthread_mutex_unlock(&pdatalock);
+                        } break;
+                        invalmsg:;
+                        default:; {
+                            printf("Invalid message id [%d] from player [%d] (uuid: [%"PRId64"])\n", msg.id, msg.uind, msg.uuid);
+                            activity = false;
+                        } break;
+                    }
+                    if (msg.data) free(msg.data);
+                    //puts("Done");
+                } else {
+                    //puts("Message dropped (player handle is not valid)");
+                }
+            } else {
+                switch (msg.id) {
                     case _SERVER_USERCONNECT:; {
                     } break;
                     case _SERVER_USERDISCONNECT:; {
                     } break;
                     case _SERVER_USERLOGIN:; {
+                        struct _server_data_userlogin* data = msg.data;
+
                         struct server_data_setskycolor* skycolor = malloc(sizeof(*skycolor));
                         struct server_data_setnatcolor* natcolor = malloc(sizeof(*natcolor));
 
                         *skycolor = (struct server_data_setskycolor){0xA0, 0xC8, 0xFF};
                         *natcolor = (struct server_data_setnatcolor){0xFF, 0xFF, 0xE0};
-
                         //*skycolor = (struct server_data_setskycolor){0xDF, 0x40, 0x37};
                         //*natcolor = (struct server_data_setnatcolor){0xBC, 0x23, 0x12};
 
-                        addMsg(&servmsgout[MSG_PRIO_HIGH], SERVER_SETSKYCOLOR, skycolor, msg.uuid, msg.uind);
-                        addMsg(&servmsgout[MSG_PRIO_HIGH], SERVER_SETNATCOLOR, natcolor, msg.uuid, msg.uind);
+                        addMsg(&servmsgout[MSG_PRIO_HIGH], SERVER_SETSKYCOLOR, skycolor, data->uuid, data->uind);
+                        addMsg(&servmsgout[MSG_PRIO_HIGH], SERVER_SETNATCOLOR, natcolor, data->uuid, data->uind);
                     } break;
-
-                    invalmsg:;
                     default:; {
-                        printf("Invalid message id [%d] from player [%d] (uuid: [%"PRId64"])\n", msg.id, msg.uind, msg.uuid);
+                        printf("Invalid internal message id [%d]\n", msg.id);
                         activity = false;
                     } break;
                 }
                 if (msg.data) free(msg.data);
-                //puts("Done");
-            } else {
-                //puts("Message dropped (player handle is not valid)");
             }
         }
         if (activity) {
@@ -506,13 +524,13 @@ static void* servnetthread(void* args) {
             for (int i = 0; i < maxclients; ++i) {
                 if (!pdata[i].valid) {
                     pdata[i].valid = true;
-                    static uint64_t uuid = 0;
+                    static uint64_t uuid = 1;
                     pdata[i].uuid = uuid++;
                     pdata[i].tmpsize = 0;
                     pdata[i].cxn = newcxn;
                     memset(&pdata[i].player, 0, sizeof(pdata[i].player));
                     added = true;
-                    addMsg(&servmsgin[MSG_PRIO_HIGH], _SERVER_USERCONNECT, NULL, pdata[i].uuid, i);
+                    addMsg(&servmsgin[MSG_PRIO_HIGH], _SERVER_USERCONNECT, NULL, 0, -1);
                     break;
                 }
             }
@@ -528,9 +546,9 @@ static void* servnetthread(void* args) {
             pthread_mutex_lock(&pdatalock);
             if (pdata[i].valid) {
                 if (recvCxn(pdata[i].cxn) < 0) {
-                    activity = true;
+                    //activity = true;
                     char str[22];
-                    printf("Connection to %s dropped due to disconnect\n", getCxnAddrStr(pdata[i].cxn, str));
+                    printf("Connection to %s dropped (client disconnected)\n", getCxnAddrStr(pdata[i].cxn, str));
                     closeCxn(pdata[i].cxn);
                     pdata[i].valid = false;
                 } else {
@@ -539,8 +557,13 @@ static void* servnetthread(void* args) {
                         if (dsize >= 4) {
                             readFromCxnBuf(pdata[i].cxn, &pdata[i].tmpsize, 4);
                             pdata[i].tmpsize = net2host32(pdata[i].tmpsize);
-                            //printf("CLIENT[%d] TMPSIZE: [%d]\n", i, pdata[i].tmpsize);
-                            // TODO: Disconnect if size is larger than half of buffer
+                            //printf("CLIENT[%d] TMPSIZE: [%u]\n", i, pdata[i].tmpsize);
+                            if (pdata[i].tmpsize > SERVER_INBUF_SIZE) {
+                                char str[22];
+                                printf("Connection to %s dropped (message size %u > %u)\n", getCxnAddrStr(pdata[i].cxn, str), pdata[i].tmpsize, SERVER_INBUF_SIZE);
+                                closeCxn(pdata[i].cxn);
+                                pdata[i].valid = false;
+                            }
                         }
                         if (dsize > 0) {
                             activity = true;
@@ -622,9 +645,10 @@ static void* servnetthread(void* args) {
                         free(buf);
                         pdata[i].tmpsize = 0;
                     }
-                    {
+                    if (pdata[i].valid) {
                         struct msgdata_msg msg;
                         int priority;
+                        bool disconnect = false;
                         if ((getNextMsgForUUID(&servmsgout[(priority = MSG_PRIO_HIGH)], &msg, pdata[i].uuid) ||
                         getNextMsgForUUID(&servmsgout[(priority = MSG_PRIO_NORMAL)], &msg, pdata[i].uuid) ||
                         getNextMsgForUUID(&servmsgout[(priority = MSG_PRIO_LOW)], &msg, pdata[i].uuid)) && msg.uind == i) {
@@ -699,6 +723,7 @@ static void* servnetthread(void* args) {
                                         writeToCxnBuf(pdata[i].cxn, tmpdata->reason, strlen(tmpdata->reason));
                                         free(tmpdata->reason);
                                     }
+                                    disconnect = true;
                                 } break;
                                 case SERVER_UPDATECHUNK:; {
                                     struct server_data_updatechunk* tmpdata = msg.data;
@@ -735,12 +760,21 @@ static void* servnetthread(void* args) {
                             if (msg.data) free(msg.data);
                             srv_nosend:;
                         }
+                        /*int bytes_sent = */sendCxn(pdata[i].cxn);
+                        //if (bytes_sent) printf("server write [%d]\n", bytes_sent);
+                        if (disconnect) {
+                            char str[22];
+                            printf("Connection to %s dropped (server closed connection)\n", getCxnAddrStr(pdata[i].cxn, str));
+                            closeCxn(pdata[i].cxn);
+                            pdata[i].valid = false;
+                        }
                     }
-                    /*int bytes_sent = */sendCxn(pdata[i].cxn);
-                    //if (bytes_sent) printf("server write [%d]\n", bytes_sent);
                 }
             }
             pthread_mutex_unlock(&pdatalock);
+            if (!activity) {
+                microwait(1000);
+            }
         }
         if (activity) {
             acttime = altutime();
@@ -774,8 +808,9 @@ int startServer(char* addr, int port, int mcli, char* world) {
     for (int i = 0; i < MSG_PRIO__MAX; ++i) {
         initMsgData(&servmsgout[i]);
     }
-    //servmsgin[MSG_PRIO_LOW].async = true;
+    servmsgin[MSG_PRIO_LOW].async = true;
     servmsgout[MSG_PRIO_LOW].async = true;
+    //servmsgout[MSG_PRIO_NORMAL].async = true;
     #if DBGLVL(1)
     puts("  Initializing noise...");
     #endif
@@ -893,7 +928,7 @@ static pthread_t clinetthreadh;
 
 static void* clinetthread(void* args) {
     (void)args;
-    int tmpsize = 0;
+    unsigned tmpsize = 0;
     uint64_t acttime = altutime();
     bool cbresult = true;
     while (clientalive && cbresult) {
@@ -990,7 +1025,7 @@ static void* clinetthread(void* args) {
             if (dsize >= 4) {
                 readFromCxnBuf(clicxn, &tmpsize, 4);
                 tmpsize = net2host32(tmpsize);
-                //printf("SERVER TMPSIZE: [%d]\n", tmpsize);
+                //printf("SERVER TMPSIZE: [%u]\n", tmpsize);
                 // TODO: Disconnect if size is larger than half of buffer
             }
             if (dsize > 0) activity = true;
@@ -1275,6 +1310,7 @@ bool cliConnectAndSetup(char* addr, int port, bool (*cb)(int, void*), char* err,
         snprintf(err, errlen, "%s", inf->out.login.failreason);
         goto retfalse;
     }
+    printf("Logged into server as %s\n", inf->out.login.username);
 
     clientalive = false;
     pthread_join(clinetthreadh, NULL);
@@ -1296,6 +1332,7 @@ bool cliConnectAndSetup(char* addr, int port, bool (*cb)(int, void*), char* err,
     return true;
 
     retfalse:;
+    microwait(1000000);
     clientalive = false;
     pthread_join(clinetthreadh, NULL);
     return false;
