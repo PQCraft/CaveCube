@@ -32,9 +32,6 @@ bool debug_nocavecull = false;
 
 struct ui_data* game_ui[4];
 
-static float posmult = 6.5;
-static float fpsmult = 0;
-
 static force_inline void writeChunk(struct chunkdata* chunks, int64_t x, int64_t z, struct blockdata* data) {
     pthread_mutex_lock(&chunks->lock);
     int64_t nx = (x - chunks->xoff) + chunks->info.dist;
@@ -174,89 +171,39 @@ static bool handleServer(int msg, void* _data) {
     return true;
 }
 
-static int loopdelay = 0;
+void gameLoop() {
+    struct input_info input;
+    //genChunks(&chunks, cx, cz);
+    startMesher();
+    setRandSeed(8, altutime());
 
-bool doGame(char* addr, int port) {
-    char** tmpbuf = malloc(16 * sizeof(char*));
-    for (int i = 0; i < 16; ++i) {
-        tmpbuf[i] = malloc(4096);
-    }
-    declareConfigKey(config, "Game", "viewDist", "8", false);
-    declareConfigKey(config, "Game", "loopDelay", "1000", false);
-    declareConfigKey(config, "Player", "name", "Player", false);
-    declareConfigKey(config, "Player", "skin", "", false);
+    int invspot = 0;
+    int invoff = 0;
+
     int viewdist = atoi(getConfigKey(config, "Game", "viewDist"));
     rendinf.chunks = allocChunks(viewdist);
     //rendinf.chunks->xoff = 230;
     //rendinf.chunks->zoff = 550;
-    if (rendinf.fps || rendinf.vsync) loopdelay = atoi(getConfigKey(config, "Game", "loopDelay"));
+    reqChunks(rendinf.chunks);
     printf("Allocated chunks: [%d] [%d] [%d]\n", rendinf.chunks->info.dist, rendinf.chunks->info.width, rendinf.chunks->info.widthsq);
     rendinf.campos.y = 201.5;
-    initInput();
-    float pmult = posmult;
-    puts("Connecting to server...");
-    {
-        char err[4096];
-        static bool firsttime = true;
-        static struct cliSetupInfo inf;
-        if (firsttime) {
-            memset(&inf, 0, sizeof(inf));
-            firsttime = false;
-        }
-        inf.in.quit = shouldQuit;
-        inf.in.timeout = 10000;
-        inf.in.login.new = true;
-        inf.in.login.username = getConfigKey(config, "Player", "name");
-        if (!cliConnectAndSetup((addr) ? addr : "127.0.0.1", port, handleServer, err, sizeof(err), &inf)) {
-            fprintf(stderr, "Failed to connect to server: %s\n", err);
-            return false;
-        }
-    }
-    puts("Connected to server.");
-    if (quitRequest) return false;
-    reqChunks(rendinf.chunks);
-
-    struct input_info input;
-    //genChunks(&chunks, cx, cz);
-    double fpstime = 0;
-    double lowframe = 1000000.0 / (double)rendinf.disphz;
-    uint64_t fpsstarttime2 = altutime();
-    uint64_t fpsstarttime = fpsstarttime2;
-    int fpsct = 0;
-    float xcm = 0.0;
-    float zcm = 0.0;
-    int invspot = 0;
-    int invoff = 0;
-    int blocksub = 0;
-    startMesher();
-    setRandSeed(8, altutime());
-    coord_3d tmpcamrot = {0, 0, 0};
-
-    resetInput();
-    setInputMode(INPUT_MODE_GAME);
-    setSkyColor(0.5, 0.5, 0.5);
-    for (int i = 0; i < 4; ++i) {
-        game_ui[i] = allocUI();
-    }
-    getInput(&input);
-    game_ui[UILAYER_DBGINF]->hidden = !showDebugInfo;
-    game_ui[UILAYER_INGAME]->hidden = input.focus;
 
     int ui_main = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BOX, "main", -1, -1, "width", "100%", "height", "100%", "color", "#000000", "alpha", "0.25", "z", "-100", NULL);
     /*int ui_placeholder = */newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON, "placeholder", ui_main, -1, "width", "128", "height", "36", "text", "[Placeholder]", NULL);
 
     int ui_hotbar = newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_HOTBAR, "hotbar", -1, -1, "align", "0,1", "margin", "0,10,0,10", NULL);
     updateHotbar(ui_hotbar, invspot);
-#if 0
+    #if 0
     int ui_inv_main = newUIElem(game_ui[UILAYER_SERVER], UI_ELEM_BOX, "main", -1, -1, "width", "100%", "height", "100%", "color", "#000000", "alpha", "0.25", "z", "-100", NULL);
     int ui_inventory = newUIElem(game_ui[UILAYER_SERVER], UI_ELEM_FANCYBOX, "inventory", ui_inv_main, -1, "width", "332", "height", "360", NULL);
     int ui_inv_grid = newUIElem(game_ui[UILAYER_SERVER], UI_ELEM_ITEMGRID, "inv_grid", ui_inventory, -1, "width", "10", "height", "4", "align", "0,1", "margin", "0,6,0,16", NULL);
     /*int ui_inv_hb = */newUIElem(game_ui[UILAYER_SERVER], UI_ELEM_ITEMGRID, "inv_hotbar", ui_inventory, ui_inv_grid, "width", "10", "height", "1", "align", "0,1", "margin", "0,6,0,6", NULL);
-#endif
-    setFullscreen(rendinf.fullscr);
+    #endif
+
+    resetInput();
+    setInputMode(INPUT_MODE_GAME);
+    getInput(&input);
     while (!quitRequest) {
-        uint64_t st1 = altutime();
-        if (loopdelay) microwait(loopdelay);
         float bps = 25;
         getInput(&input);
         {
@@ -347,36 +294,36 @@ bool doGame(char* addr, int port) {
                         case INPUT_ACTION_SINGLE_INV_0 ... INPUT_ACTION_SINGLE_INV_9:;
                             invspot = input.single_action - INPUT_ACTION_SINGLE_INV_0;
                             updateHotbar(ui_hotbar, invspot);
-                            blocksub = 0;
+                            //blocksub = 0;
                             break;
                         case INPUT_ACTION_SINGLE_INV_NEXT:;
                             ++invspot;
                             if (invspot > 9) invspot = 0;
                             updateHotbar(ui_hotbar, invspot);
-                            blocksub = 0;
+                            //blocksub = 0;
                             break;
                         case INPUT_ACTION_SINGLE_INV_PREV:;
                             --invspot;
                             if (invspot < 0) invspot = 9;
                             updateHotbar(ui_hotbar, invspot);
-                            blocksub = 0;
+                            //blocksub = 0;
                             break;
                         case INPUT_ACTION_SINGLE_INVOFF_NEXT:;
                             ++invoff;
                             if (invoff > 4) invoff = 0;
-                            blocksub = 0;
+                            //blocksub = 0;
                             break;
                         case INPUT_ACTION_SINGLE_INVOFF_PREV:;
                             --invoff;
                             if (invoff < 0) invoff = 4;
-                            blocksub = 0;
+                            //blocksub = 0;
                             break;
                         case INPUT_ACTION_SINGLE_ROT_X:;
-                            ++blocksub;
+                            //++blocksub;
                             break;
                         case INPUT_ACTION_SINGLE_ROT_Y:;
-                            --blocksub;
-                            if (blocksub < 0) blocksub = 0;
+                            //--blocksub;
+                            //if (blocksub < 0) blocksub = 0;
                             break;
                         case INPUT_ACTION_SINGLE_DEBUG:;
                             game_ui[UILAYER_DBGINF]->hidden = !(showDebugInfo = !showDebugInfo);
@@ -399,38 +346,8 @@ bool doGame(char* addr, int port) {
                 }
             }
         }
-        float zoomrotmult;
-        if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_ZOOM)) {
-            zoomrotmult = 0.25;
-        } else {
-            zoomrotmult = 1.0;
-        }
-        float runmult = 1.0;
-        bool crouch = false;
-        if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_CROUCH)) {
-            crouch = true;
-            //bps *= 0.375;
-        } /*else*/ if ((input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_RUN)) && input.mov_up > 0.0) {
-            runmult = 1.6875;
-        }
-        float leanmult = ((bps < 10.0) ? bps : 10.0) * 0.125 * 1.0;
-        tmpcamrot.x += input.rot_up * input.rot_mult_y * zoomrotmult;
-        tmpcamrot.y -= input.rot_right * input.rot_mult_x * zoomrotmult;
-        rendinf.camrot.x = tmpcamrot.x - input.mov_up * leanmult;
-        if (rendinf.camrot.x > 89.99) rendinf.camrot.x = 89.99;
-        if (rendinf.camrot.x < -89.99) rendinf.camrot.x = -89.99;
-        rendinf.camrot.y = tmpcamrot.y;
-        rendinf.camrot.z = input.mov_right * leanmult;
-        if (tmpcamrot.y < 0) tmpcamrot.y += 360;
-        else if (tmpcamrot.y >= 360) tmpcamrot.y -= 360;
-        if (tmpcamrot.x > 90.0) tmpcamrot.x = 90.0;
-        if (tmpcamrot.x < -90.0) tmpcamrot.x = -90.0;
-        float yrotrad = (tmpcamrot.y / 180 * M_PI);
+
         int cmx = 0, cmz = 0;
-        rendinf.campos.z += zcm * input.mov_mult;
-        rendinf.campos.x += xcm * input.mov_mult;
-        pvelocity.x = xcm;
-        pvelocity.z = zcm;
         while (rendinf.campos.z > 8.0) {
             rendinf.campos.z -= 16.0;
             ++cmz;
@@ -452,45 +369,8 @@ bool doGame(char* addr, int port) {
             reqChunks(rendinf.chunks);
             //microwait(1000000);
         }
-        float f1 = input.mov_up * runmult * sinf(yrotrad);
-        float f2 = input.mov_right * cosf(yrotrad);
-        float f3 = input.mov_up * runmult * cosf(yrotrad);
-        float f4 = (input.mov_right * sinf(yrotrad)) * -1;
-        xcm = (f1 * bps) + (f2 * bps);
-        zcm = (f3 * bps) + (f4 * bps);
-        float yvel = 0.0;
-        if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_JUMP)) {
-            yvel += 2.0 * (1.0 + (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_RUN)) * 0.0175);
-        }
-        if (crouch) {
-            yvel -= 2.0 * (1.0 + (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_RUN)) * 0.0175);
-        }
-        pvelocity.y = yvel;
-        rendinf.campos.y += yvel * pmult;
-        //if (rendinf.campos.y < -11.5) rendinf.campos.y = -11.5;
-        if ((!rendinf.vsync && !rendinf.fps) || !rendinf.fps || (altutime() - fpsstarttime2) >= (1000000 / rendinf.fps) - loopdelay) {
-            if (rendinf.fps) {
-                uint64_t mwdtime = (1000000 / rendinf.fps) - (altutime() - fpsstarttime2);
-                if (mwdtime < (1000000 / rendinf.fps)) microwait(mwdtime);
-            }
-            //puts("render");
-            double tmp = (double)(altutime() - fpsstarttime2);
-            fpsstarttime2 = altutime();
-            //if (crouch) rendinf.campos.y -= 0.375;
-            float oldfov = rendinf.camfov;
-            bool zoom = (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_ZOOM));
-            bool run = (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_RUN));
-            if (zoom) rendinf.camfov = 12.5;
-            else if (run) rendinf.camfov += ((input.mov_up > 0.0) ? input.mov_up : 0.0) * 1.25;
-            struct blockdata curbdata;
-            getBlockF(rendinf.chunks, rendinf.chunks->xoff, rendinf.chunks->zoff, rendinf.campos.x, rendinf.campos.y, rendinf.campos.z, &curbdata);
-            if (curbdata.id == 7) {
-                setVisibility(-0.75, 0.5);
-                setScreenMult(0.425, 0.6, 0.75);
-            } else {
-                setVisibility(0.25, 1.0);
-                setScreenMult(1.0, 1.0, 1.0);
-            }
+        {
+            puts("render");
             pthread_mutex_lock(&gfxlock);
             if (setskycolor) {
                 setSkyColor(newskycolor.r, newskycolor.g, newskycolor.b);
@@ -502,44 +382,56 @@ bool doGame(char* addr, int port) {
             }
             pthread_mutex_unlock(&gfxlock);
             updateCam();
-            if (zoom || run) rendinf.camfov = oldfov;
             updateChunks();
-            //if (crouch) rendinf.campos.y += 0.375;
             render();
             updateScreen();
-            fpstime += tmp;
-            if (tmp > lowframe) lowframe = tmp;
-            ++fpsct;
-            uint64_t curtime = altutime();
-            if (curtime - fpsstarttime >= 200000) {
-                fps = 1000000.0 / (double)((fpstime / (double)fpsct));
-                realfps = 1000000.0 / (double)lowframe;
-                fpsstarttime = curtime;
-                fpsct = 0;
-                fpstime = 0;
-                lowframe = 1000000.0 / (double)rendinf.disphz;
-            }
+            microwait(0);
         }
-        pcoord.x = rendinf.campos.x + rendinf.chunks->xoff * 16;
-        pcoord.y = rendinf.campos.y;
-        pcoord.z = rendinf.campos.z + rendinf.chunks->zoff * 16;
-        coord_3d_dbl bcoord = w2bCoord(pcoord);
-        pblockx = bcoord.x;
-        pblocky = bcoord.y;
-        pblockz = bcoord.z;
-        fpsmult = (double)((uint64_t)altutime() - (uint64_t)st1) / 1000000.0;
-        pmult = posmult * fpsmult;
-        #ifdef __EMSCRIPTEN__
-        emscripten_sleep(0);
-        #endif
     }
+}
+
+bool doGame(char* addr, int port) {
+    declareConfigKey(config, "Game", "viewDist", "8", false);
+    declareConfigKey(config, "Player", "name", "Player", false);
+    declareConfigKey(config, "Player", "skin", "", false);
+
+    initInput();
+
+    puts("Connecting to server...");
+    {
+        char err[4096];
+        static bool firsttime = true;
+        static struct cliSetupInfo inf;
+        if (firsttime) {
+            memset(&inf, 0, sizeof(inf));
+            firsttime = false;
+        }
+        inf.in.quit = shouldQuit;
+        inf.in.timeout = 10000;
+        inf.in.login.new = true;
+        inf.in.login.username = getConfigKey(config, "Player", "name");
+        if (!cliConnectAndSetup((addr) ? addr : "127.0.0.1", port, handleServer, err, sizeof(err), &inf)) {
+            fprintf(stderr, "Failed to connect to server: %s\n", err);
+            return false;
+        }
+    }
+    puts("Connected to server.");
+    if (quitRequest) return false;
+
+    for (int i = 0; i < 4; ++i) {
+        game_ui[i] = allocUI();
+    }
+    game_ui[UILAYER_DBGINF]->hidden = !showDebugInfo;
+    //game_ui[UILAYER_INGAME]->hidden = input.focus;
+
+    setSkyColor(0.5, 0.5, 0.5);
+    setFullscreen(rendinf.fullscr);
+
+    gameLoop();
+
     for (int i = 0; i < 4; ++i) {
         freeUI(game_ui[i]);
     }
-    for (int i = 0; i < 16; ++i) {
-        free(tmpbuf[i]);
-    }
-    free(tmpbuf);
     return true;
 }
 

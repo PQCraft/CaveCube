@@ -74,6 +74,10 @@ struct server_data_compatinfo {
     uint8_t flags;
     char* server_str;
 };
+enum {
+    SERVER_COMPATINFO_FLAG_NOAUTH = 1 << 0,
+    SERVER_COMPATINFO_FLAG_PASSWD = 1 << 1,
+};
 
 struct server_data_newuid {
     uint64_t uid;
@@ -131,6 +135,9 @@ struct client_data_login {
     uint64_t password;
     char* username;
 };
+enum {
+    CLIENT_LOGIN_FLAG_CONONLY = 1 << 0,
+};
 
 struct client_data_getchunk {
     int64_t x;
@@ -142,15 +149,6 @@ struct client_data_setblock {
     int64_t z;
     int16_t y;
     struct blockdata data;
-};
-
-enum {
-    SERVER_COMPATINFO_FLAG_NOAUTH = 1 << 0,
-    SERVER_COMPATINFO_FLAG_PASSWD = 1 << 1,
-};
-
-enum {
-    CLIENT_LOGIN_FLAG_CONONLY = 1 << 0,
 };
 
 extern int SERVER_THREADS;
