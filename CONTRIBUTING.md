@@ -74,11 +74,7 @@
         
         [System includes]
         
-        [Macro definitons (use newline to seperate groups of macros)]
-        
-        [Typedefs, structs, and enums (seperate with newline)]
-        
-        [More macro definitons (use newline to seperate groups of macros)]
+        [Macros, typedefs, structs, and enums (seperate groups with newlines)]
         
         [Function declarations]
         
@@ -93,12 +89,6 @@
         [More local includes]
         
         [System includes]
-        
-        [Macro definitons (use newline to seperate groups of macros)]
-        
-        [Typedefs, structs, and enums (seperate with newline)]
-        
-        [More macro definitons (use newline to seperate groups of macros)]
         
         [Code]
         ```
