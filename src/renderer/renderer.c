@@ -1051,7 +1051,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
         printf("    flood fill: [%lgms]\n", time);
         */
     } else {
-        microwait(1000); // anti-stutter
+        //microwait(1000); // anti-stutter
         free(_vptr);
         free(_vptr2);
     }
@@ -1137,8 +1137,8 @@ static void* meshthread(void* args) {
         }
         if (activity) {
             acttime = altutime();
-            //microwait(250);
-            microwait(10);
+            microwait(250);
+            //microwait(10);
         } else if (altutime() - acttime > 250000) {
             microwait(5000);
         }

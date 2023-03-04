@@ -173,9 +173,19 @@ static bool handleServer(int msg, void* _data) {
 
 void gameLoop() {
     struct input_info input;
-    //genChunks(&chunks, cx, cz);
+    resetInput();
+    setInputMode(INPUT_MODE_GAME);
+    getInput(&input);
+
     startMesher();
     setRandSeed(8, altutime());
+
+    rendinf.camrot.x = 0.0;
+    rendinf.camrot.y = 0.0;
+    rendinf.camrot.z = 0.0;
+    rendinf.campos.x = 0.0;
+    rendinf.campos.y = 0.0;
+    rendinf.campos.z = 0.0;
 
     int invspot = 0;
     int invoff = 0;
@@ -187,6 +197,8 @@ void gameLoop() {
     reqChunks(rendinf.chunks);
     printf("Allocated chunks: [%d] [%d] [%d]\n", rendinf.chunks->info.dist, rendinf.chunks->info.width, rendinf.chunks->info.widthsq);
     rendinf.campos.y = 201.5;
+    setVisibility(0.25, 1.0);
+    setScreenMult(1.0, 1.0, 1.0);
 
     int ui_main = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BOX, "main", -1, -1, "width", "100%", "height", "100%", "color", "#000000", "alpha", "0.25", "z", "-100", NULL);
     /*int ui_placeholder = */newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON, "placeholder", ui_main, -1, "width", "128", "height", "36", "text", "[Placeholder]", NULL);
@@ -200,10 +212,11 @@ void gameLoop() {
     /*int ui_inv_hb = */newUIElem(game_ui[UILAYER_SERVER], UI_ELEM_ITEMGRID, "inv_hotbar", ui_inventory, ui_inv_grid, "width", "10", "height", "1", "align", "0,1", "margin", "0,6,0,6", NULL);
     #endif
 
-    resetInput();
-    setInputMode(INPUT_MODE_GAME);
-    getInput(&input);
+    uint64_t fpsupdate = altutime();
+    int frames = 0;
+
     while (!quitRequest) {
+        uint64_t frametime = altutime();
         float bps = 25;
         getInput(&input);
         {
@@ -290,6 +303,7 @@ void gameLoop() {
             }
             switch (inputMode) {
                 case INPUT_MODE_GAME:; {
+                    if (input.single_action >= 0) printf("input.single_action: [%d]\n", input.single_action);
                     switch (input.single_action) {
                         case INPUT_ACTION_SINGLE_INV_0 ... INPUT_ACTION_SINGLE_INV_9:;
                             invspot = input.single_action - INPUT_ACTION_SINGLE_INV_0;
@@ -301,6 +315,7 @@ void gameLoop() {
                             if (invspot > 9) invspot = 0;
                             updateHotbar(ui_hotbar, invspot);
                             //blocksub = 0;
+                            puts("bruh");
                             break;
                         case INPUT_ACTION_SINGLE_INV_PREV:;
                             --invspot;
@@ -367,10 +382,8 @@ void gameLoop() {
         if (cmx || cmz) {
             moveChunks(rendinf.chunks, cmx, cmz);
             reqChunks(rendinf.chunks);
-            //microwait(1000000);
         }
         {
-            puts("render");
             pthread_mutex_lock(&gfxlock);
             if (setskycolor) {
                 setSkyColor(newskycolor.r, newskycolor.g, newskycolor.b);
@@ -385,7 +398,27 @@ void gameLoop() {
             updateChunks();
             render();
             updateScreen();
-            microwait(0);
+            ++frames;
+            if (rendinf.fps && (!rendinf.vsync || rendinf.fps < rendinf.disphz)) {
+                int64_t framediff = (1000000 / rendinf.fps) - (altutime() - frametime);
+                //printf("Wait for %"PRId64"us\n", framediff);
+                if (framediff > 0) microwait(framediff);
+            }
+            static uint64_t totalframetime = 0;
+            static uint64_t highframetime = 0;
+            frametime = altutime() - frametime;
+            totalframetime += frametime;
+            if (frametime > highframetime) highframetime = frametime;
+            if (altutime() - fpsupdate >= 200000) {
+                fpsupdate = altutime();
+                fps = 1000000.0 / ((double)totalframetime / (double)frames);
+                realfps = 1000000.0 / (double)highframetime;
+                if (realfps > rendinf.disphz) realfps = rendinf.disphz;
+                //printf("Rendered %d frames in %lfus\n", frames, ((double)totalframetime / (double)frames));
+                frames = 0;
+                totalframetime = 0;
+                highframetime = 0;
+            }
         }
     }
 }
