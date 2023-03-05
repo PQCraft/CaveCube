@@ -731,7 +731,9 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
         }
         if (id < rendinf.chunks->renddata[c].updateid) {goto lblcontinue;}
         uint64_t waittime = altutime();
-        while ((rendinf.chunks->renddata[c].remesh[0] || rendinf.chunks->renddata[c].remesh[1]) && altutime() - waittime < 1000000) {
+        while (rendinf.chunks->renddata[c].visfull &&
+        (rendinf.chunks->renddata[c].remesh[0] || rendinf.chunks->renddata[c].remesh[1]) &&
+        altutime() - waittime < 100000) {
             pthread_mutex_unlock(&rendinf.chunks->lock);
             microwait(0);
             pthread_mutex_lock(&rendinf.chunks->lock);
@@ -803,19 +805,6 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
             goto lblcontinue;
         }
         for (int y = maxy + 15; y >= maxy; --y) {
-            #if 0
-            if (y > maxy && !(y % 8)) { // anti-stutter
-                pthread_mutex_unlock(&rendinf.chunks->lock);
-                pthread_mutex_lock(&rendinf.chunks->lock);
-                nx = (x - rendinf.chunks->xoff) + rendinf.chunks->info.dist;
-                nz = rendinf.chunks->info.width - ((z - rendinf.chunks->zoff) + rendinf.chunks->info.dist) - 1;
-                if (nx < 0 || nz < 0 || nx >= rendinf.chunks->info.width || nz >= rendinf.chunks->info.width) {
-                    free(_vptr);
-                    free(_vptr2);Nereid
-                    goto lblcontinue;
-                }
-            }
-            #endif
             for (int z = 0; z < 16; ++z) {
                 for (int x = 0; x < 16; ++x) {
                     rendGetBlock(nx, nz, x, y, z, &bdata);
@@ -990,9 +979,6 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
                         }
                         printf("]\n");
                         */
-                        //memset(touched, 0, 6);
-                        //touched[CVIS_FRONT] = 1;
-                        //touched[CVIS_BACK] = 1;
                         //printf("touched: [%d, %d, %d, %d, %d, %d]\n", touched[0], touched[1], touched[2], touched[3], touched[4], touched[5]);
                         for (int i = 0; i < 6; ++i) {
                             for (int j = 0; j < 6; ++j) {
@@ -1160,7 +1146,7 @@ static bool opaqueUpdate = false;
 void updateChunks() {
     pthread_mutex_lock(&rendinf.chunks->lock);
     for (uint32_t c = 0; !quitRequest && c < rendinf.chunks->info.widthsq; ++c) {
-        if (!rendinf.chunks->renddata[c].ready/* || !rendinf.chunks->renddata[c].visfull*/) continue;
+        if (!rendinf.chunks->renddata[c].ready || !rendinf.chunks->renddata[c].visfull) continue;
         if (!rendinf.chunks->renddata[c].init) {
             glGenBuffers(2, rendinf.chunks->renddata[c].VBO);
             rendinf.chunks->renddata[c].init = true;
@@ -1174,7 +1160,6 @@ void updateChunks() {
                 rendinf.chunks->renddata[c].ytoff[i] = rendinf.chunks->renddata[c].yvoff[i] / 4;
                 rendinf.chunks->renddata[c].ytcount[i] = rendinf.chunks->renddata[c].yvcount[i] / 4;
             }
-            //printf("[%u][%d]: [%d]->[%d]\n", c, i, rendinf.chunks->renddata[c].vcount[0], rendinf.chunks->renddata[c].tcount[0]);
             free(rendinf.chunks->renddata[c].vertices[0]);
             rendinf.chunks->renddata[c].vertices[0] = NULL;
             rendinf.chunks->renddata[c].remesh[0] = false;
@@ -1187,16 +1172,14 @@ void updateChunks() {
             rendinf.chunks->renddata[c].tcount[1] = rendinf.chunks->renddata[c].vcount[1] / 4;
             rendinf.chunks->renddata[c].sortvert = realloc(rendinf.chunks->renddata[c].sortvert, tmpsize);
             memcpy(rendinf.chunks->renddata[c].sortvert, rendinf.chunks->renddata[c].vertices[1], tmpsize);
-            //free(rendinf.chunks->renddata[c].vertices[1]);
-            //rendinf.chunks->renddata[c].vertices[1] = NULL;
             rendinf.chunks->renddata[c].remesh[1] = false;
             if (tmpsize) {
-                /*
-                int tmpx = ((int)(c % rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist) + (int)cxo;
-                int tmpy = -((int)(c / rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist) + (int)czo;
-                if (!tmpx && !tmpy) printf("[%d][%d]\n", tmpx, tmpy);
-                */
-                _sortChunk(c, (int)(c % rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist, -((int)(c / rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist), true);
+                _sortChunk(
+                    c,
+                    (int)(c % rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist,
+                    -((int)(c / rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist),
+                    true
+                );
             }
         }
         rendinf.chunks->renddata[c].ready = false;
