@@ -730,9 +730,17 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
             goto lblcontinue;
         }
         if (id < rendinf.chunks->renddata[c].updateid) {goto lblcontinue;}
+        uint64_t waittime = altutime();
+        while ((rendinf.chunks->renddata[c].remesh[0] || rendinf.chunks->renddata[c].remesh[1]) && altutime() - waittime < 1000000) {
+            pthread_mutex_unlock(&rendinf.chunks->lock);
+            microwait(0);
+            pthread_mutex_lock(&rendinf.chunks->lock);
+            if (nx < 0 || nz < 0 || nx >= rendinf.chunks->info.width || nz >= rendinf.chunks->info.width || !rendinf.chunks->renddata[c].generated) {
+                goto lblcontinue;
+            }
+        }
         //printf("meshing [%"PRId64", %"PRId64"] -> [%"PRId64", %"PRId64"] (c=%d, offset=[%"PRId64", %"PRId64"])\n", x, z, nx, nz, c, cxo, czo);
     }
-    pthread_mutex_unlock(&rendinf.chunks->lock);
     //printf("mesh: [%"PRId64", %"PRId64"]\n", x, z);
     //uint64_t stime = altutime();
     //uint64_t secttime[4] = {0};
@@ -747,7 +755,6 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
     uint32_t baseVert[4];
     int maxy = 511;
     //secttime[0] = altutime();
-    pthread_mutex_lock(&rendinf.chunks->lock);
     nx = (x - rendinf.chunks->xoff) + rendinf.chunks->info.dist;
     nz = rendinf.chunks->info.width - ((z - rendinf.chunks->zoff) + rendinf.chunks->info.dist) - 1;
     if (nx < 0 || nz < 0 || nx >= rendinf.chunks->info.width || nz >= rendinf.chunks->info.width) {
@@ -782,6 +789,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
     int ychunk = maxy;
     maxy *= 16;
     pthread_mutex_unlock(&rendinf.chunks->lock);
+    microwait(0);
     uint32_t vplenold = 0;
     for (; maxy >= 0; maxy -= 16) {
         //uint64_t secttime2[2];
@@ -803,7 +811,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
                 nz = rendinf.chunks->info.width - ((z - rendinf.chunks->zoff) + rendinf.chunks->info.dist) - 1;
                 if (nx < 0 || nz < 0 || nx >= rendinf.chunks->info.width || nz >= rendinf.chunks->info.width) {
                     free(_vptr);
-                    free(_vptr2);
+                    free(_vptr2);Nereid
                     goto lblcontinue;
                 }
             }
@@ -870,6 +878,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
         //secttime2[0] = altutime() - secttime2[0];
         //secttime2[1] = altutime();
         pthread_mutex_unlock(&rendinf.chunks->lock);
+        microwait(0);
         struct pq {
             uint8_t x;
             uint16_t y;
@@ -1016,6 +1025,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
         vplenold = vplen;
         --ychunk;
         pthread_mutex_unlock(&rendinf.chunks->lock);
+        microwait(0);
     }
     pthread_mutex_lock(&rendinf.chunks->lock);
     nx = (x - rendinf.chunks->xoff) + rendinf.chunks->info.dist;
@@ -1029,15 +1039,13 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
     if (id >= rendinf.chunks->renddata[c].updateid) {
         if (rendinf.chunks->renddata[c].vertices[0]) free(rendinf.chunks->renddata[c].vertices[0]);
         if (rendinf.chunks->renddata[c].vertices[1]) free(rendinf.chunks->renddata[c].vertices[1]);
-        rendinf.chunks->renddata[c].remesh[0] = true;
-        rendinf.chunks->renddata[c].remesh[1] = true;
         rendinf.chunks->renddata[c].vcount[0] = vplen;
         rendinf.chunks->renddata[c].vcount[1] = vplen2;
         rendinf.chunks->renddata[c].vertices[0] = _vptr;
         rendinf.chunks->renddata[c].vertices[1] = _vptr2;
-        //_sortChunk(c, (x - cxo), (z - czo), false);
-        //rendinf.chunks->renddata[c].ready = true;
         rendinf.chunks->renddata[c].updateid = id;
+        rendinf.chunks->renddata[c].remesh[0] = true;
+        rendinf.chunks->renddata[c].remesh[1] = true;
         //printf("meshed: [%"PRId64", %"PRId64"] ([%"PRId64", %"PRId64"])\n", x, z, nx, nz);
         //printf("meshed: [%"PRId64", %"PRId64"] -> [%d][%d], [%d][%d]\n", x, z, vpsize, vplen, vpsize2, vplen2);
         /*
@@ -1051,12 +1059,13 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
         printf("    flood fill: [%lgms]\n", time);
         */
     } else {
-        //microwait(1000); // anti-stutter
+        //microwait(500); // anti-stutter
         free(_vptr);
         free(_vptr2);
     }
     lblcontinue:;
     pthread_mutex_unlock(&rendinf.chunks->lock);
+    microwait(0);
 }
 
 static force_inline void setready(int64_t x, int64_t z, bool val) {
@@ -1137,8 +1146,8 @@ static void* meshthread(void* args) {
         }
         if (activity) {
             acttime = altutime();
-            microwait(250);
-            //microwait(10);
+            //microwait(250);
+            microwait(100);
         } else if (altutime() - acttime > 250000) {
             microwait(5000);
         }
@@ -1693,7 +1702,10 @@ void render() {
 
         opaqueUpdate = false;
 
-        int w = (rendinf.chunks->info.width < 5) ? 5 : rendinf.chunks->info.width;
+        int w = rendinf.chunks->info.dist;
+        if (w < 2) w = 2;
+        w = 1 + w * 2;
+        w *= w;
         posqueue = malloc((w * 6) * sizeof(*posqueue));
         pqptr = 0;
         visited = calloc(rendinf.chunks->info.widthsq * 34, 1);
