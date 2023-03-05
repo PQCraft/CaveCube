@@ -253,6 +253,7 @@ void gameLoop() {
                         printf("DEBUG: Remeshing chunks...\n");
                         int64_t xo = rendinf.chunks->xoff;
                         int64_t zo = rendinf.chunks->zoff;
+                        updateChunk(xo, zo, CHUNKUPDATE_PRIO_HIGH, 0);
                         for (int i = 1; i <= (int)rendinf.chunks->info.dist; ++i) {
                             updateChunk(xo + i, zo, CHUNKUPDATE_PRIO_HIGH, 0);
                             updateChunk(xo - i, zo, CHUNKUPDATE_PRIO_HIGH, 0);
@@ -303,7 +304,6 @@ void gameLoop() {
             }
             switch (inputMode) {
                 case INPUT_MODE_GAME:; {
-                    if (input.single_action >= 0) printf("input.single_action: [%d]\n", input.single_action);
                     switch (input.single_action) {
                         case INPUT_ACTION_SINGLE_INV_0 ... INPUT_ACTION_SINGLE_INV_9:;
                             invspot = input.single_action - INPUT_ACTION_SINGLE_INV_0;
@@ -315,7 +315,6 @@ void gameLoop() {
                             if (invspot > 9) invspot = 0;
                             updateHotbar(ui_hotbar, invspot);
                             //blocksub = 0;
-                            puts("bruh");
                             break;
                         case INPUT_ACTION_SINGLE_INV_PREV:;
                             --invspot;

@@ -362,29 +362,39 @@ void getInput(struct input_info* _inf) {
     quitRequest += (event.type == SDL_QUIT);
     sdl2keymap = SDL_GetKeyboardState(NULL);
     int sdl2mscroll = (event.type == SDL_MOUSEWHEEL) ? event.wheel.y : 0;
-    if (sdl2mscroll > 0) {
-        mscrollup = sdl2mscroll;
-        mscrolldown = 0;
-    } else if (sdl2mscroll < 0) {
-        mscrollup = 0;
-        mscrolldown = -sdl2mscroll;
+    static int mscrolltoggle = 0;
+    if (mscrolltoggle) {
+        if (sdl2mscroll >= 0) {
+            mscrollup = sdl2mscroll;
+            mscrolldown = 0;
+        } else {
+            mscrollup = 0;
+            mscrolldown = -sdl2mscroll;
+        }
     } else {
         mscrollup = 0;
         mscrolldown = 0;
     }
+    if (sdl2mscroll != 0) mscrolltoggle = !mscrolltoggle;
+    else mscrolltoggle = 1;
     #else
     glfwPollEvents();
     quitRequest += (glfwWindowShouldClose(rendinf.window) != 0);
-    if (glfwmscroll > 0) {
-        mscrollup = glfwmscroll;
-        mscrolldown = 0;
-    } else if (glfwmscroll < 0) {
-        mscrollup = 0;
-        mscrolldown = -glfwmscroll;
+    static int mscrolltoggle = 1;
+    if (mscrolltoggle) {
+        if (glfwmscroll >= 0) {
+            mscrollup = glfwmscroll;
+            mscrolldown = 0;
+        } else {
+            mscrollup = 0;
+            mscrolldown = -glfwmscroll;
+        }
     } else {
         mscrollup = 0;
         mscrolldown = 0;
     }
+    if (glfwmscroll != 0.0) mscrolltoggle = !mscrolltoggle;
+    else mscrolltoggle = 1;
     glfwmscroll = 0.0;
     for (int i = GLFW_JOYSTICK_1; i < GLFW_JOYSTICK_LAST; ++i) {
         if ((glfwgp = glfwGetGamepadState(GLFW_JOYSTICK_1, &glfwgpstate))) break;
