@@ -207,28 +207,10 @@ void setInputMode(int mode) {
 
 #if defined(USESDL2)
 void sdl2getmouse(double* mx, double* my) {
-    switch (inputMode) {
-        case INPUT_MODE_GAME:; {
-            static double mmx = 0, mmy = 0;
-            if (!(SDL_GetWindowFlags(rendinf.window) & SDL_WINDOW_INPUT_FOCUS)) {
-                *mx = mmx;
-                *my = mmy;
-                return;
-            }
-            int imx, imy;
-            SDL_GetRelativeMouseState(&imx, &imy);
-            mmx += imx;
-            mmy += imy;
-            *mx = mmx;
-            *my = mmy;
-        } break;
-        case INPUT_MODE_UI:; {
-            int imx, imy;
-            SDL_GetMouseState(&imx, &imy);
-            *mx = imx;
-            *my = imy;
-        } break;
-    }
+    int imx, imy;
+    SDL_GetMouseState(&imx, &imy);
+    *mx = (float)imx;
+    *my = (float)imy;
 }
 
 static const uint8_t* sdl2keymap;
@@ -350,11 +332,13 @@ void getInput(struct input_info* _inf) {
     else inf = _inf;
     #if defined(USESDL2)
     SDL_PumpEvents();
-    SDL_Event event;
-    SDL_PollEvent(&event);
-    quitRequest += (event.type == SDL_QUIT);
     sdl2keymap = SDL_GetKeyboardState(NULL);
-    int sdl2mscroll = (event.type == SDL_MOUSEWHEEL) ? event.wheel.y : 0;
+    SDL_Event event;
+    int sdl2mscroll = 0;
+    while (SDL_PollEvent(&event)) {
+        quitRequest += (event.type == SDL_QUIT);
+        sdl2mscroll += (event.type == SDL_MOUSEWHEEL) ? event.wheel.y : 0;
+    }
     static int mscrolltoggle = 0;
     if (mscrolltoggle) {
         if (sdl2mscroll >= 0) {
@@ -371,6 +355,10 @@ void getInput(struct input_info* _inf) {
     if (sdl2mscroll != 0) mscrolltoggle = !mscrolltoggle;
     else mscrolltoggle = 1;
     sdl2getmouse(&newmxpos, &newmypos);
+    if (inputMode == INPUT_MODE_GAME && inf->focus) {
+        sdl2getmouse(&newmxpos, &newmypos);
+        SDL_WarpMouseInWindow(rendinf.window, rendinf.width / 2, rendinf.height / 2);
+    }
     #else
     glfwPollEvents();
     quitRequest += (glfwWindowShouldClose(rendinf.window) != 0);
