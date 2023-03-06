@@ -104,10 +104,10 @@ struct chunk_renddata {
     uint32_t tcount[2];
     uint32_t* sortvert;
     bool remesh[2];
-    uint32_t yvcount[32];
     uint32_t yvoff[32];
-    uint32_t ytcount[32];
+    uint32_t yvcount[32];
     uint32_t ytoff[32];
+    uint32_t ytcount[32];
     uint8_t vispass[32][6][6];
     uint32_t visible;
     bool visfull:1;
