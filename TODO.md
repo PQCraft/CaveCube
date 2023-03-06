@@ -2,6 +2,7 @@
 - Next version: 0.6.1
 
 ### NEED TO DO:
+- Server memory management (free message data from dropped clients)
 - Translate block structs into a standard format when transferring over the network (bitfields are unreliable)
 - Redo worldgen
     - Better caves
