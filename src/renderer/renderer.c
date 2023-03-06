@@ -35,7 +35,7 @@
 #include "cglm/cglm.h"
 
 int MESHER_THREADS;
-int MESHER_THREADS_MAX = 1;
+int MESHER_THREADS_MAX = 8;
 
 struct renderer_info rendinf;
 //static resdata_bmd* blockmodel;
@@ -733,7 +733,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
         uint64_t waittime = altutime();
         while (rendinf.chunks->renddata[c].visfull &&
         (rendinf.chunks->renddata[c].remesh[0] || rendinf.chunks->renddata[c].remesh[1]) &&
-        altutime() - waittime < 100000) {
+        altutime() - waittime < 1000) {
             pthread_mutex_unlock(&rendinf.chunks->lock);
             microwait(0);
             pthread_mutex_lock(&rendinf.chunks->lock);
@@ -764,13 +764,15 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
         free(_vptr2);
         goto lblcontinue;
     }
+    uint32_t yvoff[32];
+    uint32_t yvcount[32];
+    for (int i = 0; i < 32; ++i) {
+        yvoff[i] = 0;
+        yvcount[i] = 0;
+    }
     {
         int c = nx + nz * rendinf.chunks->info.width;
         struct blockdata* b = &rendinf.chunks->data[c][131071];
-        for (int i = 0; i < 32; ++i) {
-            rendinf.chunks->renddata[c].yvoff[i] = 0;
-            rendinf.chunks->renddata[c].yvcount[i] = 0;
-        }
         while (maxy >= 0) {
             for (int i = 0; i < 256; ++i) {
                 if (b->id) goto foundblock;
@@ -1005,9 +1007,9 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
         */
         //secttime[1] += secttime2[0];
         //secttime[2] += secttime2[1];
-        rendinf.chunks->renddata[c].yvoff[ychunk] = vplenold;
-        rendinf.chunks->renddata[c].yvcount[ychunk] = vplen - vplenold;
-        //printf("[%d]: [%d]: [%u][%u]\n", c, ychunk, rendinf.chunks->renddata[c].yvoff[ychunk], rendinf.chunks->renddata[c].yvcount[ychunk]);
+        yvoff[ychunk] = vplenold;
+        yvcount[ychunk] = vplen - vplenold;
+        //printf("[%d]: [%d]: [%u][%u]\n", c, ychunk, yvoff[ychunk], yvcount[ychunk]);
         vplenold = vplen;
         --ychunk;
         pthread_mutex_unlock(&rendinf.chunks->lock);
@@ -1027,6 +1029,10 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
         if (rendinf.chunks->renddata[c].vertices[1]) free(rendinf.chunks->renddata[c].vertices[1]);
         rendinf.chunks->renddata[c].vcount[0] = vplen;
         rendinf.chunks->renddata[c].vcount[1] = vplen2;
+        for (int i = 0; i < 32; ++i) {
+            rendinf.chunks->renddata[c].yvoff[i] = yvoff[i];
+            rendinf.chunks->renddata[c].yvcount[i] = yvcount[i];
+        }
         rendinf.chunks->renddata[c].vertices[0] = _vptr;
         rendinf.chunks->renddata[c].vertices[1] = _vptr2;
         rendinf.chunks->renddata[c].updateid = id;
@@ -1081,15 +1087,15 @@ static void* meshthread(void* args) {
             if (!msg.dep) {
                 if (lazymesh || p != CHUNKUPDATE_PRIO_HIGH) {
                     if (msg.lvl >= 1) {
-                        addMsg(&chunkmsgs[CHUNKUPDATE_PRIO_LOW], msg.x, msg.z + 1, msg.id, true, msg.lvl);
-                        addMsg(&chunkmsgs[CHUNKUPDATE_PRIO_LOW], msg.x, msg.z - 1, msg.id, true, msg.lvl);
-                        addMsg(&chunkmsgs[CHUNKUPDATE_PRIO_LOW], msg.x + 1, msg.z, msg.id, true, msg.lvl);
-                        addMsg(&chunkmsgs[CHUNKUPDATE_PRIO_LOW], msg.x - 1, msg.z, msg.id, true, msg.lvl);
+                        addMsg(&chunkmsgs[p], msg.x, msg.z + 1, msg.id, true, msg.lvl);
+                        addMsg(&chunkmsgs[p], msg.x, msg.z - 1, msg.id, true, msg.lvl);
+                        addMsg(&chunkmsgs[p], msg.x + 1, msg.z, msg.id, true, msg.lvl);
+                        addMsg(&chunkmsgs[p], msg.x - 1, msg.z, msg.id, true, msg.lvl);
                         if (msg.lvl >= 2) {
-                            addMsg(&chunkmsgs[CHUNKUPDATE_PRIO_LOW], msg.x + 1, msg.z + 1, msg.id, true, msg.lvl);
-                            addMsg(&chunkmsgs[CHUNKUPDATE_PRIO_LOW], msg.x + 1, msg.z - 1, msg.id, true, msg.lvl);
-                            addMsg(&chunkmsgs[CHUNKUPDATE_PRIO_LOW], msg.x - 1, msg.z + 1, msg.id, true, msg.lvl);
-                            addMsg(&chunkmsgs[CHUNKUPDATE_PRIO_LOW], msg.x - 1, msg.z - 1, msg.id, true, msg.lvl);
+                            addMsg(&chunkmsgs[p], msg.x + 1, msg.z + 1, msg.id, true, msg.lvl);
+                            addMsg(&chunkmsgs[p], msg.x + 1, msg.z - 1, msg.id, true, msg.lvl);
+                            addMsg(&chunkmsgs[p], msg.x - 1, msg.z + 1, msg.id, true, msg.lvl);
+                            addMsg(&chunkmsgs[p], msg.x - 1, msg.z - 1, msg.id, true, msg.lvl);
                         }
                     }
                 } else {
@@ -1125,6 +1131,7 @@ static void* meshthread(void* args) {
                 }
             }
             pthread_mutex_unlock(&rendinf.chunks->lock);
+            microwait(0);
             /*
             double time = (altutime() - stime) / 1000.0;
             printf("meshed: [%"PRId64", %"PRId64"] in [%lgms]\n", msg.x, msg.z, time);
@@ -1133,9 +1140,8 @@ static void* meshthread(void* args) {
         if (activity) {
             acttime = altutime();
             //microwait(250);
-            microwait(100);
-        } else if (altutime() - acttime > 250000) {
-            microwait(5000);
+        } else if (altutime() - acttime > 200000) {
+            microwait(1000);
         }
     }
     return NULL;

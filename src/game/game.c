@@ -190,6 +190,10 @@ void gameLoop() {
     int invspot = 0;
     int invoff = 0;
 
+    float bps = 25;
+
+    coord_3d tmpcamrot = rendinf.camrot;
+
     int viewdist = atoi(getConfigKey(config, "Game", "viewDist"));
     rendinf.chunks = allocChunks(viewdist);
     //rendinf.chunks->xoff = 230;
@@ -217,149 +221,186 @@ void gameLoop() {
 
     while (!quitRequest) {
         uint64_t frametime = altutime();
-        float bps = 25;
         getInput(&input);
-        {
-            if (!input.focus && inputMode != INPUT_MODE_UI) {
-                setInputMode(INPUT_MODE_UI);
-                resetInput();
-            }
+        if (!input.focus && inputMode != INPUT_MODE_UI) {
+            setInputMode(INPUT_MODE_UI);
+            resetInput();
+        }
 
-            #if defined(USESDL2)
-            #else
-            static int debugkey = 0;
-            if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_DEBUG)) {
-                //input = INPUT_EMPTY_INFO;
-                input.mov_mult = 0;
-                input.mov_up = 0;
-                input.mov_right = 0;
-                input.mov_bal = 0;
-                input.single_action = INPUT_ACTION_SINGLE__NONE;
-                input.multi_actions = INPUT_ACTION_MULTI__NONE;
-                if (!debugkey) {
-                    if (glfwGetKey(rendinf.window, (debugkey = GLFW_KEY_H)) == GLFW_PRESS) {
-                        puts("DEBUG HELP:");
-                        puts("Hold the multi.debug key (F4 by default) and press one of the following:");
-                        puts("H - Display the debug help");
-                        puts("W - Toggle wireframe mode");
-                        puts("M - Remesh chunks");
-                        puts("R - Reload chunks");
-                        puts("- - Decrease view distance");
-                        puts("= - Increase view distance");
-                        puts("C - Toggle disabling cave culling");
-                    } else if (glfwGetKey(rendinf.window, (debugkey = GLFW_KEY_W)) == GLFW_PRESS) {
-                        printf("DEBUG: Wireframe: [%d]\n", (debug_wireframe = !debug_wireframe));
-                    } else if (glfwGetKey(rendinf.window, (debugkey = GLFW_KEY_M)) == GLFW_PRESS) {
-                        printf("DEBUG: Remeshing chunks...\n");
-                        int64_t xo = rendinf.chunks->xoff;
-                        int64_t zo = rendinf.chunks->zoff;
-                        updateChunk(xo, zo, CHUNKUPDATE_PRIO_HIGH, 0);
-                        for (int i = 1; i <= (int)rendinf.chunks->info.dist; ++i) {
-                            updateChunk(xo + i, zo, CHUNKUPDATE_PRIO_HIGH, 0);
-                            updateChunk(xo - i, zo, CHUNKUPDATE_PRIO_HIGH, 0);
-                            updateChunk(xo, zo + i, CHUNKUPDATE_PRIO_HIGH, 0);
-                            updateChunk(xo, zo - i, CHUNKUPDATE_PRIO_HIGH, 0);
-                            for (int j = 1; j < i; ++j) {
-                                updateChunk(xo - j, zo + i, CHUNKUPDATE_PRIO_HIGH, 0);
-                                updateChunk(xo + j, zo + i, CHUNKUPDATE_PRIO_HIGH, 0);
-                                updateChunk(xo + j, zo - i, CHUNKUPDATE_PRIO_HIGH, 0);
-                                updateChunk(xo - j, zo - i, CHUNKUPDATE_PRIO_HIGH, 0);
-                                updateChunk(xo - i, zo - j, CHUNKUPDATE_PRIO_HIGH, 0);
-                                updateChunk(xo - i, zo + j, CHUNKUPDATE_PRIO_HIGH, 0);
-                                updateChunk(xo + i, zo + j, CHUNKUPDATE_PRIO_HIGH, 0);
-                                updateChunk(xo + i, zo - j, CHUNKUPDATE_PRIO_HIGH, 0);
-                            }
-                            updateChunk(xo - i, zo + i, CHUNKUPDATE_PRIO_HIGH, 0);
-                            updateChunk(xo + i, zo - i, CHUNKUPDATE_PRIO_HIGH, 0);
-                            updateChunk(xo - i, zo - i, CHUNKUPDATE_PRIO_HIGH, 0);
-                            updateChunk(xo + i, zo + i, CHUNKUPDATE_PRIO_HIGH, 0);
+        #if defined(USESDL2)
+        #else
+        static int debugkey = 0;
+        if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_DEBUG)) {
+            //input = INPUT_EMPTY_INFO;
+            input.mov_mult = 0;
+            input.mov_up = 0;
+            input.mov_right = 0;
+            input.mov_bal = 0;
+            input.single_action = INPUT_ACTION_SINGLE__NONE;
+            input.multi_actions = INPUT_ACTION_MULTI__NONE;
+            if (!debugkey) {
+                if (glfwGetKey(rendinf.window, (debugkey = GLFW_KEY_H)) == GLFW_PRESS) {
+                    puts("DEBUG HELP:");
+                    puts("Hold the multi.debug key (F4 by default) and press one of the following:");
+                    puts("H - Display the debug help");
+                    puts("W - Toggle wireframe mode");
+                    puts("M - Remesh chunks");
+                    puts("R - Reload chunks");
+                    puts("- - Decrease view distance");
+                    puts("= - Increase view distance");
+                    puts("C - Toggle disabling cave culling");
+                } else if (glfwGetKey(rendinf.window, (debugkey = GLFW_KEY_W)) == GLFW_PRESS) {
+                    printf("DEBUG: Wireframe: [%d]\n", (debug_wireframe = !debug_wireframe));
+                } else if (glfwGetKey(rendinf.window, (debugkey = GLFW_KEY_M)) == GLFW_PRESS) {
+                    printf("DEBUG: Remeshing chunks...\n");
+                    int64_t xo = rendinf.chunks->xoff;
+                    int64_t zo = rendinf.chunks->zoff;
+                    updateChunk(xo, zo, CHUNKUPDATE_PRIO_HIGH, 0);
+                    for (int i = 1; i <= (int)rendinf.chunks->info.dist; ++i) {
+                        updateChunk(xo + i, zo, CHUNKUPDATE_PRIO_HIGH, 0);
+                        updateChunk(xo - i, zo, CHUNKUPDATE_PRIO_HIGH, 0);
+                        updateChunk(xo, zo + i, CHUNKUPDATE_PRIO_HIGH, 0);
+                        updateChunk(xo, zo - i, CHUNKUPDATE_PRIO_HIGH, 0);
+                        for (int j = 1; j < i; ++j) {
+                            updateChunk(xo - j, zo + i, CHUNKUPDATE_PRIO_HIGH, 0);
+                            updateChunk(xo + j, zo + i, CHUNKUPDATE_PRIO_HIGH, 0);
+                            updateChunk(xo + j, zo - i, CHUNKUPDATE_PRIO_HIGH, 0);
+                            updateChunk(xo - j, zo - i, CHUNKUPDATE_PRIO_HIGH, 0);
+                            updateChunk(xo - i, zo - j, CHUNKUPDATE_PRIO_HIGH, 0);
+                            updateChunk(xo - i, zo + j, CHUNKUPDATE_PRIO_HIGH, 0);
+                            updateChunk(xo + i, zo + j, CHUNKUPDATE_PRIO_HIGH, 0);
+                            updateChunk(xo + i, zo - j, CHUNKUPDATE_PRIO_HIGH, 0);
                         }
-                    } else if (glfwGetKey(rendinf.window, (debugkey = GLFW_KEY_R)) == GLFW_PRESS) {
-                        printf("DEBUG: Reloading chunks...\n");
-                        resizeChunks(rendinf.chunks, viewdist);
-                        reqChunks(rendinf.chunks);
-                    } else if (glfwGetKey(rendinf.window, (debugkey = GLFW_KEY_MINUS)) == GLFW_PRESS && (viewdist > 1)) {
-                        printf("DEBUG: View distance: [%d]\n", (--viewdist));
-                        resizeChunks(rendinf.chunks, viewdist);
-                        reqChunks(rendinf.chunks);
-                    } else if (glfwGetKey(rendinf.window, (debugkey = GLFW_KEY_EQUAL)) == GLFW_PRESS) {
-                        printf("DEBUG: View distance: [%d]\n", (++viewdist));
-                        resizeChunks(rendinf.chunks, viewdist);
-                        reqChunks(rendinf.chunks);
-                    } else if (glfwGetKey(rendinf.window, (debugkey = GLFW_KEY_C)) == GLFW_PRESS) {
-                        printf("DEBUG: Disable cave culling: [%d]\n", (debug_nocavecull = !debug_nocavecull));
-                    } else {
-                        debugkey = 0;
+                        updateChunk(xo - i, zo + i, CHUNKUPDATE_PRIO_HIGH, 0);
+                        updateChunk(xo + i, zo - i, CHUNKUPDATE_PRIO_HIGH, 0);
+                        updateChunk(xo - i, zo - i, CHUNKUPDATE_PRIO_HIGH, 0);
+                        updateChunk(xo + i, zo + i, CHUNKUPDATE_PRIO_HIGH, 0);
                     }
-                } else if (!(glfwGetKey(rendinf.window, debugkey) == GLFW_PRESS)) {
+                } else if (glfwGetKey(rendinf.window, (debugkey = GLFW_KEY_R)) == GLFW_PRESS) {
+                    printf("DEBUG: Reloading chunks...\n");
+                    resizeChunks(rendinf.chunks, viewdist);
+                    reqChunks(rendinf.chunks);
+                } else if (glfwGetKey(rendinf.window, (debugkey = GLFW_KEY_MINUS)) == GLFW_PRESS && (viewdist > 1)) {
+                    printf("DEBUG: View distance: [%d]\n", (--viewdist));
+                    resizeChunks(rendinf.chunks, viewdist);
+                    reqChunks(rendinf.chunks);
+                } else if (glfwGetKey(rendinf.window, (debugkey = GLFW_KEY_EQUAL)) == GLFW_PRESS) {
+                    printf("DEBUG: View distance: [%d]\n", (++viewdist));
+                    resizeChunks(rendinf.chunks, viewdist);
+                    reqChunks(rendinf.chunks);
+                } else if (glfwGetKey(rendinf.window, (debugkey = GLFW_KEY_C)) == GLFW_PRESS) {
+                    printf("DEBUG: Disable cave culling: [%d]\n", (debug_nocavecull = !debug_nocavecull));
+                } else {
                     debugkey = 0;
                 }
-            }
-            #endif
-
-            switch (input.single_action) {
-                case INPUT_ACTION_SINGLE_FULLSCR:;
-                    setFullscreen(!rendinf.fullscr);
-                    break;
-            }
-            switch (inputMode) {
-                case INPUT_MODE_GAME:; {
-                    switch (input.single_action) {
-                        case INPUT_ACTION_SINGLE_INV_0 ... INPUT_ACTION_SINGLE_INV_9:;
-                            invspot = input.single_action - INPUT_ACTION_SINGLE_INV_0;
-                            updateHotbar(ui_hotbar, invspot);
-                            //blocksub = 0;
-                            break;
-                        case INPUT_ACTION_SINGLE_INV_NEXT:;
-                            ++invspot;
-                            if (invspot > 9) invspot = 0;
-                            updateHotbar(ui_hotbar, invspot);
-                            //blocksub = 0;
-                            break;
-                        case INPUT_ACTION_SINGLE_INV_PREV:;
-                            --invspot;
-                            if (invspot < 0) invspot = 9;
-                            updateHotbar(ui_hotbar, invspot);
-                            //blocksub = 0;
-                            break;
-                        case INPUT_ACTION_SINGLE_INVOFF_NEXT:;
-                            ++invoff;
-                            if (invoff > 4) invoff = 0;
-                            //blocksub = 0;
-                            break;
-                        case INPUT_ACTION_SINGLE_INVOFF_PREV:;
-                            --invoff;
-                            if (invoff < 0) invoff = 4;
-                            //blocksub = 0;
-                            break;
-                        case INPUT_ACTION_SINGLE_ROT_X:;
-                            //++blocksub;
-                            break;
-                        case INPUT_ACTION_SINGLE_ROT_Y:;
-                            //--blocksub;
-                            //if (blocksub < 0) blocksub = 0;
-                            break;
-                        case INPUT_ACTION_SINGLE_DEBUG:;
-                            game_ui[UILAYER_DBGINF]->hidden = !(showDebugInfo = !showDebugInfo);
-                            break;
-                        case INPUT_ACTION_SINGLE_ESC:;
-                            setInputMode(INPUT_MODE_UI);
-                            resetInput();
-                            break;
-                    }
-                    break;
-                }
-                case INPUT_MODE_UI:; {
-                    switch (input.single_action) {
-                        case INPUT_ACTION_SINGLE_ESC:;
-                            setInputMode(INPUT_MODE_GAME);
-                            resetInput();
-                            break;
-                    }
-                    break;
-                }
+            } else if (!(glfwGetKey(rendinf.window, debugkey) == GLFW_PRESS)) {
+                debugkey = 0;
             }
         }
+        #endif
+
+        switch (input.single_action) {
+            case INPUT_ACTION_SINGLE_FULLSCR:;
+                setFullscreen(!rendinf.fullscr);
+                break;
+        }
+        switch (inputMode) {
+            case INPUT_MODE_GAME:; {
+                switch (input.single_action) {
+                    case INPUT_ACTION_SINGLE_INV_0 ... INPUT_ACTION_SINGLE_INV_9:;
+                        invspot = input.single_action - INPUT_ACTION_SINGLE_INV_0;
+                        updateHotbar(ui_hotbar, invspot);
+                        //blocksub = 0;
+                        break;
+                    case INPUT_ACTION_SINGLE_INV_NEXT:;
+                        ++invspot;
+                        if (invspot > 9) invspot = 0;
+                        updateHotbar(ui_hotbar, invspot);
+                        //blocksub = 0;
+                        break;
+                    case INPUT_ACTION_SINGLE_INV_PREV:;
+                        --invspot;
+                        if (invspot < 0) invspot = 9;
+                        updateHotbar(ui_hotbar, invspot);
+                        //blocksub = 0;
+                        break;
+                    case INPUT_ACTION_SINGLE_INVOFF_NEXT:;
+                        ++invoff;
+                        if (invoff > 4) invoff = 0;
+                        //blocksub = 0;
+                        break;
+                    case INPUT_ACTION_SINGLE_INVOFF_PREV:;
+                        --invoff;
+                        if (invoff < 0) invoff = 4;
+                        //blocksub = 0;
+                        break;
+                    case INPUT_ACTION_SINGLE_ROT_X:;
+                        //++blocksub;
+                        break;
+                    case INPUT_ACTION_SINGLE_ROT_Y:;
+                        //--blocksub;
+                        //if (blocksub < 0) blocksub = 0;
+                        break;
+                    case INPUT_ACTION_SINGLE_DEBUG:;
+                        game_ui[UILAYER_DBGINF]->hidden = !(showDebugInfo = !showDebugInfo);
+                        break;
+                    case INPUT_ACTION_SINGLE_ESC:;
+                        setInputMode(INPUT_MODE_UI);
+                        resetInput();
+                        break;
+                }
+                break;
+            }
+            case INPUT_MODE_UI:; {
+                switch (input.single_action) {
+                    case INPUT_ACTION_SINGLE_ESC:;
+                        setInputMode(INPUT_MODE_GAME);
+                        resetInput();
+                        break;
+                }
+                break;
+            }
+        }
+        float speed = bps;
+        float runmult = (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_RUN)) ? 1.6875 : 1.0;
+        float leanmult = ((speed < 10.0) ? speed : 10.0) * 0.125 * 1.0;
+        float zoomrotmult;
+        if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_ZOOM)) {
+            zoomrotmult = 0.25;
+        } else {
+            zoomrotmult = 1.0;
+        }
+        tmpcamrot.x += input.rot_up * input.rot_mult_y * zoomrotmult;
+        tmpcamrot.y -= input.rot_right * input.rot_mult_x * zoomrotmult;
+        rendinf.camrot.x = tmpcamrot.x - input.mov_up * leanmult;
+        if (rendinf.camrot.x > 89.99) rendinf.camrot.x = 89.99;
+        if (rendinf.camrot.x < -89.99) rendinf.camrot.x = -89.99;
+        rendinf.camrot.y = tmpcamrot.y;
+        rendinf.camrot.z = input.mov_right * leanmult;
+        if (tmpcamrot.y < 0) tmpcamrot.y += 360;
+        else if (tmpcamrot.y >= 360) tmpcamrot.y -= 360;
+        if (tmpcamrot.x > 90.0) tmpcamrot.x = 90.0;
+        if (tmpcamrot.x < -90.0) tmpcamrot.x = -90.0;
+        float yrotrad = (rendinf.camrot.y / 180 * M_PI);
+        float f1 = input.mov_up * ((input.mov_up > 0.0) ? runmult : 1.0) * sinf(yrotrad);
+        float f2 = input.mov_right * cosf(yrotrad);
+        float f3 = input.mov_up * ((input.mov_up > 0.0) ? runmult : 1.0) * cosf(yrotrad);
+        float f4 = (input.mov_right * sinf(yrotrad)) * -1;
+        float xcm = (f1 * speed) + (f2 * speed);
+        float zcm = (f3 * speed) + (f4 * speed);
+        pvelocity.x = xcm;
+        pvelocity.z = zcm;
+        rendinf.campos.z += zcm * input.mov_mult;
+        rendinf.campos.x += xcm * input.mov_mult;
+        if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_JUMP)) {
+            rendinf.campos.y += 17.5 * runmult * input.mov_mult;
+        }
+        if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_CROUCH)) {
+            rendinf.campos.y -= 17.5 * runmult * input.mov_mult;
+        }
+        pcoord.x = rendinf.campos.x + rendinf.chunks->xoff * 16;
+        pcoord.y = rendinf.campos.y;
+        pcoord.z = rendinf.campos.z + rendinf.chunks->zoff * 16;
 
         int cmx = 0, cmz = 0;
         while (rendinf.campos.z > 8.0) {
@@ -382,42 +423,47 @@ void gameLoop() {
             moveChunks(rendinf.chunks, cmx, cmz);
             reqChunks(rendinf.chunks);
         }
-        {
-            pthread_mutex_lock(&gfxlock);
-            if (setskycolor) {
-                setSkyColor(newskycolor.r, newskycolor.g, newskycolor.b);
-                setskycolor = false;
-            }
-            if (setnatcolor) {
-                setNatColor(newnatcolor.r, newnatcolor.g, newnatcolor.b);
-                setnatcolor = false;
-            }
-            pthread_mutex_unlock(&gfxlock);
-            updateCam();
-            updateChunks();
-            render();
-            updateScreen();
-            ++frames;
-            if (rendinf.fps && (!rendinf.vsync || rendinf.fps < rendinf.disphz)) {
-                int64_t framediff = (1000000 / rendinf.fps) - (altutime() - frametime);
-                //printf("Wait for %"PRId64"us\n", framediff);
-                if (framediff > 0) microwait(framediff);
-            }
-            static uint64_t totalframetime = 0;
-            static uint64_t highframetime = 0;
-            frametime = altutime() - frametime;
-            totalframetime += frametime;
-            if (frametime > highframetime) highframetime = frametime;
-            if (altutime() - fpsupdate >= 200000) {
-                fpsupdate = altutime();
-                fps = 1000000.0 / ((double)totalframetime / (double)frames);
-                realfps = 1000000.0 / (double)highframetime;
-                if (realfps > rendinf.disphz) realfps = rendinf.disphz;
-                //printf("Rendered %d frames in %lfus\n", frames, ((double)totalframetime / (double)frames));
-                frames = 0;
-                totalframetime = 0;
-                highframetime = 0;
-            }
+
+        pthread_mutex_lock(&gfxlock);
+        if (setskycolor) {
+            setSkyColor(newskycolor.r, newskycolor.g, newskycolor.b);
+            setskycolor = false;
+        }
+        if (setnatcolor) {
+            setNatColor(newnatcolor.r, newnatcolor.g, newnatcolor.b);
+            setnatcolor = false;
+        }
+        pthread_mutex_unlock(&gfxlock);
+        float oldfov = rendinf.camfov;
+        bool zoom = (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_ZOOM));
+        bool run = (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_RUN) && input.mov_up > 0.0);
+        if (zoom) rendinf.camfov = 12.5;
+        else if (run) rendinf.camfov += input.mov_up * 1.25;
+        updateCam();
+        if (zoom || run) rendinf.camfov = oldfov;
+        updateChunks();
+        render();
+        updateScreen();
+        ++frames;
+        if (rendinf.fps && (!rendinf.vsync || rendinf.fps < rendinf.disphz)) {
+            int64_t framediff = (1000000 / rendinf.fps) - (altutime() - frametime);
+            //printf("Wait for %"PRId64"us\n", framediff);
+            if (framediff > 0) microwait(framediff);
+        }
+        static uint64_t totalframetime = 0;
+        static uint64_t highframetime = 0;
+        frametime = altutime() - frametime;
+        totalframetime += frametime;
+        if (frametime > highframetime) highframetime = frametime;
+        if (altutime() - fpsupdate >= 200000) {
+            fpsupdate = altutime();
+            fps = 1000000.0 / ((double)totalframetime / (double)frames);
+            realfps = 1000000.0 / (double)highframetime;
+            if (realfps > rendinf.disphz) realfps = rendinf.disphz;
+            //printf("Rendered %d frames in %lfus\n", frames, ((double)totalframetime / (double)frames));
+            frames = 0;
+            totalframetime = 0;
+            highframetime = 0;
         }
     }
 }

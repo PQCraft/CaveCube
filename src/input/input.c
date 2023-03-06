@@ -84,19 +84,19 @@ input_keys input_mov[] = {
     KEY('k', 'b', SDL_SCANCODE_S, 0, 0, 0),
     KEY('k', 'b', SDL_SCANCODE_A, 0, 0, 0),
     KEY('k', 'b', SDL_SCANCODE_D, 0, 0, 0),
+    KEY(0, 0, 0, 0, 0, 0),
     KEY('m', 'm', 1, 0, 0, 0),
-    KEY(0, 0, 0, 0, 0, 0),
-    KEY(0, 0, 0, 0, 0, 0),
     KEY('m', 'm', 0, 0, 0, 0),
+    KEY(0, 0, 0, 0, 0, 0),
     #else
     KEY('k', 'b', GLFW_KEY_W, 0, 0, 0),
     KEY('k', 'b', GLFW_KEY_S, 0, 0, 0),
     KEY('k', 'b', GLFW_KEY_A, 0, 0, 0),
     KEY('k', 'b', GLFW_KEY_D, 0, 0, 0),
+    KEY(0, 0, 0, 0, 0, 0),
     KEY('m', 'm', 1, 0, 0, 0),
-    KEY(0, 0, 0, 0, 0, 0),
-    KEY(0, 0, 0, 0, 0, 0),
     KEY('m', 'm', 0, 0, 0, 0),
+    KEY(0, 0, 0, 0, 0, 0),
     #endif
 };
 input_keys input_ma[INPUT_ACTION_MULTI__MAX] = {
@@ -190,7 +190,7 @@ void setInputMode(int mode) {
             #if defined(USESDL2)
             SDL_SetRelativeMouseMode(SDL_TRUE);
             #else
-            glfwSetInputMode(rendinf.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+            glfwSetInputMode(rendinf.window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
             #endif
             if (game_ui[UILAYER_INGAME]) game_ui[UILAYER_INGAME]->hidden = true;
             break;
@@ -246,7 +246,7 @@ static bool glfwgp = false;
 GLFWgamepadstate glfwgpstate;
 #endif
 
-static double mxpos, mypos;
+static double mmovx, mmovy;
 static int mscrollup, mscrolldown;
 
 static force_inline float _keyState(int device, int type, int key) {
@@ -272,24 +272,14 @@ static force_inline float _keyState(int device, int type, int key) {
                     #endif
                 } break;
                 case 'm':; {
-                    static double nmxpos, nmypos;
-                    #if defined(USESDL2)
-                    sdl2getmouse(&nmxpos, &nmypos);
-                    #else
-                    glfwGetCursorPos(rendinf.window, &nmxpos, &nmypos);
-                    #endif
-                    float ret = 0.0;
                     switch (key) {
                         case 0:;
-                            ret = mxpos - nmxpos;
-                            mxpos = nmxpos;
+                            return mmovx;
                             break;
                         case 1:;
-                            ret = mypos - nmypos;
-                            mypos = nmypos;
+                            return mmovy;
                             break;
                     }
-                    return ret;
                 } break;
                 case 'w':; {
                     switch (key) {
@@ -336,15 +326,18 @@ static force_inline float keyState(input_keys k) {
 
 static uint64_t polltime;
 
+//static double oldmxpos, oldmypos;
+static double newmxpos, newmypos;
+
 void resetInput() {
     polltime = altutime();
     #if defined(USESDL2)
     SDL_WarpMouseInWindow(rendinf.window, rendinf.width / 2, rendinf.height / 2);
-    sdl2getmouse(&mxpos, &mypos);
+    //sdl2getmouse(&oldmxpos, &oldmypos);
     #else
     glfwPollEvents();
     glfwSetCursorPos(rendinf.window, rendinf.width / 2, rendinf.height / 2);
-    glfwGetCursorPos(rendinf.window, &mxpos, &mypos);
+    //glfwGetCursorPos(rendinf.window, &oldmxpos, &oldmypos);
     #endif
     //getInput();
 }
@@ -377,6 +370,7 @@ void getInput(struct input_info* _inf) {
     }
     if (sdl2mscroll != 0) mscrolltoggle = !mscrolltoggle;
     else mscrolltoggle = 1;
+    sdl2getmouse(&newmxpos, &newmypos);
     #else
     glfwPollEvents();
     quitRequest += (glfwWindowShouldClose(rendinf.window) != 0);
@@ -399,7 +393,16 @@ void getInput(struct input_info* _inf) {
     for (int i = GLFW_JOYSTICK_1; i < GLFW_JOYSTICK_LAST; ++i) {
         if ((glfwgp = glfwGetGamepadState(GLFW_JOYSTICK_1, &glfwgpstate))) break;
     }
+    if (inputMode == INPUT_MODE_GAME && inf->focus) {
+        glfwGetCursorPos(rendinf.window, &newmxpos, &newmypos);
+        glfwSetCursorPos(rendinf.window, rendinf.width / 2, rendinf.height / 2);
+    }
     #endif
+    mmovx = newmxpos - ((double)rendinf.width / 2.0);
+    mmovy = newmypos - ((double)rendinf.height / 2.0);
+    //printf("Mouse movement: [%lf, %lf] [%lf, %lf]\n", newmxpos, newmypos, mmovx, mmovy);
+    //oldmxpos = newmxpos;
+    //oldmypos = newmypos;
     *inf = INPUT_EMPTY_INFO;
     if (quitRequest) goto ret;
     #if defined(USESDL2)

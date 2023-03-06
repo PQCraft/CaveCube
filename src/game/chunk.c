@@ -51,17 +51,18 @@ void getBlock(struct chunkdata* data, int64_t x, int y, int64_t z, struct blockd
 
 void setBlock(struct chunkdata* data, int64_t x, int y, int64_t z, struct blockdata bdata) {
     pthread_mutex_lock(&data->lock);
-    if (y < 0 || y > 511) return;
+    if (y < 0 || y > 511) goto ret;
     int64_t cx, cz;
     _getChunkOfBlock(x, z, &cx, &cz);
     cx = (cx - data->xoff) + data->info.dist;
     cz = data->info.width - ((cz - data->zoff) + data->info.dist) - 1;
-    if (cx < 0 || cz < 0 || cx >= data->info.width || cz >= data->info.width) return;
+    if (cx < 0 || cz < 0 || cx >= data->info.width || cz >= data->info.width) goto ret;
     x = i64_mod(x + 8, 16);
     z = 15 - i64_mod(z + 8, 16);
     int c = cx + cz * data->info.width;
-    if (!data->renddata[c].generated) return;
+    if (!data->renddata[c].generated) goto ret;
     data->data[c][y * 256 + z * 16 + x] = bdata;
+    ret:;
     pthread_mutex_unlock(&data->lock);
 }
 
