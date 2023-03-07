@@ -458,13 +458,20 @@ static void* servthread(void* args) {
                         invalmsg:;
                         default:; {
                             printf("Invalid message id [%d] from player [%d] (uuid: [%"PRId64"])\n", msg.id, msg.uind, msg.uuid);
-                            activity = false;
+                            //activity = false;
                         } break;
                     }
                     if (msg.data) free(msg.data);
                     //puts("Done");
                 } else {
                     //puts("Message dropped (player handle is not valid)");
+                    switch (msg.id) {
+                        case CLIENT_COMPATINFO:; {
+                            struct client_data_compatinfo* data = msg.data;
+                            free(data->client_str);
+                        } break;
+                    }
+                    if (msg.data) free(msg.data);
                 }
             } else {
                 switch (msg.id) {
@@ -488,7 +495,7 @@ static void* servthread(void* args) {
                     } break;
                     default:; {
                         printf("Invalid internal message id [%d]\n", msg.id);
-                        activity = false;
+                        //activity = false;
                     } break;
                 }
                 if (msg.data) free(msg.data);
@@ -499,6 +506,7 @@ static void* servthread(void* args) {
         } else if (altutime() - acttime > 100000) {
             microwait(50000);
         }
+        microwait(0);
     }
     return NULL;
 }
@@ -545,13 +553,16 @@ static void* servnetthread(void* args) {
         for (int i = 0; i < maxclients; ++i) {
             pthread_mutex_lock(&pdatalock);
             if (pdata[i].valid) {
-                if (recvCxn(pdata[i].cxn) < 0) {
-                    //activity = true;
+                //int bytes = 0;
+                if ((/*bytes = */recvCxn(pdata[i].cxn)) < 0) {
+                    activity = true;
                     char str[22];
                     printf("Connection to %s dropped (client disconnected)\n", getCxnAddrStr(pdata[i].cxn, str));
                     closeCxn(pdata[i].cxn);
                     pdata[i].valid = false;
                 } else {
+                    //static uint64_t tmp0 = 0;
+                    //printf("client[%d]: [%d] (read #%"PRIu64")\n", i, bytes, tmp0++);
                     if (pdata[i].tmpsize < 1) {
                         int dsize = getInbufSize(pdata[i].cxn);
                         if (dsize >= 4) {
@@ -645,14 +656,14 @@ static void* servnetthread(void* args) {
                         free(buf);
                         pdata[i].tmpsize = 0;
                     }
-                    if (pdata[i].valid) {
-                        struct msgdata_msg msg;
-                        int priority;
+                    struct msgdata_msg msg;
+                    int priority;
+                    if ((getNextMsgForUUID(&servmsgout[(priority = MSG_PRIO_HIGH)], &msg, pdata[i].uuid) ||
+                    getNextMsgForUUID(&servmsgout[(priority = MSG_PRIO_NORMAL)], &msg, pdata[i].uuid) ||
+                    getNextMsgForUUID(&servmsgout[(priority = MSG_PRIO_LOW)], &msg, pdata[i].uuid)) && msg.uind == i) {
+                        activity = true;
                         bool disconnect = false;
-                        if ((getNextMsgForUUID(&servmsgout[(priority = MSG_PRIO_HIGH)], &msg, pdata[i].uuid) ||
-                        getNextMsgForUUID(&servmsgout[(priority = MSG_PRIO_NORMAL)], &msg, pdata[i].uuid) ||
-                        getNextMsgForUUID(&servmsgout[(priority = MSG_PRIO_LOW)], &msg, pdata[i].uuid)) && msg.uind == i) {
-                            activity = true;
+                        if (pdata[i].valid) {
                             uint8_t tmpbyte = msg.id;
                             uint32_t msgsize = 1;
                             switch (msg.id) {
@@ -759,22 +770,64 @@ static void* servnetthread(void* args) {
                             }
                             if (msg.data) free(msg.data);
                             srv_nosend:;
-                        }
-                        /*int bytes_sent = */sendCxn(pdata[i].cxn);
-                        //if (bytes_sent) printf("server write [%d]\n", bytes_sent);
-                        if (disconnect) {
-                            char str[22];
-                            printf("Connection to %s dropped (server closed connection)\n", getCxnAddrStr(pdata[i].cxn, str));
-                            closeCxn(pdata[i].cxn);
-                            pdata[i].valid = false;
+                            int bytes_sent = sendCxn(pdata[i].cxn);
+                            //if (bytes_sent) printf("server write [%d]\n", bytes_sent);
+                            if (bytes_sent < 0) {
+                                char str[22];
+                                printf("Connection to %s dropped (client disconnected)\n", getCxnAddrStr(pdata[i].cxn, str));
+                                closeCxn(pdata[i].cxn);
+                                pdata[i].valid = false;
+                            } else if (disconnect) {
+                                char str[22];
+                                printf("Connection to %s dropped (server closed connection)\n", getCxnAddrStr(pdata[i].cxn, str));
+                                closeCxn(pdata[i].cxn);
+                                pdata[i].valid = false;
+                            }
                         }
                     }
                 }
             }
             pthread_mutex_unlock(&pdatalock);
             if (!activity) {
-                microwait(1000);
+                //microwait(1000);
             }
+            microwait(0);
+        }
+        if (!activity) {
+            pthread_mutex_lock(&pdatalock);
+            pthread_mutex_lock(&servmsgout->lock);
+            for (int i = 0; i < servmsgout->size; ++i) {
+                if (servmsgout->msg[i].id >= 0 && servmsgout->msg[i].uuid > 0) {
+                    if (!(pdata[servmsgout->msg[i].uind].valid && pdata[servmsgout->msg[i].uind].uuid == servmsgout->msg[i].uuid)) {
+                        //puts("Dropping");
+                        if (servmsgout->msg[i].data) {
+                            switch (servmsgout->msg[i].id) {
+                                case SERVER_COMPATINFO:; {
+                                    struct server_data_compatinfo* tmpdata = servmsgout->msg[i].data;
+                                    free(tmpdata->server_str);
+                                } break;
+                                case SERVER_LOGINOK:; {
+                                    struct server_data_loginok* tmpdata = servmsgout->msg[i].data;
+                                    free(tmpdata->username);
+                                } break;
+                                case SERVER_DISCONNECT:; {
+                                    struct server_data_disconnect* tmpdata = servmsgout->msg[i].data;
+                                    free(tmpdata->reason);
+                                } break;
+                                case SERVER_UPDATECHUNK:; {
+                                    struct server_data_updatechunk* tmpdata = servmsgout->msg[i].data;
+                                    free(tmpdata->cdata);
+                                } break;
+                            }
+                            free(servmsgout->msg[i].data);
+                        }
+                        servmsgout->msg[i].id = -1;
+                    }
+                }
+            }
+            pthread_mutex_unlock(&servmsgout->lock);
+            pthread_mutex_unlock(&pdatalock);
+            microwait(0);
         }
         if (activity) {
             acttime = altutime();
@@ -1133,9 +1186,9 @@ static void* clinetthread(void* args) {
             free(buf);
             tmpsize = 0;
         }
+        microwait(0);
         if (activity) {
             acttime = altutime();
-            microwait(1000);
         } else if (altutime() - acttime > 100000) {
             microwait(50000);
         }

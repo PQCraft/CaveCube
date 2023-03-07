@@ -2,7 +2,6 @@
 - Next version: 0.6.1
 
 ### NEED TO DO:
-- Server memory management (free message data from dropped clients)
 - Translate block structs into a standard format when transferring over the network (bitfields are unreliable)
 - Redo worldgen
     - Better caves
@@ -55,3 +54,7 @@
 
 ### DONE:
 - Made natural light monochrome to save bits
+- Improved mesher performance
+- Improved server memory management
+- Server now also disconnects on a write error
+- Fixed a bug that prevented Windows from connecting in -connect mode

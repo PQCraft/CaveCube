@@ -359,6 +359,10 @@ int main(int _argc, char** _argv) {
             cores -= 3;
             if (cores < 1) cores = 1;
             MESHER_THREADS = cores;
+            if (!initServer()) {
+                fputs("Failed to init server\n", stderr);
+                return 1;
+            }
             if (!initRenderer()) {
                 fputs("Failed to init renderer\n", stderr);
                 return 1;
