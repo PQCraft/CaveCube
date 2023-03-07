@@ -783,11 +783,8 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
         foundblock:;
         //printf("maxy[%"PRId64", %"PRId64"]: %d\n", x, z, maxy);
     }
-    {
-        int c = nx + nz * rendinf.chunks->info.width;
-        //printf("PREP: [%"PRId64", %"PRId64"]\n", nx, nz);
-        memset(rendinf.chunks->renddata[c].vispass, 1, sizeof(rendinf.chunks->renddata[c].vispass));
-    }
+    uint8_t vispass[32][6][6];
+    memset(vispass, 1, sizeof(vispass));
     //secttime[0] = altutime() - secttime[0];
     maxy /= 16;
     int ychunk = maxy;
@@ -884,10 +881,9 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
             free(_vptr2);
             goto lblcontinue;
         }
-        int c = nx + nz * rendinf.chunks->info.width;
         for (int i = 0; i < 6; ++i) {
             for (int j = 0; j < 6; ++j) {
-                rendinf.chunks->renddata[c].vispass[ychunk][i][j] = false;
+                vispass[ychunk][i][j] = false;
             }
         }
         for (int _y = maxy + 15; _y >= maxy; --_y) {
@@ -985,7 +981,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
                         for (int i = 0; i < 6; ++i) {
                             for (int j = 0; j < 6; ++j) {
                                 if (i != j && touched[i] && touched[j]) {
-                                    rendinf.chunks->renddata[c].vispass[ychunk][j][i] = rendinf.chunks->renddata[c].vispass[ychunk][i][j] = true;
+                                    vispass[ychunk][j][i] = vispass[ychunk][i][j] = true;
                                 }
                             }
                         }
@@ -999,7 +995,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
             printf("VISPASS [%"PRId64", %d, %"PRId64"]:\n", nx, ychunk, nz);
             for (int i = 0; i < 6; ++i) {
                 for (int j = 0; j < 6; ++j) {
-                    printf("%d", rendinf.chunks->renddata[c].vispass[ychunk][i][j]);
+                    printf("%d", vispass[ychunk][i][j]);
                 }
                 putchar('\n');
             }
@@ -1033,6 +1029,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
             rendinf.chunks->renddata[c].yvoff[i] = yvoff[i];
             rendinf.chunks->renddata[c].yvcount[i] = yvcount[i];
         }
+        memcpy(rendinf.chunks->renddata[c].vispass, vispass, sizeof(rendinf.chunks->renddata[c].vispass));
         rendinf.chunks->renddata[c].vertices[0] = _vptr;
         rendinf.chunks->renddata[c].vertices[1] = _vptr2;
         rendinf.chunks->renddata[c].updateid = id;
@@ -1051,7 +1048,6 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
         printf("    flood fill: [%lgms]\n", time);
         */
     } else {
-        //microwait(500); // anti-stutter
         free(_vptr);
         free(_vptr2);
     }
