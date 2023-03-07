@@ -96,7 +96,7 @@ struct server_data_updatechunk {
     int64_t z;
     int len;
     unsigned char* cdata;
-    struct blockdata data[131072];
+    struct blockdata* bdata;
 };
 
 struct server_data_setskycolor {

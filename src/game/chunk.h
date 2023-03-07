@@ -6,17 +6,18 @@
 #include <inttypes.h>
 
 struct __attribute__((packed)) blockdata {
-    uint8_t id:8;
-    uint8_t subid:6;
-    uint8_t rotx:2;
-    uint8_t roty:2;
-    uint8_t rotz:2;
-    uint8_t charge:4;
-    uint32_t light_r:5;
-    uint32_t light_g:5;
-    uint32_t light_b:5;
-    uint32_t light_n:5;
-    uint32_t /*padding*/:4;
+    uint16_t id:8;              // 1
+    uint16_t subid:6;
+    uint16_t rotx:2;
+    uint16_t roty:2;            // 2
+    uint16_t rotz:2;
+    uint16_t charge:4;
+    uint16_t /*padding*/:3;
+    uint16_t light_n:5;
+    uint16_t /*padding*/:1;     // 3
+    uint16_t light_r:5;
+    uint16_t light_g:5;
+    uint16_t light_b:5;
 };
 
 #if MODULEID == MODULEID_GAME

@@ -133,7 +133,7 @@ static bool handleServer(int msg, void* _data) {
         */
         case SERVER_UPDATECHUNK:; {
             struct server_data_updatechunk* data = _data;
-            writeChunk(rendinf.chunks, data->x, data->z, data->data);
+            writeChunk(rendinf.chunks, data->x, data->z, data->bdata);
         } break;
         case SERVER_SETSKYCOLOR:; {
             struct server_data_setskycolor* data = _data;

@@ -2,7 +2,6 @@
 - Next version: 0.6.1
 
 ### NEED TO DO:
-- Translate block structs into a standard format when transferring over the network (bitfields are unreliable)
 - Redo worldgen
     - Better caves
     - Add mountains
@@ -50,6 +49,7 @@
 - Implement extensions in `src/main/extmgr.(c|h)` using libdl
 
 ### IN-PROGRESS:
+- Translate block structs into a standard format when transferring over the network (bitfields are unreliable)
 - Decrustify doGame
 
 ### DONE:
