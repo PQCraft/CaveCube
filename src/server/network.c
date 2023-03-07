@@ -68,9 +68,11 @@ static force_inline int rsock(sock_t sock, void* buf, int len) {
         if (cond) {
             return 0;
         } else {
+            //puts("rsock: !");
             return -1;
         }
     } else if (!ret) {
+        //puts("rsock: E");
         return -1;
     }
     return ret;
@@ -88,6 +90,7 @@ static force_inline int wsock(sock_t sock, void* buf, int len) {
         if (cond) {
             return 0;
         } else {
+            //printf("wsock: !: {%s}\n", strerror(errno));
             return -1;
         }
     }
