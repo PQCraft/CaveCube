@@ -49,7 +49,6 @@
     - Better caves
     - Add mountains
     - Add rivers
-- Decrustify doGame
 
 ### DONE:
 - Made natural light monochrome to save bits

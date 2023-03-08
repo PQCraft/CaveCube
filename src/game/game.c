@@ -45,8 +45,8 @@ static force_inline void writeChunk(struct chunkdata* chunks, int64_t x, int64_t
     memcpy(chunks->data[coff], data, 131072 * sizeof(struct blockdata));
     chunks->renddata[coff].generated = true;
     chunks->renddata[coff].requested = false;
-    updateChunk(x, z, CHUNKUPDATE_PRIO_NORMAL, 1);
     pthread_mutex_unlock(&chunks->lock);
+    updateChunk(x, z, CHUNKUPDATE_PRIO_NORMAL, 1);
 }
 
 static force_inline void reqChunk(struct chunkdata* chunks, int64_t x, int64_t z) {
