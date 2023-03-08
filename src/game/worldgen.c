@@ -45,74 +45,21 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
             data[3].id = grass_block;
         } break;
         case 1:; {
-            /*
-            int64_t chunkx = (cx + 8.0);
-            int64_t chunkz = (cz + 8.0);
-            if (chunkx < 0) chunkx -= 16;
-            if (chunkz > 0) chunkz += 16;
-            chunkx /= 16;
-            chunkz /= 16;
-            if ((chunkx + chunkz) % 2) {
-            */
-            float heightmult = tanhf((perlin2d(0, cx, cz, 0.003649, 2) * 3.75) * 0.5 + 0.65);
-            float height = tanhf(nperlin2d(1, cx, cz, 0.001253, 7) * 3.0) * heightmult;
-            float detail = nperlin2d(2, cx, cz, 0.03153, 3);
-            height *= (1.0 - (height * 0.5 - 0.33)) * 0.825 * heightmult;
-            height += 0.33;
-            float caveheight = height * 1.2;
-            float finalheight = round((height) * 75.0 + detail * 2.0 * heightmult + 128.0);
-            float grounddiff = round((perlin2d(3, cx, cz, 0.05, 4) * 0.2 + 4.0) - tanhf((finalheight + (detail - 0.75) * 25.0 - 128.0) / 95.0) * 4.25);
-            for (int i = 0; i <= finalheight && i < 512; ++i) {
-                if (i > finalheight - grounddiff) {
-                    if ((height) > 0.05 + detail * 0.05) {
-                        data[i].id = (i == finalheight) ? grass_block : dirt;
-                    } else {
-                        if ((float)i + (detail * 0.5 + 1.0) * 2.0 >= finalheight) {
-                            if (noise3(4, cx / 21.124, (float)(i) / 16.384, cz / 21.124) < -0.64 - ((finalheight - 128.0) / 128.0)) {
-                                data[i].id = gravel;
-                            } else {
-                                data[i].id = sand;
-                            }
-                        } else {
-                            data[i].id = dirt;
-                        }
-                    }
-                } else {
-                    data[i].id = stone;
-                    if (noise3(5, cx / 12.75, (float)(i) / 3.5, cz / 12.75) < ((float)(i) / 512.0) * 1.75 - 1.0) {
-                        data[i].subid = stone_granite;
-                    } else if (noise3(6, cx / 10.45, (float)(i) / 10.45, cz / 10.45) + 0.5 > (float)(i) / 40.0) {
-                        data[i].subid = stone_basalt;
-                    } else if (noise3(7, cx / 5.56, (float)(i) / 5.56, cz / 5.56) + 0.25 < 0.0) {
-                        data[i].subid = stone_cobble;
-                    }
-                }
-            }
-            for (int i = 0; i <= finalheight && i < 512; ++i) {
-                float fi = i;
-                float cave = noise3(15, cx / 18.9614, fi / (15.7436 - fi / 512.0 * 3.0), cz / 18.9614) + fabs((fi - (20.0 + caveheight * 20.0)) / (250.0 + caveheight * 150.0));
-                if (cave < -(0.23 + fi / 512.0 * 0.05)) {
-                    data[i].id = 0;
-                    data[i].subid = 0;
-                }
-            }
-            for (int i = 127; i > finalheight && i > 0; --i) {
+            float height = nperlin2d(1, cx, cz, 0.006, 3);
+            float detail = nperlin2d(2, cx, cz, 0.03, 3);
+            float finalheight = round((height * 50.0) + (detail * 5.0) + 128.0);
+            for (int i = finalheight; i <= 128; ++i) {
                 data[i].id = water;
-                data[i].subid = 0;
+            }
+            for (int i = 0; i <= finalheight && i < 512; ++i) {
+                if (i > 128) {
+                    data[i].id = grass_block;
+                } else {
+                    data[i].id = sand;
+                }
             }
             data[0].id = bedrock;
             data[0].subid = 0;
-            float n0 = nperlin2d(63, cx, cz, 0.4, 2);
-            if (n0 > -0.25) {data[1].id = bedrock; data[1].subid = 0;}
-            if (n0 > 0.0) {data[2].id = bedrock; data[2].subid = 0;}
-            if (n0 > 0.25) {data[3].id = bedrock; data[3].subid = 0;}
-            if (!data[4].id && n0 > 0.5) {data[4].id = bedrock; data[4].subid = 0;}
-            for (int i = 4; i > 0; --i) {
-                if (!data[i].id) {data[i].id = lava; data[i].subid = 0;}
-            }
-            /*
-            }
-            */
         } break;
     }
 }
