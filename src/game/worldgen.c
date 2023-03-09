@@ -60,12 +60,12 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
                     data[i].id = sand;
                 }
             }
-            float extraheight = (tanhf(nperlin2d(4, cx, cz, 0.0054, 2) * 8.0 - 4.5) * 0.5 + 0.5) * 50.0;
+            float extraheight = (tanhf(nperlin2d(4, cx, cz, 0.006, 2) * 8.0 - 4.56) * 0.5 + 0.5) * 50.0;
             float extrafinalh = extraheight + (height * 80.0) + 126.0;
             for (int i = finalheight + 1; i <= extrafinalh; ++i) {
                 float fi = i;
                 //printf("[%lf][%f][%lf]: [%f]\n", cx, fi, cz, ((extrafinalh - fi) / extraheight));
-                if (noise3(5, cx / 18.0, fi / 24.0, cz / 18.0) > -(((extrafinalh - fi) / extraheight)) * 1.3 + 0.5) {
+                if (noise3(5, cx / 24.0, fi / 32.0, cz / 24.0) > -(((extrafinalh - fi) / extraheight)) * 1.35 + 0.5) {
                     data[i].id = grass_block;
                 }
             }
