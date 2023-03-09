@@ -673,7 +673,7 @@ static force_inline float dist3d(float x0, float y0, float z0, float x1, float y
 static force_inline void _sortChunk(int32_t c, int xoff, int zoff, bool update) {
     if (c < 0) c = (xoff + rendinf.chunks->info.dist) + (rendinf.chunks->info.width - (zoff + rendinf.chunks->info.dist) - 1) * rendinf.chunks->info.width;
     if (update) {
-        if (!rendinf.chunks->renddata[c].sortvert || !rendinf.chunks->renddata[c].tcount[1] || !rendinf.chunks->renddata[c].visfull) return;
+        if (!!rendinf.chunks->renddata[c].visfull || !rendinf.chunks->renddata[c].sortvert || !rendinf.chunks->renddata[c].tcount[1]) return;
         float camx = sc_camx - xoff * 16;
         float camy = sc_camy;
         float camz = -sc_camz - zoff * 16;
@@ -730,13 +730,13 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
             goto lblcontinue;
         }
         if (id < rendinf.chunks->renddata[c].updateid) {goto lblcontinue;}
-        uint64_t waittime = altutime();
-        while (rendinf.chunks->renddata[c].visfull &&
-        (rendinf.chunks->renddata[c].remesh[0] || rendinf.chunks->renddata[c].remesh[1]) &&
-        altutime() - waittime < 1000) {
+        while (rendinf.chunks->renddata[c].visfull && (rendinf.chunks->renddata[c].remesh[0] || rendinf.chunks->renddata[c].remesh[1])) {
+            //static uint64_t tmp = 0;
+            //printf("! [%"PRId64"]\n", tmp++);
             pthread_mutex_unlock(&rendinf.chunks->lock);
             microwait(0);
             pthread_mutex_lock(&rendinf.chunks->lock);
+            if (quitRequest) goto lblcontinue;
             if (nx < 0 || nz < 0 || nx >= rendinf.chunks->info.width || nz >= rendinf.chunks->info.width || !rendinf.chunks->renddata[c].generated) {
                 goto lblcontinue;
             }
@@ -770,19 +770,16 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
         yvoff[i] = 0;
         yvcount[i] = 0;
     }
-    {
-        int c = nx + nz * rendinf.chunks->info.width;
-        struct blockdata* b = &rendinf.chunks->data[c][131071];
-        while (maxy >= 0) {
-            for (int i = 0; i < 256; ++i) {
-                if (b->id) goto foundblock;
-                --b;
-            }
-            --maxy;
+    int c = nx + nz * rendinf.chunks->info.width;
+    struct blockdata* b = &rendinf.chunks->data[c][131071];
+    while (maxy >= 0) {
+        for (int i = 0; i < 256; ++i) {
+            if (b->id) goto foundblock;
+            --b;
         }
-        foundblock:;
-        //printf("maxy[%"PRId64", %"PRId64"]: %d\n", x, z, maxy);
+        --maxy;
     }
+    foundblock:;
     uint8_t vispass[32][6][6];
     memset(vispass, 1, sizeof(vispass));
     //secttime[0] = altutime() - secttime[0];
@@ -1005,7 +1002,6 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
         //secttime[2] += secttime2[1];
         yvoff[ychunk] = vplenold;
         yvcount[ychunk] = vplen - vplenold;
-        //printf("[%d]: [%d]: [%u][%u]\n", c, ychunk, yvoff[ychunk], yvcount[ychunk]);
         vplenold = vplen;
         --ychunk;
         pthread_mutex_unlock(&rendinf.chunks->lock);
@@ -1019,7 +1015,7 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
         free(_vptr2);
         goto lblcontinue;
     }
-    int c = nx + nz * rendinf.chunks->info.width;
+    c = nx + nz * rendinf.chunks->info.width;
     if (id >= rendinf.chunks->renddata[c].updateid) {
         if (rendinf.chunks->renddata[c].vertices[0]) free(rendinf.chunks->renddata[c].vertices[0]);
         if (rendinf.chunks->renddata[c].vertices[1]) free(rendinf.chunks->renddata[c].vertices[1]);
@@ -1169,6 +1165,7 @@ void updateChunks() {
             rendinf.chunks->renddata[c].vertices[0] = NULL;
             rendinf.chunks->renddata[c].remesh[0] = false;
             opaqueUpdate = true;
+            //printf("O: [%d]\n", c);
         }
         if (rendinf.chunks->renddata[c].remesh[1]) {
             uint32_t tmpsize = rendinf.chunks->renddata[c].vcount[1] * sizeof(uint32_t);
@@ -1186,6 +1183,7 @@ void updateChunks() {
                     true
                 );
             }
+            //printf("T: [%d]\n", c);
         }
         rendinf.chunks->renddata[c].ready = false;
         rendinf.chunks->renddata[c].buffered = true;
@@ -2029,18 +2027,6 @@ bool startRenderer() {
         sdlerror("startRenderer: Failed to create window");
         return false;
     }
-    #ifdef __EMSCRIPTEN__
-    /*
-    EmscriptenWebGLContextAttributes attrs;
-    attrs.antialias = false;
-    attrs.majorVersion = 2;
-    attrs.minorVersion = 0;
-    attrs.alpha = false;
-    EMSCRIPTEN_WEBGL_CONTEXT_HANDLE webgl_context = emscripten_webgl_create_context(0, &attrs);
-    emscripten_webgl_make_context_current(webgl_context);
-    SDL_CreateRenderer(rendinf.window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE);
-    */
-    #endif
     SDL_SetHintWithPriority(SDL_HINT_MOUSE_RELATIVE_MODE_WARP, "1", SDL_HINT_OVERRIDE);
     SDL_SetRelativeMouseMode(SDL_TRUE);
     rendinf.context = SDL_GL_CreateContext(rendinf.window);

@@ -93,6 +93,9 @@ struct chunkdata* allocChunks(int dist) {
         chunks->data[i] = malloc(sizeof(**chunks->data) * 131072);
     }
     chunks->renddata = calloc(sizeof(*chunks->renddata), dist);
+    for (int i = 0; i < dist; ++i) {
+        memset(chunks->renddata[i].vispass, 1, sizeof(chunks->renddata[i].vispass));
+    }
     chunks->rordr = calloc(sizeof(*chunks->rordr), dist);
     for (unsigned x = 0; x < chunks->info.width; ++x) {
         for (unsigned z = 0; z < chunks->info.width; ++z) {
@@ -129,6 +132,9 @@ void resizeChunks(struct chunkdata* chunks, int dist) {
         chunks->data[i] = calloc(sizeof(**chunks->data), 131072);
     }
     chunks->renddata = calloc(sizeof(*chunks->renddata), dist);
+    for (int i = 0; i < dist; ++i) {
+        memset(chunks->renddata[i].vispass, 1, sizeof(chunks->renddata[i].vispass));
+    }
     chunks->rordr = calloc(sizeof(*chunks->rordr), dist);
     for (unsigned x = 0; x < chunks->info.width; ++x) {
         for (unsigned z = 0; z < chunks->info.width; ++z) {
@@ -150,6 +156,7 @@ static force_inline void nullattrib(struct chunkdata* chunks, int c) {
         chunks->renddata[c].buffered = false;
         chunks->renddata[c].generated = false;
     }
+    memset(chunks->renddata[c].vispass, 1, sizeof(chunks->renddata[c].vispass));
     chunks->renddata[c].requested = false;
 }
 
