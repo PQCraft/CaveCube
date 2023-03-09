@@ -46,10 +46,10 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
         } break;
         case 1:; {
             float height = tanhf(nperlin2d(1, cx, cz, 0.003, 5) * 2.0 - 0.5) + 0.4;
-            float heightmult = tanhf(nperlin2d(2, cx, cz, 0.0015, 2) * 7.0 + 0.25) * 0.5 + 0.5;
+            float heightmult = tanhf(nperlin2d(2, cx, cz, 0.0015, 2) * 5.0 + 0.5) * 0.5 + 0.5;
             height *= heightmult;
-            float detail = nperlin2d(3, cx, cz, 0.02, 4);
-            float finalheight = round((height * 80.0) + (detail * 7.0) + 128.0);
+            float detail = perlin2d(3, cx, cz, 0.02, 4);
+            float finalheight = round((height * 80.0) + (detail * 16.0) + 128.0);
             for (int i = finalheight; i <= 128; ++i) {
                 data[i].id = water;
             }
@@ -60,12 +60,12 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
                     data[i].id = sand;
                 }
             }
-            float extraheight = (tanhf(nperlin2d(4, cx, cz, 0.006, 1) * 17.0 - 15.0) * 0.5 + 0.5) * 50.0 * heightmult;
-            float extrafinalh = round(extraheight + (height * 80.0) + (detail * 7.0) + 128.0);
+            float extraheight = (tanhf(nperlin2d(4, cx, cz, 0.0054, 2) * 8.0 - 4.5) * 0.5 + 0.5) * 50.0;
+            float extrafinalh = extraheight + (height * 80.0) + 126.0;
             for (int i = finalheight + 1; i <= extrafinalh; ++i) {
                 float fi = i;
                 //printf("[%lf][%f][%lf]: [%f]\n", cx, fi, cz, ((extrafinalh - fi) / extraheight));
-                if (noise3(5, cx / 15.0, fi / 22.5, cz / 15.0) > -(((extrafinalh - fi) / extraheight) / 1.2 - 0.1)) {
+                if (noise3(5, cx / 18.0, fi / 24.0, cz / 18.0) > -(((extrafinalh - fi) / extraheight)) * 1.3 + 0.5) {
                     data[i].id = grass_block;
                 }
             }
