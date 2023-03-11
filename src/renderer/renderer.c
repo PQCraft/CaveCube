@@ -2096,6 +2096,9 @@ bool startRenderer() {
         fputs("startRenderer: Failed to load shader header\n", stderr);
         return false;
     }
+    #if DBGLVL(1)
+    puts("Compiling block shader...");
+    #endif
     file_data* vs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/block/vertex.glsl");
     file_data* fs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/block/fragment.glsl");
     if (!vs || !fs || !makeShaderProg((char*)hdr->data, (char*)vs->data, (char*)fs->data, &shader_block)) {
@@ -2104,6 +2107,9 @@ bool startRenderer() {
     }
     freeResource(vs);
     freeResource(fs);
+    #if DBGLVL(1)
+    puts("Compiling 2D shader...");
+    #endif
     vs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/2D/vertex.glsl");
     fs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/2D/fragment.glsl");
     if (!vs || !fs || !makeShaderProg((char*)hdr->data, (char*)vs->data, (char*)fs->data, &shader_2d)) {
@@ -2112,6 +2118,9 @@ bool startRenderer() {
     }
     freeResource(vs);
     freeResource(fs);
+    #if DBGLVL(1)
+    puts("Compiling UI shader...");
+    #endif
     vs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/ui/vertex.glsl");
     fs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/ui/fragment.glsl");
     if (!vs || !fs || !makeShaderProg((char*)hdr->data, (char*)vs->data, (char*)fs->data, &shader_ui)) {
@@ -2120,6 +2129,9 @@ bool startRenderer() {
     }
     freeResource(vs);
     freeResource(fs);
+    #if DBGLVL(1)
+    puts("Compiling framebuffer shader...");
+    #endif
     vs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/framebuffer/vertex.glsl");
     fs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/framebuffer/fragment.glsl");
     if (!vs || !fs || !makeShaderProg((char*)hdr->data, (char*)vs->data, (char*)fs->data, &shader_framebuffer)) {

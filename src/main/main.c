@@ -357,8 +357,8 @@ int main(int _argc, char** _argv) {
         } break;
         case 1:; {
             cores -= 3;
-            if (cores < 1) cores = 1;
-            MESHER_THREADS = cores;
+            if (cores < 2) cores = 2;
+            MESHER_THREADS = cores / 2;
             if (!initServer()) {
                 fputs("Failed to init server\n", stderr);
                 return 1;

@@ -2,12 +2,12 @@
 - Next version: 0.6.1
 
 ### NEED TO DO:
+- Implement server chunk cache/pool
+- Add back block placement
 - Add physics in `src/physics/`
     - Use ticks https://gafferongames.com/post/fix_your_timestep/ and add interpolation
     - Add AABB collision in `collision.(c|h)`
     - Add raycasting in `raycasting.(c|h)`
-- Implement server chunk cache/pool
-- Add back block placement
 - Implement world saves in `src/server/saves.(c|h)`
 - Flesh out UI
     - More UI elements (buttons, text boxes, etc)
@@ -32,6 +32,7 @@
     - Generate values for height, spikes, details, moisture, and structures
 - Integrate BCBASIC
 - Implement gameplay
+    - 40ms tick speed (25 ticks/sec)
 - Add a sky (sun, moon, and stars)
 - Smoothen out head tilts
 - Make a translator to allow connecting to older servers (once there is a stable protocol)
