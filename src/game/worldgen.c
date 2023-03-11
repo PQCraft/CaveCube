@@ -45,32 +45,32 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
             data[3].id = grass_block;
         } break;
         case 1:; {
-            float height = tanhf(nperlin2d(1, cx, cz, 0.003, 5) * 2.0 - 0.5) + 0.4;
-            float heightmult = tanhf(nperlin2d(2, cx, cz, 0.0015, 2) * 5.0 + 0.5) * 0.5 + 0.5;
-            height *= heightmult;
-            float detail = perlin2d(3, cx, cz, 0.02, 4);
-            float finalheight = round((height * 80.0) + (detail * 16.0) + 128.0);
+            bool block[512] = {0};
+            float height = tanhf(nperlin2d(1, cx, cz, 0.00425, 5) * 1.5 - 0.1) + 0.15;
+            float heightmult = tanhf(nperlin2d(2, cx, cz, 0.0015, 2) * 2.5 + 0.5) * 0.5 + 0.5;
+            float detail = perlin2d(3, cx, cz, 0.0175, 4);
+            float finalheight = (height * heightmult * 80.0) + (detail * 15.0) + 128.0;
             for (int i = finalheight; i <= 128; ++i) {
                 data[i].id = water;
             }
             for (int i = 0; i <= finalheight && i < 512; ++i) {
-                if (i > 128) {
-                    data[i].id = grass_block;
-                } else {
-                    data[i].id = sand;
-                }
+                block[i] = true;
             }
-            float extraheight = (tanhf(nperlin2d(4, cx, cz, 0.006, 2) * 8.0 - 4.56) * 0.5 + 0.5) * 50.0;
-            float extrafinalh = extraheight + (height * 80.0) + 126.0;
-            for (int i = finalheight + 1; i <= extrafinalh; ++i) {
+            float extraheight = (tanhf(nperlin2d(4, cx, cz, 0.015, 1) * 1.5 - (2.0 - heightmult * 1.0)) * 0.5 + 0.5) * 55.0 * heightmult;
+            float extrafinalh = extraheight + finalheight;
+            for (int i = finalheight; i <= extrafinalh; ++i) {
                 float fi = i;
-                //printf("[%lf][%f][%lf]: [%f]\n", cx, fi, cz, ((extrafinalh - fi) / extraheight));
-                if (noise3(5, cx / 24.0, fi / 32.0, cz / 24.0) > -(((extrafinalh - fi) / extraheight)) * 1.35 + 0.5) {
-                    data[i].id = grass_block;
+                if (noise3(5, cx / 18.0, fi / 18.0, cz / 18.0) > -(((extrafinalh - fi) / extraheight)) * 1.5 + 0.15) {
+                    block[i] = true;
                 }
             }
             data[0].id = bedrock;
             data[0].subid = 0;
+            for (int i = 1; i < 512; ++i) {
+                if (block[i]) {
+                    data[i].id = stone;
+                }
+            }
         } break;
     }
 }

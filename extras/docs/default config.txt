@@ -1,3 +1,6 @@
+[Main]
+showConsole = false
+
 [Renderer]
 compositing = true
 resolution = 1024x768
@@ -11,7 +14,6 @@ lazyMesher = false
 
 [Game]
 viewDist = 8
-loopDelay = 1000
 
 [Player]
 name = Player
