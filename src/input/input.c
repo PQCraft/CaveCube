@@ -231,7 +231,7 @@ GLFWgamepadstate glfwgpstate;
 static double mmovx, mmovy;
 static int mscrollup, mscrolldown;
 
-static force_inline float _keyState(int device, int type, int key) {
+static force_inline float _keyState(int device, int type, int key, bool* repeat) {
     switch (device) {
         case 'k':; {
             switch (type) {
@@ -266,9 +266,11 @@ static force_inline float _keyState(int device, int type, int key) {
                 case 'w':; {
                     switch (key) {
                         case 1:;
+                            *repeat = true;
                             return mscrollup;
                             break;
                         case -1:;
+                            *repeat = true;
                             return mscrolldown;
                             break;
                     }
@@ -299,11 +301,18 @@ static force_inline float _keyState(int device, int type, int key) {
     return 0.0;
 }
 
-static force_inline float keyState(input_keys k) {
+static force_inline float keyState(input_keys k, bool* r) {
     float v1 = 0, v2 = 0;
-    v1 = _keyState(k.kd1, k.kt1, k.key1);
-    v2 = _keyState(k.kd2, k.kt2, k.key2);
-    return (fabs(v2) > fabs(v1)) ? v2 : v1;
+    bool r1 = false, r2 = false;
+    v1 = _keyState(k.kd1, k.kt1, k.key1, &r1);
+    v2 = _keyState(k.kd2, k.kt2, k.key2, &r2);
+    if (fabs(v2) > fabs(v1)) {
+        if (r) *r = r2;
+        return v2;
+    } else {
+        if (r) *r = r1;
+        return v1;
+    }
 }
 
 static uint64_t polltime;
@@ -339,21 +348,13 @@ void getInput(struct input_info* _inf) {
         quitRequest += (event.type == SDL_QUIT);
         sdl2mscroll += (event.type == SDL_MOUSEWHEEL) ? event.wheel.y : 0;
     }
-    static int mscrolltoggle = 0;
-    if (mscrolltoggle) {
-        if (sdl2mscroll >= 0) {
-            mscrollup = sdl2mscroll;
-            mscrolldown = 0;
-        } else {
-            mscrollup = 0;
-            mscrolldown = -sdl2mscroll;
-        }
+    if (sdl2mscroll >= 0) {
+        mscrollup = sdl2mscroll;
+        mscrolldown = 0;
     } else {
         mscrollup = 0;
-        mscrolldown = 0;
+        mscrolldown = -sdl2mscroll;
     }
-    if (sdl2mscroll != 0) mscrolltoggle = !mscrolltoggle;
-    else mscrolltoggle = 1;
     sdl2getmouse(&newmxpos, &newmypos);
     if (inputMode == INPUT_MODE_GAME && inf->focus) {
         sdl2getmouse(&newmxpos, &newmypos);
@@ -362,21 +363,13 @@ void getInput(struct input_info* _inf) {
     #else
     glfwPollEvents();
     quitRequest += (glfwWindowShouldClose(rendinf.window) != 0);
-    static int mscrolltoggle = 1;
-    if (mscrolltoggle) {
-        if (glfwmscroll >= 0) {
-            mscrollup = glfwmscroll;
-            mscrolldown = 0;
-        } else {
-            mscrollup = 0;
-            mscrolldown = -glfwmscroll;
-        }
+    if (glfwmscroll >= 0) {
+        mscrollup = glfwmscroll;
+        mscrolldown = 0;
     } else {
         mscrollup = 0;
-        mscrolldown = 0;
+        mscrolldown = -glfwmscroll;
     }
-    if (glfwmscroll != 0.0) mscrolltoggle = !mscrolltoggle;
-    else mscrolltoggle = 1;
     glfwmscroll = 0.0;
     for (int i = GLFW_JOYSTICK_1; i < GLFW_JOYSTICK_LAST; ++i) {
         if ((glfwgp = glfwGetGamepadState(GLFW_JOYSTICK_1, &glfwgpstate))) break;
@@ -406,15 +399,15 @@ void getInput(struct input_info* _inf) {
     switch (inputMode) {
         case INPUT_MODE_GAME:; {
             inf->mov_mult = ((double)((uint64_t)altutime() - (uint64_t)polltime) / (double)1000000);
-            inf->mov_up += keyState(input_mov[0]);
-            inf->mov_up -= keyState(input_mov[1]);
-            inf->mov_right -= keyState(input_mov[2]);
-            inf->mov_right += keyState(input_mov[3]);
+            inf->mov_up += keyState(input_mov[0], NULL);
+            inf->mov_up -= keyState(input_mov[1], NULL);
+            inf->mov_right -= keyState(input_mov[2], NULL);
+            inf->mov_right += keyState(input_mov[3], NULL);
             //if (inf->focus) {
-                inf->rot_up += keyState(input_mov[4]);
-                inf->rot_up -= keyState(input_mov[5]);
-                inf->rot_right -= keyState(input_mov[6]);
-                inf->rot_right += keyState(input_mov[7]);
+                inf->rot_up += keyState(input_mov[4], NULL);
+                inf->rot_up -= keyState(input_mov[5], NULL);
+                inf->rot_right -= keyState(input_mov[6], NULL);
+                inf->rot_right += keyState(input_mov[7], NULL);
             //}
             float mul = atan2(fabs(inf->mov_right), fabs(inf->mov_up));
             mul = fabs(1 / (cos(mul) + sin(mul)));
@@ -422,31 +415,35 @@ void getInput(struct input_info* _inf) {
             inf->mov_right *= mul;
             inf->mov_bal = mul;
             for (int i = 0; i < INPUT_ACTION_MULTI__MAX - 1; ++i) {
-                if (keyState(input_ma[i]) >= 0.2) {
+                if (keyState(input_ma[i], NULL) >= 0.2) {
                     inf->multi_actions |= 1 << i;
                 }
             }
             if (lastsa == INPUT_ACTION_SINGLE__NONE) {
                 for (int i = 0; i < INPUT_ACTION_SINGLE__MAX; ++i) {
-                    if (keyState(input_sa[i]) >= 0.2) {
-                        lastsa = inf->single_action = i;
+                    bool repeat = false;
+                    if (keyState(input_sa[i], &repeat) >= 0.2) {
+                        inf->single_action = i;
+                        if (!repeat) lastsa = i;
                         break;
                     }
                 }
             } else {
-                if (keyState(input_sa[lastsa]) < 0.2) lastsa = INPUT_ACTION_SINGLE__NONE;
+                if (keyState(input_sa[lastsa], NULL) < 0.2) lastsa = INPUT_ACTION_SINGLE__NONE;
             }
         } break;
         case INPUT_MODE_UI:; {
             if (lastsa == INPUT_ACTION_SINGLE__NONE) {
                 for (int i = 0; i < INPUT_ACTION_SINGLE__MAX; ++i) {
-                    if (keyState(input_sa[i]) >= 0.2) {
-                        lastsa = inf->single_action = i;
+                    bool repeat = false;
+                    if (keyState(input_sa[i], &repeat) >= 0.2) {
+                        inf->single_action = i;
+                        if (!repeat) lastsa = i;
                         break;
                     }
                 }
             } else {
-                if (keyState(input_sa[lastsa]) < 0.2) lastsa = INPUT_ACTION_SINGLE__NONE;
+                if (keyState(input_sa[lastsa], NULL) < 0.2) lastsa = INPUT_ACTION_SINGLE__NONE;
             }
         } break;
     }
