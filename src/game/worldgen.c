@@ -47,28 +47,38 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
         case 1:; {
             bool block[512] = {0};
             float height = tanhf(nperlin2d(1, cx, cz, 0.00425, 5) * 1.5 - 0.1) + 0.15;
-            float heightmult = tanhf(nperlin2d(2, cx, cz, 0.0015, 2) * 2.5 + 0.5) * 0.5 + 0.5;
-            float detail = perlin2d(3, cx, cz, 0.0175, 4);
+            float heightmult = tanhf(nperlin2d(2, cx, cz, 0.00267, 2) * 2.0 + 0.25) * 0.5 + 0.5;
+            float detail = perlin2d(3, cx, cz, 0.02, 4);
             float finalheight = (height * heightmult * 80.0) + (detail * 15.0) + 128.0;
             for (int i = finalheight; i <= 128; ++i) {
                 data[i].id = water;
             }
-            for (int i = 0; i <= finalheight && i < 512; ++i) {
+            for (int i = 0; i <= round(finalheight) && i < 512; ++i) {
                 block[i] = true;
             }
-            float extraheight = (tanhf(nperlin2d(4, cx, cz, 0.015, 1) * 1.5 - (2.0 - heightmult * 1.0)) * 0.5 + 0.5) * 55.0 * heightmult;
+            float extraheight = (tanhf(nperlin2d(4, cx, cz, 0.0145, 1) * 1.5 - (2.15 - heightmult * 1.0)) * 0.5 + 0.5) * heightmult * 55.0;
             float extrafinalh = extraheight + finalheight;
-            for (int i = finalheight; i <= extrafinalh; ++i) {
+            for (int i = finalheight; i < extrafinalh; ++i) {
                 float fi = i;
-                if (noise3(5, cx / 18.0, fi / 18.0, cz / 18.0) > -(((extrafinalh - fi) / extraheight)) * 1.5 + 0.15) {
+                if (noise3(5, cx / 18.0, fi / 18.0, cz / 18.0) > -(((extrafinalh - fi) / extraheight)) * 1.4 + 0.4) {
                     block[i] = true;
                 }
             }
             data[0].id = bedrock;
             data[0].subid = 0;
-            for (int i = 1; i < 512; ++i) {
+            for (int i = 511, lastair = i; i > 0; --i) {
+                float fi = i;
+                float fl = lastair;
                 if (block[i]) {
-                    data[i].id = stone;
+                    if (i == lastair - 1) {
+                        data[i].id = grass_block;
+                    } else if (fi > fl - ((511.0 - fi + nperlin2d(5, cx, cz, 0.25, 1) * 15.0) / 511.0) * 30.0 + 17.0) {
+                        data[i].id = dirt;
+                    } else {
+                        data[i].id = stone;
+                    }
+                } else {
+                    lastair = i;
                 }
             }
         } break;
@@ -77,6 +87,26 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
 
 void genChunk(int64_t cx, int64_t cz, struct blockdata* data, int type) {
     //printf("GEN [%"PRId64", %"PRId64"]\n", cx, cz);
+    /*
+    if ((cx + cz) % 2) {
+        for (int z = 0; z < 16; ++z) {
+            for (int x = 0; x < 16; ++x) {
+                int xzoff = z * 16 + x;
+                struct blockdata sliver[512];
+                memset(&sliver, 0, sizeof(sliver));
+                for (int i = 511; i >= 0; --i) {
+                    struct blockdata* tdata = &data[256 * i + xzoff];
+                    *tdata = (struct blockdata){
+                        .id = sliver[i].id,
+                        .subid = sliver[i].subid,
+                        .light_n = 30
+                    };
+                }
+            }
+        }
+        return;
+    }
+    */
     int64_t nx = cx * 16;
     int64_t nz = cz * 16;
     for (int z = 0; z < 16; ++z) {

@@ -88,7 +88,7 @@ double nperlin2d(int t, double x, double y, double freq, int depth) {
 
 #define FADE(t) (t * t * t * (t * (t * 6 - 15) + 10))
 
-#define FASTFLOOR(x) (((int)(x) < (x)) ? ((int)x) : ((int)x - 1))
+#define FASTFLOOR(x) (((int64_t)(x) < (x)) ? ((int64_t)x) : ((int64_t)x - 1))
 #define LERP(t, a, b) ((a) + (t) * ((b) - (a)))
 
 static inline double grad1(int hash, double x) {
@@ -141,7 +141,7 @@ double noise1(int tbl, double x) {
     return 0.188 * (LERP(s, n0, n1));
 }
 
-double pnoise1(int tbl, double x, int px) {
+double pnoise1(int tbl, double x, int64_t px) {
     int64_t ix0, ix1;
     double fx0, fx1;
     double s, n0, n1;
@@ -195,7 +195,7 @@ double noise2(int tbl, double x, double y) {
     return 0.507 * (LERP(s, n0, n1));
 }
 
-double pnoise2(int tbl, double x, double y, int px, int py) {
+double pnoise2(int tbl, double x, double y, int64_t px, int64_t py) {
     int64_t ix0, iy0, ix1, iy1;
     double fx0, fy0, fx1, fy1;
     double s, t, nx0, nx1, n0, n1;
@@ -229,7 +229,7 @@ double pnoise2(int tbl, double x, double y, int px, int py) {
 }
 
 double noise3(int tbl, double x, double y, double z) {
-    int ix0, iy0, ix1, iy1, iz0, iz1;
+    int64_t ix0, iy0, ix1, iy1, iz0, iz1;
     double fx0, fy0, fz0, fx1, fy1, fz1;
     double s, t, r;
     double nxy0, nxy1, nx0, nx1, n0, n1;
@@ -281,8 +281,8 @@ double noise3(int tbl, double x, double y, double z) {
     return 0.936 * (LERP(s, n0, n1));
 }
 
-double pnoise3(int tbl, double x, double y, double z, int px, int py, int pz) {
-    int ix0, iy0, ix1, iy1, iz0, iz1;
+double pnoise3(int tbl, double x, double y, double z, int64_t px, int64_t py, int64_t pz) {
+    int64_t ix0, iy0, ix1, iy1, iz0, iz1;
     double fx0, fy0, fz0, fx1, fy1, fz1;
     double s, t, r;
     double nxy0, nxy1, nx0, nx1, n0, n1;
@@ -335,7 +335,7 @@ double pnoise3(int tbl, double x, double y, double z, int px, int py, int pz) {
 }
 
 double noise4(int tbl, double x, double y, double z, double w) {
-    int ix0, iy0, iz0, iw0, ix1, iy1, iz1, iw1;
+    int64_t ix0, iy0, iz0, iw0, ix1, iy1, iz1, iw1;
     double fx0, fy0, fz0, fw0, fx1, fy1, fz1, fw1;
     double s, t, r, q;
     double nxyz0, nxyz1, nxy0, nxy1, nx0, nx1, n0, n1;
@@ -418,8 +418,8 @@ double noise4(int tbl, double x, double y, double z, double w) {
     return 0.87 * (LERP(s, n0, n1));
 }
 
-double pnoise4(int tbl, double x, double y, double z, double w, int px, int py, int pz, int pw) {
-    int ix0, iy0, iz0, iw0, ix1, iy1, iz1, iw1;
+double pnoise4(int tbl, double x, double y, double z, double w, int64_t px, int64_t py, int64_t pz, int64_t pw) {
+    int64_t ix0, iy0, iz0, iw0, ix1, iy1, iz1, iw1;
     double fx0, fy0, fz0, fw0, fx1, fy1, fz1, fw1;
     double s, t, r, q;
     double nxyz0, nxyz1, nxy0, nxy1, nx0, nx1, n0, n1;
