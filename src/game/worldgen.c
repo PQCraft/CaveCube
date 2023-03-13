@@ -66,16 +66,29 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
             }
             data[0].id = bedrock;
             data[0].subid = 0;
-            float seanoise = nperlin2d(5, cx, cz, 0.0125, 2) - detail * 0.75;
-            float dirtnoise = nperlin2d(6, cx, cz, 0.2, 1);
+            float seanoise = nperlin2d(6, cx, cz, 0.0125, 2) - detail * 0.75;
+            float dirtnoise = nperlin2d(7, cx, cz, 0.2, 1);
             for (int i = 511, lastair = i; i > 0; --i) {
                 float fi = i;
                 float fl = lastair;
                 if (block[i]) {
                     if ((fl - (135.0 + seanoise * 2.0)) * (1.3 + seanoise * 0.1) <= (fi - (135.0 + seanoise * 2.0))) {
-                        data[i].id = sand;
+                        float mixnoise = noise3(5, cx / 28.56, fi / 2.76, cz / 28.56);
+                        if (mixnoise > 0.62 + (fi - 128.0) / 38.0) {
+                            if (mixnoise > 0.4 - seanoise * 0.33) {
+                                data[i].id = dirt;
+                            } else {
+                                data[i].id = gravel;
+                            }
+                        } else {
+                            data[i].id = sand;
+                        }
                     } else if (i == lastair - 1) {
-                        data[i].id = grass_block;
+                        if (i >= 128) {
+                            data[i].id = grass_block;
+                        } else {
+                            data[i].id = dirt;
+                        }
                     } else if (fi > fl - ((511.0 - fi + dirtnoise * 15.0) / 511.0) * 24.0 + 12.75) {
                         data[i].id = dirt;
                     } else {
