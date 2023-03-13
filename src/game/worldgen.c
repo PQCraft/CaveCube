@@ -105,10 +105,24 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
                             data[i].subid = stone_basalt;
                         } else if (noise3(13, cx / 5.56, fi / 5.56, cz / 5.56) + 0.25 < 0.0) {
                             data[i].subid = stone_cobble;
+                        } else if (noise3(14, cx / 21.34, fi / 19.8, cz / 21.34) > 0.456) {
+                            data[i].id = dirt;
+                            data[i].subid = 0;
                         }
                     }
                 } else {
                     lastair = i;
+                }
+            }
+            for (int i = 0; i < 512; ++i) {
+                float fi = i - 0.25;
+                float cave = noise3(16, cx / 21.96, fi / 14.2, cz / 21.96);
+                float cavemult = tanhf(((fabs(fi - (finalheight / 2.0)) / (finalheight * 1.04)) * 2.0 - 1.0) * 16.0) * 0.5 + 0.5;
+                if (cave > cavemult + 0.33) {
+                    if (data[i].id != water) {
+                        data[i].id = 0;
+                        data[i].subid = 0;
+                    }
                 }
             }
             float n0 = nperlin2d(63, cx, cz, 0.4, 2);
