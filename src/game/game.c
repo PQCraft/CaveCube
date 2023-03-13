@@ -367,7 +367,7 @@ void gameLoop() {
         float leanmult = ((speed < 10.0) ? speed : 10.0) * 0.125 * 1.0;
         float zoomrotmult;
         if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_ZOOM)) {
-            zoomrotmult = 0.25;
+            zoomrotmult = 0.5;
         } else {
             zoomrotmult = 1.0;
         }
@@ -438,7 +438,7 @@ void gameLoop() {
         float oldfov = rendinf.camfov;
         bool zoom = (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_ZOOM));
         bool run = (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_RUN) && input.mov_up > 0.0);
-        if (zoom) rendinf.camfov = 12.5;
+        if (zoom) rendinf.camfov = 15.0;
         else if (run) rendinf.camfov += input.mov_up * 1.25;
         updateCam();
         if (zoom || run) rendinf.camfov = oldfov;
