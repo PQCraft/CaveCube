@@ -190,7 +190,7 @@ void setInputMode(int mode) {
             #if defined(USESDL2)
             SDL_SetRelativeMouseMode(SDL_TRUE);
             #else
-            glfwSetInputMode(rendinf.window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+            glfwSetInputMode(rendinf.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
             #endif
             if (game_ui[UILAYER_INGAME]) game_ui[UILAYER_INGAME]->hidden = true;
             break;
@@ -323,11 +323,11 @@ static double newmxpos, newmypos;
 void resetInput() {
     polltime = altutime();
     #if defined(USESDL2)
-    SDL_WarpMouseInWindow(rendinf.window, rendinf.width / 2, rendinf.height / 2);
+    SDL_WarpMouseInWindow(rendinf.window, floor((double)rendinf.width / 2.0), floor((double)rendinf.height / 2.0));
     //sdl2getmouse(&oldmxpos, &oldmypos);
     #else
     glfwPollEvents();
-    glfwSetCursorPos(rendinf.window, rendinf.width / 2, rendinf.height / 2);
+    glfwSetCursorPos(rendinf.window, floor((double)rendinf.width / 2.0), floor((double)rendinf.height / 2.0));
     //glfwGetCursorPos(rendinf.window, &oldmxpos, &oldmypos);
     #endif
     //getInput();
@@ -358,7 +358,7 @@ void getInput(struct input_info* _inf) {
     sdl2getmouse(&newmxpos, &newmypos);
     if (inputMode == INPUT_MODE_GAME && inf->focus) {
         sdl2getmouse(&newmxpos, &newmypos);
-        SDL_WarpMouseInWindow(rendinf.window, rendinf.width / 2, rendinf.height / 2);
+        SDL_WarpMouseInWindow(rendinf.window, floor((double)rendinf.width / 2.0), floor((double)rendinf.height / 2.0));
     }
     #else
     glfwPollEvents();
@@ -376,11 +376,12 @@ void getInput(struct input_info* _inf) {
     }
     if (inputMode == INPUT_MODE_GAME && inf->focus) {
         glfwGetCursorPos(rendinf.window, &newmxpos, &newmypos);
-        glfwSetCursorPos(rendinf.window, rendinf.width / 2, rendinf.height / 2);
+        glfwSetCursorPos(rendinf.window, floor((double)rendinf.width / 2.0), floor((double)rendinf.height / 2.0));
+        glfwSetCursorPos(rendinf.window, floor((double)rendinf.width / 2.0), floor((double)rendinf.height / 2.0));
     }
     #endif
-    mmovx = newmxpos - ((double)rendinf.width / 2.0);
-    mmovy = newmypos - ((double)rendinf.height / 2.0);
+    mmovx = newmxpos - (floor((double)rendinf.width / 2.0));
+    mmovy = newmypos - (floor((double)rendinf.height / 2.0));
     //printf("Mouse movement: [%lf, %lf] [%lf, %lf]\n", newmxpos, newmypos, mmovx, mmovy);
     //oldmxpos = newmxpos;
     //oldmypos = newmypos;

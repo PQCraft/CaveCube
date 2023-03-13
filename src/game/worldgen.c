@@ -47,9 +47,9 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
         case 1:; {
             bool block[512] = {0};
             float height = tanhf(nperlin2d(1, cx, cz, 0.0042, 5) * 1.5 - 0.1) + 0.15;
-            float heightmult = tanhf(nperlin2d(2, cx, cz, 0.00267, 2) * 2.0 + 0.25) * 0.5 + 0.5;
-            float humidity = tanhf(nperlin2d(3, cx, cz, 0.00127, 1) * 6.9 + 3.0) * 0.5 + 0.5;
-            heightmult *= humidity;
+            float heightmult = tanhf(nperlin2d(2, cx, cz, 0.00267, 2) * 2.5 + 0.33) * 0.5 + 0.5;
+            float humidity = tanhf(nperlin2d(3, cx, cz, 0.00127, 1) * 6.9 + 3.33) * 0.5 + 0.5;
+            heightmult *= (humidity * 0.9 + 0.15);
             float detail = perlin2d(4, cx, cz, 0.018, 4);
             float finalheight = (height * heightmult * 85.0) * humidity + 20.0 * (1.0 - humidity) + (detail * 14.25) + 128.0;
             for (int i = finalheight; i <= 128; ++i) {
@@ -58,11 +58,12 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
             for (int i = 0; i <= round(finalheight) && i < 512; ++i) {
                 block[i] = true;
             }
-            float extraheight = (tanhf(nperlin2d(5, cx, cz, 0.0145, 1) * 1.5 - (2.15 - heightmult * 1.0)) * 0.5 + 0.5) * heightmult * 56.0;
+            float extraheight = (tanhf(nperlin2d(5, cx, cz, 0.0145, 1) * 1.5 - (2.15 - heightmult * 1.0)) * 0.5 + 0.5) * heightmult * 64.33;
+            extraheight *= tanhf(height * 10.0 + 3.33);
             float extrafinalh = extraheight + finalheight;
             for (int i = finalheight; i < extrafinalh; ++i) {
                 float fi = i;
-                if (noise3(6, cx / 18.0, fi / 18.0, cz / 18.0) > -(((extrafinalh - fi) / extraheight)) * 1.4 + 0.4) {
+                if (noise3(6, cx / 18.67, fi / 19.0, cz / 18.67) > -(((extrafinalh - fi) / extraheight)) * 1.33 + 0.45) {
                     block[i] = true;
                 }
             }
@@ -85,7 +86,7 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
                             data[i].id = sand;
                         }
                     } else if (i == lastair - 1) {
-                        if (humidity >= 0.425 + humidnoise * 0.158) {
+                        if (humidity >= 0.425 + humidnoise * 0.159) {
                             if (i >= 128) {
                                 data[i].id = grass_block;
                             } else {
@@ -98,7 +99,13 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
                         data[i].id = dirt;
                     } else {
                         data[i].id = stone;
-                        
+                        if (noise3(11, cx / 7.33, fi / 2.1, cz / 7.33) < (fi / 512.0) * 2.5 - 1.25) {
+                            data[i].subid = stone_granite;
+                        } else if (noise3(12, cx / 10.45, fi / 5.76, cz / 10.45) + 0.5 > fi / 60.0) {
+                            data[i].subid = stone_basalt;
+                        } else if (noise3(13, cx / 5.56, fi / 5.56, cz / 5.56) + 0.25 < 0.0) {
+                            data[i].subid = stone_cobble;
+                        }
                     }
                 } else {
                     lastair = i;
