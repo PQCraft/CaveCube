@@ -65,10 +65,15 @@ void microwait(uint64_t d) {
     dts.tv_nsec = (d % 1000000) * 1000;
     nanosleep(&dts, NULL);
     #else
-    emscripten_sleep(round((double)(d) / (double)(1000.0)));
+    emscripten_sleep(round((double)(d) / 1000.0));
     #endif
     #else
-    Sleep(round((double)(d) / (double)(1000.0)));
+    HANDLE timer = CreateWaitableTimer(NULL, true, NULL);
+    LARGE_INTEGER _d;
+    _d.QuadPart = -d * 10;
+    SetWaitableTimer(timer, &_d, 0, NULL, NULL, false);
+    WaitForSingleObject(timer, INFINITE);
+    CloseHandle(timer);
     #endif
 }
 

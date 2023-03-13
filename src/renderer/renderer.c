@@ -2141,6 +2141,7 @@ bool startRenderer() {
     freeResource(vs);
     freeResource(fs);
 
+    printf("Display resolution: [%ux%u@%g]\n", rendinf.disp_width, rendinf.disp_height, rendinf.disphz);
     printf("Windowed resolution: [%ux%u@%g]\n", rendinf.win_width, rendinf.win_height, rendinf.win_fps);
     printf("Fullscreen resolution: [%ux%u@%g]\n", rendinf.full_width, rendinf.full_height, rendinf.full_fps);
 

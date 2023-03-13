@@ -49,7 +49,7 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
             float height = tanhf(nperlin2d(1, cx, cz, 0.00425, 5) * 1.5 - 0.1) + 0.15;
             float heightmult = tanhf(nperlin2d(2, cx, cz, 0.00267, 2) * 2.0 + 0.25) * 0.5 + 0.5;
             float detail = perlin2d(3, cx, cz, 0.02, 4);
-            float finalheight = (height * heightmult * 80.0) + (detail * 15.0) + 128.0;
+            float finalheight = (height * heightmult * 80.0) + (detail * 14.5) + 128.0;
             for (int i = finalheight; i <= 128; ++i) {
                 data[i].id = water;
             }
@@ -66,13 +66,17 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
             }
             data[0].id = bedrock;
             data[0].subid = 0;
+            float seanoise = nperlin2d(5, cx, cz, 0.0125, 2) - detail * 0.75;
+            float dirtnoise = nperlin2d(6, cx, cz, 0.2, 1);
             for (int i = 511, lastair = i; i > 0; --i) {
                 float fi = i;
                 float fl = lastair;
                 if (block[i]) {
-                    if (i == lastair - 1) {
+                    if ((fl - (135.0 + seanoise * 2.0)) * (1.3 + seanoise * 0.1) <= (fi - (135.0 + seanoise * 2.0))) {
+                        data[i].id = sand;
+                    } else if (i == lastair - 1) {
                         data[i].id = grass_block;
-                    } else if (fi > fl - ((511.0 - fi + nperlin2d(5, cx, cz, 0.25, 1) * 15.0) / 511.0) * 30.0 + 17.0) {
+                    } else if (fi > fl - ((511.0 - fi + dirtnoise * 15.0) / 511.0) * 24.0 + 12.75) {
                         data[i].id = dirt;
                     } else {
                         data[i].id = stone;
@@ -87,7 +91,7 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
 
 void genChunk(int64_t cx, int64_t cz, struct blockdata* data, int type) {
     //printf("GEN [%"PRId64", %"PRId64"]\n", cx, cz);
-    /*
+    #if 0
     if ((cx + cz) % 2) {
         for (int z = 0; z < 16; ++z) {
             for (int x = 0; x < 16; ++x) {
@@ -106,7 +110,7 @@ void genChunk(int64_t cx, int64_t cz, struct blockdata* data, int type) {
         }
         return;
     }
-    */
+    #endif
     int64_t nx = cx * 16;
     int64_t nz = cz * 16;
     for (int z = 0; z < 16; ++z) {
