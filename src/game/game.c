@@ -196,12 +196,12 @@ void gameLoop() {
 
     int viewdist = atoi(getConfigKey(config, "Game", "viewDist"));
     rendinf.chunks = allocChunks(viewdist);
-    //rendinf.chunks->xoff = 0;
-    //rendinf.chunks->zoff = 0;
+    //rendinf.chunks->xoff = (int64_t)1 << 40;
+    //rendinf.chunks->zoff = (int64_t)1 << 40;
     reqChunks(rendinf.chunks);
     printf("Allocated chunks: [%d] [%d] [%d]\n", rendinf.chunks->info.dist, rendinf.chunks->info.width, rendinf.chunks->info.widthsq);
     rendinf.campos.y = 201.5;
-    setVisibility(0.25, 1.0);
+    setVisibility(0.5, 1.0);
     setScreenMult(1.0, 1.0, 1.0);
 
     int ui_main = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BOX, "main", -1, -1, "width", "100%", "height", "100%", "color", "#000000", "alpha", "0.25", "z", "-100", NULL);
@@ -209,6 +209,7 @@ void gameLoop() {
 
     int ui_hotbar = newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_HOTBAR, "hotbar", -1, -1, "align", "0,1", "margin", "0,10,0,10", NULL);
     updateHotbar(ui_hotbar, invspot);
+
     #if 0
     int ui_inv_main = newUIElem(game_ui[UILAYER_SERVER], UI_ELEM_BOX, "main", -1, -1, "width", "100%", "height", "100%", "color", "#000000", "alpha", "0.25", "z", "-100", NULL);
     int ui_inventory = newUIElem(game_ui[UILAYER_SERVER], UI_ELEM_FANCYBOX, "inventory", ui_inv_main, -1, "width", "332", "height", "360", NULL);
@@ -398,9 +399,9 @@ void gameLoop() {
         if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_CROUCH)) {
             rendinf.campos.y -= 17.5 * runmult * input.mov_mult;
         }
-        pcoord.x = rendinf.campos.x + rendinf.chunks->xoff * 16;
+        pcoord.x = rendinf.campos.x + (double)((int64_t)(rendinf.chunks->xoff * 16));
         pcoord.y = rendinf.campos.y;
-        pcoord.z = rendinf.campos.z + rendinf.chunks->zoff * 16;
+        pcoord.z = rendinf.campos.z + (double)((int64_t)(rendinf.chunks->zoff * 16));
 
         int cmx = 0, cmz = 0;
         while (rendinf.campos.z > 8.0) {
