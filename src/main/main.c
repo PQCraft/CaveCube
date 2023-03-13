@@ -350,7 +350,23 @@ int main(int _argc, char** _argv) {
                 fputs("Failed to start server\n", stderr);
                 return 1;
             }
+            
+            #ifdef _WIN32
+            TIMECAPS tc;
+            UINT tmrres = 1;
+            if (timeGetDevCaps(&tc, sizeof(tc)) != TIMERR_NOERROR) {
+                if (tmrres < tc.wPeriodMin) {
+                    tmrres = tc.wPeriodMin;
+                } else if (tmrres > tc.wPeriodMax) {
+                    tmrres = tc.wPeriodMax;
+                }
+            }
+            timeBeginPeriod(tmrres);
+            #endif
             bool game_ecode = doGame(NULL, servport);
+            #ifdef _WIN32
+            timeEndPeriod(tmrres);
+            #endif
             stopRenderer();
             stopServer();
             ret = !game_ecode;
@@ -371,7 +387,22 @@ int main(int _argc, char** _argv) {
                 fputs("Failed to start renderer\n", stderr);
                 return 1;
             }
+            #ifdef _WIN32
+            TIMECAPS tc;
+            UINT tmrres = 1;
+            if (timeGetDevCaps(&tc, sizeof(tc)) != TIMERR_NOERROR) {
+                if (tmrres < tc.wPeriodMin) {
+                    tmrres = tc.wPeriodMin;
+                } else if (tmrres > tc.wPeriodMax) {
+                    tmrres = tc.wPeriodMax;
+                }
+            }
+            timeBeginPeriod(tmrres);
+            #endif
             bool game_ecode = doGame(cli_opt.addr, cli_opt.port);
+            #ifdef _WIN32
+            timeEndPeriod(tmrres);
+            #endif
             stopRenderer();
             ret = !game_ecode;
         } break;

@@ -355,7 +355,10 @@ void setFullscreen(bool fullscreen) {
     #if defined(USESDL2)
     #else
     glfwSetFramebufferSizeCallback(rendinf.window, fbsize);
+    glfwSwapInterval(rendinf.vsync);
     #endif
+
+    resetInput();
 }
 
 static force_inline bool makeShaderProg(char* hdrtext, char* _vstext, char* _fstext, GLuint* p) {

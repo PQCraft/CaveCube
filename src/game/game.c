@@ -195,6 +195,7 @@ void gameLoop() {
     coord_3d tmpcamrot = rendinf.camrot;
 
     int viewdist = atoi(getConfigKey(config, "Game", "viewDist"));
+    bool waitwithvsync = getBool(getConfigKey(config, "Renderer", "waitWithVsync"));
     rendinf.chunks = allocChunks(viewdist);
     rendinf.chunks->xoff = 2354;
     rendinf.chunks->zoff = 8523;
@@ -446,7 +447,7 @@ void gameLoop() {
         render();
         updateScreen();
         ++frames;
-        if (rendinf.fps && (!rendinf.vsync || rendinf.fps < rendinf.disphz)) {
+        if (rendinf.fps && (!rendinf.vsync || (waitwithvsync || rendinf.fps < rendinf.disphz))) {
             int64_t framediff = (1000000 / rendinf.fps) - (altutime() - frametime);
             //printf("Wait for %"PRId64"us\n", framediff);
             if (framediff > 0) microwait(framediff);
@@ -473,6 +474,7 @@ bool doGame(char* addr, int port) {
     declareConfigKey(config, "Game", "viewDist", "8", false);
     declareConfigKey(config, "Player", "name", "Player", false);
     declareConfigKey(config, "Player", "skin", "", false);
+    declareConfigKey(config, "Renderer", "waitWithVsync", "true", false);
 
     initInput();
 
