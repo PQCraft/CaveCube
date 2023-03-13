@@ -196,8 +196,8 @@ void gameLoop() {
 
     int viewdist = atoi(getConfigKey(config, "Game", "viewDist"));
     rendinf.chunks = allocChunks(viewdist);
-    //rendinf.chunks->xoff = (int64_t)1 << 40;
-    //rendinf.chunks->zoff = (int64_t)1 << 40;
+    rendinf.chunks->xoff = 2354;
+    rendinf.chunks->zoff = 8523;
     reqChunks(rendinf.chunks);
     printf("Allocated chunks: [%d] [%d] [%d]\n", rendinf.chunks->info.dist, rendinf.chunks->info.width, rendinf.chunks->info.widthsq);
     rendinf.campos.y = 201.5;

@@ -46,36 +46,37 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
         } break;
         case 1:; {
             bool block[512] = {0};
-            float height = tanhf(nperlin2d(1, cx, cz, 0.00425, 5) * 1.5 - 0.1) + 0.15;
+            float height = tanhf(nperlin2d(1, cx, cz, 0.0042, 5) * 1.5 - 0.1) + 0.15;
             float heightmult = tanhf(nperlin2d(2, cx, cz, 0.00267, 2) * 2.0 + 0.25) * 0.5 + 0.5;
-            float detail = perlin2d(3, cx, cz, 0.02, 4);
-            float finalheight = (height * heightmult * 80.0) + (detail * 14.5) + 128.0;
+            float humidity = tanhf(nperlin2d(3, cx, cz, 0.00127, 1) * 6.9 + 3.0) * 0.5 + 0.5;
+            heightmult *= humidity;
+            float detail = perlin2d(4, cx, cz, 0.018, 4);
+            float finalheight = (height * heightmult * 85.0) * humidity + 20.0 * (1.0 - humidity) + (detail * 14.25) + 128.0;
             for (int i = finalheight; i <= 128; ++i) {
                 data[i].id = water;
             }
             for (int i = 0; i <= round(finalheight) && i < 512; ++i) {
                 block[i] = true;
             }
-            float extraheight = (tanhf(nperlin2d(4, cx, cz, 0.0145, 1) * 1.5 - (2.15 - heightmult * 1.0)) * 0.5 + 0.5) * heightmult * 55.0;
+            float extraheight = (tanhf(nperlin2d(5, cx, cz, 0.0145, 1) * 1.5 - (2.15 - heightmult * 1.0)) * 0.5 + 0.5) * heightmult * 56.0;
             float extrafinalh = extraheight + finalheight;
             for (int i = finalheight; i < extrafinalh; ++i) {
                 float fi = i;
-                if (noise3(5, cx / 18.0, fi / 18.0, cz / 18.0) > -(((extrafinalh - fi) / extraheight)) * 1.4 + 0.4) {
+                if (noise3(6, cx / 18.0, fi / 18.0, cz / 18.0) > -(((extrafinalh - fi) / extraheight)) * 1.4 + 0.4) {
                     block[i] = true;
                 }
             }
-            data[0].id = bedrock;
-            data[0].subid = 0;
-            float seanoise = nperlin2d(6, cx, cz, 0.0125, 2) - detail * 0.75;
-            float dirtnoise = nperlin2d(7, cx, cz, 0.2, 1);
+            float seanoise = nperlin2d(7, cx, cz, 0.0125, 2) - detail * 0.75;
+            float dirtnoise = nperlin2d(8, cx, cz, 0.2, 1);
+            float humidnoise = nperlin2d(9, cx, cz, 0.08, 2);
             for (int i = 511, lastair = i; i > 0; --i) {
                 float fi = i;
                 float fl = lastair;
                 if (block[i]) {
-                    if ((fl - (135.0 + seanoise * 2.0)) * (1.3 + seanoise * 0.1) <= (fi - (135.0 + seanoise * 2.0))) {
-                        float mixnoise = noise3(5, cx / 28.56, fi / 2.76, cz / 28.56);
+                    if ((fl - (135.0 + seanoise * 2.25)) * (1.3 + seanoise * 0.1) <= (fi - (135.0 + seanoise * 2.25))) {
+                        float mixnoise = noise3(10, cx / 28.56, fi / 4.2, cz / 28.56);
                         if (mixnoise > 0.62 + (fi - 128.0) / 38.0) {
-                            if (mixnoise > 0.4 - seanoise * 0.33) {
+                            if (mixnoise > 0.295 - seanoise * 0.33) {
                                 data[i].id = dirt;
                             } else {
                                 data[i].id = gravel;
@@ -84,20 +85,32 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
                             data[i].id = sand;
                         }
                     } else if (i == lastair - 1) {
-                        if (i >= 128) {
-                            data[i].id = grass_block;
+                        if (humidity >= 0.425 + humidnoise * 0.158) {
+                            if (i >= 128) {
+                                data[i].id = grass_block;
+                            } else {
+                                data[i].id = dirt;
+                            }
                         } else {
-                            data[i].id = dirt;
+                            data[i].id = sand;
                         }
                     } else if (fi > fl - ((511.0 - fi + dirtnoise * 15.0) / 511.0) * 24.0 + 12.75) {
                         data[i].id = dirt;
                     } else {
                         data[i].id = stone;
+                        
                     }
                 } else {
                     lastair = i;
                 }
             }
+            float n0 = nperlin2d(63, cx, cz, 0.4, 2);
+            if (n0 > -0.25) {data[1].id = bedrock; data[1].subid = 0;}
+            if (n0 > 0.0) {data[2].id = bedrock; data[2].subid = 0;}
+            if (n0 > 0.25) {data[3].id = bedrock; data[3].subid = 0;}
+            if (!data[4].id && n0 > 0.5) {data[4].id = bedrock; data[4].subid = 0;}
+            data[0].id = bedrock;
+            data[0].subid = 0;
         } break;
     }
 }
