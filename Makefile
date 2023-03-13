@@ -180,7 +180,7 @@ ifndef OS
         BINFLAGS += -pthread -lpthread
     endif
 else
-    BINFLAGS += -l:libwinpthread.a -lws2_32
+    BINFLAGS += -l:libwinpthread.a -lws2_32 -lwinmm
 endif
 ifdef USEGLES
     CFLAGS += -DUSEGLES

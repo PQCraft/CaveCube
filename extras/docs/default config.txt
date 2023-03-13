@@ -11,6 +11,8 @@ FOV = 85
 nearPlane = 0.05
 farPlane = 2500
 lazyMesher = false
+caveCullLevel = 1
+waitWithVsync = true
 
 [Game]
 viewDist = 8
