@@ -877,7 +877,7 @@ int startServer(char* addr, int port, int mcli, char* world) {
     for (int i = 0; i < MSG_PRIO__MAX; ++i) {
         initMsgData(&servmsgout[i]);
     }
-    servmsgin[MSG_PRIO_LOW].async = true;
+    //servmsgin[MSG_PRIO_LOW].async = true;
     //servmsgout[MSG_PRIO_LOW].async = true;
     //servmsgout[MSG_PRIO_NORMAL].async = true;
     #if DBGLVL(1)

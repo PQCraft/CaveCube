@@ -53,11 +53,11 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
         } break;
         case 1:; {
             bool block[512] = {0};
-            float height = nperlin2d(1, cx, cz, 0.0042, 5) * 1.1 + 0.15;
+            float height = nperlin2d(1, cx, cz, 0.0042, 4) * 1.1 + 0.15;
             float heightmult = tanhf(nperlin2d(2, cx, cz, 0.00267, 2) * 2.5 + 0.33) * 0.5 + 0.5;
             float humidity = clamp(nperlin2d(3, cx, cz, 0.00127, 1) * 6.9 + 3.33) * 0.5 + 0.5;
             heightmult *= (humidity * 0.9 + 0.15);
-            float detail = perlin2d(4, cx, cz, 0.021, 3);
+            float detail = perlin2d(4, cx, cz, 0.024, 3);
             float finalheight = (height * heightmult * 85.0) * humidity + 20.0 * (1.0 - humidity) + (detail * 12.8) + 128.0;
             for (int i = finalheight; i <= 128; ++i) {
                 data[i].id = water;
@@ -116,7 +116,7 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
                             } else if (mix1 < -0.5) {
                                 data[i].subid = stone_cobble;
                             } else {
-                                float mix2 = noise3(12, cx / 17.34, fi / 15.8, cz / 17.34);
+                                float mix2 = noise3(12, cx / 10.34, fi / 5.8, cz / 10.34);
                                 if (mix2 > 0.456) {
                                     data[i].id = dirt;
                                     data[i].subid = 0;
@@ -135,7 +135,7 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
                 if (data[i].id && data[i].id != water) {
                     float fi = i - 0.25;
                     float cave = noise3(16, cx / 21.1473, fi / 15.21837, cz / 21.1473);
-                    float cavemult = tanhf(((fabs(fi - (finalheight / 2.0)) / (finalheight * 1.044)) * 2.0 - 1.0) * 16.0) * 0.5 + 0.5;
+                    float cavemult = tanhf(((fabs(fi - (finalheight / 2.0)) / (finalheight * 1.047)) * 2.0 - 1.0) * 16.0) * 0.5 + 0.5;
                     if (cave > cavemult + 0.345) {
                         data[i].id = 0;
                         data[i].subid = 0;
