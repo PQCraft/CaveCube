@@ -119,7 +119,7 @@ static force_inline void genSliver(int type, double cx, double cz, struct blockd
             }
             for (int i = 0; i < 512; ++i) {
                 float fi = i - 0.25;
-                float cave = noise3(16, cx / 21.96, fi / 15.7, cz / 21.96);
+                float cave = noise3(16, cx / 21.46, fi / 15.2, cz / 21.46);
                 float cavemult = tanhf(((fabs(fi - (finalheight / 2.0)) / (finalheight * 1.042)) * 2.0 - 1.0) * 16.0) * 0.5 + 0.5;
                 if (cave > cavemult + 0.345) {
                     if (data[i].id != water) {
