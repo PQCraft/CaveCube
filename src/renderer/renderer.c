@@ -2403,7 +2403,7 @@ bool startRenderer() {
         initMsgData(&chunkmsgs[i]);
     }
     chunkmsgs[CHUNKUPDATE_PRIO_LOW].async = true;
-    chunkmsgs[CHUNKUPDATE_PRIO_NORMAL].async = true;
+    //chunkmsgs[CHUNKUPDATE_PRIO_NORMAL].async = true;
 
     return true;
 }

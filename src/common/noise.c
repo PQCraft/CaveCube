@@ -88,7 +88,7 @@ double nperlin2d(int t, double x, double y, double freq, int depth) {
 
 #define FADE(t) (t * t * t * (t * (t * 6 - 15) + 10))
 
-#define FASTFLOOR(x) (((int64_t)(x) < (x)) ? ((int64_t)x) : ((int64_t)x - 1))
+#define FASTFLOOR(x) floor(x) //(((int64_t)(x) < (x)) ? ((int64_t)x) : ((int64_t)x - 1))
 #define LERP(t, a, b) ((a) + (t) * ((b) - (a)))
 
 static inline double grad1(int hash, double x) {
@@ -121,7 +121,7 @@ static inline double grad4(int hash, double x, double y, double z, double t) {
 }
 
 double noise1(int tbl, double x) {
-    int ix0, ix1;
+    int64_t ix0, ix1;
     double fx0, fx1;
     double s, n0, n1;
 
