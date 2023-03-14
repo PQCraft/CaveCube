@@ -46,10 +46,6 @@
 - Implement extensions in `src/main/extmgr.(c|h)` using libdl
 
 ### IN-PROGRESS:
-- Redo worldgen
-    - Better caves
-    - Add mountains
-    - Add rivers
 
 ### DONE:
 - Made natural light monochrome to save bits
@@ -57,3 +53,4 @@
 - Improved server memory management
 - Server now also disconnects on a write error
 - Fixed a bug that prevented Windows from connecting in -connect mode
+- New worldgen
