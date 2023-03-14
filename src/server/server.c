@@ -33,6 +33,7 @@ struct msgdata {
 };
 
 static force_inline void initMsgData(struct msgdata* mdata) {
+    mdata->async = false;
     mdata->size = 0;
     mdata->rptr = -1;
     mdata->wptr = -1;
@@ -877,7 +878,7 @@ int startServer(char* addr, int port, int mcli, char* world) {
         initMsgData(&servmsgout[i]);
     }
     servmsgin[MSG_PRIO_LOW].async = true;
-    servmsgout[MSG_PRIO_LOW].async = true;
+    //servmsgout[MSG_PRIO_LOW].async = true;
     //servmsgout[MSG_PRIO_NORMAL].async = true;
     #if DBGLVL(1)
     puts("  Initializing noise...");
@@ -1243,7 +1244,7 @@ bool cliConnect(char* addr, int port, bool (*cb)(int, void*)) {
     clientalive = true;
     setCxnBufSize(clicxn, CLIENT_SNDBUF_SIZE, CLIENT_RCVBUF_SIZE);
     initMsgData(&climsgout);
-    climsgout.async = true;
+    climsgout.async = false;
     callback = cb;
     #ifdef NAME_THREADS
     char name[256];

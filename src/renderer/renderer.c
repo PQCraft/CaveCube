@@ -262,15 +262,11 @@ void updateUIScale() {
 }
 
 static void winch(int w, int h) {
-    if (inputMode == INPUT_MODE_GAME) {
-        resetInput();
-    }
     if (!rendinf.fullscr) {
         rendinf.win_width = w;
         rendinf.win_height = h;
     }
     setFullscreen(rendinf.fullscr);
-
 }
 
 #if defined(USESDL2)
@@ -358,7 +354,9 @@ void setFullscreen(bool fullscreen) {
     glfwSwapInterval(rendinf.vsync);
     #endif
 
-    resetInput();
+    if (inputMode == INPUT_MODE_GAME) {
+        resetInput();
+    }
 }
 
 static force_inline bool makeShaderProg(char* hdrtext, char* _vstext, char* _fstext, GLuint* p) {
@@ -527,6 +525,7 @@ struct msgdata_msg {
 };
 
 struct msgdata {
+    bool async;
     int size;
     int rptr;
     int wptr;
@@ -537,6 +536,7 @@ struct msgdata {
 struct msgdata chunkmsgs[CHUNKUPDATE_PRIO__MAX];
 
 static force_inline void initMsgData(struct msgdata* mdata) {
+    mdata->async = false;
     mdata->size = 0;
     mdata->rptr = -1;
     mdata->wptr = -1;
@@ -557,30 +557,46 @@ static void deinitMsgData(struct msgdata* mdata) {
 static force_inline void addMsg(struct msgdata* mdata, int64_t x, int64_t z, uint64_t id, bool dep, int lvl) {
     static uint64_t mdataid = 0;
     pthread_mutex_lock(&mdata->lock);
-    if (mdata->wptr < 0 || mdata->rptr >= mdata->size) {
-        mdata->rptr = 0;
-        mdata->size = 0;
+    if (mdata->async) {
+        int index = -1;
+        for (int i = 0; i < mdata->size; ++i) {
+            if (!mdata->msg[i].valid) {
+                index = i;
+                break;
+            }
+        }
+        if (index == -1) {
+            index = mdata->size++;
+            mdata->msg = realloc(mdata->msg, mdata->size * sizeof(*mdata->msg));
+        }
+        mdata->msg[index].valid = true;
+        mdata->msg[index].dep = dep;
+        mdata->msg[index].lvl = lvl;
+        mdata->msg[index].x = x;
+        mdata->msg[index].z = z;
+        mdata->msg[index].id = (dep) ? id : mdataid++;
+    } else {
+        if (mdata->wptr < 0 || mdata->rptr >= mdata->size) {
+            mdata->rptr = 0;
+            mdata->size = 0;
+        }
+        mdata->wptr = mdata->size++;
+        //printf("[%lu]: wptr: [%d] size: [%d]\n", (uintptr_t)mdata, mdata->wptr, mdata->size);
+        mdata->msg = realloc(mdata->msg, mdata->size * sizeof(*mdata->msg));
+        mdata->msg[mdata->wptr].valid = true;
+        mdata->msg[mdata->wptr].dep = dep;
+        mdata->msg[mdata->wptr].lvl = lvl;
+        mdata->msg[mdata->wptr].x = x;
+        mdata->msg[mdata->wptr].z = z;
+        mdata->msg[mdata->wptr].id = (dep) ? id : mdataid++;
     }
-    mdata->wptr = mdata->size++;
-    //printf("[%lu]: wptr: [%d] size: [%d]\n", (uintptr_t)mdata, mdata->wptr, mdata->size);
-    mdata->msg = realloc(mdata->msg, mdata->size * sizeof(*mdata->msg));
-    mdata->msg[mdata->wptr].valid = true;
-    mdata->msg[mdata->wptr].dep = dep;
-    mdata->msg[mdata->wptr].lvl = lvl;
-    mdata->msg[mdata->wptr].x = x;
-    mdata->msg[mdata->wptr].z = z;
-    mdata->msg[mdata->wptr].id = (dep) ? id : mdataid++;
     pthread_mutex_unlock(&mdata->lock);
-}
-
-void updateChunk(int64_t x, int64_t z, int p, int updatelvl) {
-    addMsg(&chunkmsgs[p], x, z, 0, false, updatelvl);
 }
 
 static force_inline bool getNextMsg(struct msgdata* mdata, struct msgdata_msg* msg) {
     pthread_mutex_lock(&mdata->lock);
-    if (mdata->rptr >= 0) {
-        for (int i = mdata->rptr; i < mdata->size; ++i) {
+    if (mdata->async) {
+        for (int i = 0; i < mdata->size; ++i) {
             if (mdata->msg[i].valid) {
                 msg->valid = mdata->msg[i].valid;
                 msg->dep = mdata->msg[i].dep;
@@ -589,16 +605,36 @@ static force_inline bool getNextMsg(struct msgdata* mdata, struct msgdata_msg* m
                 msg->z = mdata->msg[i].z;
                 msg->id = mdata->msg[i].id;
                 mdata->msg[i].valid = false;
-                mdata->rptr = i + 1;
-                //printf("[%lu]: rptr: [%d] size: [%d]\n", (uintptr_t)mdata, mdata->rptr, mdata->size);
                 pthread_mutex_unlock(&mdata->lock);
-                //printf("returning [%d]/[%d]\n", i + 1, mdata->size);
                 return true;
+            }
+        }
+    } else {
+        if (mdata->rptr >= 0) {
+            for (int i = mdata->rptr; i < mdata->size; ++i) {
+                if (mdata->msg[i].valid) {
+                    msg->valid = mdata->msg[i].valid;
+                    msg->dep = mdata->msg[i].dep;
+                    msg->lvl = mdata->msg[i].lvl;
+                    msg->x = mdata->msg[i].x;
+                    msg->z = mdata->msg[i].z;
+                    msg->id = mdata->msg[i].id;
+                    mdata->msg[i].valid = false;
+                    mdata->rptr = i + 1;
+                    //printf("[%lu]: rptr: [%d] size: [%d]\n", (uintptr_t)mdata, mdata->rptr, mdata->size);
+                    pthread_mutex_unlock(&mdata->lock);
+                    //printf("returning [%d]/[%d]\n", i + 1, mdata->size);
+                    return true;
+                }
             }
         }
     }
     pthread_mutex_unlock(&mdata->lock);
     return false;
+}
+
+void updateChunk(int64_t x, int64_t z, int p, int updatelvl) {
+    addMsg(&chunkmsgs[p], x, z, 0, false, updatelvl);
 }
 
 static uint32_t constBlockVert[4][6][6] = {
@@ -1632,12 +1668,14 @@ void render() {
         }
         sprintf(
             &tbuf[0][toff],
+            "Resolution: %ux%u@%u vsync %s\n"
             "FPS: %.2lf (%.2lf)\n"
             "Position: (%lf, %lf, %lf)\n"
             "Velocity: (%f, %f, %f)\n"
             "Rotation: (%f, %f, %f)\n"
             "Block: (%d, %d, %d)\n"
             "Chunk: (%"PRId64", %"PRId64")\n",
+            rendinf.width, rendinf.height, rendinf.fps, (rendinf.vsync) ? "on" : "off",
             fps, realfps,
             pcoord.x, pcoord.y, pcoord.z,
             pvelocity.x, pvelocity.y, pvelocity.z,
@@ -2364,6 +2402,8 @@ bool startRenderer() {
     for (int i = 0; i < CHUNKUPDATE_PRIO__MAX; ++i) {
         initMsgData(&chunkmsgs[i]);
     }
+    chunkmsgs[CHUNKUPDATE_PRIO_LOW].async = true;
+    chunkmsgs[CHUNKUPDATE_PRIO_NORMAL].async = true;
 
     return true;
 }
