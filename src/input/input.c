@@ -502,7 +502,13 @@ bool initInput() {
     if (rawmouse) SDL_SetHintWithPriority(SDL_HINT_MOUSE_RELATIVE_MODE_WARP, "1", SDL_HINT_OVERRIDE);
     char* sect = "SDL2 Keybinds";
     #else
-    if (rawmouse && glfwRawMouseMotionSupported()) glfwSetInputMode(rendinf.window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+    if (rawmouse) {
+        if (glfwRawMouseMotionSupported()) {
+            glfwSetInputMode(rendinf.window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+        } else {
+            fputs("Failed to enable raw mouse", stderr);
+        }
+    }
     glfwSetScrollCallback(rendinf.window, glfwmscrollcb);
     char* sect = "GLFW Keybinds";
     #endif

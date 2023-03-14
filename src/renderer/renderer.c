@@ -35,7 +35,7 @@
 #include "cglm/cglm.h"
 
 int MESHER_THREADS;
-int MESHER_THREADS_MAX = 8;
+int MESHER_THREADS_MAX = 1;
 
 struct renderer_info rendinf;
 //static resdata_bmd* blockmodel;
@@ -1963,11 +1963,13 @@ bool initRenderer() {
     declareConfigKey(config, "Renderer", "farPlane", "2500", false);
     declareConfigKey(config, "Renderer", "lazyMesher", "false", false);
     declareConfigKey(config, "Renderer", "caveCullLevel", "1", false);
+    declareConfigKey(config, "Renderer", "mesherThreadsMax", "1", false);
 
     rendinf.campos = GFX_DEFAULT_POS;
     rendinf.camrot = GFX_DEFAULT_ROT;
 
     cavecull = atoi(getConfigKey(config, "Renderer", "caveCullLevel"));
+    MESHER_THREADS_MAX = atoi(getConfigKey(config, "Renderer", "mesherThreadsMax"));
 
     #if defined(USESDL2)
     SDL_SetHint(SDL_HINT_NO_SIGNAL_HANDLERS, "1");

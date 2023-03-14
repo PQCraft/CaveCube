@@ -130,7 +130,7 @@ endif
 
 BIN := $(BINNAME)$(BINEXT)
 
-CFLAGS += -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -pthread -msse2 -mfpmath=sse
+CFLAGS += -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -pthread -msse2 -mfpmath=sse -ffast-math
 CFLAGS += $(MODULECFLAGS) -DMODULEID=$(MODULEID) -DMODULE=$(MODULE)
 ifdef OS
     WRFLAGS += $(MODULECFLAGS) -DMODULE=$(MODULE)
