@@ -171,7 +171,7 @@ static bool handleServer(int msg, void* _data) {
     return true;
 }
 
-void gameLoop() {
+static void gameLoop() {
     struct input_info input;
     resetInput();
     setInputMode(INPUT_MODE_GAME);
@@ -305,6 +305,9 @@ void gameLoop() {
             case INPUT_ACTION_SINGLE_FULLSCR:;
                 setFullscreen(!rendinf.fullscr);
                 break;
+            case INPUT_ACTION_SINGLE_DEBUG:;
+                game_ui[UILAYER_DBGINF]->hidden = !(showDebugInfo = !showDebugInfo);
+                break;
         }
         switch (inputMode) {
             case INPUT_MODE_GAME:; {
@@ -342,9 +345,6 @@ void gameLoop() {
                     case INPUT_ACTION_SINGLE_ROT_Y:;
                         //--blocksub;
                         //if (blocksub < 0) blocksub = 0;
-                        break;
-                    case INPUT_ACTION_SINGLE_DEBUG:;
-                        game_ui[UILAYER_DBGINF]->hidden = !(showDebugInfo = !showDebugInfo);
                         break;
                     case INPUT_ACTION_SINGLE_ESC:;
                         setInputMode(INPUT_MODE_UI);
@@ -470,14 +470,7 @@ void gameLoop() {
     }
 }
 
-bool doGame(char* addr, int port) {
-    declareConfigKey(config, "Game", "viewDist", "8", false);
-    declareConfigKey(config, "Player", "name", "Player", false);
-    declareConfigKey(config, "Player", "skin", "", false);
-    declareConfigKey(config, "Renderer", "waitWithVsync", "true", false);
-
-    initInput();
-
+static bool connectToServ(char* addr, int port) {
     puts("Connecting to server...");
     {
         char err[4096];
@@ -497,22 +490,95 @@ bool doGame(char* addr, int port) {
         }
     }
     puts("Connected to server.");
-    if (quitRequest) return false;
+    return true;
+}
+
+bool doGame() {
+    declareConfigKey(config, "Game", "viewDist", "8", false);
+    declareConfigKey(config, "Player", "name", "Player", false);
+    declareConfigKey(config, "Player", "skin", "", false);
+    declareConfigKey(config, "Renderer", "waitWithVsync", "true", false);
+
+    initRenderer();
+    startRenderer();
+    initInput();
+    setInputMode(INPUT_MODE_UI);
+    renderall = false;
+    setSkyColor(0.5, 0.5, 0.5);
+    setFullscreen(rendinf.fullscr);
 
     for (int i = 0; i < 4; ++i) {
         game_ui[i] = allocUI();
     }
     game_ui[UILAYER_DBGINF]->hidden = !showDebugInfo;
-    //game_ui[UILAYER_INGAME]->hidden = input.focus;
+    game_ui[UILAYER_INGAME]->hidden = false;
 
-    setSkyColor(0.5, 0.5, 0.5);
-    setFullscreen(rendinf.fullscr);
+    int ui_main_menu = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BOX, "main_menu", -1, -1,
+        "width", "100%", "height", "100%", "color", "#000000", "alpha", "0.0", "z", "-100", NULL);
+    int ui_main_menu_center = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_CONTAINER, "main_menu_center", ui_main_menu, -1,
+        "width", "0", "height", "0", NULL);
+    int ui_mpbutton = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON, "mpbutton", ui_main_menu, ui_main_menu_center,
+        "width", "320", "height", "32", "x_offset", "-4", "y_offset", "24", "text", "Multiplayer", "align", "0,0", "margin", "0,12,0,0", NULL);
+    int ui_spbutton = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON, "spbutton", ui_main_menu, ui_mpbutton,
+        "width", "320", "height", "32", "x_offset", "-12", "text", "Singleplayer", "align", "0,1", "margin", "0,12,0,0", NULL);
+    int ui_opbutton = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON, "opbutton", ui_main_menu, ui_mpbutton,
+        "width", "320", "height", "32", "x_offset", "4", "text", "Options", "align", "0,-1", "margin", "0,12,0,0", NULL);
+    int ui_logo = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_CONTAINER, "logo", ui_main_menu, ui_spbutton,
+        "width", "448", "height", "112", "x_offset", "3", "text", PROG_NAME, "text_scale", "7", "z", "100", "align", "0,1", "margin", "0,0,0,32", NULL);
+    int ui_qbutton = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON, "qbutton", ui_main_menu, ui_opbutton,
+        "width", "320", "height", "32", "x_offset", "12", "text", "Quit", "align", "0,-1", "margin", "0,12,0,0", NULL);
+    int ui_version = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_CONTAINER, "version", ui_main_menu, ui_logo,
+        "width", "200", "height", "16", "x_offset", "3", "y_offset", "-48", "text", "Version "VER_STR, "align", "0,-1", NULL);
 
-    gameLoop();
+    {
+        struct input_info input;
+        resetInput();
+        bool waitwithvsync = getBool(getConfigKey(config, "Renderer", "waitWithVsync"));
+        uint64_t fpsupdate = altutime();
+        int frames = 0;
+        while (!quitRequest) {
+            uint64_t frametime = altutime();
+            getInput(&input);
+            switch (input.single_action) {
+                case INPUT_ACTION_SINGLE_FULLSCR:;
+                    setFullscreen(!rendinf.fullscr);
+                    break;
+                case INPUT_ACTION_SINGLE_DEBUG:;
+                    game_ui[UILAYER_DBGINF]->hidden = !(showDebugInfo = !showDebugInfo);
+                    break;
+            }
+            render();
+            updateScreen();
+            ++frames;
+            if (rendinf.fps && (!rendinf.vsync || (waitwithvsync || rendinf.fps < rendinf.disphz))) {
+                int64_t framediff = (1000000 / rendinf.fps) - (altutime() - frametime);
+                //printf("Wait for %"PRId64"us\n", framediff);
+                if (framediff > 0) microwait(framediff);
+            }
+            static uint64_t totalframetime = 0;
+            static uint64_t highframetime = 0;
+            frametime = altutime() - frametime;
+            totalframetime += frametime;
+            if (frametime > highframetime) highframetime = frametime;
+            if (altutime() - fpsupdate >= 200000) {
+                fpsupdate = altutime();
+                fps = 1000000.0 / ((double)totalframetime / (double)frames);
+                realfps = 1000000.0 / (double)highframetime;
+                if (realfps > rendinf.disphz) realfps = rendinf.disphz;
+                //printf("Rendered %d frames in %lfus\n", frames, ((double)totalframetime / (double)frames));
+                frames = 0;
+                totalframetime = 0;
+                highframetime = 0;
+            }
+        }
+    }
+
+    //gameLoop();
 
     for (int i = 0; i < 4; ++i) {
         freeUI(game_ui[i]);
     }
+
     return true;
 }
 

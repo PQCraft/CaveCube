@@ -2,6 +2,12 @@
 - Next version: 0.6.1
 
 ### NEED TO DO:
+- Flesh out UI
+    - More UI elements (buttons, text boxes, etc)
+    - UI interaction (elem states, tooltips, etc)
+    - Add `fit_width_to_text` and `fit_height_to_text` attrib
+    - Add `text_fmt` attrib
+    - Add items to hotbar
 - Implement server chunk cache/pool
 - Add back block placement
 - Add physics in `src/physics/`
@@ -9,12 +15,6 @@
     - Add AABB collision in `collision.(c|h)`
     - Add raycasting in `raycasting.(c|h)`
 - Implement world saves in `src/server/saves.(c|h)`
-- Flesh out UI
-    - More UI elements (buttons, text boxes, etc)
-    - UI interaction (elem states, tooltips, etc)
-    - Add `fit_width_to_text` and `fit_height_to_text` attrib
-    - Add `text_fmt` attrib
-    - Add items to hotbar
 - Add some server events
     - Add event for collecting player info
     - Add event for running physics

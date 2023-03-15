@@ -257,6 +257,7 @@ void updateUIScale() {
     int s = (x < y) ? x : y;
     if (game_ui[UILAYER_SERVER]) game_ui[UILAYER_SERVER]->scale = s;
     if (game_ui[UILAYER_CLIENT]) game_ui[UILAYER_CLIENT]->scale = s;
+    if (game_ui[UILAYER_DBGINF]) game_ui[UILAYER_DBGINF]->scale = s;
     if (game_ui[UILAYER_INGAME]) game_ui[UILAYER_INGAME]->scale = s;
     //printf("Scale UI to [%d] (%dx%d)\n", s, rendinf.width, rendinf.height);
 }
@@ -1255,6 +1256,14 @@ void startMesher() {
     }
 }
 
+void stopMesher() {
+    if (mesheractive) {
+        for (int i = 0; i < MESHER_THREADS && i < MESHER_THREADS_MAX; ++i) {
+            pthread_join(pthreads[i], NULL);
+        }
+    }
+}
+
 static float textColor[16][3] = {
     {0x00 / 255.0, 0x00 / 255.0, 0x00 / 255.0},
     {0x00 / 255.0, 0x00 / 255.0, 0xAA / 255.0},
@@ -1448,6 +1457,9 @@ static force_inline void meshUIElem(struct meshdata* md, struct ui_data* elemdat
         if (curprop) attrib |= getBool(curprop) << 2;
         curprop = getUIElemProperty(e, "text_strikethrough");
         if (curprop) attrib |= getBool(curprop) << 3;
+        int text_scale = 1;
+        curprop = getUIElemProperty(e, "text_scale");
+        if (curprop) text_scale = atoi(curprop);
         int end = p->x + p->width;
         static int tcw = 8, tch = 16;
         int lines = 1;
@@ -1465,22 +1477,22 @@ static force_inline void meshUIElem(struct meshdata* md, struct ui_data* elemdat
             tdata[0].ptr = t;
             while (*t) {
                 if (*t == ' ' || *t == '\t') {
-                    int tmpw = tdata[l].width + tcw * s;
+                    int tmpw = tdata[l].width + tcw * s * text_scale;
                     for (int i = 1; t[i] && t[i] != ' ' && t[i] != '\t' && t[i] != '\n'; ++i) {
-                        tmpw += tcw * s;
+                        tmpw += tcw * s * text_scale;
                     }
                     if (tmpw > p->width) {
                         nextline(t + 1);
                     } else {
-                        tdata[l].width += tcw * s;
+                        tdata[l].width += tcw * s * text_scale;
                         ++tdata[l].chars;
                     }
                 } else if (*t == '\n') {
                     nextline(t + 1);
                 } else {
-                    tdata[l].width += tcw * s;
+                    tdata[l].width += tcw * s * text_scale;
                     if (tdata[l].width > p->width) {
-                        tdata[l].width -= tcw * s;
+                        tdata[l].width -= tcw * s * text_scale;
                         nextline(t);
                     }
                     ++tdata[l].chars;
@@ -1492,8 +1504,8 @@ static force_inline void meshUIElem(struct meshdata* md, struct ui_data* elemdat
             int x, y;
             switch (ay) {
                 case -1:; y = p->y; break;
-                default:; y = ((float)p->y + (float)p->height / 2.0) - (float)(lines * tch * s) / 2.0; break;
-                case 1:; y = p->y + (p->height - lines * tch * s); break;
+                default:; y = ((float)p->y + (float)p->height / 2.0) - (float)(lines * tch * s * text_scale) / 2.0; break;
+                case 1:; y = p->y + (p->height - lines * tch * s * text_scale); break;
             }
             for (int i = 0; i < lines; ++i) {
                 switch (ax) {
@@ -1502,7 +1514,7 @@ static force_inline void meshUIElem(struct meshdata* md, struct ui_data* elemdat
                     case 1:; x = (end - tdata[i].width); break;
                 }
                 for (int j = 0; j < tdata[i].chars; ++j) {
-                    uint8_t ol = 0, or = tcw * s, ot = 0, ob = tch * s, stcw = tcw * s, stch = tch * s;
+                    uint8_t ol = 0, or = tcw * s * text_scale, ot = 0, ob = tch * s * text_scale, stcw = tcw * s * text_scale, stch = tch * s * text_scale;
                     if (/*x + or >= p->x && x <= p->x + p->width &&*/ y + ob >= p->y && y <= p->y + p->height) {
                         //if (x + or > p->x + p->width) or -= (x + or) - (p->x + p->width);
                         if (y + ob > p->y + p->height) ob -= (y + ob) - (p->y + p->height);
@@ -1510,9 +1522,9 @@ static force_inline void meshUIElem(struct meshdata* md, struct ui_data* elemdat
                         if (y + ot < p->y) ot += (p->y) - (y + ot);
                         writeuitextchar(md, x, y, p->z, ol, ot, or, ob, stcw, stch, tdata[i].ptr[j], attrib, fgc, bgc, fga, bga);
                     }
-                    x += tcw * s;
+                    x += tcw * s * text_scale;
                 }
-                y += tch * s;
+                y += tch * s * text_scale;
             }
         }
         free(tdata);
@@ -1635,7 +1647,8 @@ static force_inline bool pqvisit(struct pq* p, int x, int y, int z, int face) {
     return true;
 }
 
-int cavecull;
+static int cavecull;
+bool renderall = false;
 
 void render() {
     if (showDebugInfo) {
@@ -1666,212 +1679,226 @@ void render() {
             );
             toff = strlen(tbuf[0]);
         }
-        sprintf(
-            &tbuf[0][toff],
-            "Resolution: %ux%u@%u vsync %s\n"
-            "FPS: %.2lf (%.2lf)\n"
-            "Position: (%lf, %lf, %lf)\n"
-            "Velocity: (%f, %f, %f)\n"
-            "Rotation: (%f, %f, %f)\n"
-            "Block: (%d, %d, %d)\n"
-            "Chunk: (%"PRId64", %"PRId64")\n",
-            rendinf.width, rendinf.height, rendinf.fps, (rendinf.vsync) ? "on" : "off",
-            fps, realfps,
-            pcoord.x, pcoord.y, pcoord.z,
-            pvelocity.x, pvelocity.y, pvelocity.z,
-            rendinf.camrot.x, rendinf.camrot.y, rendinf.camrot.z,
-            pblockx, pblocky, pblockz,
-            rendinf.chunks->xoff, rendinf.chunks->zoff
-        );
+        if (renderall) {
+            sprintf(
+                &tbuf[0][toff],
+                "Resolution: %ux%u@%u vsync %s\n"
+                "FPS: %.2lf (%.2lf)\n"
+                "Position: (%lf, %lf, %lf)\n"
+                "Velocity: (%f, %f, %f)\n"
+                "Rotation: (%f, %f, %f)\n"
+                "Block: (%d, %d, %d)\n"
+                "Chunk: (%"PRId64", %"PRId64")\n",
+                rendinf.width, rendinf.height, rendinf.fps, (rendinf.vsync) ? "on" : "off",
+                fps, realfps,
+                pcoord.x, pcoord.y, pcoord.z,
+                pvelocity.x, pvelocity.y, pvelocity.z,
+                rendinf.camrot.x, rendinf.camrot.y, rendinf.camrot.z,
+                pblockx, pblocky, pblockz,
+                rendinf.chunks->xoff, rendinf.chunks->zoff
+            );
+        } else {
+            sprintf(
+                &tbuf[0][toff],
+                "Resolution: %ux%u@%u vsync %s\n"
+                "FPS: %.2lf (%.2lf)\n",
+                rendinf.width, rendinf.height, rendinf.fps, (rendinf.vsync) ? "on" : "off",
+                fps, realfps
+            );
+        }
         if (game_ui[UILAYER_DBGINF]) editUIElem(game_ui[UILAYER_DBGINF], dbgtextuih, NULL, -1, "text", tbuf, NULL);
     }
 
-    setShaderProg(shader_block);
-    glBindFramebuffer(GL_FRAMEBUFFER, FBO);
-    glClearColor(sky.r, sky.g, sky.b, 1);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glEnable(GL_BLEND);
-    static uint64_t aMStart = 0;
-    if (!aMStart) aMStart = altutime();
-    glUniform1ui(glGetUniformLocation(rendinf.shaderprog, "aniMult"), (aMStart - altutime()) / 10000);
-    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "dist"), rendinf.chunks->info.dist);
-    setUniform3f(rendinf.shaderprog, "cam", (float[]){rendinf.campos.x, rendinf.campos.y, -rendinf.campos.z});
+    if (renderall) {
+        setShaderProg(shader_block);
+        glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+        glClearColor(sky.r, sky.g, sky.b, 1);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glEnable(GL_BLEND);
+        static uint64_t aMStart = 0;
+        if (!aMStart) aMStart = altutime();
+        glUniform1ui(glGetUniformLocation(rendinf.shaderprog, "aniMult"), (aMStart - altutime()) / 10000);
+        glUniform1i(glGetUniformLocation(rendinf.shaderprog, "dist"), rendinf.chunks->info.dist);
+        setUniform3f(rendinf.shaderprog, "cam", (float[]){rendinf.campos.x, rendinf.campos.y, -rendinf.campos.z});
 
-    pthread_mutex_lock(&rendinf.chunks->lock);
+        pthread_mutex_lock(&rendinf.chunks->lock);
 
-    _sortChunk(-1, 0, 0, true);
+        _sortChunk(-1, 0, 0, true);
 
-    _sortChunk(-1, 1, 0, true);
-    _sortChunk(-1, -1, 0, true);
-    _sortChunk(-1, 0, 1, true);
-    _sortChunk(-1, 0, -1, true);
+        _sortChunk(-1, 1, 0, true);
+        _sortChunk(-1, -1, 0, true);
+        _sortChunk(-1, 0, 1, true);
+        _sortChunk(-1, 0, -1, true);
 
-    _sortChunk(-1, 1, 1, true);
-    _sortChunk(-1, -1, 1, true);
-    _sortChunk(-1, 1, -1, true);
-    _sortChunk(-1, -1, -1, true);
+        _sortChunk(-1, 1, 1, true);
+        _sortChunk(-1, -1, 1, true);
+        _sortChunk(-1, 1, -1, true);
+        _sortChunk(-1, -1, -1, true);
 
-    static int64_t cx = 0;
-    static int cy = -INT_MAX;
-    static int64_t cz = 0;
-    int64_t newcx = rendinf.chunks->xoff;
-    int newcy = (int)((rendinf.campos.y < 0) ? rendinf.campos.y - 16 : rendinf.campos.y) / 16;
-    int64_t newcz = rendinf.chunks->zoff;
-    if ((opaqueUpdate || newcz != cz || newcx != cx || newcy != cy) && !debug_nocavecull) {
-        //if (newcz != cz || newcx != cx || newcy != cy) printf("MOVED: [%"PRId64", %d, %"PRId64"]\n", cx, cy, cz);
+        static int64_t cx = 0;
+        static int cy = -INT_MAX;
+        static int64_t cz = 0;
+        int64_t newcx = rendinf.chunks->xoff;
+        int newcy = (int)((rendinf.campos.y < 0) ? rendinf.campos.y - 16 : rendinf.campos.y) / 16;
+        int64_t newcz = rendinf.chunks->zoff;
+        if ((opaqueUpdate || newcz != cz || newcx != cx || newcy != cy) && !debug_nocavecull) {
+            //if (newcz != cz || newcx != cx || newcy != cy) printf("MOVED: [%"PRId64", %d, %"PRId64"]\n", cx, cy, cz);
 
-        //int64_t cx = rendinf.chunks->xoff;
-        //int cy = (int)((rendinf.campos.y < 0) ? rendinf.campos.y - 16 : rendinf.campos.y) / 16;
-        //int64_t cz = rendinf.chunks->zoff;
-        cx = newcx;
-        cy = newcy;
-        cz = newcz;
+            //int64_t cx = rendinf.chunks->xoff;
+            //int cy = (int)((rendinf.campos.y < 0) ? rendinf.campos.y - 16 : rendinf.campos.y) / 16;
+            //int64_t cz = rendinf.chunks->zoff;
+            cx = newcx;
+            cy = newcy;
+            cz = newcz;
 
-        opaqueUpdate = false;
+            opaqueUpdate = false;
 
-        int w = rendinf.chunks->info.dist;
-        if (w < 2) w = 2;
-        w = 1 + w * 2;
-        w *= w;
-        posqueue = malloc((w * 6) * sizeof(*posqueue));
-        pqptr = 0;
-        visited = calloc(rendinf.chunks->info.widthsq * 34, 1);
-        visited += rendinf.chunks->info.widthsq;
+            int w = rendinf.chunks->info.dist;
+            if (w < 2) w = 2;
+            w = 1 + w * 2;
+            w *= w;
+            posqueue = malloc((w * 6) * sizeof(*posqueue));
+            pqptr = 0;
+            visited = calloc(rendinf.chunks->info.widthsq * 34, 1);
+            visited += rendinf.chunks->info.widthsq;
 
-        for (int i = 0; i < (int)rendinf.chunks->info.widthsq; ++i) {
-            rendinf.chunks->renddata[i].visible = 0;
+            for (int i = 0; i < (int)rendinf.chunks->info.widthsq; ++i) {
+                rendinf.chunks->renddata[i].visible = 0;
+            }
+
+            {
+                memset(posqueue[pqptr].dir, 0, 6);
+                int ncy = cy;
+                if (ncy < -1) ncy = -1;
+                else if (ncy > 32) ncy = 32;
+                pqpush(rendinf.chunks->info.dist, ncy, rendinf.chunks->info.dist, -1);
+                int v = rendinf.chunks->info.dist + rendinf.chunks->info.dist * rendinf.chunks->info.width + ncy * rendinf.chunks->info.widthsq;
+                visited[v] = true;
+            }
+            int pqptrmax = 0;
+            while (pqptr > 0) {
+                if (pqptr > pqptrmax) pqptrmax = pqptr;
+                pqpop();
+                struct pq p = posqueue[pqptr];
+
+                pqvisit(&p, p.x, p.y + 1, p.z, CVIS_UP);
+                pqvisit(&p, p.x + 1, p.y, p.z, CVIS_RIGHT);
+                pqvisit(&p, p.x, p.y, p.z + 1, CVIS_BACK);
+                pqvisit(&p, p.x, p.y - 1, p.z, CVIS_DOWN);
+                pqvisit(&p, p.x - 1, p.y, p.z, CVIS_LEFT);
+                pqvisit(&p, p.x, p.y, p.z - 1, CVIS_FRONT);
+            }
+
+            #define setvis(_x, _y, _z) {\
+                if ((_x) >= 0 && (_y) >= 0 && (_z) >= 0 && (_x) < (int)rendinf.chunks->info.width && (_y) < 32 && (_z) < (int)rendinf.chunks->info.width) {\
+                    rendinf.chunks->renddata[(_x) + (_z) * rendinf.chunks->info.width].visible |= (1 << (_y));\
+                }\
+            }
+            for (int z = 0; z < (int)rendinf.chunks->info.width; ++z) {
+                for (int x = 0; x < (int)rendinf.chunks->info.width; ++x) {
+                    for (int y = 0; y < 32; ++y) {
+                        if (visited[x + z * rendinf.chunks->info.width + y * rendinf.chunks->info.widthsq]) {
+                            setvis(x, y, z);
+                            if (cavecull >= 1) {
+                                setvis(x + 1, y, z);
+                                setvis(x - 1, y, z);
+                                setvis(x, y + 1, z);
+                                setvis(x, y - 1, z);
+                                setvis(x, y, z + 1);
+                                setvis(x, y, z - 1);
+                                if (cavecull >= 2) {
+                                    setvis(x + 1, y + 1, z + 1);
+                                    setvis(x - 1, y + 1, z + 1);
+                                    setvis(x + 1, y - 1, z + 1);
+                                    setvis(x - 1, y - 1, z + 1);
+                                    setvis(x + 1, y + 1, z - 1);
+                                    setvis(x - 1, y + 1, z - 1);
+                                    setvis(x + 1, y - 1, z - 1);
+                                    setvis(x - 1, y - 1, z - 1);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            free(posqueue);
+            visited -= rendinf.chunks->info.widthsq;
+            free(visited);
         }
 
-        {
-            memset(posqueue[pqptr].dir, 0, 6);
-            int ncy = cy;
-            if (ncy < -1) ncy = -1;
-            else if (ncy > 32) ncy = 32;
-            pqpush(rendinf.chunks->info.dist, ncy, rendinf.chunks->info.dist, -1);
-            int v = rendinf.chunks->info.dist + rendinf.chunks->info.dist * rendinf.chunks->info.width + ncy * rendinf.chunks->info.widthsq;
-            visited[v] = true;
-        }
-        int pqptrmax = 0;
-        while (pqptr > 0) {
-            if (pqptr > pqptrmax) pqptrmax = pqptr;
-            pqpop();
-            struct pq p = posqueue[pqptr];
+        pthread_mutex_unlock(&rendinf.chunks->lock);
 
-            pqvisit(&p, p.x, p.y + 1, p.z, CVIS_UP);
-            pqvisit(&p, p.x + 1, p.y, p.z, CVIS_RIGHT);
-            pqvisit(&p, p.x, p.y, p.z + 1, CVIS_BACK);
-            pqvisit(&p, p.x, p.y - 1, p.z, CVIS_DOWN);
-            pqvisit(&p, p.x - 1, p.y, p.z, CVIS_LEFT);
-            pqvisit(&p, p.x, p.y, p.z - 1, CVIS_FRONT);
-        }
-
-        #define setvis(_x, _y, _z) {\
-            if ((_x) >= 0 && (_y) >= 0 && (_z) >= 0 && (_x) < (int)rendinf.chunks->info.width && (_y) < 32 && (_z) < (int)rendinf.chunks->info.width) {\
-                rendinf.chunks->renddata[(_x) + (_z) * rendinf.chunks->info.width].visible |= (1 << (_y));\
-            }\
-        }
-        for (int z = 0; z < (int)rendinf.chunks->info.width; ++z) {
-            for (int x = 0; x < (int)rendinf.chunks->info.width; ++x) {
-                for (int y = 0; y < 32; ++y) {
-                    if (visited[x + z * rendinf.chunks->info.width + y * rendinf.chunks->info.widthsq]) {
-                        setvis(x, y, z);
-                        if (cavecull >= 1) {
-                            setvis(x + 1, y, z);
-                            setvis(x - 1, y, z);
-                            setvis(x, y + 1, z);
-                            setvis(x, y - 1, z);
-                            setvis(x, y, z + 1);
-                            setvis(x, y, z - 1);
-                            if (cavecull >= 2) {
-                                setvis(x + 1, y + 1, z + 1);
-                                setvis(x - 1, y + 1, z + 1);
-                                setvis(x + 1, y - 1, z + 1);
-                                setvis(x - 1, y - 1, z + 1);
-                                setvis(x + 1, y + 1, z - 1);
-                                setvis(x - 1, y + 1, z - 1);
-                                setvis(x + 1, y - 1, z - 1);
-                                setvis(x - 1, y - 1, z - 1);
+        int32_t rendc = 0;
+        avec2 coord;
+        avec2 corner1;
+        avec2 corner2;
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_CULL_FACE);
+        glDisable(GL_BLEND);
+        if (debug_wireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        for (int32_t c = rendinf.chunks->info.widthsq - 1; c >= 0; --c) {
+            rendc = rendinf.chunks->rordr[c].c;
+            coord[0] = (int)(rendc % rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist;
+            coord[1] = (int)(rendc / rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist;
+            corner1[0] = coord[0] * 16.0 - 8.0;
+            corner1[1] = coord[1] * 16.0 + 8.0;
+            corner2[0] = coord[0] * 16.0 + 8.0;
+            corner2[1] = coord[1] * 16.0 - 8.0;
+            if ((rendinf.chunks->renddata[rendc].visfull = isVisible(&frust, corner1[0], 512.0, corner1[1], corner2[0], 0.0, corner2[1]))) {
+                if (rendinf.chunks->renddata[rendc].buffered) {
+                    if (rendinf.chunks->renddata[rendc].tcount[0]) {
+                        coord[0] = (int)(rendc % rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist;
+                        coord[1] = (int)(rendc / rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist;
+                        setUniform2f(rendinf.shaderprog, "ccoord", coord);
+                        glBindBuffer(GL_ARRAY_BUFFER, rendinf.chunks->renddata[rendc].VBO[0]);
+                        glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(0));
+                        glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(sizeof(uint32_t)));
+                        glVertexAttribIPointer(2, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * 2));
+                        glVertexAttribIPointer(3, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * 3));
+                        for (int y = 31; y >= 0; --y) {
+                            if ((!debug_nocavecull && !(rendinf.chunks->renddata[rendc].visible & (1 << y))) || !rendinf.chunks->renddata[rendc].ytcount[y]) continue;
+                            if (isVisible(&frust, corner1[0], y * 16.0, corner1[1], corner2[0], (y + 1) * 16.0, corner2[1])) {
+                                //printf("REND OPAQUE: [%d]:[%d]\n", rendc, y);
+                                glDrawArrays(GL_TRIANGLES, rendinf.chunks->renddata[rendc].ytoff[y], rendinf.chunks->renddata[rendc].ytcount[y]);
                             }
                         }
                     }
                 }
             }
         }
-
-        free(posqueue);
-        visited -= rendinf.chunks->info.widthsq;
-        free(visited);
-    }
-
-    pthread_mutex_unlock(&rendinf.chunks->lock);
-
-    int32_t rendc = 0;
-    avec2 coord;
-    avec2 corner1;
-    avec2 corner2;
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
-    glDisable(GL_BLEND);
-    if (debug_wireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    for (int32_t c = rendinf.chunks->info.widthsq - 1; c >= 0; --c) {
-        rendc = rendinf.chunks->rordr[c].c;
-        coord[0] = (int)(rendc % rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist;
-        coord[1] = (int)(rendc / rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist;
-        corner1[0] = coord[0] * 16.0 - 8.0;
-        corner1[1] = coord[1] * 16.0 + 8.0;
-        corner2[0] = coord[0] * 16.0 + 8.0;
-        corner2[1] = coord[1] * 16.0 - 8.0;
-        if ((rendinf.chunks->renddata[rendc].visfull = isVisible(&frust, corner1[0], 512.0, corner1[1], corner2[0], 0.0, corner2[1]))) {
-            if (rendinf.chunks->renddata[rendc].buffered) {
-                if (rendinf.chunks->renddata[rendc].tcount[0]) {
+        glEnable(GL_BLEND);
+        glDepthMask(false);
+        for (int32_t c = 0; c < (int)rendinf.chunks->info.widthsq; ++c) {
+            rendc = rendinf.chunks->rordr[c].c;
+            if (rendinf.chunks->renddata[rendc].visfull && rendinf.chunks->renddata[rendc].buffered) {
+                if (rendinf.chunks->renddata[rendc].tcount[1]) {
                     coord[0] = (int)(rendc % rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist;
                     coord[1] = (int)(rendc / rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist;
                     setUniform2f(rendinf.shaderprog, "ccoord", coord);
-                    glBindBuffer(GL_ARRAY_BUFFER, rendinf.chunks->renddata[rendc].VBO[0]);
+                    glBindBuffer(GL_ARRAY_BUFFER, rendinf.chunks->renddata[rendc].VBO[1]);
                     glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(0));
                     glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(sizeof(uint32_t)));
                     glVertexAttribIPointer(2, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * 2));
                     glVertexAttribIPointer(3, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * 3));
-                    for (int y = 31; y >= 0; --y) {
-                        if ((!debug_nocavecull && !(rendinf.chunks->renddata[rendc].visible & (1 << y))) || !rendinf.chunks->renddata[rendc].ytcount[y]) continue;
-                        if (isVisible(&frust, corner1[0], y * 16.0, corner1[1], corner2[0], (y + 1) * 16.0, corner2[1])) {
-                            //printf("REND OPAQUE: [%d]:[%d]\n", rendc, y);
-                            glDrawArrays(GL_TRIANGLES, rendinf.chunks->renddata[rendc].ytoff[y], rendinf.chunks->renddata[rendc].ytcount[y]);
-                        }
-                    }
+                    glDrawArrays(GL_TRIANGLES, 0, rendinf.chunks->renddata[rendc].tcount[1]);
                 }
             }
         }
+        glDepthMask(true);
+        if (debug_wireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
-    glEnable(GL_BLEND);
-    glDepthMask(false);
-    for (int32_t c = 0; c < (int)rendinf.chunks->info.widthsq; ++c) {
-        rendc = rendinf.chunks->rordr[c].c;
-        if (rendinf.chunks->renddata[rendc].visfull && rendinf.chunks->renddata[rendc].buffered) {
-            if (rendinf.chunks->renddata[rendc].tcount[1]) {
-                coord[0] = (int)(rendc % rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist;
-                coord[1] = (int)(rendc / rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist;
-                setUniform2f(rendinf.shaderprog, "ccoord", coord);
-                glBindBuffer(GL_ARRAY_BUFFER, rendinf.chunks->renddata[rendc].VBO[1]);
-                glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(0));
-                glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(sizeof(uint32_t)));
-                glVertexAttribIPointer(2, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * 2));
-                glVertexAttribIPointer(3, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * 3));
-                glDrawArrays(GL_TRIANGLES, 0, rendinf.chunks->renddata[rendc].tcount[1]);
-            }
-        }
-    }
-    glDepthMask(true);
-    if (debug_wireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
     glDisable(GL_CULL_FACE);
-    glDisable(GL_DEPTH_TEST);
-    setShaderProg(shader_2d);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO2D);
-    glUniform1f(glGetUniformLocation(rendinf.shaderprog, "xratio"), ((float)(crosshair->width)) / (float)rendinf.width);
-    glUniform1f(glGetUniformLocation(rendinf.shaderprog, "yratio"), ((float)(crosshair->height)) / (float)rendinf.height);
-    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
+    if (renderall) {
+        glDisable(GL_DEPTH_TEST);
+        setShaderProg(shader_2d);
+        glBindBuffer(GL_ARRAY_BUFFER, VBO2D);
+        glUniform1f(glGetUniformLocation(rendinf.shaderprog, "xratio"), ((float)(crosshair->width)) / (float)rendinf.width);
+        glUniform1f(glGetUniformLocation(rendinf.shaderprog, "yratio"), ((float)(crosshair->height)) / (float)rendinf.height);
+        glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+    }
 
     setShaderProg(shader_framebuffer);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -1882,7 +1909,11 @@ void render() {
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), UIFBTEXID - GL_TEXTURE0);
     setUniform3f(rendinf.shaderprog, "mcolor", (float[]){1, 1, 1});
-    glClearColor(0, 0, 0, 0);
+    if (!renderall) {
+        glClearColor(0.0, 0.0, 0.25, 1.0);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    }
+    glClearColor(0.0, 0.0, 0.0, 0.0);
     for (int i = 0; i < 4; ++i) {
         setShaderProg(shader_ui);
         glBindFramebuffer(GL_FRAMEBUFFER, UIFBO);
@@ -1974,7 +2005,7 @@ bool initRenderer() {
     #if defined(USESDL2)
     SDL_SetHint(SDL_HINT_NO_SIGNAL_HANDLERS, "1");
     if (SDL_Init(SDL_INIT_VIDEO)) {
-        sdlerror("startRenderer: Failed to init video");
+        sdlerror("initRenderer: Failed to init video");
         return false;
     }
     #else
@@ -2018,11 +2049,11 @@ bool initRenderer() {
 
     #if defined(USESDL2)
     if (!(rendinf.window = SDL_CreateWindow(PROG_NAME, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 480, SDL_WINDOW_OPENGL))) {
-        sdlerror("startRenderer: Failed to create window");
+        sdlerror("initRenderer: Failed to create window");
         return false;
     }
     if (SDL_GetCurrentDisplayMode(SDL_GetWindowDisplayIndex(rendinf.window), &rendinf.monitor) < 0) {
-        sdlerror("startRenderer: Failed to fetch display info");
+        sdlerror("initRenderer: Failed to fetch display info");
         return false;
     }
     rendinf.disp_width = rendinf.monitor.w;
@@ -2036,7 +2067,7 @@ bool initRenderer() {
     SDL_DestroyWindow(rendinf.window);
     #else
     if (!(rendinf.monitor = glfwGetPrimaryMonitor())) {
-        fputs("startRenderer: Failed to fetch primary monitor handle\n", stderr);
+        fputs("initRenderer: Failed to fetch primary monitor handle\n", stderr);
         return false;
     }
     const GLFWvidmode* vmode = glfwGetVideoMode(rendinf.monitor);
@@ -2045,6 +2076,12 @@ bool initRenderer() {
     rendinf.disphz = vmode->refreshRate;
     rendinf.win_fps = rendinf.disphz;
     #endif
+
+    for (int i = 0; i < CHUNKUPDATE_PRIO__MAX; ++i) {
+        initMsgData(&chunkmsgs[i]);
+    }
+    chunkmsgs[CHUNKUPDATE_PRIO_LOW].async = true;
+    //chunkmsgs[CHUNKUPDATE_PRIO_NORMAL].async = true;
 
     sscanf(getConfigKey(config, "Renderer", "resolution"), "%ux%u@%f",
         &rendinf.win_width, &rendinf.win_height, &rendinf.win_fps);
@@ -2064,71 +2101,7 @@ bool initRenderer() {
     return true;
 }
 
-bool startRenderer() {
-    #if defined(USESDL2)
-    if (!(rendinf.window = SDL_CreateWindow(PROG_NAME, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, rendinf.win_width, rendinf.win_height, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE))) {
-        sdlerror("startRenderer: Failed to create window");
-        return false;
-    }
-    SDL_SetHintWithPriority(SDL_HINT_MOUSE_RELATIVE_MODE_WARP, "1", SDL_HINT_OVERRIDE);
-    SDL_SetRelativeMouseMode(SDL_TRUE);
-    rendinf.context = SDL_GL_CreateContext(rendinf.window);
-    if (!rendinf.context) {
-        sdlerror("startRenderer: Failed to create OpenGL context");
-        return false;
-    }
-    #else
-    if (!(rendinf.window = glfwCreateWindow(rendinf.win_width, rendinf.win_height, PROG_NAME, NULL, NULL))) {
-        fputs("startRenderer: Failed to create window\n", stderr);
-        return false;
-    }
-    #endif
-    #if defined(USESDL2)
-    SDL_GL_MakeCurrent(rendinf.window, rendinf.context);
-    #else
-    glfwMakeContextCurrent(rendinf.window);
-    #endif
-
-    #ifndef __EMSCRIPTEN__
-    GLADloadproc glproc;
-    #if defined(USESDL2)
-    glproc = (GLADloadproc)SDL_GL_GetProcAddress;
-    #else
-    glproc = (GLADloadproc)glfwGetProcAddress;
-    #endif
-    if (!gladLoadGLLoader(glproc)) {
-        fputs("startRenderer: Failed to initialize GLAD\n", stderr);
-        return false;
-    }
-    #endif
-    glver = glGetString(GL_VERSION);
-    printf("OpenGL version: %s\n", glver);
-    glslver = glGetString(GL_SHADING_LANGUAGE_VERSION);
-    printf("GLSL version: %s\n", glslver);
-    glvend = glGetString(GL_VENDOR);
-    printf("Vendor string: %s\n", glvend);
-    glrend = glGetString(GL_RENDERER);
-    printf("Renderer string: %s\n", glrend);
-    #ifndef __EMSCRIPTEN__
-    if (GL_KHR_debug) {
-        puts("KHR_debug supported");
-        glDebugMessageCallback(oglCallback, NULL);
-    }
-    #endif
-
-    #if DBGLVL(1)
-    GLint range[2];
-    glGetIntegerv(GL_ALIASED_LINE_WIDTH_RANGE, range);
-    printf("GL_ALIASED_LINE_WIDTH_RANGE: [%d, %d]\n", range[0], range[1]);
-    #ifndef __EMSCRIPTEN__
-    glGetIntegerv(GL_SMOOTH_LINE_WIDTH_RANGE, range);
-    printf("GL_SMOOTH_LINE_WIDTH_RANGE: [%d, %d]\n", range[0], range[1]);
-    #endif
-    GLint texunits;
-    glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &texunits);
-    printf("GL_MAX_TEXTURE_IMAGE_UNITS: [%d]\n", texunits);
-    #endif
-
+bool reloadRenderer() {
     #if defined(USEGLES)
     char* hdrpath = "engine/shaders/headers/OpenGL ES/header.glsl";
     #else
@@ -2136,95 +2109,49 @@ bool startRenderer() {
     #endif
     file_data* hdr = loadResource(RESOURCE_TEXTFILE, hdrpath);
     if (!hdr) {
-        fputs("startRenderer: Failed to load shader header\n", stderr);
+        fputs("reloadRenderer: Failed to load shader header\n", stderr);
         return false;
     }
-    #if DBGLVL(1)
     puts("Compiling block shader...");
-    #endif
     file_data* vs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/block/vertex.glsl");
     file_data* fs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/block/fragment.glsl");
     if (!vs || !fs || !makeShaderProg((char*)hdr->data, (char*)vs->data, (char*)fs->data, &shader_block)) {
-        fputs("startRenderer: Failed to compile block shader\n", stderr);
+        fputs("reloadRenderer: Failed to compile block shader\n", stderr);
         return false;
     }
     freeResource(vs);
     freeResource(fs);
-    #if DBGLVL(1)
     puts("Compiling 2D shader...");
-    #endif
     vs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/2D/vertex.glsl");
     fs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/2D/fragment.glsl");
     if (!vs || !fs || !makeShaderProg((char*)hdr->data, (char*)vs->data, (char*)fs->data, &shader_2d)) {
-        fputs("startRenderer: Failed to compile 2D shader\n", stderr);
+        fputs("reloadRenderer: Failed to compile 2D shader\n", stderr);
         return false;
     }
     freeResource(vs);
     freeResource(fs);
-    #if DBGLVL(1)
     puts("Compiling UI shader...");
-    #endif
     vs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/ui/vertex.glsl");
     fs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/ui/fragment.glsl");
     if (!vs || !fs || !makeShaderProg((char*)hdr->data, (char*)vs->data, (char*)fs->data, &shader_ui)) {
-        fputs("startRenderer: Failed to compile UI shader\n", stderr);
+        fputs("reloadRenderer: Failed to compile UI shader\n", stderr);
         return false;
     }
     freeResource(vs);
     freeResource(fs);
-    #if DBGLVL(1)
     puts("Compiling framebuffer shader...");
-    #endif
     vs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/framebuffer/vertex.glsl");
     fs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/framebuffer/fragment.glsl");
     if (!vs || !fs || !makeShaderProg((char*)hdr->data, (char*)vs->data, (char*)fs->data, &shader_framebuffer)) {
-        fputs("startRenderer: Failed to compile framebuffer shader\n", stderr);
+        fputs("reloadRenderer: Failed to compile framebuffer shader\n", stderr);
         return false;
     }
     freeResource(vs);
     freeResource(fs);
 
-    printf("Display resolution: [%ux%u@%g]\n", rendinf.disp_width, rendinf.disp_height, rendinf.disphz);
-    printf("Windowed resolution: [%ux%u@%g]\n", rendinf.win_width, rendinf.win_height, rendinf.win_fps);
-    printf("Fullscreen resolution: [%ux%u@%g]\n", rendinf.full_width, rendinf.full_height, rendinf.full_fps);
-
-    #if defined(USESDL2)
-    #else
-    glfwSetFramebufferSizeCallback(rendinf.window, fbsize);
-    #endif
-    glGenRenderbuffers(1, &UIDBUF);
-    glGenRenderbuffers(1, &DBUF);
-    setFullscreen(rendinf.fullscr);
-
-    setShaderProg(shader_block);
-    glViewport(0, 0, rendinf.width, rendinf.height);
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LEQUAL);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glBlendEquation(GL_FUNC_ADD);
-    //glEnable(GL_LINE_SMOOTH);
-    //glLineWidth(3.0);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glClearColor(0, 0, 0, 1);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    #if defined(USESDL2)
-    SDL_GL_SwapWindow(rendinf.window);
-    #else
-    glfwSwapBuffers(rendinf.window);
-    #endif
-    updateCam();
-
-    glEnable(GL_CULL_FACE);
-    //glCullFace(GL_FRONT);
-    //glFrontFace(GL_CW);
-    #if !defined(USEGLES)
-    glDisable(GL_MULTISAMPLE);
-    #endif
-
     int gltex = GL_TEXTURE0;
 
+    puts("Creating UI framebuffer...");
     glBindRenderbuffer(GL_RENDERBUFFER, UIDBUF);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, rendinf.width, rendinf.height);
     UIFBTEXID = gltex++;
@@ -2239,6 +2166,7 @@ bool startRenderer() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, UIFBTEX, 0);
 
+    puts("Creating game framebuffer...");
     glBindRenderbuffer(GL_RENDERBUFFER, DBUF);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, rendinf.width, rendinf.height);
     FBTEXID = gltex++;
@@ -2253,7 +2181,7 @@ bool startRenderer() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, FBTEX, 0);
 
-    //glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     setShaderProg(shader_framebuffer);
     setUniform3f(rendinf.shaderprog, "mcolor", (float[]){1.0, 1.0, 1.0});
@@ -2315,6 +2243,7 @@ bool startRenderer() {
             }
         }
     }
+    free(tmpbuf);
     {
         char tmpstr[256];
         int texture;
@@ -2390,6 +2319,109 @@ bool startRenderer() {
 
     setShaderProg(shader_block);
 
+    return true;
+}
+
+bool startRenderer() {
+    #if defined(USESDL2)
+    if (!(rendinf.window = SDL_CreateWindow(PROG_NAME, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, rendinf.win_width, rendinf.win_height, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE))) {
+        sdlerror("startRenderer: Failed to create window");
+        return false;
+    }
+    SDL_SetHintWithPriority(SDL_HINT_MOUSE_RELATIVE_MODE_WARP, "1", SDL_HINT_OVERRIDE);
+    SDL_SetRelativeMouseMode(SDL_TRUE);
+    rendinf.context = SDL_GL_CreateContext(rendinf.window);
+    if (!rendinf.context) {
+        sdlerror("startRenderer: Failed to create OpenGL context");
+        return false;
+    }
+    #else
+    if (!(rendinf.window = glfwCreateWindow(rendinf.win_width, rendinf.win_height, PROG_NAME, NULL, NULL))) {
+        fputs("startRenderer: Failed to create window\n", stderr);
+        return false;
+    }
+    #endif
+    #if defined(USESDL2)
+    SDL_GL_MakeCurrent(rendinf.window, rendinf.context);
+    #else
+    glfwMakeContextCurrent(rendinf.window);
+    #endif
+
+    #ifndef __EMSCRIPTEN__
+    GLADloadproc glproc;
+    #if defined(USESDL2)
+    glproc = (GLADloadproc)SDL_GL_GetProcAddress;
+    #else
+    glproc = (GLADloadproc)glfwGetProcAddress;
+    #endif
+    if (!gladLoadGLLoader(glproc)) {
+        fputs("startRenderer: Failed to initialize GLAD\n", stderr);
+        return false;
+    }
+    #endif
+    glver = glGetString(GL_VERSION);
+    printf("OpenGL version: %s\n", glver);
+    glslver = glGetString(GL_SHADING_LANGUAGE_VERSION);
+    printf("GLSL version: %s\n", glslver);
+    glvend = glGetString(GL_VENDOR);
+    printf("Vendor string: %s\n", glvend);
+    glrend = glGetString(GL_RENDERER);
+    printf("Renderer string: %s\n", glrend);
+    #ifndef __EMSCRIPTEN__
+    if (GL_KHR_debug) {
+        puts("KHR_debug supported");
+        glDebugMessageCallback(oglCallback, NULL);
+    }
+    #endif
+
+    #if DBGLVL(1)
+    GLint range[2];
+    glGetIntegerv(GL_ALIASED_LINE_WIDTH_RANGE, range);
+    printf("GL_ALIASED_LINE_WIDTH_RANGE: [%d, %d]\n", range[0], range[1]);
+    #ifndef __EMSCRIPTEN__
+    glGetIntegerv(GL_SMOOTH_LINE_WIDTH_RANGE, range);
+    printf("GL_SMOOTH_LINE_WIDTH_RANGE: [%d, %d]\n", range[0], range[1]);
+    #endif
+    GLint texunits;
+    glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &texunits);
+    printf("GL_MAX_TEXTURE_IMAGE_UNITS: [%d]\n", texunits);
+    #endif
+
+    printf("Display resolution: [%ux%u@%g]\n", rendinf.disp_width, rendinf.disp_height, rendinf.disphz);
+    printf("Windowed resolution: [%ux%u@%g]\n", rendinf.win_width, rendinf.win_height, rendinf.win_fps);
+    printf("Fullscreen resolution: [%ux%u@%g]\n", rendinf.full_width, rendinf.full_height, rendinf.full_fps);
+
+    #if defined(USESDL2)
+    #else
+    glfwSetFramebufferSizeCallback(rendinf.window, fbsize);
+    #endif
+    glGenRenderbuffers(1, &UIDBUF);
+    glGenRenderbuffers(1, &DBUF);
+
+    setShaderProg(shader_block);
+    glViewport(0, 0, rendinf.width, rendinf.height);
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LEQUAL);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBlendEquation(GL_FUNC_ADD);
+    //glEnable(GL_LINE_SMOOTH);
+    //glLineWidth(3.0);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    #if defined(USESDL2)
+    SDL_GL_SwapWindow(rendinf.window);
+    #else
+    glfwSwapBuffers(rendinf.window);
+    #endif
+
+    glEnable(GL_CULL_FACE);
+    //glCullFace(GL_FRONT);
+    //glFrontFace(GL_CW);
+    #if !defined(USEGLES)
+    glDisable(GL_MULTISAMPLE);
+    #endif
+
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
     glEnableVertexAttribArray(0);
@@ -2397,25 +2429,17 @@ bool startRenderer() {
     glEnableVertexAttribArray(2);
     glEnableVertexAttribArray(3);
 
-    //water = blockNoFromID("water");
+    if (!reloadRenderer()) return false;
 
-    free(tmpbuf);
-
-    for (int i = 0; i < CHUNKUPDATE_PRIO__MAX; ++i) {
-        initMsgData(&chunkmsgs[i]);
-    }
-    chunkmsgs[CHUNKUPDATE_PRIO_LOW].async = true;
-    //chunkmsgs[CHUNKUPDATE_PRIO_NORMAL].async = true;
+    glClearColor(0, 0, 0.25, 1);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    updateCam();
+    setFullscreen(rendinf.fullscr);
 
     return true;
 }
 
 void stopRenderer() {
-    if (mesheractive) {
-        for (int i = 0; i < MESHER_THREADS && i < MESHER_THREADS_MAX; ++i) {
-            pthread_join(pthreads[i], NULL);
-        }
-    }
     #if defined(USESDL2)
     SDL_Quit();
     #else
