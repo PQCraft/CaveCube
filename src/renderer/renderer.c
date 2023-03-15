@@ -1910,7 +1910,13 @@ void render() {
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), UIFBTEXID - GL_TEXTURE0);
     setUniform3f(rendinf.shaderprog, "mcolor", (float[]){1, 1, 1});
     if (!renderall) {
-        glClearColor(0.0, 0.0, 0.25, 1.0);
+        uint64_t time = altutime();
+        glClearColor(
+            (sin(time / 6435392.0) * 0.5 + 0.5) * 0.1,
+            (cos(time / 7164917.0) * 0.5 + 0.5) * 0.2,
+            (sin(time / 9526833.0) * 0.5 + 0.5) * 0.3,
+            1.0
+        );
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
     glClearColor(0.0, 0.0, 0.0, 0.0);
