@@ -231,7 +231,7 @@ void updateCam() {
     }
     uc_campos[0] = sc_camx = rendinf.campos.x;
     uc_campos[1] = sc_camy = rendinf.campos.y;
-    uc_campos[2] = sc_camz = -rendinf.campos.z;
+    uc_campos[2] = -(sc_camz = rendinf.campos.z);
     uc_rotradx = rendinf.camrot.x * M_PI / 180.0;
     uc_rotrady = (rendinf.camrot.y - 90.0) * M_PI / 180.0;
     uc_rotradz = rendinf.camrot.z * M_PI / 180.0;
@@ -712,10 +712,10 @@ static force_inline float dist3d(float x0, float y0, float z0, float x1, float y
 static force_inline void _sortChunk(int32_t c, int xoff, int zoff, bool update) {
     if (c < 0) c = (xoff + rendinf.chunks->info.dist) + (rendinf.chunks->info.width - (zoff + rendinf.chunks->info.dist) - 1) * rendinf.chunks->info.width;
     if (update) {
-        if (!!rendinf.chunks->renddata[c].visfull || !rendinf.chunks->renddata[c].sortvert || !rendinf.chunks->renddata[c].tcount[1]) return;
-        float camx = sc_camx - xoff * 16;
+        if (!rendinf.chunks->renddata[c].visfull || !rendinf.chunks->renddata[c].sortvert || !rendinf.chunks->renddata[c].tcount[1]) return;
+        float camx = sc_camx - xoff * 16.0;
         float camy = sc_camy;
-        float camz = -sc_camz - zoff * 16;
+        float camz = sc_camz - zoff * 16.0;
         int32_t tmpsize = rendinf.chunks->renddata[c].tcount[1] / 3;
         struct tricmp* data = malloc(tmpsize * sizeof(struct tricmp));
         uint32_t* dptr = rendinf.chunks->renddata[c].sortvert;
@@ -725,13 +725,13 @@ static force_inline void _sortChunk(int32_t c, int xoff, int zoff, bool update) 
             float vx, vy, vz;
             float dist = 0.0;
             for (int j = 0; j < 3; ++j) {
-                data[i].data[0 + j * 4] = sv1 = *dptr++;
-                data[i].data[1 + j * 4] = *dptr++;
-                data[i].data[2 + j * 4] = *dptr++;
-                data[i].data[3 + j * 4] = sv2 = *dptr++;
-                vx = (float)(((sv1 >> 24) & 255) + ((sv2 >> 4) & 1)) / 16.0 - 8.0;
-                vy = (float)(((sv1 >> 8) & 65535) + ((sv2 >> 3) & 1)) / 16.0;
-                vz = (float)((sv1 & 255) + ((sv2 >> 2) & 1)) / 16.0 - 8.0;
+                data[i].data[j * 4] = sv1 = *dptr++;
+                data[i].data[j * 4 + 1] = *dptr++;
+                data[i].data[j * 4 + 2] = *dptr++;
+                data[i].data[j * 4 + 3] = sv2 = *dptr++;
+                vx = (float)((int)(((sv1 >> 24) & 255) + ((sv2 >> 4) & 1))) / 16.0 - 8.0;
+                vy = (float)((int)(((sv1 >> 8) & 65535) + ((sv2 >> 3) & 1))) / 16.0;
+                vz = (float)((int)((sv1 & 255) + ((sv2 >> 2) & 1))) / 16.0 - 8.0;
                 float tmpdist = dist3d(camx, camy, camz, vx, vy, vz);
                 if (tmpdist > dist) dist = tmpdist;
             }
