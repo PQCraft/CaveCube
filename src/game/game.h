@@ -11,10 +11,10 @@ enum {
     UILAYER_CLIENT,  // For client UI (chat, hotbar, etc.)
     UILAYER_SERVER,  // For server UI (inventory, block-specific menus, etc.)
     UILAYER_DBGINF,  // For debug info
-    UILAYER_INGAME,  // For in-game menu (pressing Esc while in a game)
+    UILAYER_INGAME,  // For in-game menu (main menu and pressing Esc while in a game)
 };
 
-bool doGame(char*, int);
+bool doGame();
 
 extern double fps;
 extern double realfps;

@@ -857,7 +857,7 @@ static void* servnetthread(void* args) {
 int startServer(char* addr, int port, int mcli, char* world) {
     (void)world;
     setRandSeed(1, altutime() + (uintptr_t)"");
-    if (port < 0 || port > 0xFFFF) port = 46000 + (getRandWord(1) % 1000);
+    if (port < 0 || port > 0xFFFF) port = 46001 + (getRandWord(1) % 998);
     if (mcli > 0) maxclients = mcli;
     printf("Starting server on %s:%d with a max of %d player%s...\n", (addr) ? addr : "0.0.0.0", port, maxclients, (maxclients == 1) ? "" : "s");
     if (!(servcxn = newCxn(CXN_PASSIVE, addr, port, -1, -1))) {

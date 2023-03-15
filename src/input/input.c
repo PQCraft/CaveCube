@@ -526,7 +526,7 @@ bool initInput() {
         if (glfwRawMouseMotionSupported()) {
             glfwSetInputMode(rendinf.window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
         } else {
-            fputs("Failed to enable raw mouse", stderr);
+            fputs("Failed to enable raw mouse\n", stderr);
         }
     }
     glfwSetScrollCallback(rendinf.window, glfwmscrollcb);

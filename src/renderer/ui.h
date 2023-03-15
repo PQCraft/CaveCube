@@ -67,7 +67,14 @@ enum {
     UI_ELEM_FANCYBOX,
     UI_ELEM_HOTBAR,
     UI_ELEM_ITEMGRID,
-    UI_ELEM_BUTTON,
+    UI_ELEM_BUTTON
+};
+
+enum {
+    UI_ATTR_END,
+    UI_ATTR_NAME,
+    UI_ATTR_PARENT,
+    UI_ATTR_PREV
 };
 
 #define UI_ID_DETATCH INT_MIN
