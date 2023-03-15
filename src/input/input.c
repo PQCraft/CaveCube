@@ -6,6 +6,9 @@
 #include <renderer/renderer.h>
 #include <renderer/ui.h>
 #include <game/game.h>
+#ifdef __EMSCRIPTEN__
+    #include <emscripten/html5.h>
+#endif
 
 #if defined(USESDL2)
     #include <SDL2/SDL.h>
@@ -192,6 +195,9 @@ void setInputMode(int mode) {
             #else
             glfwSetInputMode(rendinf.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
             #endif
+            #ifdef __EMSCRIPTEN__
+            emscripten_request_pointerlock("canvas", true);
+            #endif
             if (game_ui[UILAYER_INGAME]) game_ui[UILAYER_INGAME]->hidden = true;
             break;
         default:;
@@ -200,6 +206,11 @@ void setInputMode(int mode) {
             #else
             glfwSetInputMode(rendinf.window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
             #endif
+            /*
+            #ifdef __EMSCRIPTEN__
+            emscripten_exit_pointerlock();
+            #endif
+            */
             if (game_ui[UILAYER_INGAME]) game_ui[UILAYER_INGAME]->hidden = false;
             break;
     }
@@ -395,6 +406,15 @@ void getInput(struct input_info* _inf) {
     #else
     inf->focus = glfwGetWindowAttrib(rendinf.window, GLFW_FOCUSED);
     #endif
+    /*
+    #ifdef __EMSCRIPTEN__
+    if (inputMode == INPUT_MODE_GAME) {
+        EmscriptenPointerlockChangeEvent plock;
+        emscripten_get_pointerlock_status(&plock);
+        inf->focus = (inf->focus && plock.isActive);
+    }
+    #endif
+    */
     inf->rot_mult_x = rotsenx * 0.15;
     inf->rot_mult_y = rotseny * 0.15;
     switch (inputMode) {

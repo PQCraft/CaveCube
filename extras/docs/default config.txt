@@ -12,6 +12,7 @@ nearPlane = 0.05
 farPlane = 2500
 lazyMesher = false
 caveCullLevel = 1
+mesherThreadsMax = 1
 waitWithVsync = true
 
 [Game]

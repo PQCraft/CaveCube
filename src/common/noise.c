@@ -26,13 +26,19 @@ static force_inline int64_t _noise2d(int t, int64_t x, int64_t y) {
     return perm[t][xindex];
 }
 
+/*
 static force_inline double lin_inter(double x, double y, double s) {
     return x + s * (y - x);
 }
+*/
+#define lin_inter(x, y, s) ((x) + (s) * ((y) - (x)))
 
+/*
 static force_inline double smooth_inter(double x, double y, double s) {
     return lin_inter(x, y, s * s * (3 - 2 * s));
 }
+*/
+#define smooth_inter(x, y, s) (lin_inter((x), (y), (s) * (s) * (3.0 - 2.0 * (s))))
 
 double noise2d(int tbl, double x, double y) {
     const int64_t x_int = floor(x);
@@ -91,28 +97,28 @@ double nperlin2d(int t, double x, double y, double freq, int depth) {
 #define FASTFLOOR(x) (((int64_t)(x) < (x)) ? ((int64_t)x) : ((int64_t)x - 1))
 #define LERP(t, a, b) ((a) + (t) * ((b) - (a)))
 
-static inline double grad1(int hash, double x) {
+static force_inline double grad1(int hash, double x) {
     int h = hash & 15;
     double grad = 1.0 + (h & 7);
     if (h & 8) grad = -grad;
     return (grad * x);
 }
 
-static inline double grad2(int hash, double x, double y) {
+static force_inline double grad2(int hash, double x, double y) {
     int h = hash & 7;
     double u = (h < 4) ? x : y;
     double v = (h < 4) ? y : x;
     return ((h & 1) ? -u : u) + ((h&2)? -2.0*v : 2.0*v);
 }
 
-static inline double grad3(int hash, double x, double y , double z) {
+static force_inline double grad3(int hash, double x, double y , double z) {
     int h = hash & 15;
     double u = (h < 8) ? x : y;
     double v = (h < 4) ? y : ((h==12 || h==14) ? x : z);
     return ((h & 1) ? -u : u) + ((h & 2) ? -v : v);
 }
 
-static inline double grad4(int hash, double x, double y, double z, double t) {
+static force_inline double grad4(int hash, double x, double y, double z, double t) {
     int h = hash & 31;
     double u = (h < 24) ? x : y;
     double v = (h < 16) ? y : z;
@@ -130,8 +136,8 @@ double noise1(int tbl, double x) {
     ix0 = FASTFLOOR(x);
     fx0 = x - ix0;
     fx1 = fx0 - 1.0;
-    ix1 = (ix0 + 1) & 0xFF;
-    ix0 = ix0 & 0xFF;
+    ix1 = (ix0 + 1) & 0x1FF;
+    ix0 = ix0 & 0x1FF;
 
     s = FADE(fx0);
 
@@ -151,8 +157,8 @@ double pnoise1(int tbl, double x, int64_t px) {
     ix0 = FASTFLOOR(x);
     fx0 = x - ix0;
     fx1 = fx0 - 1.0;
-    ix1 = ((ix0 + 1) % px) & 0xFF;
-    ix0 = (ix0 % px) & 0xFF;
+    ix1 = ((ix0 + 1) % px) & 0x1FF;
+    ix0 = (ix0 % px) & 0x1FF;
 
     s = FADE(fx0);
 
@@ -176,10 +182,10 @@ double noise2(int tbl, double x, double y) {
     fy0 = y - iy0;
     fx1 = fx0 - 1.0;
     fy1 = fy0 - 1.0;
-    ix1 = (ix0 + 1) & 0xFF;
-    iy1 = (iy0 + 1) & 0xFF;
-    ix0 = ix0 & 0xFF;
-    iy0 = iy0 & 0xFF;
+    ix1 = (ix0 + 1) & 0x1FF;
+    iy1 = (iy0 + 1) & 0x1FF;
+    ix0 = ix0 & 0x1FF;
+    iy0 = iy0 & 0x1FF;
     
     t = FADE(fy0);
     s = FADE(fx0);
@@ -209,10 +215,10 @@ double pnoise2(int tbl, double x, double y, int64_t px, int64_t py) {
     fy0 = y - iy0;
     fx1 = fx0 - 1.0;
     fy1 = fy0 - 1.0;
-    ix1 = ((ix0 + 1) % px) & 0xFF;
-    iy1 = ((iy0 + 1) % py) & 0xFF;
-    ix0 = (ix0 % px) & 0xFF;
-    iy0 = (iy0 % py) & 0xFF;
+    ix1 = ((ix0 + 1) % px) & 0x1FF;
+    iy1 = ((iy0 + 1) % py) & 0x1FF;
+    ix0 = (ix0 % px) & 0x1FF;
+    iy0 = (iy0 % py) & 0x1FF;
     
     t = FADE(fy0);
     s = FADE(fx0);
@@ -247,12 +253,12 @@ double noise3(int tbl, double x, double y, double z) {
     fx1 = fx0 - 1.0;
     fy1 = fy0 - 1.0;
     fz1 = fz0 - 1.0;
-    ix1 = (ix0 + 1) & 0xFF;
-    iy1 = (iy0 + 1) & 0xFF;
-    iz1 = (iz0 + 1) & 0xFF;
-    ix0 = ix0 & 0xFF;
-    iy0 = iy0 & 0xFF;
-    iz0 = iz0 & 0xFF;
+    ix1 = (ix0 + 1) & 0x1FF;
+    iy1 = (iy0 + 1) & 0x1FF;
+    iz1 = (iz0 + 1) & 0x1FF;
+    ix0 = ix0 & 0x1FF;
+    iy0 = iy0 & 0x1FF;
+    iz0 = iz0 & 0x1FF;
     
     r = FADE(fz0);
     t = FADE(fy0);
@@ -300,12 +306,12 @@ double pnoise3(int tbl, double x, double y, double z, int64_t px, int64_t py, in
     fx1 = fx0 - 1.0;
     fy1 = fy0 - 1.0;
     fz1 = fz0 - 1.0;
-    ix1 = ((ix0 + 1) % px) & 0xFF;
-    iy1 = ((iy0 + 1) % py) & 0xFF;
-    iz1 = ((iz0 + 1) % pz) & 0xFF;
-    ix0 = (ix0 % px) & 0xFF;
-    iy0 = (iy0 % py) & 0xFF;
-    iz0 = (iz0 % pz) & 0xFF;
+    ix1 = ((ix0 + 1) % px) & 0x1FF;
+    iy1 = ((iy0 + 1) % py) & 0x1FF;
+    iz1 = ((iz0 + 1) % pz) & 0x1FF;
+    ix0 = (ix0 % px) & 0x1FF;
+    iy0 = (iy0 % py) & 0x1FF;
+    iz0 = (iz0 % pz) & 0x1FF;
     
     r = FADE(fz0);
     t = FADE(fy0);
@@ -357,14 +363,14 @@ double noise4(int tbl, double x, double y, double z, double w) {
     fy1 = fy0 - 1.0;
     fz1 = fz0 - 1.0;
     fw1 = fw0 - 1.0;
-    ix1 = (ix0 + 1) & 0xFF;
-    iy1 = (iy0 + 1) & 0xFF;
-    iz1 = (iz0 + 1) & 0xFF;
-    iw1 = (iw0 + 1) & 0xFF;
-    ix0 = ix0 & 0xFF;
-    iy0 = iy0 & 0xFF;
-    iz0 = iz0 & 0xFF;
-    iw0 = iw0 & 0xFF;
+    ix1 = (ix0 + 1) & 0x1FF;
+    iy1 = (iy0 + 1) & 0x1FF;
+    iz1 = (iz0 + 1) & 0x1FF;
+    iw1 = (iw0 + 1) & 0x1FF;
+    ix0 = ix0 & 0x1FF;
+    iy0 = iy0 & 0x1FF;
+    iz0 = iz0 & 0x1FF;
+    iw0 = iw0 & 0x1FF;
 
     q = FADE(fw0);
     r = FADE(fz0);
@@ -441,14 +447,14 @@ double pnoise4(int tbl, double x, double y, double z, double w, int64_t px, int6
     fy1 = fy0 - 1.0;
     fz1 = fz0 - 1.0;
     fw1 = fw0 - 1.0;
-    ix1 = ((ix0 + 1) % px) & 0xFF;
-    iy1 = ((iy0 + 1) % py) & 0xFF;
-    iz1 = ((iz0 + 1) % pz) & 0xFF;
-    iw1 = ((iw0 + 1) % pw) & 0xFF;
-    ix0 = (ix0 % px) & 0xFF;
-    iy0 = (iy0 % py) & 0xFF;
-    iz0 = (iz0 % pz) & 0xFF;
-    iw0 = (iw0 % pw) & 0xFF;
+    ix1 = ((ix0 + 1) % px) & 0x1FF;
+    iy1 = ((iy0 + 1) % py) & 0x1FF;
+    iz1 = ((iz0 + 1) % pz) & 0x1FF;
+    iw1 = ((iw0 + 1) % pw) & 0x1FF;
+    ix0 = (ix0 % px) & 0x1FF;
+    iy0 = (iy0 % py) & 0x1FF;
+    iz0 = (iz0 % pz) & 0x1FF;
+    iw0 = (iw0 % pw) & 0x1FF;
 
     q = FADE(fw0);
     r = FADE(fz0);

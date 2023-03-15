@@ -130,18 +130,19 @@ endif
 
 BIN := $(BINNAME)$(BINEXT)
 
-CFLAGS += -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -pthread -msse2 -mfpmath=sse -ffast-math
-CFLAGS += $(MODULECFLAGS) -DMODULEID=$(MODULEID) -DMODULE=$(MODULE)
+CFLAGS += -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -pthread -msse2 -ffast-math
 ifdef OS
     WRFLAGS += $(MODULECFLAGS) -DMODULE=$(MODULE)
 else
     ifdef EMSCR
-        CFLAGS += -DUSEGLES -s USE_ZLIB=1
+        CFLAGS += -msimd128 -DUSEGLES -s USE_ZLIB=1
         ifndef EMSCR
             CFLAGS += -s USE_GLFW=3
         else
             CFLAGS += -s USE_SDL=2
         endif
+    else
+        CFLAGS += -mfpmath=sse
     endif
 endif
 ifdef DEBUG
@@ -153,7 +154,7 @@ else
     CFLAGS += -O2
 endif
 ifdef NATIVE
-    CC := $(CC) -march=native -mtune=native
+    CFLAGS += -march=native -mtune=native
 endif
 ifdef M32
     CFLAGS += -DM32
@@ -161,6 +162,7 @@ ifdef M32
         WRFLAGS += -DM32
     endif
 endif
+CFLAGS += $(MODULECFLAGS) -DMODULEID=$(MODULEID) -DMODULE=$(MODULE)
 
 BINFLAGS += -lm
 ifndef OS
@@ -219,7 +221,6 @@ endif
 ifdef MSYS2
     undefine OS
 endif
-
 ifdef WINCROSS
     undefine OS
 endif
