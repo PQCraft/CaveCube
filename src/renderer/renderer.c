@@ -2025,8 +2025,8 @@ bool initRenderer() {
         sdlerror("startRenderer: Failed to fetch display info");
         return false;
     }
-    rendinf.full_width = rendinf.monitor.w;
-    rendinf.full_height = rendinf.monitor.h;
+    rendinf.disp_width = rendinf.monitor.w;
+    rendinf.disp_height = rendinf.monitor.h;
     #ifndef __EMSCRIPTEN__
     rendinf.disphz = rendinf.monitor.refresh_rate;
     #else
