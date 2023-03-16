@@ -22,26 +22,46 @@ struct ui_data* allocUI() {
     return data;
 }
 
-int newUIElem(struct ui_data* elemdata, int type, char* name, int parent, int prev, ...) {
+int newUIElem(struct ui_data* elemdata, int type, ...) {
     int index = -1;
     for (int i = 0; i < elemdata->count; ++i) {
         if (!elemdata->data[i].valid) {index = i; break;}
     }
-    index = elemdata->count++;
-    elemdata->data = realloc(elemdata->data, elemdata->count * sizeof(*elemdata->data));
+    if (index == -1) {
+        index = elemdata->count++;
+        elemdata->data = realloc(elemdata->data, elemdata->count * sizeof(*elemdata->data));
+    }
     struct ui_elem* e = &elemdata->data[index];
     memset(e, 0, sizeof(*e));
     e->type = type;
-    if (name && *name) e->name = strdup(name);
-    e->parent = parent;
-    e->prev = prev;
+    e->parent = -1;
+    e->prev = -1;
     e->children = 0;
     e->childdata = NULL;
     e->properties = 0;
     e->propertydata = NULL;
     e->calcprop.changed = true;
     va_list args;
-    va_start(args, prev);
+    va_start(args, type);
+    while (1) {
+        int attr = va_arg(args, int);
+        if (attr == UI_ATTR_DONE) break;
+        switch (attr) {
+            case UI_ATTR_NAME:; {
+                char* name = va_arg(args, char*);
+                if (name && *name) {
+                    free(e->name);
+                    e->name = strdup(name);
+                }
+            } break;
+            case UI_ATTR_PARENT:; {
+                e->parent = va_arg(args, int);
+            } break;
+            case UI_ATTR_PREV:; {
+                e->prev = va_arg(args, int);
+            } break;
+        }
+    }
     for (int i = 0; ; ++i) {
         char* name = va_arg(args, char*);
         if (!name) break;
@@ -54,8 +74,8 @@ int newUIElem(struct ui_data* elemdata, int type, char* name, int parent, int pr
     }
     va_end(args);
     e->valid = true;
-    if (elemValid(parent)) {
-        struct ui_elem* p = &elemdata->data[parent];
+    if (elemValid(e->parent)) {
+        struct ui_elem* p = &elemdata->data[e->parent];
         int cindex = -1;
         for (int i = 0; i < p->children; ++i) {
             if (p->childdata[i] < 0) {cindex = i; break;}
@@ -69,15 +89,33 @@ int newUIElem(struct ui_data* elemdata, int type, char* name, int parent, int pr
     return index;
 }
 
-void editUIElem(struct ui_data* elemdata, int id, char* name, int prev, ...) {
+void editUIElem(struct ui_data* elemdata, int id, ...) {
     if (!elemValid(id)) return;
     struct ui_elem* e = &elemdata->data[id];
-    if (name) {
-        if (*name) {free(e->name); e->name = strdup(name);}
-        else {free(e->name); e->name = NULL;}
-    }
+    int newparent = -1;
     va_list args;
-    va_start(args, prev);
+    va_start(args, id);
+    while (1) {
+        int attr = va_arg(args, int);
+        if (attr == UI_ATTR_DONE) break;
+        switch (attr) {
+            case UI_ATTR_NAME:; {
+                free(e->name);
+                char* name = va_arg(args, char*);
+                if (name) {
+                    if (*name) e->name = strdup(name);
+                } else {
+                    e->name = NULL;
+                }
+            } break;
+            case UI_ATTR_PARENT:; {
+                newparent = va_arg(args, int);
+            } break;
+            case UI_ATTR_PREV:; {
+                e->prev = va_arg(args, int);
+            } break;
+        }
+    }
     while (1) {
         char* name = va_arg(args, char*);
         if (!name) break;
@@ -120,6 +158,28 @@ void editUIElem(struct ui_data* elemdata, int id, char* name, int prev, ...) {
         }
     }
     va_end(args);
+    if (elemValid(newparent)) {
+        if (elemValid(e->parent)) {
+            struct ui_elem* p = &elemdata->data[e->parent];
+            for (int i = 0; i < p->children; ++i) {
+                if (p->childdata[i] == id) {
+                    p->childdata[i] = -1;
+                    break;
+                }
+            }
+        }
+        e->parent = newparent;
+        struct ui_elem* p = &elemdata->data[e->parent];
+        int cindex = -1;
+        for (int i = 0; i < p->children; ++i) {
+            if (p->childdata[i] < 0) {cindex = i; break;}
+        }
+        if (cindex < 0) {
+            cindex = p->children++;
+            p->childdata = realloc(p->childdata, p->children * sizeof(*p->childdata));
+        }
+        p->childdata[cindex] = id;
+    }
 }
 
 void deleteUIElem(struct ui_data* elemdata, int id) {

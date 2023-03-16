@@ -2,12 +2,6 @@
 - Next version: 0.6.1
 
 ### NEED TO DO:
-- Flesh out UI
-    - More UI elements (buttons, text boxes, etc)
-    - UI interaction (elem states, tooltips, etc)
-    - Add `fit_width_to_text` and `fit_height_to_text` attrib
-    - Add `text_fmt` attrib
-    - Add items to hotbar
 - Implement server chunk cache/pool
 - Add back block placement
 - Add physics in `src/physics/`
@@ -46,6 +40,12 @@
 - Implement extensions in `src/main/extmgr.(c|h)` using libdl
 
 ### IN-PROGRESS:
+- Flesh out UI
+    - More UI elements (buttons, text boxes, etc)
+    - UI interaction (elem states, tooltips, etc)
+    - Add `fit_width_to_text` and `fit_height_to_text` attrib
+    - Add `text_fmt` attrib
+    - Add items to hotbar
 
 ### DONE:
 - Made natural light monochrome to save bits
