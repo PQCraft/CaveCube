@@ -1,5 +1,5 @@
 ### INFO
-- Next version: 0.6.1
+- Next version: 0.7.0
 
 ### NEED TO DO:
 - Implement server chunk cache/pool
