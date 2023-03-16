@@ -22,7 +22,11 @@
 
 double fps;
 double realfps;
-bool showDebugInfo = true;
+#if DBGLVL(0)
+    bool showDebugInfo = true;
+#else
+    bool showDebugInfo = false;
+#endif
 coord_3d_dbl pcoord;
 coord_3d pvelocity;
 int pblockx, pblocky, pblockz;
@@ -108,7 +112,7 @@ static force_inline coord_3d_dbl icoord2wcoord(coord_3d cam, int64_t cx, int64_t
 
 static force_inline void updateHotbar(int hb, int slot) {
     char hbslot[2] = {slot + '0', 0};
-    editUIElem(game_ui[UILAYER_CLIENT], hb, NULL, -1, "slot", hbslot, NULL);
+    editUIElem(game_ui[UILAYER_CLIENT], hb, UI_ATTR_DONE, "slot", hbslot, NULL);
 }
 
 static pthread_mutex_t gfxlock = PTHREAD_MUTEX_INITIALIZER;
@@ -205,10 +209,16 @@ static void gameLoop() {
     setVisibility(0.5, 1.0);
     setScreenMult(1.0, 1.0, 1.0);
 
-    int ui_main = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BOX, "main", -1, -1, "width", "100%", "height", "100%", "color", "#000000", "alpha", "0.25", "z", "-100", NULL);
-    /*int ui_placeholder = */newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON, "placeholder", ui_main, -1, "width", "128", "height", "36", "text", "[Placeholder]", NULL);
+    int ui_main = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BOX,
+        UI_ATTR_NAME, "main", UI_ATTR_DONE,
+        "width", "100%", "height", "100%", "color", "#000000", "alpha", "0.25", "z", "-100", NULL);
+    int ui_placeholder = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
+        UI_ATTR_NAME, "placeholder", UI_ATTR_PARENT, ui_main, UI_ATTR_DONE,
+        "width", "128", "height", "36", "text", "[Placeholder]", NULL);
 
-    int ui_hotbar = newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_HOTBAR, "hotbar", -1, -1, "align", "0,1", "margin", "0,10,0,10", NULL);
+    int ui_hotbar = newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_HOTBAR,
+        UI_ATTR_NAME, "hotbar", UI_ATTR_DONE,
+        "align", "0,1", "margin", "0,10,0,10", NULL);
     updateHotbar(ui_hotbar, invspot);
 
     #if 0
@@ -513,22 +523,30 @@ bool doGame() {
     game_ui[UILAYER_DBGINF]->hidden = !showDebugInfo;
     game_ui[UILAYER_INGAME]->hidden = false;
 
-    int ui_main_menu = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BOX, "main_menu", -1, -1,
+    int ui_main_menu = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BOX,
+        UI_ATTR_NAME, "main_menu", UI_ATTR_DONE,
         "width", "100%", "height", "100%", "color", "#000000", "alpha", "0.0", "z", "-100", NULL);
-    int ui_main_menu_center = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_CONTAINER, "main_menu_center", ui_main_menu, -1,
+    int ui_main_menu_center = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_CONTAINER,
+        UI_ATTR_NAME, "main_menu_center", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_DONE,
         "width", "0", "height", "0", NULL);
-    int ui_mpbutton = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON, "mpbutton", ui_main_menu, ui_main_menu_center,
+    int ui_mpbutton = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
+        UI_ATTR_NAME, "mpbutton", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_PREV, ui_main_menu_center, UI_ATTR_DONE,
         "width", "320", "height", "32", "x_offset", "-4", "y_offset", "24", "text", "Multiplayer", "align", "0,0", "margin", "0,12,0,0", NULL);
-    int ui_spbutton = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON, "spbutton", ui_main_menu, ui_mpbutton,
+    int ui_spbutton = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
+        UI_ATTR_NAME, "spbutton", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_PREV, ui_mpbutton, UI_ATTR_DONE,
         "width", "320", "height", "32", "x_offset", "-12", "text", "Singleplayer", "align", "0,1", "margin", "0,12,0,0", NULL);
-    int ui_opbutton = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON, "opbutton", ui_main_menu, ui_mpbutton,
+    int ui_opbutton = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
+        UI_ATTR_NAME, "opbutton", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_PREV, ui_mpbutton, UI_ATTR_DONE,
         "width", "320", "height", "32", "x_offset", "4", "text", "Options", "align", "0,-1", "margin", "0,12,0,0", NULL);
-    int ui_logo = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_CONTAINER, "logo", ui_main_menu, ui_spbutton,
+    int ui_logo = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_CONTAINER,
+        UI_ATTR_NAME, "logo", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_PREV, ui_spbutton, UI_ATTR_DONE,
         "width", "448", "height", "112", "x_offset", "3", "text", PROG_NAME, "text_scale", "7", "z", "100", "align", "0,1", "margin", "0,0,0,32", NULL);
-    int ui_qbutton = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON, "qbutton", ui_main_menu, ui_opbutton,
+    int ui_qbutton = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
+        UI_ATTR_NAME, "qbutton", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_PREV, ui_opbutton, UI_ATTR_DONE,
         "width", "320", "height", "32", "x_offset", "12", "text", "Quit", "align", "0,-1", "margin", "0,12,0,0", NULL);
-    int ui_version = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_CONTAINER, "version", ui_main_menu, ui_logo,
-        "width", "200", "height", "16", "x_offset", "3", "y_offset", "-48", "text", "Version "VER_STR, "align", "0,-1", NULL);
+    int ui_version = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_CONTAINER,
+        UI_ATTR_NAME, "version", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_PREV, ui_logo, UI_ATTR_DONE,
+        "width", "448", "height", "16", "x_offset", "3", "y_offset", "-42", "text", "Version "VER_STR, "align", "0,-1", NULL);
 
     {
         struct input_info input;

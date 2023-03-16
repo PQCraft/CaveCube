@@ -67,21 +67,29 @@ enum {
     UI_ELEM_FANCYBOX,
     UI_ELEM_HOTBAR,
     UI_ELEM_ITEMGRID,
-    UI_ELEM_BUTTON
+    UI_ELEM_BUTTON,
 };
 
 enum {
-    UI_ATTR_END,
+    UI_ATTR_DONE,
     UI_ATTR_NAME,
     UI_ATTR_PARENT,
-    UI_ATTR_PREV
+    UI_ATTR_PREV,
+    UI_ATTR_CALLBACK,
+};
+
+enum {
+    UI_EVENT_CLICK,
+    UI_EVENT_UNCLICK,
+    UI_EVENT_HOVER,
+    UI_EVENT_UNHOVER,
 };
 
 #define UI_ID_DETATCH INT_MIN
 
 struct ui_data* allocUI(void);
-int newUIElem(struct ui_data*, int /*type*/, char* /*name*/, int /*parent*/, int /*prev*/, ... /*properties*/);
-void editUIElem(struct ui_data*, int /*id*/, char* /*name*/, int /*prev*/, ... /*properties*/);
+int newUIElem(struct ui_data*, int /*type*/, ... /*prop_and_attr*/);
+void editUIElem(struct ui_data*, int /*id*/, ... /*prop_and_attr*/);
 void deleteUIElem(struct ui_data*, int /*id*/);
 void clearUIElems(struct ui_data*);
 struct ui_elem* getUIElemData(struct ui_data*, int /*id*/);

@@ -184,7 +184,7 @@ input_keys input_sa[INPUT_ACTION_SINGLE__MAX] = {
 static float rotsenx;
 static float rotseny;
 
-int inputMode = INPUT_MODE_GAME;
+int inputMode = INPUT_MODE_UI;
 
 void setInputMode(int mode) {
     inputMode = mode;
@@ -334,11 +334,15 @@ static double newmxpos, newmypos;
 void resetInput() {
     polltime = altutime();
     #if defined(USESDL2)
-    SDL_WarpMouseInWindow(rendinf.window, floor((double)rendinf.width / 2.0), floor((double)rendinf.height / 2.0));
+    if (inputMode == INPUT_MODE_GAME && (SDL_GetWindowFlags(rendinf.window) & SDL_WINDOW_INPUT_FOCUS) != 0) {
+        SDL_WarpMouseInWindow(rendinf.window, floor((double)rendinf.width / 2.0), floor((double)rendinf.height / 2.0));
+    }
     //sdl2getmouse(&oldmxpos, &oldmypos);
     #else
     glfwPollEvents();
-    glfwSetCursorPos(rendinf.window, floor((double)rendinf.width / 2.0), floor((double)rendinf.height / 2.0));
+    if (inputMode == INPUT_MODE_GAME && glfwGetWindowAttrib(rendinf.window, GLFW_FOCUSED)) {
+        glfwSetCursorPos(rendinf.window, floor((double)rendinf.width / 2.0), floor((double)rendinf.height / 2.0));
+    }
     //glfwGetCursorPos(rendinf.window, &oldmxpos, &oldmypos);
     #endif
     //getInput();
@@ -354,6 +358,7 @@ void getInput(struct input_info* _inf) {
     SDL_PumpEvents();
     sdl2keymap = SDL_GetKeyboardState(NULL);
     SDL_Event event;
+    inf->focus = ((SDL_GetWindowFlags(rendinf.window) & SDL_WINDOW_INPUT_FOCUS) != 0);
     int sdl2mscroll = 0;
     while (SDL_PollEvent(&event)) {
         quitRequest += (event.type == SDL_QUIT);
@@ -373,6 +378,7 @@ void getInput(struct input_info* _inf) {
     }
     #else
     glfwPollEvents();
+    inf->focus = glfwGetWindowAttrib(rendinf.window, GLFW_FOCUSED);
     quitRequest += (glfwWindowShouldClose(rendinf.window) != 0);
     if (glfwmscroll >= 0) {
         mscrollup = glfwmscroll;
@@ -388,7 +394,6 @@ void getInput(struct input_info* _inf) {
     if (inputMode == INPUT_MODE_GAME && inf->focus) {
         glfwGetCursorPos(rendinf.window, &newmxpos, &newmypos);
         glfwSetCursorPos(rendinf.window, floor((double)rendinf.width / 2.0), floor((double)rendinf.height / 2.0));
-        glfwSetCursorPos(rendinf.window, floor((double)rendinf.width / 2.0), floor((double)rendinf.height / 2.0));
     }
     #endif
     mmovx = newmxpos - (floor((double)rendinf.width / 2.0));
@@ -400,11 +405,6 @@ void getInput(struct input_info* _inf) {
     if (quitRequest) goto ret;
     #if defined(USESDL2)
     if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) sdlreszevent(event.window.data1, event.window.data2);
-    #endif
-    #if defined(USESDL2)
-    inf->focus = ((SDL_GetWindowFlags(rendinf.window) & SDL_WINDOW_INPUT_FOCUS) != 0);
-    #else
-    inf->focus = glfwGetWindowAttrib(rendinf.window, GLFW_FOCUSED);
     #endif
     /*
     #ifdef __EMSCRIPTEN__

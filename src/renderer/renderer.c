@@ -1656,7 +1656,8 @@ void render() {
         static int toff = 0;
         if (game_ui[UILAYER_DBGINF] && dbgtextuih == -1) {
             dbgtextuih = newUIElem(
-                game_ui[UILAYER_DBGINF], UI_ELEM_CONTAINER, "debugText", -1, -1,
+                game_ui[UILAYER_DBGINF], UI_ELEM_CONTAINER,
+                UI_ATTR_NAME, "debugText", UI_ATTR_DONE,
                 "width", "100%", "height", "100%",
                 "text_align", "-1,-1", "text_fgc", "14", "text_bga", "0.5",
                 "text", "",
@@ -1706,7 +1707,7 @@ void render() {
                 fps, realfps
             );
         }
-        if (game_ui[UILAYER_DBGINF]) editUIElem(game_ui[UILAYER_DBGINF], dbgtextuih, NULL, -1, "text", tbuf, NULL);
+        if (game_ui[UILAYER_DBGINF]) editUIElem(game_ui[UILAYER_DBGINF], dbgtextuih, UI_ATTR_DONE, "text", tbuf, NULL);
     }
 
     if (renderall) {
@@ -1910,11 +1911,11 @@ void render() {
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), UIFBTEXID - GL_TEXTURE0);
     setUniform3f(rendinf.shaderprog, "mcolor", (float[]){1, 1, 1});
     if (!renderall) {
-        uint64_t time = altutime();
+        uint64_t time = altutime() / 1000;
         glClearColor(
-            (sin(time / 6435392.0) * 0.5 + 0.5) * 0.1,
-            (cos(time / 7164917.0) * 0.5 + 0.5) * 0.2,
-            (sin(time / 9526833.0) * 0.5 + 0.5) * 0.3,
+            (sin(time / 1735.0) * 0.5 + 0.5) * 0.1,
+            (cos(time / 3164.0) * 0.5 + 0.5) * 0.2,
+            (sin(time / 5526.0) * 0.5 + 0.5) * 0.3,
             1.0
         );
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
