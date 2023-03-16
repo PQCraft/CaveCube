@@ -236,7 +236,9 @@ void glfwmscrollcb(GLFWwindow* w, double x, double y) {
 }
 
 static bool glfwgp = false;
+#ifndef __EMSCRIPTEN__
 GLFWgamepadstate glfwgpstate;
+#endif
 #endif
 
 static double mmovx, mmovy;
@@ -293,17 +295,21 @@ static force_inline float _keyState(int device, int type, int key, bool* repeat)
                 case 'a':; {
                     #if defined(USESDL2)
                     #else
+                    #ifndef __EMSCRIPTEN__
                     if (glfwgp) {
                         if (fabs(glfwgpstate.axes[key]) >= 0.2) return glfwgpstate.axes[key];
                     }
+                    #endif
                     #endif
                 } break;
                 case 'b':; {
                     #if defined(USESDL2)
                     #else
+                    #ifndef __EMSCRIPTEN__
                     if (glfwgp) {
                         return glfwgpstate.buttons[key];
                     }
+                    #endif
                     #endif
                 } break;
             }
@@ -388,9 +394,11 @@ void getInput(struct input_info* _inf) {
         mscrolldown = -glfwmscroll;
     }
     glfwmscroll = 0.0;
+    #ifndef __EMSCRIPTEN__
     for (int i = GLFW_JOYSTICK_1; i < GLFW_JOYSTICK_LAST; ++i) {
         if ((glfwgp = glfwGetGamepadState(GLFW_JOYSTICK_1, &glfwgpstate))) break;
     }
+    #endif
     if (inputMode == INPUT_MODE_GAME && inf->focus) {
         glfwGetCursorPos(rendinf.window, &newmxpos, &newmypos);
         glfwSetCursorPos(rendinf.window, floor((double)rendinf.width / 2.0), floor((double)rendinf.height / 2.0));

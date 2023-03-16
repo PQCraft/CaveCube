@@ -477,6 +477,7 @@ static void gameLoop() {
             totalframetime = 0;
             highframetime = 0;
         }
+        microwait(0);
     }
 }
 
@@ -513,7 +514,7 @@ bool doGame() {
     startRenderer();
     initInput();
     setInputMode(INPUT_MODE_UI);
-    renderall = false;
+    rendergame = false;
     setSkyColor(0.5, 0.5, 0.5);
     setFullscreen(rendinf.fullscr);
 
@@ -588,6 +589,7 @@ bool doGame() {
                 totalframetime = 0;
                 highframetime = 0;
             }
+            microwait(0);
         }
     }
 
