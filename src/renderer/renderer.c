@@ -24,14 +24,17 @@
         #include <SDL2/SDL.h>
     #else
         #include <SDL.h>
-        #include <GLES3/gl3.h>
-        //#include <emscripten/html5.h>
-        #define glFramebufferTexture(a, b, c, d) glFramebufferTexture2D((a), (b), GL_TEXTURE_2D, (c), (d));
-        #define glPolygonMode(a, b)
     #endif
 #else
     #include <GLFW/glfw3.h>
 #endif
+#ifdef __EMSCRIPTEN__
+    #include <GLES3/gl3.h>
+    //#include <emscripten/html5.h>
+    #define glFramebufferTexture(a, b, c, d) glFramebufferTexture2D((a), (b), GL_TEXTURE_2D, (c), (d));
+    #define glPolygonMode(a, b)
+#endif
+
 #include "cglm/cglm.h"
 
 int MESHER_THREADS;
@@ -1648,7 +1651,7 @@ static force_inline bool pqvisit(struct pq* p, int x, int y, int z, int face) {
 }
 
 static int cavecull;
-bool renderall = false;
+bool rendergame = false;
 
 void render() {
     if (showDebugInfo) {
@@ -1680,7 +1683,7 @@ void render() {
             );
             toff = strlen(tbuf[0]);
         }
-        if (renderall) {
+        if (rendergame) {
             sprintf(
                 &tbuf[0][toff],
                 "Resolution: %ux%u@%u vsync %s\n"
@@ -1710,7 +1713,7 @@ void render() {
         if (game_ui[UILAYER_DBGINF]) editUIElem(game_ui[UILAYER_DBGINF], dbgtextuih, UI_ATTR_DONE, "text", tbuf, NULL);
     }
 
-    if (renderall) {
+    if (rendergame) {
         setShaderProg(shader_block);
         glBindFramebuffer(GL_FRAMEBUFFER, FBO);
         glClearColor(sky.r, sky.g, sky.b, 1);
@@ -1891,7 +1894,7 @@ void render() {
     }
 
     glDisable(GL_CULL_FACE);
-    if (renderall) {
+    if (rendergame) {
         glDisable(GL_DEPTH_TEST);
         setShaderProg(shader_2d);
         glBindBuffer(GL_ARRAY_BUFFER, VBO2D);
@@ -1910,7 +1913,7 @@ void render() {
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), UIFBTEXID - GL_TEXTURE0);
     setUniform3f(rendinf.shaderprog, "mcolor", (float[]){1, 1, 1});
-    if (!renderall) {
+    if (!rendergame) {
         uint64_t time = altutime() / 1000;
         glClearColor(
             (sin(time / 1735.0) * 0.5 + 0.5) * 0.1,
@@ -2065,12 +2068,7 @@ bool initRenderer() {
     }
     rendinf.disp_width = rendinf.monitor.w;
     rendinf.disp_height = rendinf.monitor.h;
-    #ifndef __EMSCRIPTEN__
     rendinf.disphz = rendinf.monitor.refresh_rate;
-    #else
-    rendinf.disphz = 60;
-    #endif
-    rendinf.win_fps = rendinf.disphz;
     SDL_DestroyWindow(rendinf.window);
     #else
     if (!(rendinf.monitor = glfwGetPrimaryMonitor())) {
@@ -2081,8 +2079,9 @@ bool initRenderer() {
     rendinf.disp_width = vmode->width;
     rendinf.disp_height = vmode->height;
     rendinf.disphz = vmode->refreshRate;
-    rendinf.win_fps = rendinf.disphz;
     #endif
+    if (rendinf.disphz <= 0) rendinf.disphz = 60;
+    rendinf.win_fps = rendinf.disphz;
 
     for (int i = 0; i < CHUNKUPDATE_PRIO__MAX; ++i) {
         initMsgData(&chunkmsgs[i]);

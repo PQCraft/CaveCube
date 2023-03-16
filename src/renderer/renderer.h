@@ -16,10 +16,15 @@
         #include <SDL2/SDL.h>
     #else
         #include <SDL.h>
-        #include <GLES3/gl3.h>
     #endif
 #else
     #include <GLFW/glfw3.h>
+#endif
+#ifdef __EMSCRIPTEN__
+    #include <GLES3/gl3.h>
+    //#include <emscripten/html5.h>
+    #define glFramebufferTexture(a, b, c, d) glFramebufferTexture2D((a), (b), GL_TEXTURE_2D, (c), (d));
+    #define glPolygonMode(a, b)
 #endif
 
 #include <stdbool.h>
@@ -144,7 +149,7 @@ typedef unsigned int texture_t;
 extern struct renderer_info rendinf;
 extern int MESHER_THREADS;
 extern int MESHER_THREADS_MAX;
-extern bool renderall;
+extern bool rendergame;
 
 bool initRenderer(void);
 bool startRenderer(void);
