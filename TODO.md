@@ -41,7 +41,7 @@
 
 ### IN-PROGRESS:
 - Flesh out UI
-    - More UI elements (buttons, text boxes, etc)
+    - More UI elements (buttons, text boxes, scrollbars, etc)
     - UI interaction (elem states, tooltips, etc)
     - Add `fit_width_to_text` and `fit_height_to_text` attrib
     - Add `text_fmt` attrib

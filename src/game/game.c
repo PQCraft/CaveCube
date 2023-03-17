@@ -121,11 +121,6 @@ static color newskycolor;
 static bool setnatcolor = false;
 static color newnatcolor;
 
-static int shouldQuit() {
-    getInput(NULL);
-    return quitRequest;
-}
-
 static bool handleServer(int msg, void* _data) {
     //printf("Recieved [%d] from server\n", msg);
     switch (msg) {
@@ -183,6 +178,8 @@ static void gameLoop() {
 
     startMesher();
     setRandSeed(8, altutime());
+
+    rendergame = true;
 
     rendinf.camrot.x = 0.0;
     rendinf.camrot.y = 0.0;
@@ -389,8 +386,8 @@ static void gameLoop() {
         if (rendinf.camrot.x < -89.99) rendinf.camrot.x = -89.99;
         rendinf.camrot.y = tmpcamrot.y;
         rendinf.camrot.z = input.mov_right * leanmult;
+        tmpcamrot.y = fmod(tmpcamrot.y, 360.0);
         if (tmpcamrot.y < 0) tmpcamrot.y += 360;
-        else if (tmpcamrot.y >= 360) tmpcamrot.y -= 360;
         if (tmpcamrot.x > 90.0) tmpcamrot.x = 90.0;
         if (tmpcamrot.x < -90.0) tmpcamrot.x = -90.0;
         float yrotrad = (rendinf.camrot.y / 180 * M_PI);
@@ -479,6 +476,27 @@ static void gameLoop() {
         }
         microwait(0);
     }
+
+    deleteUIElem(game_ui[UILAYER_INGAME], ui_main);
+
+    deleteUIElem(game_ui[UILAYER_CLIENT], ui_hotbar);
+
+    stopMesher();
+}
+
+int ui_connect_status;
+
+static int shouldQuit() {
+    getInput(NULL);
+    render();
+    updateScreen();
+    return quitRequest;
+}
+
+static void setText(char* _text) {
+    char text[4096] = "Connecting to server...\n";
+    strcat(text, _text);
+    editUIElem(game_ui[UILAYER_INGAME], ui_connect_status, UI_ATTR_DONE, "text", text, NULL);
 }
 
 static bool connectToServ(char* addr, int port) {
@@ -492,6 +510,7 @@ static bool connectToServ(char* addr, int port) {
             firsttime = false;
         }
         inf.in.quit = shouldQuit;
+        inf.in.settext = setText;
         inf.in.timeout = 10000;
         inf.in.login.new = true;
         inf.in.login.username = getConfigKey(config, "Player", "name");
@@ -548,14 +567,17 @@ bool doGame() {
     int ui_version = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_CONTAINER,
         UI_ATTR_NAME, "version", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_PREV, ui_logo, UI_ATTR_DONE,
         "width", "448", "height", "16", "x_offset", "3", "y_offset", "-42", "text", "Version "VER_STR, "align", "0,-1", NULL);
+    ui_connect_status = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_CONTAINER,
+        UI_ATTR_NAME, "connect_status", UI_ATTR_DONE,
+        "width", "75%", "height", "100%", "text", "Connecting to server...", "hidden", "true", NULL);
 
     {
         struct input_info input;
-        resetInput();
         bool waitwithvsync = getBool(getConfigKey(config, "Renderer", "waitWithVsync"));
         uint64_t fpsupdate = altutime();
         int frames = 0;
-        while (!quitRequest) {
+        uint64_t time = altutime();
+        while (!quitRequest && altutime() - time < 1000000) {
             uint64_t frametime = altutime();
             getInput(&input);
             switch (input.single_action) {
@@ -592,12 +614,40 @@ bool doGame() {
             microwait(0);
         }
     }
+    editUIElem(game_ui[UILAYER_INGAME], ui_main_menu, UI_ATTR_DONE, "hidden", "true", NULL);
 
-    //gameLoop();
+    int cores = getCoreCt();
+    if (cores < 1) cores = 1;
+    {
+        cores -= 4;
+        if (cores < 2) cores = 2;
+        SERVER_THREADS = cores / 2;
+        cores -= SERVER_THREADS;
+        MESHER_THREADS = cores;
+
+        if (!initServer()) {
+            fputs("Failed to init server\n", stderr);
+            return false;
+        }
+
+        editUIElem(game_ui[UILAYER_INGAME], ui_connect_status, UI_ATTR_DONE, "hidden", "false", NULL);
+        int servport;
+        if ((servport = startServer(NULL, 0, 1, "World")) < 0) {
+            fputs("Failed to start server\n", stderr);
+            return false;
+        }
+        if (!connectToServ(NULL, servport)) return false;
+        editUIElem(game_ui[UILAYER_INGAME], ui_connect_status, UI_ATTR_DONE, "hidden", "true", NULL);
+
+        gameLoop();
+
+        stopServer();
+    }
 
     for (int i = 0; i < 4; ++i) {
         freeUI(game_ui[i]);
     }
+    stopRenderer();
 
     return true;
 }
