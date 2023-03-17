@@ -1417,7 +1417,17 @@ static force_inline void meshUIElem(struct meshdata* md, struct ui_data* elemdat
             case UI_ELEM_BUTTON:; {
                 writeuielemrect(md, x0, y0 + s, x1, y1 - s, p->z, p->r / 2, p->g / 2, p->b / 2, p->a);
                 writeuielemrect(md, x0 + s, y0, x1 - s, y1, p->z, p->r / 2, p->g / 2, p->b / 2, p->a);
-                writeuielemrect(md, x0 + 2 * s,     y0 + 2 * s, x1 - 2 * s, y1 - 2 * s, p->z, p->r, p->g, p->b, p->a);
+                switch (e->state) {
+                    case UI_STATE_HOVERED:;
+                        writeuielemrect(md, x0 + 2 * s, y0 + 2 * s, x1 - 2 * s, y1 - 2 * s, p->z, 191, 191, 127, p->a);
+                        break;
+                    case UI_STATE_CLICKED:;
+                        writeuielemrect(md, x0 + 2 * s, y0 + 2 * s, x1 - 2 * s, y1 - 2 * s, p->z, p->r / 2, p->g / 2, p->b / 2, p->a);
+                        break;
+                    default:;
+                        writeuielemrect(md, x0 + 2 * s, y0 + 2 * s, x1 - 2 * s, y1 - 2 * s, p->z, p->r, p->g, p->b, p->a);
+                        break;
+                }
             } break;
         }
     }
