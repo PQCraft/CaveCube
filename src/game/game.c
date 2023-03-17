@@ -209,7 +209,7 @@ static void gameLoop() {
     int ui_main = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BOX,
         UI_ATTR_NAME, "main", UI_ATTR_DONE,
         "width", "100%", "height", "100%", "color", "#000000", "alpha", "0.25", "z", "-100", NULL);
-    int ui_placeholder = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
+    int ui_placeholder = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_FANCYBOX,
         UI_ATTR_NAME, "placeholder", UI_ATTR_PARENT, ui_main, UI_ATTR_DONE,
         "width", "128", "height", "36", "text", "[Placeholder]", NULL);
 
@@ -488,16 +488,19 @@ static void gameLoop() {
     stopMesher();
 }
 
-static int button = 0;
-int ui_spbutton;
-int ui_mpbutton;
-int ui_opbutton;
-int ui_qbutton;
+static int clickedbtn = -1;
+
+int ui_spbtn;
+int ui_mpbtn;
+int ui_opbtn;
+int ui_qbtn;
+int ui_errbtn;
 
 static void btncb(struct ui_data* elemdata, int id, struct ui_elem* e, int event) {
     switch (event) {
         case UI_EVENT_CLICK:;
             printf("Clicked on {%s}\n", e->name);
+            clickedbtn = id;
             break;
     }
 }
@@ -517,7 +520,7 @@ static void setText(char* _text) {
     editUIElem(game_ui[UILAYER_INGAME], ui_connect_status, UI_ATTR_DONE, "text", text, NULL);
 }
 
-static bool connectToServ(char* addr, int port) {
+static bool connectToServ(char* addr, int port, char* error, int errlen) {
     puts("Connecting to server...");
     {
         char err[4096];
@@ -538,6 +541,40 @@ static bool connectToServ(char* addr, int port) {
         }
     }
     puts("Connected to server.");
+    return true;
+}
+
+static bool startSPGame(char* error, int errlen) {
+    int cores = getCoreCt();
+    if (cores < 1) cores = 1;
+    {
+        cores -= 4;
+        if (cores < 2) cores = 2;
+        SERVER_THREADS = cores / 2;
+        cores -= SERVER_THREADS;
+        MESHER_THREADS = cores;
+
+        if (!initServer()) {
+            fputs("Failed to init server\n", stderr);
+            snprintf(error, errlen, "Failed to init server");
+            return false;
+        }
+
+        editUIElem(game_ui[UILAYER_INGAME], ui_connect_status, UI_ATTR_DONE, "hidden", "false", NULL);
+        int servport;
+        if ((servport = startServer(NULL, 0, 1, "World")) < 0) {
+            fputs("Failed to start server\n", stderr);
+            snprintf(error, errlen, "Failed to start server");
+            return false;
+        }
+        char serverr[4096];
+        if (!connectToServ(NULL, servport, serverr, sizeof(serverr))) return false;
+        editUIElem(game_ui[UILAYER_INGAME], ui_connect_status, UI_ATTR_DONE, "hidden", "true", NULL);
+
+        gameLoop();
+
+        stopServer();
+    }
     return true;
 }
 
@@ -567,27 +604,32 @@ bool doGame() {
     int ui_main_menu_center = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_CONTAINER,
         UI_ATTR_NAME, "main_menu_center", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_DONE,
         "width", "0", "height", "0", NULL);
-    ui_mpbutton = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
+    ui_mpbtn = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
         UI_ATTR_NAME, "mpbutton", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_PREV, ui_main_menu_center, UI_ATTR_CALLBACK, btncb, UI_ATTR_DONE,
         "width", "320", "height", "32", "x_offset", "-4", "y_offset", "24", "text", "Multiplayer", "align", "0,0", "margin", "0,12,0,0", NULL);
-    ui_spbutton = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
-        UI_ATTR_NAME, "spbutton", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_PREV, ui_mpbutton, UI_ATTR_CALLBACK, btncb, UI_ATTR_DONE,
+    ui_spbtn = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
+        UI_ATTR_NAME, "spbutton", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_PREV, ui_mpbtn, UI_ATTR_CALLBACK, btncb, UI_ATTR_DONE,
         "width", "320", "height", "32", "x_offset", "-12", "text", "Singleplayer", "align", "0,1", "margin", "0,12,0,0", NULL);
-    ui_opbutton = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
-        UI_ATTR_NAME, "opbutton", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_PREV, ui_mpbutton, UI_ATTR_CALLBACK, btncb, UI_ATTR_DONE,
+    ui_opbtn = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
+        UI_ATTR_NAME, "opbutton", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_PREV, ui_mpbtn, UI_ATTR_CALLBACK, btncb, UI_ATTR_DONE,
         "width", "320", "height", "32", "x_offset", "4", "text", "Options", "align", "0,-1", "margin", "0,12,0,0", NULL);
     int ui_logo = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_CONTAINER,
-        UI_ATTR_NAME, "logo", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_PREV, ui_spbutton, UI_ATTR_DONE,
+        UI_ATTR_NAME, "logo", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_PREV, ui_spbtn, UI_ATTR_DONE,
         "width", "448", "height", "112", "x_offset", "3", "text", PROG_NAME, "text_scale", "7", "z", "100", "align", "0,1", "margin", "0,0,0,32", NULL);
-    ui_qbutton = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
-        UI_ATTR_NAME, "qbutton", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_PREV, ui_opbutton, UI_ATTR_CALLBACK, btncb, UI_ATTR_DONE,
+    ui_qbtn = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
+        UI_ATTR_NAME, "qbutton", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_PREV, ui_opbtn, UI_ATTR_CALLBACK, btncb, UI_ATTR_DONE,
         "width", "320", "height", "32", "x_offset", "12", "text", "Quit", "align", "0,-1", "margin", "0,12,0,0", NULL);
     int ui_version = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_CONTAINER,
         UI_ATTR_NAME, "version", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_PREV, ui_logo, UI_ATTR_DONE,
         "width", "448", "height", "16", "x_offset", "3", "y_offset", "-42", "text", "Version "VER_STR, "align", "0,-1", NULL);
-    ui_connect_status = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_CONTAINER,
+
+    ui_connect_status = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_FANCYBOX,
         UI_ATTR_NAME, "connect_status", UI_ATTR_DONE,
-        "width", "75%", "height", "100%", "text", "Connecting to server...", "hidden", "true", NULL);
+        "width", "50%", "height", "160", "text_margin", "8,8", "text", "", "hidden", "true", NULL);
+
+    int ui_error = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_FANCYBOX,
+        UI_ATTR_NAME, "error", UI_ATTR_DONE,
+        "width", "50%", "height", "160", "text_margin", "8,8", "text", "", "hidden", "true", NULL);
 
     {
         struct input_info input;
@@ -633,40 +675,22 @@ bool doGame() {
                 highframetime = 0;
             }
             microwait(0);
-            switch (button) {
-                
+            if (clickedbtn >= 0) {
+                char error[4096];
+                if (clickedbtn == ui_spbtn) {
+                    editUIElem(game_ui[UILAYER_INGAME], ui_main_menu, UI_ATTR_DONE, "hidden", "true", NULL);
+                    if (!startSPGame(error, sizeof(error))) {
+                        
+                    }
+                    editUIElem(game_ui[UILAYER_INGAME], ui_main_menu, UI_ATTR_DONE, "hidden", "false", NULL);
+                } else if (clickedbtn == ui_qbtn) {
+                    goto longbreak;
+                }
+                clickedbtn = -1;
             }
         }
     }
-    editUIElem(game_ui[UILAYER_INGAME], ui_main_menu, UI_ATTR_DONE, "hidden", "true", NULL);
-
-    int cores = getCoreCt();
-    if (cores < 1) cores = 1;
-    {
-        cores -= 4;
-        if (cores < 2) cores = 2;
-        SERVER_THREADS = cores / 2;
-        cores -= SERVER_THREADS;
-        MESHER_THREADS = cores;
-
-        if (!initServer()) {
-            fputs("Failed to init server\n", stderr);
-            return false;
-        }
-
-        editUIElem(game_ui[UILAYER_INGAME], ui_connect_status, UI_ATTR_DONE, "hidden", "false", NULL);
-        int servport;
-        if ((servport = startServer(NULL, 0, 1, "World")) < 0) {
-            fputs("Failed to start server\n", stderr);
-            return false;
-        }
-        if (!connectToServ(NULL, servport)) return false;
-        editUIElem(game_ui[UILAYER_INGAME], ui_connect_status, UI_ATTR_DONE, "hidden", "true", NULL);
-
-        gameLoop();
-
-        stopServer();
-    }
+    longbreak:;
 
     for (int i = 0; i < 4; ++i) {
         freeUI(game_ui[i]);

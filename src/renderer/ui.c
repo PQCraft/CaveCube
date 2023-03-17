@@ -96,12 +96,14 @@ int newUIElem(struct ui_data* elemdata, int type, ...) {
 void editUIElem(struct ui_data* elemdata, int id, ...) {
     if (!elemValid(id)) return;
     struct ui_elem* e = &elemdata->data[id];
-    int newparent = -1;
+    bool newparent = false;
+    int newparentid = -1;
     va_list args;
     va_start(args, id);
     while (1) {
         int attr = va_arg(args, int);
         if (attr == UI_ATTR_DONE) break;
+        e->changed = true;
         switch (attr) {
             case UI_ATTR_NAME:; {
                 free(e->name);
@@ -113,7 +115,8 @@ void editUIElem(struct ui_data* elemdata, int id, ...) {
                 }
             } break;
             case UI_ATTR_PARENT:; {
-                newparent = va_arg(args, int);
+                newparent = true;
+                newparentid = va_arg(args, int);
             } break;
             case UI_ATTR_PREV:; {
                 e->prev = va_arg(args, int);
@@ -166,7 +169,7 @@ void editUIElem(struct ui_data* elemdata, int id, ...) {
         }
     }
     va_end(args);
-    if (elemValid(newparent)) {
+    if (newparent) {
         if (elemValid(e->parent)) {
             struct ui_elem* p = &elemdata->data[e->parent];
             for (int i = 0; i < p->children; ++i) {
@@ -176,19 +179,19 @@ void editUIElem(struct ui_data* elemdata, int id, ...) {
                 }
             }
         }
-        e->parent = newparent;
-        struct ui_elem* p = &elemdata->data[e->parent];
-        int cindex = -1;
-        for (int i = 0; i < p->children; ++i) {
-            if (p->childdata[i] < 0) {cindex = i; break;}
+        e->parent = newparentid;
+        if (elemValid(e->parent)) {
+            struct ui_elem* p = &elemdata->data[e->parent];
+            int cindex = -1;
+            for (int i = 0; i < p->children; ++i) {
+                if (p->childdata[i] < 0) {cindex = i; break;}
+            }
+            if (cindex < 0) {
+                cindex = p->children++;
+                p->childdata = realloc(p->childdata, p->children * sizeof(*p->childdata));
+            }
+            p->childdata[cindex] = id;
         }
-        if (cindex < 0) {
-            cindex = p->children++;
-            p->childdata = realloc(p->childdata, p->children * sizeof(*p->childdata));
-        }
-        p->childdata[cindex] = id;
-    } else {
-        e->parent = newparent;
     }
 }
 
