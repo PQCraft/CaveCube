@@ -166,8 +166,8 @@ void genChunk(int64_t cx, int64_t cz, struct blockdata* data, int type) {
                         if (sliver[i].id && sliver[i].id != water) {
                             float fi = i - 0.25;
                             float cave = noise3(16, cx / 20.1473, fi / 15.21837, cz / 20.1473);
-                            float cavemult = tanhf(((fabs(fi - (finalheight / 2.0)) / (finalheight * 1.047)) * 2.0 - 1.0) * 16.0) * 0.5 + 0.5;
-                            if (cave > cavemult + 0.345) {
+                            float cavemult = tanhf(((fabs(fi - (finalheight / 2.0)) / round(finalheight * 1.045)) * 2.0 - 1.0) * 16.0) * 0.5 + 0.5;
+                            if (cave > cavemult + 0.35) {
                                 sliver[i].id = 0;
                                 sliver[i].subid = 0;
                             }
