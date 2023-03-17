@@ -129,8 +129,6 @@ int main(int _argc, char** _argv) {
     #else
         signal(SIGSEGV, sigsegvh);
     #endif
-    int cores = getCoreCt();
-    if (cores < 1) cores = 1;
     if (!altchdir(startdir)) exit(1);
     if (isFile(configpath) == 1) {
         config = openConfig(configpath);

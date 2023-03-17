@@ -179,6 +179,8 @@ void editUIElem(struct ui_data* elemdata, int id, ...) {
             p->childdata = realloc(p->childdata, p->children * sizeof(*p->childdata));
         }
         p->childdata[cindex] = id;
+    } else {
+        e->parent = newparent;
     }
 }
 
@@ -284,11 +286,6 @@ static force_inline bool calcProp(struct ui_data* elemdata, struct ui_elem* e, b
             .height = rendinf.height,
             .z = 0
         };
-        if ((int)rendinf.width != elemdata->scrw || (int)rendinf.height != elemdata->scrh) {
-            elemdata->scrw = rendinf.width;
-            elemdata->scrh = rendinf.height;
-            force = true;
-        }
     }
     if (e->calcprop.changed || force) {
         char* curprop;
@@ -401,10 +398,16 @@ static inline bool calcPropTree(struct ui_data* elemdata, struct ui_elem* e, boo
 bool calcUIProperties(struct ui_data* elemdata) {
     bool ret = elemdata->del;
     if (ret) elemdata->del = false;
+    bool force = false;
+    if ((int)rendinf.width != elemdata->scrw || (int)rendinf.height != elemdata->scrh) {
+        elemdata->scrw = rendinf.width;
+        elemdata->scrh = rendinf.height;
+        force = true;
+    }
     for (int i = 0; i < elemdata->count; ++i) {
         struct ui_elem* e = &elemdata->data[i];
         if (e->parent < 0) {
-            if (calcPropTree(elemdata, e, false)) ret = true;
+            if (calcPropTree(elemdata, e, force)) ret = true;
         }
     }
     return ret;

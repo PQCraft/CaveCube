@@ -1323,12 +1323,13 @@ bool cliConnectAndSetup(char* addr, int port, bool (*cb)(int, void*), char* err,
         return false;
     }
 
+    if (inf->in.settext) inf->in.settext("Pinging server...");
     puts("Pinging server...");
     cliSend(CLIENT_PING);
     uint64_t time = altutime();
     while (!ping) {
         if (inf->in.quit && inf->in.quit()) {err[0] = 0; goto retfalse;}
-        microwait(250);
+        microwait(15000);
         if (altutime() - time > timeout) {
             snprintf(err, errlen, "Timed out waiting for pong");
             goto retfalse;
@@ -1337,12 +1338,13 @@ bool cliConnectAndSetup(char* addr, int port, bool (*cb)(int, void*), char* err,
     time = (altutime() - time) / 1000;
     printf("Server responded in %"PRId64" ms\n", time);
 
+    if (inf->in.settext) inf->in.settext("Checking compatibility...");
     puts("Sending compatibility info...");
     cliSend(CLIENT_COMPATINFO, VER_MAJOR, VER_MINOR, VER_PATCH, PROG_NAME);
     time = altutime();
     while (!compatinfo) {
         if (inf->in.quit && inf->in.quit()) {err[0] = 0; goto retfalse;}
-        microwait(1000);
+        microwait(15000);
         if (altutime() - time > timeout) {
             snprintf(err, errlen, "Timed out waiting for compatibility info");
             goto retfalse;
@@ -1367,11 +1369,12 @@ bool cliConnectAndSetup(char* addr, int port, bool (*cb)(int, void*), char* err,
         uid = 0;
     } else if (inf->in.login.new) {
         puts("Requesting new UID...");
+        if (inf->in.settext) inf->in.settext("Requesting new UID...");
         cliSend(CLIENT_NEWUID, inf->in.login.password);
         time = altutime();
         while (!newuid && !disconnect) {
             if (inf->in.quit && inf->in.quit()) {err[0] = 0; goto retfalse;}
-            microwait(1000);
+            microwait(15000);
             if (altutime() - time > timeout) {
                 snprintf(err, errlen, "Timed out waiting for new UID");
                 goto retfalse;
@@ -1386,6 +1389,7 @@ bool cliConnectAndSetup(char* addr, int port, bool (*cb)(int, void*), char* err,
     } else {
         uid = setupinf->in.login.uid;
     }
+    if (inf->in.settext) inf->in.settext("Logging in...");
     puts("Sending login info...");
     printf("- Login code: %016"PRIX64"%016"PRIX64"\n", uid, inf->in.login.password);
     printf("- Username: %s\n", inf->in.login.username);
@@ -1393,7 +1397,7 @@ bool cliConnectAndSetup(char* addr, int port, bool (*cb)(int, void*), char* err,
     time = altutime();
     while (!loginok && !disconnect) {
         if (inf->in.quit && inf->in.quit()) {err[0] = 0; goto retfalse;}
-        microwait(1000);
+        microwait(15000);
         if (altutime() - time > timeout) {
             snprintf(err, errlen, "Timed out waiting for login");
             goto retfalse;
@@ -1425,7 +1429,6 @@ bool cliConnectAndSetup(char* addr, int port, bool (*cb)(int, void*), char* err,
     return true;
 
     retfalse:;
-    microwait(1000000);
     clientalive = false;
     pthread_join(clinetthreadh, NULL);
     return false;
