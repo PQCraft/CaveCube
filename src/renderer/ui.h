@@ -4,6 +4,7 @@
 #define RENDERER_UI_H
 
 #include "renderer.h"
+#include <input/input.h>
 
 #include <stdbool.h>
 #include <limits.h>
@@ -17,7 +18,6 @@ struct ui_elem_property {
 };
 
 struct ui_elem_calcprop {
-    bool changed;
     bool hidden;
     int16_t x;
     int16_t y;
@@ -34,15 +34,22 @@ struct ui_elem_calcprop {
     uint8_t g;
     uint8_t b;
     uint8_t a;
-    int state;
 };
+
+struct ui_data;
+struct ui_elem;
+
+typedef void (ui_event_callback_t)(struct ui_data*, int, struct ui_elem*, int);
 
 struct ui_elem {
     bool valid;
+    bool changed;
     int type;
     char* name;
     int prev;
     int parent;
+    ui_event_callback_t* callback;
+    int state;
     int children;
     int* childdata;
     int properties;
@@ -76,13 +83,17 @@ enum {
     UI_ATTR_PARENT,
     UI_ATTR_PREV,
     UI_ATTR_CALLBACK,
+    UI_ATTR_STATE,
+};
+
+enum {
+    UI_STATE_NORMAL,
+    UI_STATE_HOVERED,
+    UI_STATE_CLICKED,
 };
 
 enum {
     UI_EVENT_CLICK,
-    UI_EVENT_UNCLICK,
-    UI_EVENT_HOVER,
-    UI_EVENT_UNHOVER,
 };
 
 #define UI_ID_DETATCH INT_MIN
@@ -95,6 +106,7 @@ void clearUIElems(struct ui_data*);
 struct ui_elem* getUIElemData(struct ui_data*, int /*id*/);
 int getUIElemByName(struct ui_data*, char* /*name*/, bool /*reverse*/);
 int* getUIElemsByName(struct ui_data*, char* /*name*/, int* /*count*/);
+bool doUIEvents(struct input_info* inf, struct ui_data* elemdata);
 char* getUIElemProperty(struct ui_elem*, char* /*name*/);
 bool calcUIProperties(struct ui_data*);
 void freeUI(struct ui_data*);

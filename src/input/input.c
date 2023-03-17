@@ -472,6 +472,19 @@ void getInput(struct input_info* _inf) {
             }
         } break;
         case INPUT_MODE_UI:; {
+            double dmx, dmy;
+            #if defined(USESDL2)
+            sdl2getmouse(&dmx, &dmy);
+            #else
+            glfwGetCursorPos(rendinf.window, &dmx, &dmy);
+            #endif
+            inf->ui_mouse_x = dmx;
+            inf->ui_mouse_y = dmy;
+            #if defined(USESDL2)
+            inf->ui_mouse_click = ((SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(1)) != 0);
+            #else
+            inf->ui_mouse_click = (glfwGetMouseButton(rendinf.window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS);
+            #endif
             if (lastsa == INPUT_ACTION_SINGLE__NONE) {
                 for (int i = 0; i < INPUT_ACTION_SINGLE__MAX; ++i) {
                     bool repeat = false;

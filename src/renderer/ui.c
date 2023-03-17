@@ -3,6 +3,7 @@
 #include <main/main.h>
 #include "ui.h"
 #include "renderer.h"
+#include <input/input.h>
 
 #include <string.h>
 #include <stdio.h>
@@ -40,7 +41,7 @@ int newUIElem(struct ui_data* elemdata, int type, ...) {
     e->childdata = NULL;
     e->properties = 0;
     e->propertydata = NULL;
-    e->calcprop.changed = true;
+    e->changed = true;
     va_list args;
     va_start(args, type);
     while (1) {
@@ -59,6 +60,9 @@ int newUIElem(struct ui_data* elemdata, int type, ...) {
             } break;
             case UI_ATTR_PREV:; {
                 e->prev = va_arg(args, int);
+            } break;
+            case UI_ATTR_CALLBACK:; {
+                e->callback = va_arg(args, ui_event_callback_t*);
             } break;
         }
     }
@@ -114,13 +118,17 @@ void editUIElem(struct ui_data* elemdata, int id, ...) {
             case UI_ATTR_PREV:; {
                 e->prev = va_arg(args, int);
             } break;
+            case UI_ATTR_STATE:; {
+                e->state = va_arg(args, int);
+                e->changed = true;
+            } break;
         }
     }
     while (1) {
         char* name = va_arg(args, char*);
         if (!name) break;
         char* val = va_arg(args, char*);
-        e->calcprop.changed = true;
+        e->changed = true;
         if (!val) {
             for (int i = 0; i < e->properties; ++i) {
                 if (e->propertydata[i].name && !strcasecmp(e->propertydata[i].name, name)) {
@@ -250,6 +258,60 @@ int* getUIElemsByName(struct ui_data* elemdata, char* name, int* _count) {
     return output;
 }
 
+bool doUIEvents(struct input_info* inf, struct ui_data* elemdata) {
+    //printf("TEST: [%d]\n", elemdata->count);
+    if (elemdata->hidden) goto resetstate;
+    int z = -256;
+    int hit = -1;
+    for (int i = elemdata->count - 1; i >= 0; --i) {
+        if (!elemValid(i)) continue;
+        struct ui_elem* e = &elemdata->data[i];
+        if (e->calcprop.hidden) {/*printf("hidden: {%s}\n", e->name);*/ continue;}
+        //printf("[%d]: [%d, %d] vs [%d, %d, %d, %d]; [%d] vs [%d]\n", i,
+        //    inf->ui_mouse_x, inf->ui_mouse_y, e->calcprop.x, e->calcprop.y, e->calcprop.x + e->calcprop.width, e->calcprop.y + e->calcprop.height,
+        //    z, e->calcprop.z);
+        if (inf->ui_mouse_x >= e->calcprop.x && inf->ui_mouse_x < e->calcprop.x + e->calcprop.width &&
+        inf->ui_mouse_y >= e->calcprop.y && inf->ui_mouse_y < e->calcprop.y + e->calcprop.height) {
+            if ((int)e->calcprop.z <= z) {
+                continue;
+            } else {
+                z = (int)e->calcprop.z;
+                //printf("NEW Z: [%d]\n", z);
+            }
+            //printf("Hit: {%s}\n", e->name);
+            hit = i;
+        }
+    }
+    //printf("DONE: [z:%d]\n", z);
+    if (hit > -1) {
+        struct ui_elem* e = &elemdata->data[hit];
+        int newstate = (inf->ui_mouse_click) ? UI_STATE_CLICKED : UI_STATE_HOVERED;
+        bool fireevent = false;
+        if (e->state != newstate) {
+            fireevent = true;
+            for (int i = 0; i < hit; ++i) {
+                if (elemdata->data[i].state != UI_STATE_NORMAL) editUIElem(elemdata, i, UI_ATTR_STATE, UI_STATE_NORMAL, UI_ATTR_DONE, NULL);
+            }
+            editUIElem(elemdata, hit, UI_ATTR_STATE, newstate, UI_ATTR_DONE, NULL);
+            for (int i = hit + 1; i < elemdata->count; ++i) {
+                if (elemdata->data[i].state != UI_STATE_NORMAL) editUIElem(elemdata, i, UI_ATTR_STATE, UI_STATE_NORMAL, UI_ATTR_DONE, NULL);
+            }
+        }
+        if (fireevent && e->callback) {
+            if (inf->ui_mouse_click) {
+                e->callback(elemdata, hit, e, UI_EVENT_CLICK);
+            }
+        }
+        return true;
+    } else {
+        resetstate:;
+        for (int i = 0; i < elemdata->count; ++i) {
+            if (elemdata->data[i].state != UI_STATE_NORMAL) editUIElem(elemdata, i, UI_ATTR_STATE, UI_STATE_NORMAL, UI_ATTR_DONE, NULL);
+        }
+    }
+    return false;
+}
+
 static force_inline char* getProp(struct ui_elem* e, char* name) {
     for (int i = 0; i < e->properties; ++i) {
         if (e->propertydata[i].name && e->propertydata[i].value && *e->propertydata[i].value) {
@@ -287,7 +349,7 @@ static force_inline bool calcProp(struct ui_data* elemdata, struct ui_elem* e, b
             .z = 0
         };
     }
-    if (e->calcprop.changed || force) {
+    if (e->changed || force) {
         char* curprop;
         curprop = getProp(e, "margin");
         int mx0 = 0, my0 = 0, mx1 = 0, my1 = 0;
@@ -367,9 +429,13 @@ static force_inline bool calcProp(struct ui_data* elemdata, struct ui_elem* e, b
         if (curprop) e->calcprop.y += atof(curprop) * elemdata->scale;
         curprop = getProp(e, "z");
         e->calcprop.z = (curprop) ? atoi(curprop) : p_prop.z;
-        curprop = getProp(e, "hidden");
-        e->calcprop.hidden = (curprop) ? getBool(curprop) : false;
-        e->calcprop.changed = false;
+        if (p_prop.hidden) {
+            e->calcprop.hidden = true;
+        } else {
+            curprop = getProp(e, "hidden");
+            e->calcprop.hidden = (curprop) ? getBool(curprop) : false;
+        }
+        e->changed = false;
         e->calcprop.a = 255;
         curprop = getUIElemProperty(e, "alpha");
         if (curprop) e->calcprop.a = 255.0 * atof(curprop);
@@ -378,8 +444,6 @@ static force_inline bool calcProp(struct ui_data* elemdata, struct ui_elem* e, b
         e->calcprop.b = 127;
         curprop = getUIElemProperty(e, "color");
         if (curprop) sscanf(curprop, "#%02hhx%02hhx%02hhx", &e->calcprop.r, &e->calcprop.g, &e->calcprop.b);
-        curprop = getUIElemProperty(e, "state");
-        e->calcprop.state = (curprop) ? atoi(curprop) : 0;
         return true;
     }
     return false;

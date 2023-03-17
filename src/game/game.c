@@ -367,6 +367,10 @@ static void gameLoop() {
                         resetInput();
                         break;
                 }
+                //puts("START");
+                for (int i = 3; i >= 0; --i) {
+                    if (doUIEvents(&input, game_ui[i])) break;
+                }
                 break;
             }
         }
@@ -484,7 +488,21 @@ static void gameLoop() {
     stopMesher();
 }
 
-int ui_connect_status;
+static int button = 0;
+int ui_spbutton;
+int ui_mpbutton;
+int ui_opbutton;
+int ui_qbutton;
+
+static void btncb(struct ui_data* elemdata, int id, struct ui_elem* e, int event) {
+    switch (event) {
+        case UI_EVENT_CLICK:;
+            printf("Clicked on {%s}\n", e->name);
+            break;
+    }
+}
+
+static int ui_connect_status;
 
 static int shouldQuit() {
     getInput(NULL);
@@ -549,20 +567,20 @@ bool doGame() {
     int ui_main_menu_center = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_CONTAINER,
         UI_ATTR_NAME, "main_menu_center", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_DONE,
         "width", "0", "height", "0", NULL);
-    int ui_mpbutton = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
-        UI_ATTR_NAME, "mpbutton", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_PREV, ui_main_menu_center, UI_ATTR_DONE,
+    ui_mpbutton = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
+        UI_ATTR_NAME, "mpbutton", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_PREV, ui_main_menu_center, UI_ATTR_CALLBACK, btncb, UI_ATTR_DONE,
         "width", "320", "height", "32", "x_offset", "-4", "y_offset", "24", "text", "Multiplayer", "align", "0,0", "margin", "0,12,0,0", NULL);
-    int ui_spbutton = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
-        UI_ATTR_NAME, "spbutton", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_PREV, ui_mpbutton, UI_ATTR_DONE,
+    ui_spbutton = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
+        UI_ATTR_NAME, "spbutton", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_PREV, ui_mpbutton, UI_ATTR_CALLBACK, btncb, UI_ATTR_DONE,
         "width", "320", "height", "32", "x_offset", "-12", "text", "Singleplayer", "align", "0,1", "margin", "0,12,0,0", NULL);
-    int ui_opbutton = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
-        UI_ATTR_NAME, "opbutton", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_PREV, ui_mpbutton, UI_ATTR_DONE,
+    ui_opbutton = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
+        UI_ATTR_NAME, "opbutton", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_PREV, ui_mpbutton, UI_ATTR_CALLBACK, btncb, UI_ATTR_DONE,
         "width", "320", "height", "32", "x_offset", "4", "text", "Options", "align", "0,-1", "margin", "0,12,0,0", NULL);
     int ui_logo = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_CONTAINER,
         UI_ATTR_NAME, "logo", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_PREV, ui_spbutton, UI_ATTR_DONE,
         "width", "448", "height", "112", "x_offset", "3", "text", PROG_NAME, "text_scale", "7", "z", "100", "align", "0,1", "margin", "0,0,0,32", NULL);
-    int ui_qbutton = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
-        UI_ATTR_NAME, "qbutton", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_PREV, ui_opbutton, UI_ATTR_DONE,
+    ui_qbutton = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
+        UI_ATTR_NAME, "qbutton", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_PREV, ui_opbutton, UI_ATTR_CALLBACK, btncb, UI_ATTR_DONE,
         "width", "320", "height", "32", "x_offset", "12", "text", "Quit", "align", "0,-1", "margin", "0,12,0,0", NULL);
     int ui_version = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_CONTAINER,
         UI_ATTR_NAME, "version", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_PREV, ui_logo, UI_ATTR_DONE,
@@ -576,8 +594,7 @@ bool doGame() {
         bool waitwithvsync = getBool(getConfigKey(config, "Renderer", "waitWithVsync"));
         uint64_t fpsupdate = altutime();
         int frames = 0;
-        uint64_t time = altutime();
-        while (!quitRequest && altutime() - time < 1000000) {
+        while (!quitRequest) {
             uint64_t frametime = altutime();
             getInput(&input);
             switch (input.single_action) {
@@ -585,8 +602,12 @@ bool doGame() {
                     setFullscreen(!rendinf.fullscr);
                     break;
                 case INPUT_ACTION_SINGLE_DEBUG:;
-                    game_ui[UILAYER_DBGINF]->hidden = !(showDebugInfo = !showDebugInfo);
+                    game_ui[UILAYER_DBGINF]->hidden = showDebugInfo;
+                    showDebugInfo = !showDebugInfo;
                     break;
+            }
+            for (int i = 3; i >= 0; --i) {
+                if (doUIEvents(&input, game_ui[i])) break;
             }
             render();
             updateScreen();
@@ -612,6 +633,9 @@ bool doGame() {
                 highframetime = 0;
             }
             microwait(0);
+            switch (button) {
+                
+            }
         }
     }
     editUIElem(game_ui[UILAYER_INGAME], ui_main_menu, UI_ATTR_DONE, "hidden", "true", NULL);
