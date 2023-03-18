@@ -498,6 +498,7 @@ int ui_errbtn;
 int ui_okbtn;
 
 static void btncb(struct ui_data* elemdata, int id, struct ui_elem* e, int event) {
+    (void)elemdata;
     switch (event) {
         case UI_EVENT_CLICK:;
             printf("Clicked on {%s}\n", e->name);
@@ -609,27 +610,25 @@ bool doGame() {
     int ui_main_menu = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BOX,
         UI_ATTR_NAME, "main_menu", UI_ATTR_DONE,
         "width", "100%", "height", "100%", "color", "#000000", "alpha", "0.0", "z", "-100", NULL);
-    int ui_main_menu_center = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_CONTAINER,
-        UI_ATTR_NAME, "main_menu_center", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_DONE,
-        "width", "0", "height", "0", NULL);
-    ui_mpbtn = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
-        UI_ATTR_NAME, "mpbtn", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_PREV, ui_main_menu_center, UI_ATTR_CALLBACK, btncb, UI_ATTR_DONE,
-        "width", "320", "height", "32", "x_offset", "-4", "y_offset", "24", "text", "Multiplayer", "align", "0,0", "margin", "0,12,0,0", NULL);
+
     ui_spbtn = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
-        UI_ATTR_NAME, "spbtn", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_PREV, ui_mpbtn, UI_ATTR_CALLBACK, btncb, UI_ATTR_DONE,
-        "width", "320", "height", "32", "x_offset", "-8", "text", "Singleplayer", "align", "0,1", "margin", "0,12,0,0", NULL);
+        UI_ATTR_NAME, "spbtn", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_CALLBACK, btncb, UI_ATTR_DONE,
+        "width", "320", "height", "32", "x_offset", "-18", "y_offset", "-46", "text", "Singleplayer", NULL);
+    ui_mpbtn = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
+        UI_ATTR_NAME, "mpbtn", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_CALLBACK, btncb, UI_ATTR_DONE,
+        "width", "320", "height", "32", "x_offset", "-6", "y_offset", "-4", "text", "Multiplayer", NULL);
     ui_opbtn = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
-        UI_ATTR_NAME, "opbtn", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_PREV, ui_mpbtn, UI_ATTR_CALLBACK, btncb, UI_ATTR_DONE,
-        "width", "320", "height", "32", "x_offset", "8", "text", "Options", "align", "0,-1", "margin", "0,12,0,0", NULL);
-    int ui_logo = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_CONTAINER,
-        UI_ATTR_NAME, "logo", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_PREV, ui_spbtn, UI_ATTR_DONE,
-        "width", "448", "height", "112", "x_offset", "15", "text", PROG_NAME, "text_scale", "7", "z", "100", "align", "0,1", "margin", "0,0,0,32", NULL);
-    int ui_version = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_CONTAINER,
-        UI_ATTR_NAME, "version", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_PREV, ui_logo, UI_ATTR_DONE,
-        "width", "448", "height", "16", "x_offset", "-3", "y_offset", "-42", "text", "Version "VER_STR, "align", "0,-1", NULL);
+        UI_ATTR_NAME, "opbtn", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_CALLBACK, btncb, UI_ATTR_DONE,
+        "width", "320", "height", "32", "x_offset", "6", "y_offset", "38", "text", "Options", NULL);
     ui_qbtn = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
-        UI_ATTR_NAME, "qbtn", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_PREV, ui_opbtn, UI_ATTR_CALLBACK, btncb, UI_ATTR_DONE,
-        "width", "320", "height", "32", "x_offset", "8", "text", "Quit", "align", "0,-1", "margin", "0,12,0,0", NULL);
+        UI_ATTR_NAME, "qbtn", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_CALLBACK, btncb, UI_ATTR_DONE,
+        "width", "320", "height", "32", "x_offset", "18", "y_offset", "80", "text", "Quit", NULL);
+    int ui_logo = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_CONTAINER,
+        UI_ATTR_NAME, "logo", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_DONE,
+        "width", "448", "height", "112", "x_offset", "3", "y_offset", "-160", "text", PROG_NAME, "text_scale", "7", "z", "100", NULL);
+    /*int ui_version =*/ newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_CONTAINER,
+        UI_ATTR_NAME, "version", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_PREV, ui_logo, UI_ATTR_DONE,
+        "width", "448", "height", "16", "x_offset", "-3", "y_offset", "-16", "text", "Version "VER_STR, "align", "0,-1", NULL);
 
     ui_status = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_FANCYBOX,
         UI_ATTR_NAME, "status", UI_ATTR_DONE,
