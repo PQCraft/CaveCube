@@ -997,7 +997,6 @@ static pthread_t clinetthreadh;
 
 static void* clinetthread(void* args) {
     (void)args;
-    return NULL;
     unsigned tmpsize = 0;
     uint64_t acttime = altutime();
     bool cbresult = true;
