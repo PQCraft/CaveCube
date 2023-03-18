@@ -614,7 +614,7 @@ bool doGame() {
         "width", "0", "height", "0", NULL);
     ui_mpbtn = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
         UI_ATTR_NAME, "mpbtn", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_PREV, ui_main_menu_center, UI_ATTR_CALLBACK, btncb, UI_ATTR_DONE,
-        "width", "320", "height", "32", "x_offset", "-8", "y_offset", "24", "text", "Multiplayer", "align", "0,0", "margin", "0,12,0,0", NULL);
+        "width", "320", "height", "32", "x_offset", "-4", "y_offset", "24", "text", "Multiplayer", "align", "0,0", "margin", "0,12,0,0", NULL);
     ui_spbtn = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
         UI_ATTR_NAME, "spbtn", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_PREV, ui_mpbtn, UI_ATTR_CALLBACK, btncb, UI_ATTR_DONE,
         "width", "320", "height", "32", "x_offset", "-8", "text", "Singleplayer", "align", "0,1", "margin", "0,12,0,0", NULL);
@@ -623,7 +623,7 @@ bool doGame() {
         "width", "320", "height", "32", "x_offset", "8", "text", "Options", "align", "0,-1", "margin", "0,12,0,0", NULL);
     int ui_logo = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_CONTAINER,
         UI_ATTR_NAME, "logo", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_PREV, ui_spbtn, UI_ATTR_DONE,
-        "width", "448", "height", "112", "x_offset", "3", "text", PROG_NAME, "text_scale", "7", "z", "100", "align", "0,1", "margin", "0,0,0,32", NULL);
+        "width", "448", "height", "112", "x_offset", "15", "text", PROG_NAME, "text_scale", "7", "z", "100", "align", "0,1", "margin", "0,0,0,32", NULL);
     ui_qbtn = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
         UI_ATTR_NAME, "qbtn", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_PREV, ui_opbtn, UI_ATTR_CALLBACK, btncb, UI_ATTR_DONE,
         "width", "320", "height", "32", "x_offset", "8", "text", "Quit", "align", "0,-1", "margin", "0,12,0,0", NULL);
