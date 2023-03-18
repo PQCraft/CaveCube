@@ -624,12 +624,12 @@ bool doGame() {
     int ui_logo = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_CONTAINER,
         UI_ATTR_NAME, "logo", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_PREV, ui_spbtn, UI_ATTR_DONE,
         "width", "448", "height", "112", "x_offset", "15", "text", PROG_NAME, "text_scale", "7", "z", "100", "align", "0,1", "margin", "0,0,0,32", NULL);
+    int ui_version = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_CONTAINER,
+        UI_ATTR_NAME, "version", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_PREV, ui_logo, UI_ATTR_DONE,
+        "width", "448", "height", "16", "x_offset", "-3", "y_offset", "-42", "text", "Version "VER_STR, "align", "0,-1", NULL);
     ui_qbtn = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
         UI_ATTR_NAME, "qbtn", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_PREV, ui_opbtn, UI_ATTR_CALLBACK, btncb, UI_ATTR_DONE,
         "width", "320", "height", "32", "x_offset", "8", "text", "Quit", "align", "0,-1", "margin", "0,12,0,0", NULL);
-    int ui_version = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_CONTAINER,
-        UI_ATTR_NAME, "version", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_PREV, ui_logo, UI_ATTR_DONE,
-        "width", "448", "height", "16", "x_offset", "3", "y_offset", "-42", "text", "Version "VER_STR, "align", "0,-1", NULL);
 
     ui_status = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_FANCYBOX,
         UI_ATTR_NAME, "status", UI_ATTR_DONE,
