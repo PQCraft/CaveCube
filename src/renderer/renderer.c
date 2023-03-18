@@ -1570,7 +1570,6 @@ static force_inline bool renderUI(struct ui_data* data) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glBindBuffer(GL_ARRAY_BUFFER, data->renddata.VBO);
     if (calcUIProperties(data)) {
-        //puts("MESH");
         struct meshdata mdata;
         mdata.s = 64;
         mdata._v = malloc(mdata.s * sizeof(uint32_t));
