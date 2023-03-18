@@ -319,9 +319,11 @@ bool doUIEvents(struct input_info* inf, struct ui_data* elemdata) {
         }
         return true;
     } else {
-        resetstate:;
-        for (int i = 0; i < elemdata->count; ++i) {
-            if (elemdata->data[i].state != UI_STATE_NORMAL) editUIElem(elemdata, i, UI_ATTR_STATE, UI_STATE_NORMAL, UI_ATTR_DONE, NULL);
+        if (!(inf->ui_mouse_click && prevclick)) {
+            resetstate:;
+            for (int i = 0; i < elemdata->count; ++i) {
+                if (elemdata->data[i].state != UI_STATE_NORMAL) editUIElem(elemdata, i, UI_ATTR_STATE, UI_STATE_NORMAL, UI_ATTR_DONE, NULL);
+            }
         }
     }
     return false;

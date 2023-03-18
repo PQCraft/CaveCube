@@ -609,20 +609,20 @@ bool doGame() {
 
     int ui_main_menu = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BOX,
         UI_ATTR_NAME, "main_menu", UI_ATTR_DONE,
-        "width", "100%", "height", "100%", "color", "#000000", "alpha", "0.0", "z", "-100", NULL);
+        "width", "100%", "height", "100%", "color", "#000000", "alpha", "0.0", "z", "-76", NULL);
 
     ui_spbtn = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
         UI_ATTR_NAME, "spbtn", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_CALLBACK, btncb, UI_ATTR_DONE,
-        "width", "320", "height", "32", "x_offset", "-18", "y_offset", "-46", "text", "Singleplayer", NULL);
+        "width", "320", "height", "32", "x_offset", "-18", "y_offset", "-44", "text", "Singleplayer", NULL);
     ui_mpbtn = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
         UI_ATTR_NAME, "mpbtn", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_CALLBACK, btncb, UI_ATTR_DONE,
-        "width", "320", "height", "32", "x_offset", "-6", "y_offset", "-4", "text", "Multiplayer", NULL);
+        "width", "320", "height", "32", "x_offset", "-6", "y_offset", "0", "text", "Multiplayer", NULL);
     ui_opbtn = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
         UI_ATTR_NAME, "opbtn", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_CALLBACK, btncb, UI_ATTR_DONE,
-        "width", "320", "height", "32", "x_offset", "6", "y_offset", "38", "text", "Options", NULL);
+        "width", "320", "height", "32", "x_offset", "6", "y_offset", "44", "text", "Options", NULL);
     ui_qbtn = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
         UI_ATTR_NAME, "qbtn", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_CALLBACK, btncb, UI_ATTR_DONE,
-        "width", "320", "height", "32", "x_offset", "18", "y_offset", "80", "text", "Quit", NULL);
+        "width", "320", "height", "32", "x_offset", "18", "y_offset", "88", "text", "Quit", NULL);
     int ui_logo = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_CONTAINER,
         UI_ATTR_NAME, "logo", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_DONE,
         "width", "448", "height", "112", "x_offset", "3", "y_offset", "-160", "text", PROG_NAME, "text_scale", "7", "z", "100", NULL);
@@ -694,12 +694,12 @@ bool doGame() {
                     } else {
                         editUIElem(game_ui[UILAYER_INGAME], ui_main_menu, UI_ATTR_DONE, "hidden", "false", NULL);
                     }
+                } else if (clickedbtn == ui_qbtn) {
+                    goto longbreak;
                 } else if (clickedbtn == ui_okbtn) {
                     editUIElem(game_ui[UILAYER_INGAME], ui_status, UI_ATTR_DONE, "text", "", "hidden", "true", NULL);
                     editUIElem(game_ui[UILAYER_INGAME], ui_okbtn, UI_ATTR_DONE, "hidden", "true", NULL);
                     editUIElem(game_ui[UILAYER_INGAME], ui_main_menu, UI_ATTR_DONE, "hidden", "false", NULL);
-                } else if (clickedbtn == ui_qbtn) {
-                    goto longbreak;
                 }
                 clickedbtn = -1;
                 game_ui[UILAYER_DBGINF]->hidden = !showDebugInfo;
