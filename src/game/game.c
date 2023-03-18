@@ -533,7 +533,7 @@ static bool connectToServ(char* addr, int port, char* error, int errlen) {
         }
         inf.in.quit = shouldQuit;
         inf.in.settext = setText;
-        inf.in.timeout = 100;
+        inf.in.timeout = 1000;
         inf.in.login.new = true;
         inf.in.login.username = getConfigKey(config, "Player", "name");
         if (!cliConnectAndSetup((addr) ? addr : "127.0.0.1", port, handleServer, err, sizeof(err), &inf)) {
