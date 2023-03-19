@@ -4,7 +4,6 @@
 #include "input.h" 
 #include <common/common.h>
 #include <renderer/renderer.h>
-#include <renderer/ui.h>
 #include <game/game.h>
 #ifdef __EMSCRIPTEN__
     #include <emscripten/html5.h>
@@ -198,7 +197,6 @@ void setInputMode(int mode) {
             #ifdef __EMSCRIPTEN__
             emscripten_request_pointerlock("canvas", true);
             #endif
-            if (game_ui[UILAYER_INGAME]) game_ui[UILAYER_INGAME]->hidden = true;
             break;
         default:;
             #if defined(USESDL2)
@@ -211,7 +209,6 @@ void setInputMode(int mode) {
             emscripten_exit_pointerlock();
             #endif
             */
-            if (game_ui[UILAYER_INGAME]) game_ui[UILAYER_INGAME]->hidden = false;
             break;
     }
 }

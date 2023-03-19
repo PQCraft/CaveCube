@@ -13,6 +13,7 @@
     - Add event for collecting player info
     - Add event for running physics
     - Add event for handling game logic
+- Decrustify server message UUID and pdata validity checks
 - Make it so that timers are not pushed again until an acknowledge (prevents overflow)
 - Make server ask for and handle player's positions
 - Clean up cave culling crust in renderer
@@ -54,3 +55,4 @@
 - Server now also disconnects on a write error
 - Fixed a bug that prevented Windows from connecting in -connect mode
 - New worldgen
+- Memory management fixes

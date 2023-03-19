@@ -1357,6 +1357,7 @@ struct muie_textline {
 };
 
 static force_inline void meshUIElem(struct meshdata* md, struct ui_data* elemdata, struct ui_elem* e) {
+    //printf("mesh: {%s} [hidden:%d]\n", e->name, e->calcprop.hidden);
     struct ui_elem_calcprop* p = &e->calcprop;
     int s = elemdata->scale;
     char* curprop;
@@ -1561,17 +1562,22 @@ static force_inline void meshUIElem(struct meshdata* md, struct ui_data* elemdat
 }
 
 static inline void meshUIElemTree(struct meshdata* md, struct ui_data* elemdata, struct ui_elem* e) {
-    if (e->calcprop.hidden) return;
     meshUIElem(md, elemdata, e);
     for (int i = 0; i < e->children; ++i) {
-        if (isUIIdValid(elemdata, e->childdata[i])) meshUIElemTree(md, elemdata, &elemdata->data[e->childdata[i]]);
+        if (isUIElemValid(elemdata, e->childdata[i])) {
+            struct ui_elem* c = &elemdata->data[e->childdata[i]];
+            if (!c->calcprop.hidden) {
+                meshUIElemTree(md, elemdata, c);
+            }
+        }
     }
 }
 
 static force_inline void meshUIElems(struct meshdata* md, struct ui_data* elemdata) {
     for (int i = 0; i < elemdata->count; ++i) {
         struct ui_elem* e = &elemdata->data[i];
-        if (e->parent < 0 && !e->calcprop.hidden) {
+        if (isUIElemValid(elemdata, i) && e->parent < 0 && !e->calcprop.hidden) {
+            //printf("%s\n", e->name);
             meshUIElemTree(md, elemdata, e);
         }
     }

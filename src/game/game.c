@@ -227,6 +227,7 @@ static void gameLoop() {
     startMesher();
     setRandSeed(8, altutime());
 
+    game_ui[UILAYER_INGAME]->hidden = true;
     rendergame = true;
 
     rendinf.camrot.x = 0.0;
@@ -256,9 +257,9 @@ static void gameLoop() {
     int ui_main = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BOX,
         UI_ATTR_NAME, "main", UI_ATTR_DONE,
         "width", "100%", "height", "100%", "color", "#000000", "alpha", "0.25", "z", "-100", NULL);
-    int ui_placeholder = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_FANCYBOX,
+    int ui_placeholder = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
         UI_ATTR_NAME, "placeholder", UI_ATTR_PARENT, ui_main, UI_ATTR_DONE,
-        "width", "128", "height", "36", "text", "[Placeholder]", NULL);
+        "width", "320", "height", "32", "text", "Return", NULL);
 
     int ui_hotbar = newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_HOTBAR,
         UI_ATTR_NAME, "hotbar", UI_ATTR_DONE,
@@ -276,6 +277,7 @@ static void gameLoop() {
         frametime = altutime();
         getInput(&input);
         if (!input.focus && inputMode != INPUT_MODE_UI) {
+            game_ui[UILAYER_INGAME]->hidden = false;
             setInputMode(INPUT_MODE_UI);
             resetInput();
         }
@@ -391,6 +393,7 @@ static void gameLoop() {
                         //if (blocksub < 0) blocksub = 0;
                         break;
                     case INPUT_ACTION_SINGLE_ESC:;
+                        game_ui[UILAYER_INGAME]->hidden = false;
                         setInputMode(INPUT_MODE_UI);
                         resetInput();
                         break;
@@ -400,6 +403,7 @@ static void gameLoop() {
             case INPUT_MODE_UI:; {
                 switch (input.single_action) {
                     case INPUT_ACTION_SINGLE_ESC:;
+                        game_ui[UILAYER_INGAME]->hidden = true;
                         setInputMode(INPUT_MODE_GAME);
                         resetInput();
                         break;
@@ -501,6 +505,9 @@ static void gameLoop() {
     deleteUIElem(game_ui[UILAYER_CLIENT], ui_hotbar);
 
     stopMesher();
+
+    rendergame = false;
+    game_ui[UILAYER_INGAME]->hidden = false;
 }
 
 static bool pb_init = false;
@@ -517,11 +524,11 @@ static void pb_cancelcb(struct ui_data* elemdata, int id, struct ui_elem* e, int
         pb_clickedcancel = true;
     }
 }
-static void showProgressBox(char* title, char* text, float progress) {
+static void showProgressBox(char* title, char* text, float progress, bool showcancel) {
     if (!pb_init) {
         pb_parent = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_CONTAINER,
             UI_ATTR_NAME, "pb_parent", UI_ATTR_DONE,
-            "width", "50%", NULL);
+            "width", "50%", "z", "100", NULL);
         pb_box = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_FANCYBOX,
             UI_ATTR_NAME, "pb_box", UI_ATTR_PARENT, pb_parent, UI_ATTR_DONE,
             "width", "100%", "height", "80", "text_margin", "8,8", "text_align", "-1,-1", NULL);
@@ -530,7 +537,7 @@ static void showProgressBox(char* title, char* text, float progress) {
             "width", "100%", "height", "32", "align", "0,-1", "y_offset", "-30", "text_margin", "8,8", "text_align", "-1,-1", NULL);
         pb_pbar = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_PROGRESSBAR,
             UI_ATTR_NAME, "pb_pbar", UI_ATTR_PARENT, pb_parent, UI_ATTR_PREV, pb_box, UI_ATTR_DONE,
-            "width", "100%-62", "height", "32", "align", "-1,1", "y_offset", "30", NULL);
+            "height", "32", "align", "-1,1", "y_offset", "30", NULL);
         pb_cancel = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
             UI_ATTR_NAME, "pb_cancel", UI_ATTR_PARENT, pb_parent, UI_ATTR_PREV, pb_box, UI_ATTR_CALLBACK, pb_cancelcb, UI_ATTR_DONE,
             "width", "64", "height", "32", "align", "1,1", "y_offset", "30", "text", "Cancel", NULL);
@@ -541,8 +548,9 @@ static void showProgressBox(char* title, char* text, float progress) {
     editUIElem(game_ui[UILAYER_INGAME], pb_box, UI_ATTR_DONE, "text", text, NULL);
     char pstr[16];
     snprintf(pstr, sizeof(pstr), "%g", progress);
-    printf("progress: [%g]->{%s}\n", progress, pstr);
-    editUIElem(game_ui[UILAYER_INGAME], pb_pbar, UI_ATTR_DONE, "progress", pstr, NULL);
+    //printf("progress: [%g]->{%s}\n", progress, pstr);
+    editUIElem(game_ui[UILAYER_INGAME], pb_pbar, UI_ATTR_DONE, "width", ((showcancel) ? "100%-62" : "100%"), "progress", pstr, NULL);
+    editUIElem(game_ui[UILAYER_INGAME], pb_cancel, UI_ATTR_DONE, "hidden", ((showcancel) ? "false" : "true"), NULL);
     static struct input_info input;
     getInput(&input);
     commonEvents(&input);
@@ -582,7 +590,7 @@ static void dispErrorBox(char* title, char* text) {
     if (!eb_parent) {
         eb_parent = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_CONTAINER,
             UI_ATTR_NAME, "eb_parent", UI_ATTR_DONE,
-            "width", "50%", NULL);
+            "width", "50%", "z", "100", NULL);
         eb_box = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_FANCYBOX,
             UI_ATTR_NAME, "eb_box", UI_ATTR_PARENT, eb_parent, UI_ATTR_DONE,
             "width", "100%", "height", "80", "text_margin", "8,8", "text_align", "-1,-1", NULL);
@@ -620,7 +628,7 @@ static int connectToServ_shouldQuit() {
 static void connectToServ_setText(char* _text, float progress) {
     char text[4096] = "Connecting to server...\n";
     snprintf(text, sizeof(text), "Connecting to server: %s", _text);
-    showProgressBox(NULL, text, progress);
+    showProgressBox(NULL, text, progress, true);
 }
 
 static int connectToServ(char* addr, int port, char* error, int errlen) {
@@ -635,7 +643,7 @@ static int connectToServ(char* addr, int port, char* error, int errlen) {
         }
         inf.in.quit = connectToServ_shouldQuit;
         inf.in.settext = connectToServ_setText;
-        inf.in.timeout = 10000;
+        inf.in.timeout = 500;
         inf.in.login.new = true;
         inf.in.login.username = getConfigKey(config, "Player", "name");
         int ecode = cliConnectAndSetup((addr) ? addr : "127.0.0.1", port, handleServer, err, sizeof(err), &inf);
@@ -661,7 +669,7 @@ static int startSPGame(char* error, int errlen) {
     cores -= SERVER_THREADS;
     MESHER_THREADS = cores;
 
-    showProgressBox("Starting singleplayer game...", "Starting server...", 0.0);
+    showProgressBox("Starting singleplayer game...", "Starting server...", 0.0, false);
     int servport;
     if ((servport = startServer(NULL, 0, 1, "World")) < 0) {
         fputs("Failed to start server\n", stderr);
@@ -669,6 +677,7 @@ static int startSPGame(char* error, int errlen) {
         hideProgressBox();
         return 0;
     }
+    showProgressBox(NULL, "Connecting to server...", 0.0, true);
     if (progressBoxCancelled()) {
         hideProgressBox();
         goto usercancel;
@@ -678,7 +687,10 @@ static int startSPGame(char* error, int errlen) {
     hideProgressBox();
     if (ecode == 0) {
         snprintf(error, errlen, "Failed to connect to server: %s", serverr);
+        showProgressBox("Stopping singleplayer game...", "Stopping server...", 0.0, false);
         stopServer();
+        showProgressBox(NULL, "Stopping server...", 100.0, false);
+        hideProgressBox();
         return 0;
     } else if (ecode == -1) {
         goto usercancel;
@@ -688,7 +700,10 @@ static int startSPGame(char* error, int errlen) {
     cliDisconnect();
     usercancel:;
 
+    showProgressBox("Stopping singleplayer game...", "Stopping server...", 0.0, false);
     stopServer();
+    showProgressBox(NULL, "Stopping server...", 100.0, false);
+    hideProgressBox();
 
     return 1;
 }
@@ -745,7 +760,7 @@ bool doGame() {
         "width", "320", "height", "32", "x_offset", "18", "y_offset", "88", "text", "Quit", NULL);
     int ui_logo = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_CONTAINER,
         UI_ATTR_NAME, "logo", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_DONE,
-        "width", "448", "height", "112", "x_offset", "3", "y_offset", "-160", "text", PROG_NAME, "text_scale", "7", "z", "100", NULL);
+        "width", "448", "height", "112", "x_offset", "3", "y_offset", "-160", "text", PROG_NAME, "text_scale", "7", NULL);
     /*int ui_version =*/ newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_CONTAINER,
         UI_ATTR_NAME, "version", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_PREV, ui_logo, UI_ATTR_DONE,
         "width", "448", "height", "16", "x_offset", "-3", "y_offset", "4", "text", "Version "VER_STR, "align", "0,1", NULL);
@@ -773,6 +788,10 @@ bool doGame() {
                     dispErrorBox("Failed to start singleplayer game", error);
                 }
                 editUIElem(game_ui[UILAYER_INGAME], ui_main_menu, UI_ATTR_DONE, "hidden", "false", NULL);
+            } else if (doGame_clickedbtn == ui_mpbtn) {
+                dispErrorBox("Not implemented", "The multiplayer menu has not been implemented yet.");
+            } else if (doGame_clickedbtn == ui_opbtn) {
+                dispErrorBox("Not implemented", "The options menu has not been implemented yet.");
             } else if (doGame_clickedbtn == ui_qbtn) {
                 goto longbreak;
             }

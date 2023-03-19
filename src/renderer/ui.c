@@ -477,7 +477,7 @@ static inline bool calcPropTree(struct ui_data* elemdata, struct ui_elem* e, boo
     if (calcProp(elemdata, e, force)) force = true;
     bool ret = force;
     for (int i = 0; i < e->children; ++i) {
-        if (idValid(e->childdata[i])) {
+        if (elemValid(e->childdata[i])) {
             if (calcPropTree(elemdata, &elemdata->data[e->childdata[i]], force)) ret = true;
         }
     }
@@ -496,7 +496,7 @@ bool calcUIProperties(struct ui_data* elemdata) {
     }
     for (int i = 0; i < elemdata->count; ++i) {
         struct ui_elem* e = &elemdata->data[i];
-        if (e->parent < 0) {
+        if (e->parent < 0 && elemValid(i)) {
             if (calcPropTree(elemdata, e, force)) ret = true;
         }
     }
