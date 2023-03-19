@@ -661,7 +661,6 @@ static int startSPGame(char* error, int errlen) {
     cores -= SERVER_THREADS;
     MESHER_THREADS = cores;
 
-    frametime = altutime();
     showProgressBox("Starting singleplayer game...", "Starting server...", 0.0);
     int servport;
     if ((servport = startServer(NULL, 0, 1, "World")) < 0) {
@@ -769,6 +768,7 @@ bool doGame() {
             char error[4096];
             if (doGame_clickedbtn == ui_spbtn) {
                 editUIElem(game_ui[UILAYER_INGAME], ui_main_menu, UI_ATTR_DONE, "hidden", "true", NULL);
+                frametime = altutime();
                 if (!startSPGame(error, sizeof(error))) {
                     dispErrorBox("Failed to start singleplayer game", error);
                 }
