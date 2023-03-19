@@ -84,7 +84,7 @@ void genChunk(int64_t cx, int64_t cz, struct blockdata* data, int type) {
                 } break;
                 case 1:; {
                     bool block[512] = {0};
-                    float height = nperlin2d(1, cx, cz, 0.0042, 4) * 1.1 + 0.15;
+                    float height = nperlin2d(1, cx, cz, 0.0042, 4) * 1.2 + 0.1;
                     float heightmult = tanhf(nperlin2d(2, cx, cz, 0.00267, 2) * 2.5 + 0.33) * 0.5 + 0.5;
                     float humidity = clamp(nperlin2d(3, cx, cz, 0.00127, 1) * 6.9 + 3.33) * 0.5 + 0.5;
                     heightmult *= (humidity * 0.9 + 0.15);
@@ -166,8 +166,8 @@ void genChunk(int64_t cx, int64_t cz, struct blockdata* data, int type) {
                         if (sliver[i].id && sliver[i].id != water) {
                             float fi = i;
                             float cave = noise3(16, cx / 20.1473, fi / 15.21837, cz / 20.1473);
-                            float cavemult = tanhf(((fabs(fi - (finalheight / 2.0)) / round(finalheight * 1.045)) * 2.0 - 1.0) * 16.0) * 0.5 + 0.5;
-                            if (cave > cavemult + 0.35) {
+                            float cavemult = tanhf(((fabs(fi - (finalheight / 2.0)) / round(finalheight * 1.05)) * 2.0 - 1.0) * 16.0) * 0.5 + 0.5;
+                            if (cave > cavemult + 0.37) {
                                 sliver[i].id = 0;
                                 sliver[i].subid = 0;
                             }
