@@ -522,7 +522,7 @@ static void* servthread(void* args) {
         } else if (altutime() - acttime > 100000) {
             microwait(50000);
         }
-        microwait(0);
+        microwait(9000000);
     }
     return NULL;
 }
@@ -1313,14 +1313,14 @@ static bool _tmpcb(int msg, void* _data) {
     return true;
 }
 
-bool cliConnectAndSetup(char* addr, int port, bool (*cb)(int, void*), char* err, int errlen, struct cliSetupInfo* inf) {
+int cliConnectAndSetup(char* addr, int port, bool (*cb)(int, void*), char* err, int errlen, struct cliSetupInfo* inf) {
     setuperr = err;
     setuperrsz = errlen;
     setupinf = inf;
     uint64_t timeout = inf->in.timeout * 1000;
     if (!cliConnect(addr, port, _tmpcb)) {
-        snprintf(err, errlen, "Could not connect to server");
-        return false;
+        snprintf(err, errlen, "Could not make connection to server");
+        return 0;
     }
 
     if (inf->in.settext) inf->in.settext("Pinging server...");
@@ -1328,8 +1328,7 @@ bool cliConnectAndSetup(char* addr, int port, bool (*cb)(int, void*), char* err,
     cliSend(CLIENT_PING);
     uint64_t time = altutime();
     while (!ping) {
-        if (inf->in.quit && inf->in.quit()) {err[0] = 0; goto retfalse;}
-        microwait(15000);
+        if (inf->in.quit && inf->in.quit()) {err[0] = 0; goto retuser;}
         if (altutime() - time > timeout) {
             snprintf(err, errlen, "Timed out waiting for pong");
             goto retfalse;
@@ -1343,8 +1342,7 @@ bool cliConnectAndSetup(char* addr, int port, bool (*cb)(int, void*), char* err,
     cliSend(CLIENT_COMPATINFO, VER_MAJOR, VER_MINOR, VER_PATCH, PROG_NAME);
     time = altutime();
     while (!compatinfo) {
-        if (inf->in.quit && inf->in.quit()) {err[0] = 0; goto retfalse;}
-        microwait(15000);
+        if (inf->in.quit && inf->in.quit()) {err[0] = 0; goto retuser;}
         if (altutime() - time > timeout) {
             snprintf(err, errlen, "Timed out waiting for compatibility info");
             goto retfalse;
@@ -1373,8 +1371,7 @@ bool cliConnectAndSetup(char* addr, int port, bool (*cb)(int, void*), char* err,
         cliSend(CLIENT_NEWUID, inf->in.login.password);
         time = altutime();
         while (!newuid && !disconnect) {
-            if (inf->in.quit && inf->in.quit()) {err[0] = 0; goto retfalse;}
-            microwait(15000);
+            if (inf->in.quit && inf->in.quit()) {err[0] = 0; goto retuser;}
             if (altutime() - time > timeout) {
                 snprintf(err, errlen, "Timed out waiting for new UID");
                 goto retfalse;
@@ -1396,8 +1393,7 @@ bool cliConnectAndSetup(char* addr, int port, bool (*cb)(int, void*), char* err,
     cliSend(CLIENT_LOGIN, inf->in.login.flags, uid, inf->in.login.password, inf->in.login.username);
     time = altutime();
     while (!loginok && !disconnect) {
-        if (inf->in.quit && inf->in.quit()) {err[0] = 0; goto retfalse;}
-        microwait(15000);
+        if (inf->in.quit && inf->in.quit()) {err[0] = 0; goto retuser;}
         if (altutime() - time > timeout) {
             snprintf(err, errlen, "Timed out waiting for login");
             goto retfalse;
@@ -1426,12 +1422,17 @@ bool cliConnectAndSetup(char* addr, int port, bool (*cb)(int, void*), char* err,
     sprintf(name, "%.8s:ct", name2);
     pthread_setname_np(clinetthreadh, name);
     #endif
-    return true;
+    return 1;
 
     retfalse:;
     clientalive = false;
     pthread_join(clinetthreadh, NULL);
-    return false;
+    return 0;
+
+    retuser:;
+    clientalive = false;
+    pthread_join(clinetthreadh, NULL);
+    return -1;
 }
 
 void cliDisconnect() {

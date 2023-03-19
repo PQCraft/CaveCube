@@ -413,8 +413,8 @@ static force_inline bool calcProp(struct ui_data* elemdata, struct ui_elem* e, b
         {
             curprop = getProp(e, "align");
             if (curprop) sscanf(curprop, "%hhd,%hhd", &e->calcprop.alignx, &e->calcprop.aligny);
-            float x0 = (prev) ? l_prop.x + l_prop.width + mx0 + l_prop.marginr : p_prop.x;
-            float x1 = (prev) ? l_prop.x - mx1 - l_prop.marginl : p_prop.x + p_prop.width;
+            float x0 = (prev) ? l_prop.x : p_prop.x;
+            float x1 = (prev) ? l_prop.x + l_prop.width : p_prop.x + p_prop.width;
             switch (e->calcprop.alignx) {
                 case -1:;
                     e->calcprop.x = x0;
@@ -426,8 +426,8 @@ static force_inline bool calcProp(struct ui_data* elemdata, struct ui_elem* e, b
                     e->calcprop.x = x1 - e->calcprop.width;
                     break;
             }
-            float y0 = (prev) ? l_prop.y + l_prop.height + my0 + l_prop.marginb : p_prop.y;
-            float y1 = (prev) ? l_prop.y - my1 - l_prop.margint : p_prop.y + p_prop.height;
+            float y0 = (prev) ? l_prop.y : p_prop.y;
+            float y1 = (prev) ? l_prop.y + l_prop.height : p_prop.y + p_prop.height;
             switch (e->calcprop.aligny) {
                 case -1:;
                     e->calcprop.y = y0;
@@ -441,9 +441,9 @@ static force_inline bool calcProp(struct ui_data* elemdata, struct ui_elem* e, b
             }
         }
         curprop = getProp(e, "x_offset");
-        if (curprop) e->calcprop.x += atof(curprop) * elemdata->scale;
+        if (curprop) e->calcprop.x += getSize(curprop, (float)e->calcprop.width / elemdata->scale) * elemdata->scale;
         curprop = getProp(e, "y_offset");
-        if (curprop) e->calcprop.y += atof(curprop) * elemdata->scale;
+        if (curprop) e->calcprop.y += getSize(curprop, (float)e->calcprop.height / elemdata->scale) * elemdata->scale;
         curprop = getProp(e, "z");
         e->calcprop.z = (curprop) ? atoi(curprop) : p_prop.z;
         if (p_prop.hidden) {
