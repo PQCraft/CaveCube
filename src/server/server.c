@@ -1323,7 +1323,9 @@ int cliConnectAndSetup(char* addr, int port, bool (*cb)(int, void*), char* err, 
         return 0;
     }
 
-    if (inf->in.settext) inf->in.settext("Pinging server...");
+    float taskct = 4.0;
+    float task = 0.0;
+    if (inf->in.settext) inf->in.settext("Pinging server...", (task++ / taskct) * 100.0);
     puts("Pinging server...");
     cliSend(CLIENT_PING);
     uint64_t time = altutime();
@@ -1337,7 +1339,7 @@ int cliConnectAndSetup(char* addr, int port, bool (*cb)(int, void*), char* err, 
     time = (altutime() - time) / 1000;
     printf("Server responded in %"PRId64" ms\n", time);
 
-    if (inf->in.settext) inf->in.settext("Checking compatibility...");
+    if (inf->in.settext) inf->in.settext("Checking compatibility...", (task++ / taskct) * 100.0);
     puts("Sending compatibility info...");
     cliSend(CLIENT_COMPATINFO, VER_MAJOR, VER_MINOR, VER_PATCH, PROG_NAME);
     time = altutime();
@@ -1365,9 +1367,10 @@ int cliConnectAndSetup(char* addr, int port, bool (*cb)(int, void*), char* err, 
     uint64_t uid;
     if (setupinf->out.srv.flags & SERVER_COMPATINFO_FLAG_NOAUTH) {
         uid = 0;
+        ++task;
     } else if (inf->in.login.new) {
         puts("Requesting new UID...");
-        if (inf->in.settext) inf->in.settext("Requesting new UID...");
+        if (inf->in.settext) inf->in.settext("Requesting new UID...", (task++ / taskct) * 100.0);
         cliSend(CLIENT_NEWUID, inf->in.login.password);
         time = altutime();
         while (!newuid && !disconnect) {
@@ -1385,8 +1388,9 @@ int cliConnectAndSetup(char* addr, int port, bool (*cb)(int, void*), char* err, 
         uid = setupinf->out.login.uid;
     } else {
         uid = setupinf->in.login.uid;
+        ++task;
     }
-    if (inf->in.settext) inf->in.settext("Logging in...");
+    if (inf->in.settext) inf->in.settext("Logging in...", (task++ / taskct) * 100.0);
     puts("Sending login info...");
     printf("- Login code: %016"PRIX64"%016"PRIX64"\n", uid, inf->in.login.password);
     printf("- Username: %s\n", inf->in.login.username);
@@ -1425,19 +1429,24 @@ int cliConnectAndSetup(char* addr, int port, bool (*cb)(int, void*), char* err, 
     return 1;
 
     retfalse:;
-    clientalive = false;
-    pthread_join(clinetthreadh, NULL);
+    cliDisconnect();
     return 0;
 
     retuser:;
-    clientalive = false;
-    pthread_join(clinetthreadh, NULL);
+    cliDisconnect();
     return -1;
 }
 
 void cliDisconnect() {
     clientalive = false;
     pthread_join(clinetthreadh, NULL);
+    deinitMsgData(&climsgout);
+    closeCxn(clicxn);
+    ping = false;
+    compatinfo = false;
+    newuid = false;
+    loginok = false;
+    disconnect = false;
 }
 
 void cliSend(int id, ...) {

@@ -530,7 +530,7 @@ static void showProgressBox(char* title, char* text, float progress) {
             "width", "100%", "height", "32", "align", "0,-1", "y_offset", "-30", "text_margin", "8,8", "text_align", "-1,-1", NULL);
         pb_pbar = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_PROGRESSBAR,
             UI_ATTR_NAME, "pb_pbar", UI_ATTR_PARENT, pb_parent, UI_ATTR_PREV, pb_box, UI_ATTR_DONE,
-            "width", "100%", "height", "32", "margin", "0,0,0,64", "align", "-1,1", "y_offset", "30", NULL);
+            "width", "100%-62", "height", "32", "align", "-1,1", "y_offset", "30", NULL);
         pb_cancel = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
             UI_ATTR_NAME, "pb_cancel", UI_ATTR_PARENT, pb_parent, UI_ATTR_PREV, pb_box, UI_ATTR_CALLBACK, pb_cancelcb, UI_ATTR_DONE,
             "width", "64", "height", "32", "align", "1,1", "y_offset", "30", "text", "Cancel", NULL);
@@ -541,6 +541,7 @@ static void showProgressBox(char* title, char* text, float progress) {
     editUIElem(game_ui[UILAYER_INGAME], pb_box, UI_ATTR_DONE, "text", text, NULL);
     char pstr[16];
     snprintf(pstr, sizeof(pstr), "%g", progress);
+    printf("progress: [%g]->{%s}\n", progress, pstr);
     editUIElem(game_ui[UILAYER_INGAME], pb_pbar, UI_ATTR_DONE, "progress", pstr, NULL);
     static struct input_info input;
     getInput(&input);
@@ -627,10 +628,10 @@ static int connectToServ_shouldQuit() {
     return quitRequest || progressBoxCancelled();
 }
 
-static void connectToServ_setText(char* _text) {
+static void connectToServ_setText(char* _text, float progress) {
     char text[4096] = "Connecting to server...\n";
     snprintf(text, sizeof(text), "Connecting to server: %s", _text);
-    showProgressBox(NULL, text, 50.0);
+    showProgressBox(NULL, text, progress);
 }
 
 static int connectToServ(char* addr, int port, char* error, int errlen) {
@@ -645,7 +646,7 @@ static int connectToServ(char* addr, int port, char* error, int errlen) {
         }
         inf.in.quit = connectToServ_shouldQuit;
         inf.in.settext = connectToServ_setText;
-        inf.in.timeout = 1000;
+        inf.in.timeout = 10000;
         inf.in.login.new = true;
         inf.in.login.username = getConfigKey(config, "Player", "name");
         int ecode = cliConnectAndSetup((addr) ? addr : "127.0.0.1", port, handleServer, err, sizeof(err), &inf);
@@ -695,6 +696,7 @@ static int startSPGame(char* error, int errlen) {
     }
 
     gameLoop();
+    cliDisconnect();
     usercancel:;
 
     stopServer();

@@ -345,9 +345,16 @@ char* getUIElemProperty(struct ui_elem* e, char* name) {
 static force_inline float getSize(char* propval, float max) {
     float num = 0;
     char suff = 0;
-    sscanf(propval, "%f%c", &num, &suff);
+    char op = 0;
+    float opnum = 0;
+    sscanf(propval, "%f%c%c%f", &num, &suff, &op, &opnum);
     if (suff == '%') {
         num = max * num * 0.01;
+    }
+    if (op == '+') {
+        num += opnum;
+    } else if (op == '-') {
+        num -= opnum;
     }
     return num;
 }
