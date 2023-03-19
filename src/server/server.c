@@ -522,7 +522,7 @@ static void* servthread(void* args) {
         } else if (altutime() - acttime > 100000) {
             microwait(50000);
         }
-        microwait(9000000);
+        microwait(0);
     }
     return NULL;
 }
@@ -1323,9 +1323,9 @@ int cliConnectAndSetup(char* addr, int port, bool (*cb)(int, void*), char* err, 
         return 0;
     }
 
-    float taskct = 4.0;
+    float taskct = 5.0;
     float task = 0.0;
-    if (inf->in.settext) inf->in.settext("Pinging server...", (task++ / taskct) * 100.0);
+    if (inf->in.settext) inf->in.settext("Pinging server...", (++task / taskct) * 100.0);
     puts("Pinging server...");
     cliSend(CLIENT_PING);
     uint64_t time = altutime();
@@ -1339,7 +1339,7 @@ int cliConnectAndSetup(char* addr, int port, bool (*cb)(int, void*), char* err, 
     time = (altutime() - time) / 1000;
     printf("Server responded in %"PRId64" ms\n", time);
 
-    if (inf->in.settext) inf->in.settext("Checking compatibility...", (task++ / taskct) * 100.0);
+    if (inf->in.settext) inf->in.settext("Checking compatibility...", (++task / taskct) * 100.0);
     puts("Sending compatibility info...");
     cliSend(CLIENT_COMPATINFO, VER_MAJOR, VER_MINOR, VER_PATCH, PROG_NAME);
     time = altutime();
@@ -1370,7 +1370,7 @@ int cliConnectAndSetup(char* addr, int port, bool (*cb)(int, void*), char* err, 
         ++task;
     } else if (inf->in.login.new) {
         puts("Requesting new UID...");
-        if (inf->in.settext) inf->in.settext("Requesting new UID...", (task++ / taskct) * 100.0);
+        if (inf->in.settext) inf->in.settext("Requesting new UID...", (++task / taskct) * 100.0);
         cliSend(CLIENT_NEWUID, inf->in.login.password);
         time = altutime();
         while (!newuid && !disconnect) {
@@ -1390,7 +1390,7 @@ int cliConnectAndSetup(char* addr, int port, bool (*cb)(int, void*), char* err, 
         uid = setupinf->in.login.uid;
         ++task;
     }
-    if (inf->in.settext) inf->in.settext("Logging in...", (task++ / taskct) * 100.0);
+    if (inf->in.settext) inf->in.settext("Logging in...", (++task / taskct) * 100.0);
     puts("Sending login info...");
     printf("- Login code: %016"PRIX64"%016"PRIX64"\n", uid, inf->in.login.password);
     printf("- Username: %s\n", inf->in.login.username);
