@@ -192,7 +192,7 @@ struct cliSetupInfo {
 };
 
 bool cliConnect(char* /*addr*/, int /*port*/, bool (*/*cb*/)(int /*id*/, void* /*data*/));
-bool cliConnectAndSetup(char* /*addr*/, int /*port*/, bool (*/*cb*/)(int /*id*/, void* /*data*/), char* /*err*/, int /*errlen*/, struct cliSetupInfo* /*inf*/);
+int cliConnectAndSetup(char* /*addr*/, int /*port*/, bool (*/*cb*/)(int /*id*/, void* /*data*/), char* /*err*/, int /*errlen*/, struct cliSetupInfo* /*inf*/);
 void cliDisconnect(void);
 void cliSend(int /*id*/, /*data*/...);
 

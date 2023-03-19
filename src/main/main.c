@@ -148,6 +148,10 @@ int main(int _argc, char** _argv) {
     #endif
     initResource();
     initBlocks();
+    if (!initServer()) {
+        fputs("Failed to init server\n", stderr);
+        return 1;
+    }
     #ifdef _WIN32
         if (owncon && showcon) ShowWindow(GetConsoleWindow(), SW_SHOW);
     #endif

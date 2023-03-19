@@ -1429,6 +1429,17 @@ static force_inline void meshUIElem(struct meshdata* md, struct ui_data* elemdat
                         break;
                 }
             } break;
+            case UI_ELEM_PROGRESSBAR:; {
+                writeuielemrect(md, x0, y0 + s, x1, y1 - s, p->z, p->r / 2, p->g / 2, p->b / 2, p->a);
+                writeuielemrect(md, x0 + s, y0, x1 - s, y1, p->z, p->r / 2, p->g / 2, p->b / 2, p->a);
+                writeuielemrect(md, x0 + 2 * s, y0 + 2 * s, x1 - 2 * s, y1 - 2 * s, p->z, p->r, p->g, p->b, p->a);
+                curprop = getUIElemProperty(e, "progress");
+                float progress = (curprop) ? atof(curprop) : 0.0;
+                if (progress > 0.0) {
+                    progress /= 100.0;
+                    writeuielemrect(md, x0 + 2 * s, y0 + 2 * s, (float)(x1 - 2 * s) * progress, y1 - 2 * s, p->z, 0, 63, 191, p->a);
+                }
+            } break;
         }
     }
     char* text = getUIElemProperty(e, "text");
