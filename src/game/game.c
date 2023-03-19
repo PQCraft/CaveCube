@@ -608,17 +608,6 @@ static void dispErrorBox(char* title, char* text) {
     eb_clickedok = false;
 }
 
-static int doGame_clickedbtn = -1;
-static void doGame_btncb(struct ui_data* elemdata, int id, struct ui_elem* e, int event) {
-    (void)elemdata;
-    switch (event) {
-        case UI_EVENT_CLICK:;
-            printf("Clicked on {%s}\n", e->name);
-            doGame_clickedbtn = id;
-            break;
-    }
-}
-
 static int connectToServ_shouldQuit() {
     static struct input_info input;
     getInput(&input);
@@ -672,6 +661,7 @@ static int startSPGame(char* error, int errlen) {
     cores -= SERVER_THREADS;
     MESHER_THREADS = cores;
 
+    frametime = altutime();
     showProgressBox("Starting singleplayer game...", "Starting server...", 0.0);
     int servport;
     if ((servport = startServer(NULL, 0, 1, "World")) < 0) {
@@ -704,6 +694,17 @@ static int startSPGame(char* error, int errlen) {
     return 1;
 }
 
+static int doGame_clickedbtn = -1;
+static void doGame_btncb(struct ui_data* elemdata, int id, struct ui_elem* e, int event) {
+    (void)elemdata;
+    (void)e;
+    switch (event) {
+        case UI_EVENT_CLICK:;
+            //printf("Clicked on {%s}\n", e->name);
+            doGame_clickedbtn = id;
+            break;
+    }
+}
 bool doGame() {
     declareConfigKey(config, "Game", "viewDist", "8", false);
     declareConfigKey(config, "Player", "name", "Player", false);
