@@ -170,6 +170,37 @@ static bool handleServer(int msg, void* _data) {
     return true;
 }
 
+static bool waitwithvsync;
+
+static uint64_t fpsupdate;
+static uint64_t frametime;
+static int frames = 0;
+static void doRender() {
+    render();
+    updateScreen();
+    ++frames;
+    if (rendinf.fps && (!rendinf.vsync || (waitwithvsync || rendinf.fps < rendinf.disphz))) {
+        int64_t framediff = (1000000 / rendinf.fps) - (altutime() - frametime);
+        //printf("Wait for %"PRId64"us\n", framediff);
+        if (framediff > 0) microwait(framediff);
+    }
+    static uint64_t totalframetime = 0;
+    static uint64_t highframetime = 0;
+    frametime = altutime() - frametime;
+    totalframetime += frametime;
+    if (frametime > highframetime) highframetime = frametime;
+    if (altutime() - fpsupdate >= 200000) {
+        fpsupdate = altutime();
+        fps = 1000000.0 / ((double)totalframetime / (double)frames);
+        realfps = 1000000.0 / (double)highframetime;
+        if (realfps > rendinf.disphz) realfps = rendinf.disphz;
+        //printf("Rendered %d frames in %lfus\n", frames, ((double)totalframetime / (double)frames));
+        frames = 0;
+        totalframetime = 0;
+        highframetime = 0;
+    }
+}
+
 static void gameLoop() {
     struct input_info input;
     resetInput();
@@ -196,7 +227,6 @@ static void gameLoop() {
     coord_3d tmpcamrot = rendinf.camrot;
 
     int viewdist = atoi(getConfigKey(config, "Game", "viewDist"));
-    bool waitwithvsync = getBool(getConfigKey(config, "Renderer", "waitWithVsync"));
     rendinf.chunks = allocChunks(viewdist);
     //rendinf.chunks->xoff = 2354;
     //rendinf.chunks->zoff = 8523;
@@ -225,11 +255,8 @@ static void gameLoop() {
     /*int ui_inv_hb = */newUIElem(game_ui[UILAYER_SERVER], UI_ELEM_ITEMGRID, "inv_hotbar", ui_inventory, ui_inv_grid, "width", "10", "height", "1", "align", "0,1", "margin", "0,6,0,6", NULL);
     #endif
 
-    uint64_t fpsupdate = altutime();
-    int frames = 0;
-
     while (!quitRequest) {
-        uint64_t frametime = altutime();
+        frametime = altutime();
         getInput(&input);
         if (!input.focus && inputMode != INPUT_MODE_UI) {
             setInputMode(INPUT_MODE_UI);
@@ -455,29 +482,7 @@ static void gameLoop() {
         updateCam();
         if (zoom || run) rendinf.camfov = oldfov;
         updateChunks();
-        render();
-        updateScreen();
-        ++frames;
-        if (rendinf.fps && (!rendinf.vsync || (waitwithvsync || rendinf.fps < rendinf.disphz))) {
-            int64_t framediff = (1000000 / rendinf.fps) - (altutime() - frametime);
-            //printf("Wait for %"PRId64"us\n", framediff);
-            if (framediff > 0) microwait(framediff);
-        }
-        static uint64_t totalframetime = 0;
-        static uint64_t highframetime = 0;
-        frametime = altutime() - frametime;
-        totalframetime += frametime;
-        if (frametime > highframetime) highframetime = frametime;
-        if (altutime() - fpsupdate >= 200000) {
-            fpsupdate = altutime();
-            fps = 1000000.0 / ((double)totalframetime / (double)frames);
-            realfps = 1000000.0 / (double)highframetime;
-            if (realfps > rendinf.disphz) realfps = rendinf.disphz;
-            //printf("Rendered %d frames in %lfus\n", frames, ((double)totalframetime / (double)frames));
-            frames = 0;
-            totalframetime = 0;
-            highframetime = 0;
-        }
+        doRender();
         microwait(0);
     }
 
@@ -592,6 +597,9 @@ bool doGame() {
     declareConfigKey(config, "Player", "name", "Player", false);
     declareConfigKey(config, "Player", "skin", "", false);
     declareConfigKey(config, "Renderer", "waitWithVsync", "true", false);
+    waitwithvsync = getBool(getConfigKey(config, "Renderer", "waitWithVsync"));
+
+    fpsupdate = altutime();
 
     initRenderer();
     startRenderer();
@@ -639,11 +647,8 @@ bool doGame() {
 
     {
         struct input_info input;
-        bool waitwithvsync = getBool(getConfigKey(config, "Renderer", "waitWithVsync"));
-        uint64_t fpsupdate = altutime();
-        int frames = 0;
         while (!quitRequest) {
-            uint64_t frametime = altutime();
+            frametime = altutime();
             getInput(&input);
             switch (input.single_action) {
                 case INPUT_ACTION_SINGLE_FULLSCR:;
@@ -657,29 +662,7 @@ bool doGame() {
             for (int i = 3; i >= 0; --i) {
                 if (doUIEvents(&input, game_ui[i])) break;
             }
-            render();
-            updateScreen();
-            ++frames;
-            if (rendinf.fps && (!rendinf.vsync || (waitwithvsync || rendinf.fps < rendinf.disphz))) {
-                int64_t framediff = (1000000 / rendinf.fps) - (altutime() - frametime);
-                //printf("Wait for %"PRId64"us\n", framediff);
-                if (framediff > 0) microwait(framediff);
-            }
-            static uint64_t totalframetime = 0;
-            static uint64_t highframetime = 0;
-            frametime = altutime() - frametime;
-            totalframetime += frametime;
-            if (frametime > highframetime) highframetime = frametime;
-            if (altutime() - fpsupdate >= 200000) {
-                fpsupdate = altutime();
-                fps = 1000000.0 / ((double)totalframetime / (double)frames);
-                realfps = 1000000.0 / (double)highframetime;
-                if (realfps > rendinf.disphz) realfps = rendinf.disphz;
-                //printf("Rendered %d frames in %lfus\n", frames, ((double)totalframetime / (double)frames));
-                frames = 0;
-                totalframetime = 0;
-                highframetime = 0;
-            }
+            doRender();
             microwait(0);
             if (clickedbtn >= 0) {
                 game_ui[UILAYER_DBGINF]->hidden = true;
