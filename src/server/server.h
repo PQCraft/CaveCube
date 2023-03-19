@@ -162,7 +162,7 @@ void stopServer(void);
 struct cliSetupInfo {
     struct {
         int (*quit)(void);
-        void (*settext)(char*);
+        void (*settext)(char*, float);
         struct {
             bool new;
             uint8_t flags;
