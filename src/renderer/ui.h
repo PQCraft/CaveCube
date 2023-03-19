@@ -9,8 +9,8 @@
 #include <stdbool.h>
 #include <limits.h>
 
-#define isUIIdValid(elemdata, x) (x >= 0 && x < elemdata->count)
-#define isUIElemValid(elemdata, x) (isUIIdValid(elemdata, x) && elemdata->data[x].valid)
+#define isUIIdValid(elemdata, x) ((x) >= 0 && (x) < elemdata->count)
+#define isUIElemValid(elemdata, x) (isUIIdValid(elemdata, (x)) && elemdata->data[(x)].valid)
 
 struct ui_elem_property {
     char* name;

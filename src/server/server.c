@@ -152,6 +152,42 @@ static force_inline bool getNextMsgForUUID(struct msgdata* mdata, struct msgdata
     return false;
 }
 
+static force_inline void cleanServerMsg(struct msgdata_msg* msg) {
+    if (msg->data) {
+        switch (msg->id) {
+            case SERVER_COMPATINFO:; {
+                struct server_data_compatinfo* tmpdata = msg->data;
+                free(tmpdata->server_str);
+            } break;
+            case SERVER_LOGINOK:; {
+                struct server_data_loginok* tmpdata = msg->data;
+                free(tmpdata->username);
+            } break;
+            case SERVER_DISCONNECT:; {
+                struct server_data_disconnect* tmpdata = msg->data;
+                free(tmpdata->reason);
+            } break;
+            case SERVER_UPDATECHUNK:; {
+                struct server_data_updatechunk* tmpdata = msg->data;
+                free(tmpdata->cdata);
+            } break;
+        }
+        free(msg->data);
+    }
+}
+
+static force_inline void cleanClientMsg(struct msgdata_msg* msg) {
+    if (msg->data) {
+        switch (msg->id) {
+            case CLIENT_COMPATINFO:; {
+                struct client_data_compatinfo* data = msg->data;
+                free(data->client_str);
+            } break;
+        }
+        free(msg->data);
+    }
+}
+
 enum {
     MSG_PRIO_LOW,
     MSG_PRIO_NORMAL,
@@ -318,6 +354,15 @@ struct playerdata {
     struct player player;
 };
 
+static void cleanPlayer(struct playerdata* p) {
+    if (p->valid) {
+        p->valid = false;
+        free(p->player.username);
+        closeCxn(p->cxn);
+        memset(p, 0, sizeof(*p));
+    }
+}
+
 static struct playerdata* pdata;
 static pthread_mutex_t pdatalock;
 
@@ -414,6 +459,7 @@ static void* servthread(void* args) {
                                         addMsg(&servmsgin[MSG_PRIO_HIGH], _SERVER_USERLOGIN, _outdata, 0, -1);
                                     }
                                 }
+                                free(data->username);
                             }
                         } break;
                         case CLIENT_GETCHUNK:; {
@@ -481,13 +527,7 @@ static void* servthread(void* args) {
                     //puts("Done");
                 } else {
                     //puts("Message dropped (player handle is not valid)");
-                    switch (msg.id) {
-                        case CLIENT_COMPATINFO:; {
-                            struct client_data_compatinfo* data = msg.data;
-                            free(data->client_str);
-                        } break;
-                    }
-                    if (msg.data) free(msg.data);
+                    cleanClientMsg(&msg);
                 }
             } else {
                 switch (msg.id) {
@@ -574,8 +614,7 @@ static void* servnetthread(void* args) {
                     activity = true;
                     char str[22];
                     printf("Connection to %s dropped (client disconnected)\n", getCxnAddrStr(pdata[i].cxn, str));
-                    closeCxn(pdata[i].cxn);
-                    pdata[i].valid = false;
+                    cleanPlayer(&pdata[i]);
                 } else {
                     //static uint64_t tmp0 = 0;
                     //printf("client[%d]: [%d] (read #%"PRIu64")\n", i, bytes, tmp0++);
@@ -588,8 +627,7 @@ static void* servnetthread(void* args) {
                             if (pdata[i].tmpsize > SERVER_INBUF_SIZE) {
                                 char str[22];
                                 printf("Connection to %s dropped (message size %u > %u)\n", getCxnAddrStr(pdata[i].cxn, str), pdata[i].tmpsize, SERVER_INBUF_SIZE);
-                                closeCxn(pdata[i].cxn);
-                                pdata[i].valid = false;
+                                cleanPlayer(&pdata[i]);
                             }
                         }
                         if (dsize > 0) {
@@ -791,13 +829,11 @@ static void* servnetthread(void* args) {
                             if (bytes_sent < 0) {
                                 char str[22];
                                 printf("Connection to %s dropped (client disconnected)\n", getCxnAddrStr(pdata[i].cxn, str));
-                                closeCxn(pdata[i].cxn);
-                                pdata[i].valid = false;
+                                cleanPlayer(&pdata[i]);
                             } else if (disconnect) {
                                 char str[22];
                                 printf("Connection to %s dropped (server closed connection)\n", getCxnAddrStr(pdata[i].cxn, str));
-                                closeCxn(pdata[i].cxn);
-                                pdata[i].valid = false;
+                                cleanPlayer(&pdata[i]);
                             }
                         }
                     }
@@ -811,37 +847,19 @@ static void* servnetthread(void* args) {
         }
         if (!activity) {
             pthread_mutex_lock(&pdatalock);
-            pthread_mutex_lock(&servmsgout->lock);
-            for (int i = 0; i < servmsgout->size; ++i) {
-                if (servmsgout->msg[i].id >= 0 && servmsgout->msg[i].uuid > 0) {
-                    if (!(pdata[servmsgout->msg[i].uind].valid && pdata[servmsgout->msg[i].uind].uuid == servmsgout->msg[i].uuid)) {
-                        //puts("Dropping");
-                        if (servmsgout->msg[i].data) {
-                            switch (servmsgout->msg[i].id) {
-                                case SERVER_COMPATINFO:; {
-                                    struct server_data_compatinfo* tmpdata = servmsgout->msg[i].data;
-                                    free(tmpdata->server_str);
-                                } break;
-                                case SERVER_LOGINOK:; {
-                                    struct server_data_loginok* tmpdata = servmsgout->msg[i].data;
-                                    free(tmpdata->username);
-                                } break;
-                                case SERVER_DISCONNECT:; {
-                                    struct server_data_disconnect* tmpdata = servmsgout->msg[i].data;
-                                    free(tmpdata->reason);
-                                } break;
-                                case SERVER_UPDATECHUNK:; {
-                                    struct server_data_updatechunk* tmpdata = servmsgout->msg[i].data;
-                                    free(tmpdata->cdata);
-                                } break;
-                            }
-                            free(servmsgout->msg[i].data);
+            for (int p = 0; p < MSG_PRIO__MAX; ++p) {
+                pthread_mutex_lock(&servmsgout[p].lock);
+                for (int i = 0; i < servmsgout[p].size; ++i) {
+                    if (servmsgout[p].msg[i].id >= 0 && servmsgout[p].msg[i].uuid > 0) {
+                        if (!(pdata[servmsgout[p].msg[i].uind].valid && pdata[servmsgout[p].msg[i].uind].uuid == servmsgout[p].msg[i].uuid)) {
+                            //puts("Dropping");
+                            cleanServerMsg(&servmsgout[p].msg[i]);
+                            servmsgout[p].msg[i].id = -1;
                         }
-                        servmsgout->msg[i].id = -1;
                     }
                 }
+                pthread_mutex_unlock(&servmsgout[p].lock);
             }
-            pthread_mutex_unlock(&servmsgout->lock);
             pthread_mutex_unlock(&pdatalock);
             microwait(0);
         }
@@ -961,24 +979,29 @@ void stopServer() {
     #endif
     pthread_join(servtimerh, NULL);
     #if DBGLVL(1)
-    puts("  Closing connections...");
+    puts("  Closing connections and cleaning up...");
     #endif
     for (int i = 0; i < maxclients; ++i) {
-        if (pdata[i].valid) {
-            closeCxn(pdata[i].cxn);
-        }
+        cleanPlayer(&pdata[i]);
     }
-    closeCxn(servcxn);
-    #if DBGLVL(1)
-    puts("  Cleaning up...");
-    #endif
     free(pdata);
+    closeCxn(servcxn);
     deinitTimerData(&servtimer);
-    for (int i = 0; i < MSG_PRIO__MAX; ++i) {
-        deinitMsgData(&servmsgin[i]);
+    for (int p = 0; p < MSG_PRIO__MAX; ++p) {
+        for (int i = 0; i < servmsgin[p].size; ++i) {
+            if (servmsgin[p].msg[i].id >= 0 && servmsgin[p].msg[i].uuid > 0) {
+                cleanClientMsg(&servmsgin[p].msg[i]);
+            }
+        }
+        deinitMsgData(&servmsgin[p]);
     }
-    for (int i = 0; i < MSG_PRIO__MAX; ++i) {
-        deinitMsgData(&servmsgout[i]);
+    for (int p = 0; p < MSG_PRIO__MAX; ++p) {
+        for (int i = 0; i < servmsgout[p].size; ++i) {
+            if (servmsgout[p].msg[i].id >= 0 && servmsgout[p].msg[i].uuid > 0) {
+                cleanServerMsg(&servmsgout[p].msg[i]);
+            }
+        }
+        deinitMsgData(&servmsgout[p]);
     }
     puts("Server stopped");
 }
