@@ -147,6 +147,22 @@ void resizeChunks(struct chunkdata* chunks, int dist) {
     pthread_mutex_unlock(&chunks->lock);
 }
 
+void freeChunks(struct chunkdata* chunks) {
+    pthread_mutex_lock(&chunks->lock);
+    for (int i = 0; i < (int)chunks->info.widthsq; ++i) {
+        free(chunks->data[i]);
+        free(chunks->renddata[i].vertices[0]);
+        free(chunks->renddata[i].vertices[1]);
+        free(chunks->renddata[i].sortvert);
+    }
+    free(chunks->data);
+    free(chunks->renddata);
+    free(chunks->rordr);
+    free(chunks);
+    pthread_mutex_unlock(&chunks->lock);
+    pthread_mutex_destroy(&chunks->lock);
+}
+
 static force_inline void nullattrib(struct chunkdata* chunks, int c) {
     if (chunks->renddata[c].generated) {
         chunks->renddata[c].vcount[0] = 0;
