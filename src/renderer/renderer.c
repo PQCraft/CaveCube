@@ -548,15 +548,12 @@ static force_inline void initMsgData(struct msgdata* mdata) {
     pthread_mutex_init(&mdata->lock, NULL);
 }
 
-/*
 static void deinitMsgData(struct msgdata* mdata) {
     pthread_mutex_lock(&mdata->lock);
-    mdata->valid = false;
     free(mdata->msg);
     pthread_mutex_unlock(&mdata->lock);
     pthread_mutex_destroy(&mdata->lock);
 }
-*/
 
 static force_inline void addMsg(struct msgdata* mdata, int64_t x, int64_t z, uint64_t id, bool dep, int lvl) {
     static uint64_t mdataid = 0;
@@ -637,7 +634,9 @@ static force_inline bool getNextMsg(struct msgdata* mdata, struct msgdata_msg* m
     return false;
 }
 
+static bool mesheractive = false;
 void updateChunk(int64_t x, int64_t z, int p, int updatelvl) {
+    if (!mesheractive) return;
     addMsg(&chunkmsgs[p], x, z, 0, false, updatelvl);
 }
 
@@ -773,7 +772,9 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
             goto lblcontinue;
         }
         if (id < rendinf.chunks->renddata[c].updateid) {goto lblcontinue;}
-        while (rendinf.chunks->renddata[c].visfull && (rendinf.chunks->renddata[c].remesh[0] || rendinf.chunks->renddata[c].remesh[1])) {
+        uint64_t time = altutime();
+        while ((rendinf.chunks->renddata[c].visfull && (rendinf.chunks->renddata[c].remesh[0] || rendinf.chunks->renddata[c].remesh[1])) &&
+        altutime() - time < 200000) {
             //static uint64_t tmp = 0;
             //printf("! [%"PRId64"]\n", tmp++);
             pthread_mutex_unlock(&rendinf.chunks->lock);
@@ -784,7 +785,8 @@ static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
                 goto lblcontinue;
             }
         }
-        //printf("meshing [%"PRId64", %"PRId64"] -> [%"PRId64", %"PRId64"] (c=%d, offset=[%"PRId64", %"PRId64"])\n", x, z, nx, nz, c, cxo, czo);
+        //printf("meshing [%"PRId64", %"PRId64"] -> [%"PRId64", %"PRId64"] (c=%d, offset=[%"PRId64", %"PRId64"])\n",
+        //    x, z, nx, nz, c, rendinf.chunks->xoff, rendinf.chunks->zoff);
     }
     //printf("mesh: [%"PRId64", %"PRId64"]\n", x, z);
     //uint64_t stime = altutime();
@@ -1110,7 +1112,7 @@ static void* meshthread(void* args) {
     (void)args;
     uint64_t acttime = altutime();
     struct msgdata_msg msg;
-    while (!quitRequest) {
+    while (!quitRequest && mesheractive) {
         bool activity = false;
         int p = 0;
         if (getNextMsg(&chunkmsgs[(p = CHUNKUPDATE_PRIO_HIGH)], &msg) ||
@@ -1234,10 +1236,14 @@ void updateChunks() {
     pthread_mutex_unlock(&rendinf.chunks->lock);
 }
 
-static bool mesheractive = false;
-
 void startMesher() {
     if (!mesheractive) {
+        mesheractive = true;
+        for (int i = 0; i < CHUNKUPDATE_PRIO__MAX; ++i) {
+            initMsgData(&chunkmsgs[i]);
+        }
+        chunkmsgs[CHUNKUPDATE_PRIO_LOW].async = true;
+        //chunkmsgs[CHUNKUPDATE_PRIO_NORMAL].async = true;
         #ifdef NAME_THREADS
         char name[256];
         char name2[256];
@@ -1255,14 +1261,17 @@ void startMesher() {
             pthread_setname_np(pthreads[i], name);
             #endif
         }
-        mesheractive = true;
     }
 }
 
 void stopMesher() {
     if (mesheractive) {
+        mesheractive = false;
         for (int i = 0; i < MESHER_THREADS && i < MESHER_THREADS_MAX; ++i) {
             pthread_join(pthreads[i], NULL);
+        }
+        for (int i = 0; i < CHUNKUPDATE_PRIO__MAX; ++i) {
+            deinitMsgData(&chunkmsgs[i]);
         }
     }
 }
@@ -1436,7 +1445,7 @@ static force_inline void meshUIElem(struct meshdata* md, struct ui_data* elemdat
                 writeuielemrect(md, x0 + 2 * s, y0 + 2 * s, x1 - 2 * s, y1 - 2 * s, p->z, p->r, p->g, p->b, p->a);
                 curprop = getUIElemProperty(e, "progress");
                 float progress = (curprop) ? atof(curprop) / 100.0 : 0.0;
-                int newx1 = p->x - 2 * s + (float)(p->width * s) * progress;
+                int newx1 = (int)((float)p->x + (float)p->width * progress) - 2 * s;
                 int newx0 = x0 + 2 * s;
                 if (newx1 > newx0) {
                     writeuielemrect(md, newx0, y0 + 2 * s, newx1, y1 - 2 * s, p->z, 0, 63, 191, p->a);
@@ -2110,12 +2119,6 @@ bool initRenderer() {
     #endif
     if (rendinf.disphz <= 0) rendinf.disphz = 60;
     rendinf.win_fps = rendinf.disphz;
-
-    for (int i = 0; i < CHUNKUPDATE_PRIO__MAX; ++i) {
-        initMsgData(&chunkmsgs[i]);
-    }
-    chunkmsgs[CHUNKUPDATE_PRIO_LOW].async = true;
-    //chunkmsgs[CHUNKUPDATE_PRIO_NORMAL].async = true;
 
     sscanf(getConfigKey(config, "Renderer", "resolution"), "%ux%u@%f",
         &rendinf.win_width, &rendinf.win_height, &rendinf.win_fps);

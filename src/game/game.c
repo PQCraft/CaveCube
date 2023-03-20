@@ -218,6 +218,14 @@ static force_inline void commonEvents(struct input_info* input) {
     }
 }
 
+static int gameLoop_clickedbtn;
+static void gameLoop_btncb(struct ui_data* elemdata, int id, struct ui_elem* e, int event) {
+    (void)elemdata;
+    (void)e;
+    if (event == UI_EVENT_CLICK) {
+        gameLoop_clickedbtn = id;
+    }
+}
 static void gameLoop() {
     struct input_info input;
     resetInput();
@@ -254,15 +262,26 @@ static void gameLoop() {
     setVisibility(0.5, 1.0);
     setScreenMult(1.0, 1.0, 1.0);
 
-    int ui_main = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BOX,
-        UI_ATTR_NAME, "main", UI_ATTR_DONE,
-        "width", "100%", "height", "100%", "color", "#000000", "alpha", "0.25", "z", "-100", NULL);
-    int ui_placeholder = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
-        UI_ATTR_NAME, "placeholder", UI_ATTR_PARENT, ui_main, UI_ATTR_DONE,
-        "width", "320", "height", "32", "text", "Return", NULL);
+    gameLoop_clickedbtn = -1;
 
+    int ui_ingame_menu = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BOX,
+        UI_ATTR_NAME, "ingame_menu", UI_ATTR_CALLBACK, gameLoop_btncb, UI_ATTR_DONE,
+        "width", "100%", "height", "100%", "color", "#000000", "alpha", "0.25", NULL);
+    int ui_ingame_return = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
+        UI_ATTR_NAME, "ingame_return", UI_ATTR_PARENT, ui_ingame_menu, UI_ATTR_CALLBACK, gameLoop_btncb, UI_ATTR_DONE,
+        "width", "320", "height", "32", "y_offset", "-44", "text", "Return to game", NULL);
+    /*int ui_ingame_options =*/ newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
+        UI_ATTR_NAME, "ingame_options", UI_ATTR_PARENT, ui_ingame_menu, UI_ATTR_CALLBACK, gameLoop_btncb, UI_ATTR_DONE,
+        "width", "320", "height", "32", "y_offset", "0", "text", "Options", NULL);
+    int ui_ingame_exit = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
+        UI_ATTR_NAME, "ingame_exit", UI_ATTR_PARENT, ui_ingame_menu, UI_ATTR_CALLBACK, gameLoop_btncb, UI_ATTR_DONE,
+        "width", "320", "height", "32", "y_offset", "44", "text", "Exit to main menu", NULL);
+
+    int ui_hud = newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_CONTAINER,
+        UI_ATTR_NAME, "hud", UI_ATTR_DONE,
+        "width", "100%", "height", "100%", NULL);
     int ui_hotbar = newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_HOTBAR,
-        UI_ATTR_NAME, "hotbar", UI_ATTR_DONE,
+        UI_ATTR_NAME, "hotbar", UI_ATTR_PARENT, ui_hud, UI_ATTR_DONE,
         "align", "0,1", "margin", "0,10,0,10", NULL);
     updateHotbar(ui_hotbar, invspot);
 
@@ -273,7 +292,7 @@ static void gameLoop() {
     /*int ui_inv_hb = */newUIElem(game_ui[UILAYER_SERVER], UI_ELEM_ITEMGRID, "inv_hotbar", ui_inventory, ui_inv_grid, "width", "10", "height", "1", "align", "0,1", "margin", "0,6,0,6", NULL);
     #endif
 
-    while (!quitRequest) {
+    while (!quitRequest && gameLoop_clickedbtn != ui_ingame_exit) {
         frametime = altutime();
         getInput(&input);
         if (!input.focus && inputMode != INPUT_MODE_UI) {
@@ -401,16 +420,22 @@ static void gameLoop() {
                 break;
             }
             case INPUT_MODE_UI:; {
-                switch (input.single_action) {
-                    case INPUT_ACTION_SINGLE_ESC:;
-                        game_ui[UILAYER_INGAME]->hidden = true;
-                        setInputMode(INPUT_MODE_GAME);
-                        resetInput();
-                        break;
-                }
-                //puts("START");
                 for (int i = 3; i >= 0; --i) {
                     if (doUIEvents(&input, game_ui[i])) break;
+                }
+                if (gameLoop_clickedbtn == ui_ingame_return) {
+                    game_ui[UILAYER_INGAME]->hidden = true;
+                    setInputMode(INPUT_MODE_GAME);
+                    resetInput();
+                    gameLoop_clickedbtn = -1;
+                } else {
+                    switch (input.single_action) {
+                        case INPUT_ACTION_SINGLE_ESC:;
+                            game_ui[UILAYER_INGAME]->hidden = true;
+                            setInputMode(INPUT_MODE_GAME);
+                            resetInput();
+                            break;
+                    }
                 }
                 break;
             }
@@ -500,14 +525,19 @@ static void gameLoop() {
         microwait(0);
     }
 
-    deleteUIElem(game_ui[UILAYER_INGAME], ui_main);
+    deleteUIElem(game_ui[UILAYER_INGAME], ui_ingame_menu);
+    deleteUIElem(game_ui[UILAYER_CLIENT], ui_hud);
 
-    deleteUIElem(game_ui[UILAYER_CLIENT], ui_hotbar);
-
+    cliDisconnect();
+    //puts("Stopping mesher...");
     stopMesher();
+    //puts("Mesher stopped");
+    freeChunks(rendinf.chunks);
 
     rendergame = false;
     game_ui[UILAYER_INGAME]->hidden = false;
+
+    setInputMode(INPUT_MODE_UI);
 }
 
 static bool pb_init = false;
@@ -643,7 +673,7 @@ static int connectToServ(char* addr, int port, char* error, int errlen) {
         }
         inf.in.quit = connectToServ_shouldQuit;
         inf.in.settext = connectToServ_setText;
-        inf.in.timeout = 500;
+        inf.in.timeout = 5000;
         inf.in.login.new = true;
         inf.in.login.username = getConfigKey(config, "Player", "name");
         int ecode = cliConnectAndSetup((addr) ? addr : "127.0.0.1", port, handleServer, err, sizeof(err), &inf);
@@ -658,6 +688,13 @@ static int connectToServ(char* addr, int port, char* error, int errlen) {
     }
     puts("Connected to server.");
     return 1;
+}
+
+static void stopServerWithBox() {
+    showProgressBox("Stopping singleplayer game...", "Stopping server...", 0.0, false);
+    stopServer();
+    showProgressBox(NULL, "Stopping server...", 100.0, false);
+    hideProgressBox();
 }
 
 static int startSPGame(char* error, int errlen) {
@@ -687,23 +724,16 @@ static int startSPGame(char* error, int errlen) {
     hideProgressBox();
     if (ecode == 0) {
         snprintf(error, errlen, "Failed to connect to server: %s", serverr);
-        showProgressBox("Stopping singleplayer game...", "Stopping server...", 0.0, false);
-        stopServer();
-        showProgressBox(NULL, "Stopping server...", 100.0, false);
-        hideProgressBox();
+        stopServerWithBox();
         return 0;
     } else if (ecode == -1) {
         goto usercancel;
     }
 
     gameLoop();
-    cliDisconnect();
     usercancel:;
 
-    showProgressBox("Stopping singleplayer game...", "Stopping server...", 0.0, false);
-    stopServer();
-    showProgressBox(NULL, "Stopping server...", 100.0, false);
-    hideProgressBox();
+    stopServerWithBox();
 
     return 1;
 }
@@ -712,11 +742,8 @@ static int doGame_clickedbtn = -1;
 static void doGame_btncb(struct ui_data* elemdata, int id, struct ui_elem* e, int event) {
     (void)elemdata;
     (void)e;
-    switch (event) {
-        case UI_EVENT_CLICK:;
-            //printf("Clicked on {%s}\n", e->name);
-            doGame_clickedbtn = id;
-            break;
+    if (event == UI_EVENT_CLICK) {
+        doGame_clickedbtn = id;
     }
 }
 bool doGame() {

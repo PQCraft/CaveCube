@@ -270,7 +270,7 @@ int* getUIElemsByName(struct ui_data* elemdata, char* name, int* _count) {
 
 bool doUIEvents(struct input_info* inf, struct ui_data* elemdata) {
     //printf("TEST: [%d]\n", elemdata->count);
-    if (elemdata->hidden) goto resetstate;
+    if (elemdata->hidden || !inf->focus) goto resetstate;
     int z = -256;
     int hit = -1;
     static bool prevclick = false;
