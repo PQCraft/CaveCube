@@ -525,16 +525,19 @@ static void gameLoop() {
         microwait(0);
     }
 
+    rendergame = false;
     deleteUIElem(game_ui[UILAYER_INGAME], ui_ingame_menu);
     deleteUIElem(game_ui[UILAYER_CLIENT], ui_hud);
 
+    //puts("cliDisconnect");
     cliDisconnect();
-    //puts("Stopping mesher...");
+    //puts("stopMesher");
     stopMesher();
-    //puts("Mesher stopped");
+    //puts("freeChunks");
     freeChunks(rendinf.chunks);
+    //rendinf.chunks = NULL;
+    //puts(".done");
 
-    rendergame = false;
     game_ui[UILAYER_INGAME]->hidden = false;
 
     setInputMode(INPUT_MODE_UI);

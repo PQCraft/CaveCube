@@ -143,7 +143,6 @@ int main(int _argc, char** _argv) {
         #else
             declareConfigKey(config, "Main", "showConsole", "true", false);
         #endif
-        declareConfigKey(config, "Main", "showConsole", SC_VAL, false);
         showcon = getBool(getConfigKey(config, "Main", "showConsole"));
     #endif
     initResource();

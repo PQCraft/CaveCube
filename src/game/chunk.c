@@ -158,9 +158,9 @@ void freeChunks(struct chunkdata* chunks) {
     free(chunks->data);
     free(chunks->renddata);
     free(chunks->rordr);
-    free(chunks);
     pthread_mutex_unlock(&chunks->lock);
     pthread_mutex_destroy(&chunks->lock);
+    free(chunks);
 }
 
 static force_inline void nullattrib(struct chunkdata* chunks, int c) {
