@@ -1586,7 +1586,7 @@ static force_inline void meshUIElems(struct meshdata* md, struct ui_data* elemda
     for (int i = 0; i < elemdata->count; ++i) {
         struct ui_elem* e = &elemdata->data[i];
         if (isUIElemValid(elemdata, i) && e->parent < 0 && !e->calcprop.hidden) {
-            //printf("%s\n", e->name);
+            //printf("mesh tree: %s\n", e->name);
             meshUIElemTree(md, elemdata, e);
         }
     }
@@ -1691,6 +1691,7 @@ static int cavecull;
 bool rendergame = false;
 
 void render() {
+    //printf("rendergame: [%d]\n", rendergame);
     if (showDebugInfo) {
         static char tbuf[1][32768];
         static int toff = 0;

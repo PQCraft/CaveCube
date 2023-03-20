@@ -357,9 +357,21 @@ struct playerdata {
 static void cleanPlayer(struct playerdata* p) {
     if (p->valid) {
         p->valid = false;
+        #if DBGLVL(1)
+        puts("Freeing allocated data...");
+        #endif
         free(p->player.username);
+        #if DBGLVL(1)
+        puts("Closing connection...");
+        #endif
         closeCxn(p->cxn);
+        #if DBGLVL(1)
+        puts("Zeroing data struct...");
+        #endif
         memset(p, 0, sizeof(*p));
+        #if DBGLVL(1)
+        puts("Done");
+        #endif
     }
 }
 
