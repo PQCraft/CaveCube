@@ -68,7 +68,12 @@ void microwait(uint64_t d) {
     emscripten_sleep(round((double)(d) / 1000.0));
     #endif
     #else
-    Sleep(round((double)(d) / 1000.0));
+    HANDLE timer = CreateWaitableTimer(NULL, true, NULL);
+    LARGE_INTEGER _d;
+    _d.QuadPart = -d * 10;
+    SetWaitableTimer(timer, &_d, 0, NULL, NULL, false);
+    WaitForSingleObject(timer, INFINITE);
+    CloseHandle(timer);
     #endif
 }
 
