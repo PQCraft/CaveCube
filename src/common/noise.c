@@ -18,64 +18,64 @@ void initNoiseTable(int s) {
 
 #define SEED (1984)
 
-static force_inline int64_t _noise2d(int t, int64_t x, int64_t y) {
-    int64_t yindex = (y + SEED) % 256;
+static force_inline int _noise2d(int t, noiseint x, noiseint y) {
+    noiseint yindex = (y + SEED) % 256;
     if (yindex < 0) yindex += 256;
-    int64_t xindex = (perm[t][yindex] + x) % 256;
+    noiseint xindex = (perm[t][yindex] + x) % 256;
     if (xindex < 0) xindex += 256;
     return perm[t][xindex];
 }
 
 /*
-static force_inline double lin_inter(double x, double y, double s) {
+static force_inline noisefloat lin_inter(noisefloat x, noisefloat y, noisefloat s) {
     return x + s * (y - x);
 }
 */
 #define lin_inter(x, y, s) ((x) + (s) * ((y) - (x)))
 
 /*
-static force_inline double smooth_inter(double x, double y, double s) {
+static force_inline noisefloat smooth_inter(noisefloat x, noisefloat y, noisefloat s) {
     return lin_inter(x, y, s * s * (3 - 2 * s));
 }
 */
 #define smooth_inter(x, y, s) (lin_inter((x), (y), (s) * (s) * (3.0 - 2.0 * (s))))
 
-double noise2d(int tbl, double x, double y) {
-    const int64_t x_int = floor(x);
-    const int64_t y_int = floor(y);
-    const double x_frac = x - x_int;
-    const double y_frac = y - y_int;
-    const int64_t s = _noise2d(tbl, x_int, y_int);
-    const int64_t t = _noise2d(tbl, x_int + 1, y_int);
-    const int64_t u = _noise2d(tbl, x_int, y_int + 1);
-    const int64_t v = _noise2d(tbl, x_int + 1, y_int + 1);
-    const double low = smooth_inter(s, t, x_frac);
-    const double high = smooth_inter(u, v, x_frac);
-    const double result = smooth_inter(low, high, y_frac);
+float noise2d(int tbl, noisefloat x, noisefloat y) {
+    const noiseint x_int = floor(x);
+    const noiseint y_int = floor(y);
+    const noisefloat x_frac = x - x_int;
+    const noisefloat y_frac = y - y_int;
+    const noiseint s = _noise2d(tbl, x_int, y_int);
+    const noiseint t = _noise2d(tbl, x_int + 1, y_int);
+    const noiseint u = _noise2d(tbl, x_int, y_int + 1);
+    const noiseint v = _noise2d(tbl, x_int + 1, y_int + 1);
+    const noisefloat low = smooth_inter(s, t, x_frac);
+    const noisefloat high = smooth_inter(u, v, x_frac);
+    const noisefloat result = smooth_inter(low, high, y_frac);
     return result;
 }
 
-double nnoise2d(int tbl, double x, double y) {
-    const int64_t x_int = floor(x);
-    const int64_t y_int = floor(y);
-    const double x_frac = x - x_int;
-    const double y_frac = y - y_int;
-    const int64_t s = _noise2d(tbl, x_int, y_int);
-    const int64_t t = _noise2d(tbl, x_int + 1, y_int);
-    const int64_t u = _noise2d(tbl, x_int, y_int + 1);
-    const int64_t v = _noise2d(tbl, x_int + 1, y_int + 1);
-    const double low = smooth_inter(s, t, x_frac);
-    const double high = smooth_inter(u, v, x_frac);
-    const double result = smooth_inter(low, high, y_frac);
+float nnoise2d(int tbl, noisefloat x, noisefloat y) {
+    const noiseint x_int = floor(x);
+    const noiseint y_int = floor(y);
+    const noisefloat x_frac = x - x_int;
+    const noisefloat y_frac = y - y_int;
+    const noiseint s = _noise2d(tbl, x_int, y_int);
+    const noiseint t = _noise2d(tbl, x_int + 1, y_int);
+    const noiseint u = _noise2d(tbl, x_int, y_int + 1);
+    const noiseint v = _noise2d(tbl, x_int + 1, y_int + 1);
+    const noisefloat low = smooth_inter(s, t, x_frac);
+    const noisefloat high = smooth_inter(u, v, x_frac);
+    const noisefloat result = smooth_inter(low, high, y_frac);
     return result * 2 - 1;
 }
 
-double perlin2d(int t, double x, double y, double freq, int depth) {
-    double xa = x * freq;
-    double ya = y * freq;
-    double amp = 1.0;
-    double fin = 0;
-    double div = 0.0;
+float perlin2d(int t, noisefloat x, noisefloat y, noisefloat freq, int depth) {
+    noisefloat xa = x * freq;
+    noisefloat ya = y * freq;
+    noisefloat amp = 1.0;
+    noisefloat fin = 0;
+    noisefloat div = 0.0;
     for (int i = 0; i < depth; i++) {
         div += 256 * amp;
         fin += noise2d(t, xa, ya) * amp;
@@ -86,7 +86,7 @@ double perlin2d(int t, double x, double y, double freq, int depth) {
     return fin / div;
 }
 
-double nperlin2d(int t, double x, double y, double freq, int depth) {
+float nperlin2d(int t, noisefloat x, noisefloat y, noisefloat freq, int depth) {
     return perlin2d(t, x, y, freq, depth) * 2.0 - 1.0;
 }
 
@@ -94,42 +94,42 @@ double nperlin2d(int t, double x, double y, double freq, int depth) {
 
 #define FADE(t) (t * t * t * (t * (t * 6 - 15) + 10))
 
-#define FASTFLOOR(x) (((int64_t)(x) < (x)) ? ((int64_t)x) : ((int64_t)x - 1))
+#define FASTFLOOR(x) (((noiseint)(x) < (x)) ? ((noiseint)x) : ((noiseint)x - 1))
 #define LERP(t, a, b) ((a) + (t) * ((b) - (a)))
 
-static force_inline double grad1(int hash, double x) {
+static force_inline float grad1(int hash, noisefloat x) {
     int h = hash & 15;
-    double grad = 1.0 + (h & 7);
+    noisefloat grad = 1.0 + (h & 7);
     if (h & 8) grad = -grad;
     return (grad * x);
 }
 
-static force_inline double grad2(int hash, double x, double y) {
+static force_inline float grad2(int hash, noisefloat x, noisefloat y) {
     int h = hash & 7;
-    double u = (h < 4) ? x : y;
-    double v = (h < 4) ? y : x;
+    noisefloat u = (h < 4) ? x : y;
+    noisefloat v = (h < 4) ? y : x;
     return ((h & 1) ? -u : u) + ((h&2)? -2.0*v : 2.0*v);
 }
 
-static force_inline double grad3(int hash, double x, double y , double z) {
+static force_inline float grad3(int hash, noisefloat x, noisefloat y , noisefloat z) {
     int h = hash & 15;
-    double u = (h < 8) ? x : y;
-    double v = (h < 4) ? y : ((h==12 || h==14) ? x : z);
+    noisefloat u = (h < 8) ? x : y;
+    noisefloat v = (h < 4) ? y : ((h==12 || h==14) ? x : z);
     return ((h & 1) ? -u : u) + ((h & 2) ? -v : v);
 }
 
-static force_inline double grad4(int hash, double x, double y, double z, double t) {
+static force_inline float grad4(int hash, noisefloat x, noisefloat y, noisefloat z, noisefloat t) {
     int h = hash & 31;
-    double u = (h < 24) ? x : y;
-    double v = (h < 16) ? y : z;
-    double w = (h < 8) ? z : t;
+    noisefloat u = (h < 24) ? x : y;
+    noisefloat v = (h < 16) ? y : z;
+    noisefloat w = (h < 8) ? z : t;
     return ((h & 1) ? -u : u) + ((h & 2) ? -v : v) + ((h & 4) ? -w : w);
 }
 
-double noise1(int tbl, double x) {
-    int64_t ix0, ix1;
-    double fx0, fx1;
-    double s, n0, n1;
+float noise1(int tbl, noisefloat x) {
+    noiseint ix0, ix1;
+    noisefloat fx0, fx1;
+    noisefloat s, n0, n1;
 
     x += perm[tbl][0] * 0.003906;
 
@@ -147,10 +147,10 @@ double noise1(int tbl, double x) {
     return 0.188 * (LERP(s, n0, n1));
 }
 
-double pnoise1(int tbl, double x, int64_t px) {
-    int64_t ix0, ix1;
-    double fx0, fx1;
-    double s, n0, n1;
+float pnoise1(int tbl, noisefloat x, noiseint px) {
+    noiseint ix0, ix1;
+    noisefloat fx0, fx1;
+    noisefloat s, n0, n1;
 
     x += perm[tbl][0] * 0.003906;
 
@@ -168,10 +168,10 @@ double pnoise1(int tbl, double x, int64_t px) {
     return 0.188 * (LERP(s, n0, n1));
 }
 
-double noise2(int tbl, double x, double y) {
-    int64_t ix0, iy0, ix1, iy1;
-    double fx0, fy0, fx1, fy1;
-    double s, t, nx0, nx1, n0, n1;
+float noise2(int tbl, noisefloat x, noisefloat y) {
+    noiseint ix0, iy0, ix1, iy1;
+    noisefloat fx0, fy0, fx1, fy1;
+    noisefloat s, t, nx0, nx1, n0, n1;
 
     x += perm[tbl][0] * 0.003906;
     y += perm[tbl][1] * 0.003906;
@@ -201,10 +201,10 @@ double noise2(int tbl, double x, double y) {
     return 0.507 * (LERP(s, n0, n1));
 }
 
-double pnoise2(int tbl, double x, double y, int64_t px, int64_t py) {
-    int64_t ix0, iy0, ix1, iy1;
-    double fx0, fy0, fx1, fy1;
-    double s, t, nx0, nx1, n0, n1;
+float pnoise2(int tbl, noisefloat x, noisefloat y, noiseint px, noiseint py) {
+    noiseint ix0, iy0, ix1, iy1;
+    noisefloat fx0, fy0, fx1, fy1;
+    noisefloat s, t, nx0, nx1, n0, n1;
 
     x += perm[tbl][0] * 0.003906;
     y += perm[tbl][1] * 0.003906;
@@ -234,11 +234,11 @@ double pnoise2(int tbl, double x, double y, int64_t px, int64_t py) {
     return 0.507 * (LERP(s, n0, n1));
 }
 
-double noise3(int tbl, double x, double y, double z) {
-    int64_t ix0, iy0, ix1, iy1, iz0, iz1;
-    double fx0, fy0, fz0, fx1, fy1, fz1;
-    double s, t, r;
-    double nxy0, nxy1, nx0, nx1, n0, n1;
+float noise3(int tbl, noisefloat x, noisefloat y, noisefloat z) {
+    noiseint ix0, iy0, ix1, iy1, iz0, iz1;
+    noisefloat fx0, fy0, fz0, fx1, fy1, fz1;
+    noisefloat s, t, r;
+    noisefloat nxy0, nxy1, nx0, nx1, n0, n1;
 
     x += perm[tbl][0] * 0.003906;
     y += perm[tbl][1] * 0.003906;
@@ -287,11 +287,11 @@ double noise3(int tbl, double x, double y, double z) {
     return 0.936 * (LERP(s, n0, n1));
 }
 
-double pnoise3(int tbl, double x, double y, double z, int64_t px, int64_t py, int64_t pz) {
-    int64_t ix0, iy0, ix1, iy1, iz0, iz1;
-    double fx0, fy0, fz0, fx1, fy1, fz1;
-    double s, t, r;
-    double nxy0, nxy1, nx0, nx1, n0, n1;
+float pnoise3(int tbl, noisefloat x, noisefloat y, noisefloat z, noiseint px, noiseint py, noiseint pz) {
+    noiseint ix0, iy0, ix1, iy1, iz0, iz1;
+    noisefloat fx0, fy0, fz0, fx1, fy1, fz1;
+    noisefloat s, t, r;
+    noisefloat nxy0, nxy1, nx0, nx1, n0, n1;
 
     x += perm[tbl][0] * 0.003906;
     y += perm[tbl][1] * 0.003906;
@@ -340,11 +340,11 @@ double pnoise3(int tbl, double x, double y, double z, int64_t px, int64_t py, in
     return 0.936 * (LERP(s, n0, n1));
 }
 
-double noise4(int tbl, double x, double y, double z, double w) {
-    int64_t ix0, iy0, iz0, iw0, ix1, iy1, iz1, iw1;
-    double fx0, fy0, fz0, fw0, fx1, fy1, fz1, fw1;
-    double s, t, r, q;
-    double nxyz0, nxyz1, nxy0, nxy1, nx0, nx1, n0, n1;
+float noise4(int tbl, noisefloat x, noisefloat y, noisefloat z, noisefloat w) {
+    noiseint ix0, iy0, iz0, iw0, ix1, iy1, iz1, iw1;
+    noisefloat fx0, fy0, fz0, fw0, fx1, fy1, fz1, fw1;
+    noisefloat s, t, r, q;
+    noisefloat nxyz0, nxyz1, nxy0, nxy1, nx0, nx1, n0, n1;
 
     x += perm[tbl][0] * 0.003906;
     y += perm[tbl][1] * 0.003906;
@@ -424,11 +424,11 @@ double noise4(int tbl, double x, double y, double z, double w) {
     return 0.87 * (LERP(s, n0, n1));
 }
 
-double pnoise4(int tbl, double x, double y, double z, double w, int64_t px, int64_t py, int64_t pz, int64_t pw) {
-    int64_t ix0, iy0, iz0, iw0, ix1, iy1, iz1, iw1;
-    double fx0, fy0, fz0, fw0, fx1, fy1, fz1, fw1;
-    double s, t, r, q;
-    double nxyz0, nxyz1, nxy0, nxy1, nx0, nx1, n0, n1;
+float pnoise4(int tbl, noisefloat x, noisefloat y, noisefloat z, noisefloat w, noiseint px, noiseint py, noiseint pz, noiseint pw) {
+    noiseint ix0, iy0, iz0, iw0, ix1, iy1, iz1, iw1;
+    noisefloat fx0, fy0, fz0, fw0, fx1, fy1, fz1, fw1;
+    noisefloat s, t, r, q;
+    noisefloat nxyz0, nxyz1, nxy0, nxy1, nx0, nx1, n0, n1;
 
     x += perm[tbl][0] * 0.003906;
     y += perm[tbl][1] * 0.003906;

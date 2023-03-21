@@ -676,7 +676,8 @@ static uint32_t constBlockVert[4][6][6] = {
 };
 
 //static int light_n_tweak[6] = {0, 0, 0, 0, 0, 0};
-static int light_n_tweak[6] = {0, 2, 1, 4, 2, 3};
+//static int light_n_tweak[6] = {0, 2, 1, 4, 2, 3};
+static int light_n_tweak[6] = {0, 4, 2, 8, 4, 6};
 //static int light_n_tweak[6] = {0, 1, 1, 2, 1, 1};
 //static int light_n_tweak[6] = {0, 1, 1, 1, 1, 1};
 
