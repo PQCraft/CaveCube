@@ -90,6 +90,8 @@ void genChunk(int64_t cx, int64_t cz, struct blockdata* data, int type) {
                     heightmult *= (humidity * 0.9 + 0.15);
                     float detail = perlin2d(4, cx, cz, 0.024, 3);
                     float finalheight = (height * heightmult * 85.0) * humidity + 20.0 * (1.0 - humidity) + (detail * 12.8) + 128.0;
+                    if (finalheight > 511.0) finalheight = 511.0;
+                    if (finalheight < 0.0) finalheight = 0.0;
                     for (int i = finalheight; i <= 128; ++i) {
                         sliver[i].id = water;
                     }
@@ -99,6 +101,8 @@ void genChunk(int64_t cx, int64_t cz, struct blockdata* data, int type) {
                     float extraheight = (tanhf(nperlin2d(5, cx, cz, 0.0145, 1) * 1.5 - (2.15 - (heightmult + (1.0 - humidity) * 0.75) * 1.0)) * 0.5 + 0.5) * heightmult * 64.33;
                     extraheight *= clamp(height * 10.0 + 3.33);
                     float extrafinalh = extraheight + finalheight;
+                    if (extrafinalh > 511.0) extrafinalh = 511.0;
+                    if (extrafinalh < 0.0) extrafinalh = 0.0;
                     for (int i = finalheight; i < extrafinalh; ++i) {
                         float fi = i;
                         if (!block[i] && noise3(6, cx / 18.67, fi / 19.0, cz / 18.67) > -(((extrafinalh - fi) / extraheight)) * 1.33 + 0.45) {
