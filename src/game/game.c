@@ -36,7 +36,7 @@ bool debug_nocavecull = false;
 
 struct ui_data* game_ui[4];
 
-static force_inline void writeChunk(struct chunkdata* chunks, int64_t x, int64_t z, struct blockdata* data) {
+static inline void writeChunk(struct chunkdata* chunks, int64_t x, int64_t z, struct blockdata* data) {
     pthread_mutex_lock(&chunks->lock);
     int64_t nx = (x - chunks->xoff) + chunks->info.dist;
     int64_t nz = chunks->info.width - ((z - chunks->zoff) + chunks->info.dist) - 1;
@@ -53,7 +53,7 @@ static force_inline void writeChunk(struct chunkdata* chunks, int64_t x, int64_t
     updateChunk(x, z, CHUNKUPDATE_PRIO_NORMAL, 1);
 }
 
-static force_inline void reqChunk(struct chunkdata* chunks, int64_t x, int64_t z) {
+static inline void reqChunk(struct chunkdata* chunks, int64_t x, int64_t z) {
     uint32_t coff = (z + chunks->info.dist) * chunks->info.width + (x + chunks->info.dist);
     if (!chunks->renddata[coff].generated && !chunks->renddata[coff].requested) {
         //printf("REQ [%"PRId64", %"PRId64"]\n", (int64_t)((int64_t)(x) + chunks->xoff), (int64_t)((int64_t)(-z) + chunks->zoff));
@@ -62,7 +62,7 @@ static force_inline void reqChunk(struct chunkdata* chunks, int64_t x, int64_t z
     }
 }
 
-static force_inline void reqChunks(struct chunkdata* chunks) {
+static inline void reqChunks(struct chunkdata* chunks) {
     pthread_mutex_lock(&chunks->lock);
     reqChunk(chunks, 0, 0);
     for (int i = 1; i <= (int)chunks->info.dist; ++i) {
@@ -175,7 +175,7 @@ static bool waitwithvsync;
 static uint64_t fpsupdate;
 static uint64_t frametime;
 static int frames = 0;
-static force_inline void doRender() {
+static inline void doRender() {
     render();
     updateScreen();
     ++frames;
@@ -201,7 +201,7 @@ static force_inline void doRender() {
     }
 }
 
-static force_inline void commonEvents(struct input_info* input) {
+static inline void commonEvents(struct input_info* input) {
     switch (input->single_action) {
         case INPUT_ACTION_SINGLE_FULLSCR:;
             setFullscreen(!rendinf.fullscr);

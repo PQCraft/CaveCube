@@ -241,7 +241,7 @@ GLFWgamepadstate glfwgpstate;
 static double mmovx, mmovy;
 static int mscrollup, mscrolldown;
 
-static force_inline float _keyState(int device, int type, int key, bool* repeat) {
+static inline float _keyState(int device, int type, int key, bool* repeat) {
     switch (device) {
         case 'k':; {
             switch (type) {
@@ -315,7 +315,7 @@ static force_inline float _keyState(int device, int type, int key, bool* repeat)
     return 0.0;
 }
 
-static force_inline float keyState(input_keys k, bool* r) {
+static inline float keyState(input_keys k, bool* r) {
     float v1 = 0, v2 = 0;
     bool r1 = false, r2 = false;
     v1 = _keyState(k.kd1, k.kt1, k.key1, &r1);
@@ -501,7 +501,7 @@ void getInput(struct input_info* _inf) {
     if (!_inf) free(inf);
 }
 
-static force_inline int _writeKeyCfg(char* data, unsigned char kd, unsigned char kt, int key) {
+static inline int _writeKeyCfg(char* data, unsigned char kd, unsigned char kt, int key) {
     int off = 0;
     switch (kd) {
         case 0:;
@@ -515,7 +515,7 @@ static force_inline int _writeKeyCfg(char* data, unsigned char kd, unsigned char
     return off;
 }
 
-static force_inline void writeKeyCfg(input_keys k, char* sect, char* name) {
+static inline void writeKeyCfg(input_keys k, char* sect, char* name) {
     char str[256];
     int off = _writeKeyCfg(str, k.kd1, k.kt1, k.key1);
     str[off++] = ';';
@@ -523,7 +523,7 @@ static force_inline void writeKeyCfg(input_keys k, char* sect, char* name) {
     declareConfigKey(config, sect, name, str, false);
 }
 
-static force_inline void _readKeyCfg(char* data, unsigned char* kd, unsigned char* kt, int* key) {
+static inline void _readKeyCfg(char* data, unsigned char* kd, unsigned char* kt, int* key) {
     char str[2][3];
     sscanf(data, "%2[^,],%2[^,],%d", str[0], str[1], key);
     if (str[0][0] == '\'' && str[0][1] == '0') *kd = 0;
@@ -532,7 +532,7 @@ static force_inline void _readKeyCfg(char* data, unsigned char* kd, unsigned cha
     else *kt = str[1][0];
 }
 
-static force_inline void readKeyCfg(input_keys* k, char* sect, char* name) {
+static inline void readKeyCfg(input_keys* k, char* sect, char* name) {
     char str[2][128];
     sscanf(getConfigKey(config, sect, name), "%[^;];%[^;]", str[0], str[1]);
     _readKeyCfg(str[0], &k->kd1, &k->kt1, &k->key1);

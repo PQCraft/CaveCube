@@ -359,7 +359,7 @@ static force_inline float getSize(char* propval, float max) {
     return num;
 }
 
-static force_inline bool calcProp(struct ui_data* elemdata, struct ui_elem* e, bool force) {
+static bool calcProp(struct ui_data* elemdata, struct ui_elem* e, bool force) {
     struct ui_elem_calcprop p_prop;
     if (elemValid(e->parent)) {
         p_prop = elemdata->data[e->parent].calcprop;

@@ -145,7 +145,7 @@ static force_inline void normFrustPlane(struct frustum* frust, int plane) {
 
 static float __attribute__((aligned (32))) cf_clip[16];
 
-static force_inline void calcFrust(struct frustum* frust, float* proj, float* view) {
+static void calcFrust(struct frustum* frust, float* proj, float* view) {
 	cf_clip[0] = view[0] * proj[0] + view[1] * proj[4] + view[2] * proj[8] + view[3] * proj[12];
 	cf_clip[1] = view[0] * proj[1] + view[1] * proj[5] + view[2] * proj[9] + view[3] * proj[13];
 	cf_clip[2] = view[0] * proj[2] + view[1] * proj[6] + view[2] * proj[10] + view[3] * proj[14];
@@ -194,7 +194,7 @@ static force_inline void calcFrust(struct frustum* frust, float* proj, float* vi
 	normFrustPlane(frust, 5);
 }
 
-static force_inline bool isVisible(struct frustum* frust, float ax, float ay, float az, float bx, float by, float bz) {
+static bool isVisible(struct frustum* frust, float ax, float ay, float az, float bx, float by, float bz) {
 	for (int i = 0; i < 6; i++) {
 		if ((frust->planes[i][0] * ax + frust->planes[i][1] * ay + frust->planes[i][2] * az + frust->planes[i][3] <= 0.0) &&
 		    (frust->planes[i][0] * bx + frust->planes[i][1] * ay + frust->planes[i][2] * az + frust->planes[i][3] <= 0.0) &&
@@ -363,7 +363,7 @@ void setFullscreen(bool fullscreen) {
     }
 }
 
-static force_inline bool makeShaderProg(char* hdrtext, char* _vstext, char* _fstext, GLuint* p) {
+static bool makeShaderProg(char* hdrtext, char* _vstext, char* _fstext, GLuint* p) {
     if (!_vstext || !_fstext) return false;
     bool retval = true;
     char* vstext = malloc(strlen(hdrtext) + strlen(_vstext) + 1);
@@ -539,7 +539,7 @@ struct msgdata {
 
 struct msgdata chunkmsgs[CHUNKUPDATE_PRIO__MAX];
 
-static force_inline void initMsgData(struct msgdata* mdata) {
+static void initMsgData(struct msgdata* mdata) {
     mdata->async = false;
     mdata->size = 0;
     mdata->rptr = -1;
@@ -555,7 +555,7 @@ static void deinitMsgData(struct msgdata* mdata) {
     pthread_mutex_destroy(&mdata->lock);
 }
 
-static force_inline void addMsg(struct msgdata* mdata, int64_t x, int64_t z, uint64_t id, bool dep, int lvl) {
+static void addMsg(struct msgdata* mdata, int64_t x, int64_t z, uint64_t id, bool dep, int lvl) {
     static uint64_t mdataid = 0;
     pthread_mutex_lock(&mdata->lock);
     if (mdata->async) {
@@ -594,7 +594,7 @@ static force_inline void addMsg(struct msgdata* mdata, int64_t x, int64_t z, uin
     pthread_mutex_unlock(&mdata->lock);
 }
 
-static force_inline bool getNextMsg(struct msgdata* mdata, struct msgdata_msg* msg) {
+static bool getNextMsg(struct msgdata* mdata, struct msgdata_msg* msg) {
     pthread_mutex_lock(&mdata->lock);
     if (mdata->async) {
         for (int i = 0; i < mdata->size; ++i) {
@@ -713,7 +713,7 @@ static force_inline float dist3d(float x0, float y0, float z0, float x1, float y
 }
 
 //TODO: Optimize
-static force_inline void _sortChunk(int32_t c, int xoff, int zoff, bool update) {
+static force_inline void _sortChunk_inline(int32_t c, int xoff, int zoff, bool update) {
     if (c < 0) c = (xoff + rendinf.chunks->info.dist) + (rendinf.chunks->info.width - (zoff + rendinf.chunks->info.dist) - 1) * rendinf.chunks->info.width;
     if (update) {
         if (!rendinf.chunks->renddata[c].visfull || !rendinf.chunks->renddata[c].sortvert || !rendinf.chunks->renddata[c].tcount[1]) return;
@@ -757,11 +757,15 @@ static force_inline void _sortChunk(int32_t c, int xoff, int zoff, bool update) 
     }
 }
 
-void sortChunk(int32_t c, int xoff, int zoff, bool update) {
-    _sortChunk(c, xoff, zoff, update);
+static void _sortChunk(int32_t c, int xoff, int zoff, bool update) {
+    _sortChunk_inline(c, xoff, zoff, update);
 }
 
-static force_inline void mesh(int64_t x, int64_t z, uint64_t id) {
+void sortChunk(int32_t c, int xoff, int zoff, bool update) {
+    _sortChunk_inline(c, xoff, zoff, update);
+}
+
+static void mesh(int64_t x, int64_t z, uint64_t id) {
     struct blockdata bdata;
     struct blockdata bdata2[6];
     pthread_mutex_lock(&rendinf.chunks->lock);
@@ -1366,7 +1370,7 @@ struct muie_textline {
     char* ptr;
 };
 
-static force_inline void meshUIElem(struct meshdata* md, struct ui_data* elemdata, struct ui_elem* e) {
+static void meshUIElem(struct meshdata* md, struct ui_data* elemdata, struct ui_elem* e) {
     //printf("mesh: {%s} [hidden:%d]\n", e->name, e->calcprop.hidden);
     struct ui_elem_calcprop* p = &e->calcprop;
     int s = elemdata->scale;

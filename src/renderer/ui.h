@@ -76,6 +76,7 @@ enum {
     UI_ELEM_ITEMGRID,
     UI_ELEM_BUTTON,
     UI_ELEM_PROGRESSBAR,
+    UI_ELEM_TEXTBOX,
 };
 
 enum {

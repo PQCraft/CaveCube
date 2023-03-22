@@ -59,7 +59,7 @@ static void sigsegvh(int sig) {
 static bool showcon;
 #endif
 
-static force_inline bool altchdir(char* path) {
+static inline bool altchdir(char* path) {
     if (chdir(path) < 0) {fprintf(stderr, "Could not chdir into '%s'\n", path); return false;}
     return true;
 }
