@@ -32,7 +32,7 @@ struct msgdata {
     pthread_mutex_t lock;
 };
 
-static force_inline void initMsgData(struct msgdata* mdata) {
+static void initMsgData(struct msgdata* mdata) {
     mdata->async = false;
     mdata->size = 0;
     mdata->rptr = -1;
@@ -41,14 +41,14 @@ static force_inline void initMsgData(struct msgdata* mdata) {
     pthread_mutex_init(&mdata->lock, NULL);
 }
 
-static force_inline void deinitMsgData(struct msgdata* mdata) {
+static void deinitMsgData(struct msgdata* mdata) {
     pthread_mutex_lock(&mdata->lock);
     free(mdata->msg);
     pthread_mutex_unlock(&mdata->lock);
     pthread_mutex_destroy(&mdata->lock);
 }
 
-static force_inline void addMsg(struct msgdata* mdata, int id, void* data, uint64_t uuid, int uind) {
+static void addMsg(struct msgdata* mdata, int id, void* data, uint64_t uuid, int uind) {
     pthread_mutex_lock(&mdata->lock);
     if (mdata->async) {
         int index = -1;
@@ -82,7 +82,7 @@ static force_inline void addMsg(struct msgdata* mdata, int id, void* data, uint6
     pthread_mutex_unlock(&mdata->lock);
 }
 
-static force_inline bool getNextMsg(struct msgdata* mdata, struct msgdata_msg* msg) {
+static bool getNextMsg(struct msgdata* mdata, struct msgdata_msg* msg) {
     pthread_mutex_lock(&mdata->lock);
     if (mdata->async) {
         for (int i = 0; i < mdata->size; ++i) {
@@ -117,7 +117,7 @@ static force_inline bool getNextMsg(struct msgdata* mdata, struct msgdata_msg* m
     return false;
 }
 
-static force_inline bool getNextMsgForUUID(struct msgdata* mdata, struct msgdata_msg* msg, uint64_t uuid) {
+static bool getNextMsgForUUID(struct msgdata* mdata, struct msgdata_msg* msg, uint64_t uuid) {
     pthread_mutex_lock(&mdata->lock);
     if (mdata->async) {
         for (int i = 0; i < mdata->size; ++i) {
@@ -213,14 +213,14 @@ struct timerdata {
     pthread_mutex_t lock;
 };
 
-static force_inline void initTimerData(struct timerdata* tdata) {
+static void initTimerData(struct timerdata* tdata) {
     tdata->valid = true;
     tdata->size = 0;
     tdata->tmr = malloc(0);
     pthread_mutex_init(&tdata->lock, NULL);
 }
 
-static force_inline void deinitTimerData(struct timerdata* tdata) {
+static void deinitTimerData(struct timerdata* tdata) {
     pthread_mutex_lock(&tdata->lock);
     tdata->valid = false;
     free(tdata->tmr);
@@ -228,7 +228,7 @@ static force_inline void deinitTimerData(struct timerdata* tdata) {
     pthread_mutex_destroy(&tdata->lock);
 }
 
-static force_inline int addTimer(struct timerdata* tdata, int event, int prio, uint64_t interval) {
+static int addTimer(struct timerdata* tdata, int event, int prio, uint64_t interval) {
     int index = -1;
     pthread_mutex_lock(&tdata->lock);
     if (tdata->valid) {
@@ -251,7 +251,7 @@ static force_inline int addTimer(struct timerdata* tdata, int event, int prio, u
     return index;
 }
 
-static force_inline void removeTimer(struct timerdata* tdata, int i) {
+static void removeTimer(struct timerdata* tdata, int i) {
     pthread_mutex_lock(&tdata->lock);
     if (tdata->valid) {
         if (tdata->tmr[i].event >= 0) {

@@ -287,7 +287,7 @@ struct config* openConfig(char* path) {
     return cfg;
 }
 
-static force_inline void writeKeys(struct config* cfg, int i, FILE* outfile) {
+static inline void writeKeys(struct config* cfg, int i, FILE* outfile) {
     for (int j = 0; j < cfg->sectdata[i].keys; ++j) {
         if (!cfg->sectdata[i].keydata[j].changed) continue;
         fputs(cfg->sectdata[i].keydata[j].name, outfile);

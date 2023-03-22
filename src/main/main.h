@@ -27,11 +27,11 @@
     #define MAX_THREADS 32
 #endif
 
-#ifdef ENABLE_FORCE_INLINE
+//#ifdef ENABLE_FORCE_INLINE
     #define force_inline inline __attribute__((always_inline))
-#else
-    #define force_inline inline
-#endif
+//#else
+//    #define force_inline inline
+//#endif
 
 extern CONFIG* config;
 extern int quitRequest;

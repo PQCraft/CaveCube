@@ -163,7 +163,7 @@ void freeChunks(struct chunkdata* chunks) {
     free(chunks);
 }
 
-static force_inline void nullattrib(struct chunkdata* chunks, int c) {
+static inline void nullattrib(struct chunkdata* chunks, int c) {
     if (chunks->renddata[c].generated) {
         chunks->renddata[c].vcount[0] = 0;
         chunks->renddata[c].vcount[1] = 0;
