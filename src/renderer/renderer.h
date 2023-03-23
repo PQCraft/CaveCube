@@ -1,9 +1,6 @@
 #if MODULEID == MODULEID_GAME
 
 #ifndef RENDERER_RENDERER_H
-
-#ifndef RENDERER_H_STUB
-
 #define RENDERER_RENDERER_H
 
 #ifndef __EMSCRIPTEN__
@@ -84,13 +81,6 @@ struct renderer_info {
     GLuint shaderprog;
 };
 
-struct model_renddata {
-    unsigned VAO;
-    unsigned VBO;
-    unsigned EBO;
-    resdata_texture* texture;
-};
-
 enum {
     CVIS_UP,
     CVIS_RIGHT,
@@ -140,12 +130,6 @@ enum {
     CHUNKUPDATE_PRIO__MAX,
 };
 
-#endif
-
-#ifndef RENDERER_H_STUB
-
-typedef unsigned int texture_t;
-
 extern struct renderer_info rendinf;
 extern int MESHER_THREADS;
 extern int MESHER_THREADS_MAX;
@@ -156,8 +140,6 @@ bool startRenderer(void);
 bool reloadRenderer(void);
 void stopRenderer(void);
 void setRendererMode(int);
-void createTexture(unsigned char*, resdata_texture*);
-void destroyTexture(resdata_texture*);
 void updateCam(void);
 void updateScreen(void);
 void setMeshChunks(void*);
@@ -183,8 +165,6 @@ extern struct renderer_info rendinf;
 #define GFX_DEFAULT_ROT (coord_3d){0.0, 0.0, 0.0}
 #define GFX_DEFAULT_SCALE (coord_3d){1.0, 1.0, 1.0}
 #define GFX_DEFAULT_MAT4 {{1.0, 0.0, 0.0, 0.0}, {0.0, 1.0, 0.0, 0.0}, {0.0, 0.0, -1.0, 0.0}, {0.0, 0.0, 0.0, 1.0}}
-
-#endif
 
 #endif
 

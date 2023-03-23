@@ -2,8 +2,6 @@
 #include "resource.h"
 #include "common.h"
 #include "stb_image.h"
-#include <bmd/bmd.h>
-#include <renderer/renderer.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -88,23 +86,10 @@ void* makeResource(int type, char* path) {
             data = malloc(sizeof(resdata_file));
             *(file_data*)data = getBinFile(path);
         } break;
-        case RESOURCE_BMD:; {
-            resdata_bmd* bmddata = data = calloc(1, sizeof(resdata_bmd));
-            temploadBMD(getBinFile(path), bmddata);
-        } break;
         case RESOURCE_IMAGE:; {
             resdata_image* imagedata = data = calloc(1, sizeof(resdata_image));
             imagedata->data = stbi_load(path, &imagedata->width, &imagedata->height, &imagedata->channels, STBI_rgb_alpha);
             imagedata->channels = 4;
-        } break;
-        case RESOURCE_TEXTURE:; {
-            #if MODULEID == MODULEID_GAME
-            resdata_texture* texturedata = data = calloc(1, sizeof(resdata_texture));
-            unsigned char* idata = stbi_load(path, &texturedata->width, &texturedata->height, &texturedata->channels, STBI_rgb_alpha);
-            texturedata->channels = 4;
-            createTexture(idata, texturedata);
-            stbi_image_free(idata);
-            #endif
         } break;
     }
     return data;
@@ -155,16 +140,8 @@ void freeResStub(resentry* ent) {
         case RESOURCE_BINFILE:; {
             freeFile(*(file_data*)ent->data);
         } break;
-        case RESOURCE_BMD:; {
-            freeBMD((bmd_data*)ent->data);
-        } break;
         case RESOURCE_IMAGE:; {
             stbi_image_free(((resdata_image*)ent->data)->data);
-        } break;
-        case RESOURCE_TEXTURE:; {
-            #if MODULEID == MODULEID_GAME
-            destroyTexture((resdata_texture*)ent->data);
-            #endif
         } break;
     }
     free(ent->data);

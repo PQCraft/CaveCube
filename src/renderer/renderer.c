@@ -436,22 +436,6 @@ static bool makeShaderProg(char* hdrtext, char* _vstext, char* _fstext, GLuint* 
     return retval;
 }
 
-void createTexture(unsigned char* data, resdata_texture* tdata) {
-    glGenTextures(1, &tdata->data);
-    glBindTexture(GL_TEXTURE_2D, tdata->data);
-    GLenum colors = GL_RGB;
-    if (tdata->channels == 1) colors = GL_RED;
-    else if (tdata->channels == 4) colors = GL_RGBA;
-    glTexImage2D(GL_TEXTURE_2D, 0, colors, tdata->width, tdata->height, 0, colors, GL_UNSIGNED_BYTE, data);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glBindTexture(GL_TEXTURE_2D, 0);
-}
-
-void destroyTexture(resdata_texture* tdata) {
-    glDeleteTextures(1, &tdata->data);
-}
-
 void updateScreen() {
     static int lv = -1;
     if (rendinf.vsync != lv) {
@@ -881,7 +865,7 @@ static void mesh(int64_t x, int64_t z, uint64_t id) {
                         baseVert[2] |= ((blockinf[bdata.id].data[bdata.subid].anict[i] << 8) & 0xFF00);
                         baseVert[2] |= (blockinf[bdata.id].data[bdata.subid].anidiv & 0xFF);
 
-                        baseVert[3] = 0;
+                        baseVert[3] = blockinf[bdata.id].data[bdata.subid].transparency << 8;
 
                         if (blockinf[bdata.id].data[bdata.subid].transparency >= 2) {
                             if (!bdata2[i].id && blockinf[bdata.id].data[bdata.subid].backfaces) {
@@ -1627,7 +1611,7 @@ const unsigned char* glslver;
 const unsigned char* glvend;
 const unsigned char* glrend;
 
-static resdata_texture* crosshair;
+static resdata_image* crosshair;
 
 static int dbgtextuih = -1;
 
@@ -2043,6 +2027,7 @@ bool initRenderer() {
     declareConfigKey(config, "Renderer", "vSync", "true", false);
     declareConfigKey(config, "Renderer", "fullScreen", "false", false);
     declareConfigKey(config, "Renderer", "FOV", "85", false);
+    declareConfigKey(config, "Renderer", "mipmaps", "true", false);
     declareConfigKey(config, "Renderer", "nearPlane", "0.05", false);
     declareConfigKey(config, "Renderer", "farPlane", "2500", false);
     declareConfigKey(config, "Renderer", "lazyMesher", "false", false);
@@ -2155,7 +2140,9 @@ bool reloadRenderer() {
         fputs("reloadRenderer: Failed to load shader header\n", stderr);
         return false;
     }
+    #if DBGLVL(1)
     puts("Compiling block shader...");
+    #endif
     file_data* vs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/block/vertex.glsl");
     file_data* fs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/block/fragment.glsl");
     if (!vs || !fs || !makeShaderProg((char*)hdr->data, (char*)vs->data, (char*)fs->data, &shader_block)) {
@@ -2164,7 +2151,9 @@ bool reloadRenderer() {
     }
     freeResource(vs);
     freeResource(fs);
+    #if DBGLVL(1)
     puts("Compiling 2D shader...");
+    #endif
     vs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/2D/vertex.glsl");
     fs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/2D/fragment.glsl");
     if (!vs || !fs || !makeShaderProg((char*)hdr->data, (char*)vs->data, (char*)fs->data, &shader_2d)) {
@@ -2173,7 +2162,9 @@ bool reloadRenderer() {
     }
     freeResource(vs);
     freeResource(fs);
+    #if DBGLVL(1)
     puts("Compiling UI shader...");
+    #endif
     vs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/ui/vertex.glsl");
     fs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/ui/fragment.glsl");
     if (!vs || !fs || !makeShaderProg((char*)hdr->data, (char*)vs->data, (char*)fs->data, &shader_ui)) {
@@ -2182,7 +2173,9 @@ bool reloadRenderer() {
     }
     freeResource(vs);
     freeResource(fs);
+    #if DBGLVL(1)
     puts("Compiling framebuffer shader...");
+    #endif
     vs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/framebuffer/vertex.glsl");
     fs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/framebuffer/fragment.glsl");
     if (!vs || !fs || !makeShaderProg((char*)hdr->data, (char*)vs->data, (char*)fs->data, &shader_framebuffer)) {
@@ -2194,7 +2187,9 @@ bool reloadRenderer() {
 
     int gltex = GL_TEXTURE0;
 
+    #if DBGLVL(1)
     puts("Creating UI framebuffer...");
+    #endif
     glBindRenderbuffer(GL_RENDERBUFFER, UIDBUF);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, rendinf.width, rendinf.height);
     UIFBTEXID = gltex++;
@@ -2209,7 +2204,9 @@ bool reloadRenderer() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, UIFBTEX, 0);
 
+    #if DBGLVL(1)
     puts("Creating game framebuffer...");
+    #endif
     glBindRenderbuffer(GL_RENDERBUFFER, DBUF);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, rendinf.width, rendinf.height);
     FBTEXID = gltex++;
@@ -2247,8 +2244,9 @@ bool reloadRenderer() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
     unsigned char* texmap;
-    texture_t texmaph;
-    texture_t charseth;
+    unsigned texmaph;
+    unsigned charseth;
+    unsigned crosshairh;
 
     //puts("creating texture map...");
     int texmapsize = 0;
@@ -2326,14 +2324,24 @@ bool reloadRenderer() {
             }
         }
     }
+
+    bool mipmaps = getBool(getConfigKey(config, "Renderer", "mipmaps"));
+
     setShaderProg(shader_block);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), gltex - GL_TEXTURE0);
     glGenTextures(1, &texmaph);
     glActiveTexture(gltex++);
     glBindTexture(GL_TEXTURE_2D_ARRAY, texmaph);
     glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, 16, 16, texmapsize, 0, GL_RGBA, GL_UNSIGNED_BYTE, texmap);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "mipmap"), mipmaps);
+    if (mipmaps) {
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
+    } else {
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    }
     free(texmap);
 
     glGenBuffers(1, &VBO2D);
@@ -2342,9 +2350,13 @@ bool reloadRenderer() {
 
     setShaderProg(shader_2d);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), gltex - GL_TEXTURE0);
+    glGenTextures(1, &crosshairh);
     glActiveTexture(gltex++);
-    crosshair = loadResource(RESOURCE_TEXTURE, "game/textures/ui/crosshair.png");
-    glBindTexture(GL_TEXTURE_2D, crosshair->data);
+    crosshair = loadResource(RESOURCE_IMAGE, "game/textures/ui/crosshair.png");
+    glBindTexture(GL_TEXTURE_2D, crosshairh);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, crosshair->width, crosshair->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, crosshair->data);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     setUniform4f(rendinf.shaderprog, "mcolor", (float[]){1.0, 1.0, 1.0, 1.0});
 
     setShaderProg(shader_ui);
