@@ -1,4 +1,5 @@
 in vec2 texCoord;
+flat in uint transparency;
 in vec3 fragPos;
 in float texOffset;
 in vec3 light;
@@ -8,17 +9,29 @@ uniform int dist;
 uniform float fogNear;
 uniform float fogFar;
 uniform vec3 cam;
+uniform bool mipmap;
 
 out vec4 fragColor;
 
 void main() {
-    vec4 color = texture(texData, vec3(texCoord, texOffset));
-    if (color.a > 0.0) {
-        fragColor = vec4(color.rgba);
+    vec2 dx, dy;
+    if (mipmap) {
+        if (transparency == uint(1)) {
+            dx = vec2(0.0);
+            dy = vec2(0.0);
+        } else {
+            dx = dFdx(texCoord);
+            dy = dFdy(texCoord);
+        }
     } else {
+        dx = vec2(0.0);
+        dy = vec2(0.0);
+    }
+    fragColor = textureGrad(texData, vec3(texCoord, texOffset), dx, dy);
+    if (transparency == uint(1) && fragColor.a == 0.0) {
         discard;
     }
-    float fogdist = distance(vec3(fragPos.x, abs(cam.y - fragPos.y) * 0.5, fragPos.z), vec3(cam.x, 0, cam.z));
+    float fogdist = distance(vec3(fragPos.x, abs(cam.y - fragPos.y) * 0.67, fragPos.z), vec3(cam.x, 0, cam.z));
     float fogdmin = (float(dist) * 16.0) * fogNear;
     float fogdmax = (float(dist) * 16.0) * fogFar;
     fragColor.rgb *= light;

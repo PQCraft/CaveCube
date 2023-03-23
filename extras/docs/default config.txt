@@ -8,6 +8,7 @@ fullScreenRes =
 vSync = true
 fullScreen = false
 FOV = 85
+mipmaps = true
 nearPlane = 0.05
 farPlane = 2500
 lazyMesher = false

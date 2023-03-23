@@ -760,9 +760,9 @@ bool doGame() {
 
     fpsupdate = altutime();
 
-    initRenderer();
-    startRenderer();
-    initInput();
+    if (!initRenderer()) return false;
+    if (!startRenderer()) return false;
+    if (!initInput()) return false;
     setInputMode(INPUT_MODE_UI);
     rendergame = false;
     setSkyColor(0.5, 0.5, 0.5);
