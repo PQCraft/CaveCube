@@ -42,10 +42,24 @@
 
 ### IN-PROGRESS:
 - Flesh out UI
-    - More UI elements (buttons, text boxes, scrollbars, etc)
-    - UI interaction (elem states, tooltips, etc)
-    - Add `fit_width_to_text` and `fit_height_to_text` attrib
+    - More UI elements (text boxes, scrollbars, drop-down menus, sliders, etc)
+    - UI interaction (elem states, tooltips, text input, etc)
+    - Move text processing from meshUIElem to calcUIProperties
     - Add `text_fmt` attrib
+    - Add escape code processing when `text_fmt` is `true`
+        - `\eFCh` sets foreground color to 0xh
+        - `\eBCh` sets foreground color to 0xh
+        - `\eFAhh` sets foreground alpha to 0xhh
+        - `\eBAhh` sets foreground alpha to 0xhh
+        - `\eAh` sets text attributes to 0xh
+            - 0x1 = bold
+            - 0x2 = italic
+            - 0x4 = underline
+            - 0x8 = strikethrough
+        - `\eR` resets all changes made by escape codes
+    - Add `t` as a number suffix for size to fit to number \* text size
+    - Add `c` as a number suffix for size to fit to number \* size of children
+    - Add `minwidth` and `maxwidth` attribs
     - Add items to hotbar
 
 ### DONE:
