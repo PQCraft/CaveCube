@@ -27,11 +27,13 @@ vec3 hsv2rgb(vec3 c) {
 
 void main() {
     fragColor = texture(texData, texCoord);
-    vec3 hsvFrag = rgb2hsv(fragColor.rgb);
-    hsvFrag.x *= (1.0 + h);
-    hsvFrag.y *= (1.0 + s);
-    hsvFrag.z *= (1.0 + v);
-    fragColor.rgb = hsv2rgb(hsvFrag) * mcolor;
-    //float gamma = 1.5;
-    //fragColor.rgb = pow(fragColor.rgb, vec3(1.0 / gamma));
+    if (fbtype == 0) {
+        vec3 hsvFrag = rgb2hsv(fragColor.rgb);
+        hsvFrag.x *= (1.0 + h);
+        hsvFrag.y *= (1.0 + s);
+        hsvFrag.z *= (1.0 + v);
+        fragColor.rgb = hsv2rgb(hsvFrag) * mcolor;
+        //float gamma = 1.5;
+        //fragColor.rgb = pow(fragColor.rgb, vec3(1.0 / gamma));
+    }
 }

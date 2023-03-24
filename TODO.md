@@ -42,7 +42,7 @@
 
 ### IN-PROGRESS:
 - Flesh out UI
-    - More UI elements (text boxes, scrollbars, drop-down menus, sliders, etc)
+    - More UI elements (text boxes, scrollbars, drop-down menus, sliders, toggles, etc)
     - UI interaction (elem states, tooltips, text input, etc)
     - Move text processing from meshUIElem to calcUIProperties
     - Add `text_fmt` attrib
@@ -70,3 +70,4 @@
 - Fixed a bug that prevented Windows from connecting in -connect mode
 - New worldgen
 - Memory management fixes
+- Renderer improvements

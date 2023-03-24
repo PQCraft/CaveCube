@@ -12,6 +12,7 @@ mipmaps = true
 nearPlane = 0.05
 farPlane = 2500
 lazyMesher = false
+sortTransparent = true
 caveCullLevel = 1
 mesherThreadsMax = 1
 waitWithVsync = true

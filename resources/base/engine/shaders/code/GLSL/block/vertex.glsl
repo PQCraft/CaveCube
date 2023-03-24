@@ -14,7 +14,9 @@ uniform vec3 natLight;
 uniform vec3 skycolor;
 
 out vec2 texCoord;
+#ifndef SORTTRANSPARENT
 flat out uint transparency;
+#endif
 out vec3 fragPos;
 out float texOffset;
 out vec3 light;
@@ -25,7 +27,9 @@ void main() {
     fragPos.z = ((float((data1 & uint(255)) + ((data4 >> 2) & uint(1)))) / 16.0 - 8.0) * -1.0;
     texCoord.x = (float(((data4 >> 24) & uint(255)) + ((data4 >> 1) & uint(1)))) / 16.0;
     texCoord.y = (float(((data4 >> 16) & uint(255)) + (data4 & uint(1)))) / 16.0;
+    #ifndef SORTTRANSPARENT
     transparency = (data4 >> 8) & uint(3);
+    #endif
     fragPos += vec3(ccoord.x, 0.0, ccoord.y) * 16.0;
     texOffset = float(((data3 >> 16) & uint(65535)) + ((aniMult / (data3 & uint(255))) % ((data3 >> 8) & uint(255))));
     vec3 nat = (natLight * 0.8 + skycolor * 0.2) * (float(data2 & uint(31)) / 31.0);
