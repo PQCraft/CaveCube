@@ -1938,6 +1938,7 @@ void render() {
     setUniform3f(rendinf.shaderprog, "mcolor", (float[]){screenmult.r, screenmult.g, screenmult.b});
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
     glDrawArrays(GL_TRIANGLES, 0, 6);
+    glUniform1i(glGetUniformLocation(rendinf.shaderprog, "fbtype"), 1);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), UIFBTEXID - GL_TEXTURE0);
     setUniform3f(rendinf.shaderprog, "mcolor", (float[]){1, 1, 1});
     if (!rendergame) {
@@ -1959,7 +1960,6 @@ void render() {
         if (renderUI(game_ui[i])) {
             //printf("renderUI(game_ui[%d])\n", i);
             setShaderProg(shader_framebuffer);
-            glUniform1i(glGetUniformLocation(rendinf.shaderprog, "fbtype"), 1);
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
             glDisable(GL_DEPTH_TEST);
             glEnable(GL_BLEND);
@@ -2031,6 +2031,7 @@ bool initRenderer() {
     declareConfigKey(config, "Renderer", "nearPlane", "0.05", false);
     declareConfigKey(config, "Renderer", "farPlane", "2500", false);
     declareConfigKey(config, "Renderer", "lazyMesher", "false", false);
+    declareConfigKey(config, "Renderer", "sortTransparent", "true", false);
     declareConfigKey(config, "Renderer", "caveCullLevel", "1", false);
     declareConfigKey(config, "Renderer", "mesherThreadsMax", "1", false);
 
@@ -2130,6 +2131,7 @@ bool initRenderer() {
 }
 
 bool reloadRenderer() {
+    bool sorttransparent = getBool(getConfigKey(config, "Renderer", "sortTransparent"));
     #if defined(USEGLES)
     char* hdrpath = "engine/shaders/headers/OpenGL ES/header.glsl";
     #else
@@ -2139,6 +2141,13 @@ bool reloadRenderer() {
     if (!hdr) {
         fputs("reloadRenderer: Failed to load shader header\n", stderr);
         return false;
+    }
+    if (sorttransparent) {
+        char* line = "#define SORTTRANSPARENT\n";
+        int len = strlen(line);
+        hdr->size += len;
+        hdr->data = realloc(hdr->data, hdr->size);
+        strcat((char*)hdr->data, line);
     }
     #if DBGLVL(1)
     puts("Compiling block shader...");
@@ -2268,7 +2277,7 @@ bool reloadRenderer() {
                 resdata_image* img = loadResource(RESOURCE_IMAGE, tmpbuf);
                 for (int k = 3; k < 1024; k += 4) {
                     if (img->data[k] < 255) {
-                        if (img->data[k]) {
+                        if (sorttransparent || img->data[k]) {
                             blockinf[i].data[s].transparency = 2;
                             break;
                         } else {

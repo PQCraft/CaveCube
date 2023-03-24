@@ -83,11 +83,13 @@ void main() {
     yiq1.x = tmp[0].x;
     yiq1.yz = tmp[1].yz;
     fragColor.rgb = yiq2rgb(yiq1);
-    vec3 hsvFrag = rgb2hsv(fragColor.rgb);
-    hsvFrag.x *= (1.0 + h);
-    hsvFrag.y *= (1.0 + s);
-    hsvFrag.z *= (1.0 + v);
-    fragColor.rgb = hsv2rgb(hsvFrag) * mcolor;
+    if (fbtype == 0) {
+        vec3 hsvFrag = rgb2hsv(fragColor.rgb);
+        hsvFrag.x *= (1.0 + h);
+        hsvFrag.y *= (1.0 + s);
+        hsvFrag.z *= (1.0 + v);
+        fragColor.rgb = hsv2rgb(hsvFrag) * mcolor;
+    }
     //float gamma = 1.5;
     //fragColor.rgb = pow(fragColor.rgb, vec3(1.0 / gamma));
 }
