@@ -33,6 +33,5 @@ void main() {
     light.g = float((data2 >> 16) & uint(31)) / 31.0;
     light.b = float((data2 >> 8) & uint(31)) / 31.0;
     light.rgb += nat;
-    //light = clamp(light, vec3(0.0, 0.0, 0.0), vec3(1.0, 1.0, 1.0));
     gl_Position = projection * view * vec4(fragPos, 1.0);
 }

@@ -28,9 +28,7 @@ void main() {
         dy = vec2(0.0);
     }
     fragColor = textureGrad(texData, vec3(texCoord, texOffset), dx, dy);
-    if (transparency == uint(1) && fragColor.a == 0.0) {
-        discard;
-    }
+    if (transparency == uint(1) && fragColor.a == 0.0) {discard; return;}
     float fogdist = distance(vec3(fragPos.x, abs(cam.y - fragPos.y) * 0.67, fragPos.z), vec3(cam.x, 0, cam.z));
     float fogdmin = (float(dist) * 16.0) * fogNear;
     float fogdmax = (float(dist) * 16.0) * fogFar;
