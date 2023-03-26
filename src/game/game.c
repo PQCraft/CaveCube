@@ -586,19 +586,23 @@ static void showProgressBox(char* title, char* text, float progress, bool showca
     //printf("progress: [%g]->{%s}\n", progress, pstr);
     editUIElem(game_ui[UILAYER_INGAME], pb_pbar, UI_ATTR_DONE, "width", ((showcancel) ? "100%-62" : "100%"), "progress", pstr, NULL);
     editUIElem(game_ui[UILAYER_INGAME], pb_cancel, UI_ATTR_DONE, "hidden", ((showcancel) ? "false" : "true"), NULL);
+    /*
     static struct input_info input;
     getInput(&input);
     commonEvents(&input);
     doRender();
     frametime = altutime();
+    */
 }
 static void hideProgressBox() {
     editUIElem(game_ui[UILAYER_INGAME], pb_parent, UI_ATTR_DONE, "hidden", "true", NULL);
+    /*
     static struct input_info input;
     getInput(&input);
     commonEvents(&input);
     doRender();
     frametime = altutime();
+    */
 }
 static bool progressBoxCancelled() {
     if (pb_clickedcancel) {

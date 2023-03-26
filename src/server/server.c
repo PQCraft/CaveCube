@@ -484,10 +484,10 @@ static void* servthread(void* args) {
                             genChunk(data->x, data->z, blocks, worldtype);
                             uint16_t* netorder = malloc(393216 * sizeof(*netorder));
                             for (int i = 0, n = 0; i < 131072; ++i) {
-                                netorder[n] = (blocks[i].id << 8) | (blocks[i].subid << 2) | (blocks[i].rotx);
+                                netorder[n] = (blocks[i].id << 8) | (blocks[i].subid);
                                 netorder[n] = host2net16(netorder[n]);
                                 ++n;
-                                netorder[n] = (blocks[i].roty << 14) | (blocks[i].rotz << 12) | (blocks[i].charge << 8) | (blocks[i].light_n);
+                                netorder[n] = (blocks[i].rotx << 14) | (blocks[i].roty << 12) | (blocks[i].rotz << 10) | (blocks[i].charge << 6) | (blocks[i].light_n);
                                 netorder[n] = host2net16(netorder[n]);
                                 ++n;
                                 netorder[n] = (blocks[i].light_r << 10) | (blocks[i].light_g << 5) | (blocks[i].light_b);
