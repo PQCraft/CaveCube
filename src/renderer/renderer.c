@@ -457,35 +457,26 @@ void updateScreen() {
 
 static force_inline void rendGetBlock(int cx, int cz, int x, int y, int z, struct blockdata* b) {
     if (y < 0 || y > 511) {
-        b->id = BLOCKNO_NULL;
-        b->subid = 0;
-        b->light_r = 0;
-        b->light_g = 0;
-        b->light_b = 0;
-        b->light_n = 31;
+        bdsetid(b, BLOCKNO_NULL);
+        bdsetsubid(b, 0);
+        bdsetlight(b, 0, 0, 0, 31);
         return;
     }
     cx += x / 16 - (x < 0);
     cz -= z / 16 - (z < 0);
     if (cx < 0 || cz < 0 || cx >= (int)rendinf.chunks->info.width || cz >= (int)rendinf.chunks->info.width) {
-        b->id = BLOCKNO_BORDER;
-        b->subid = 0;
-        b->light_r = 0;
-        b->light_g = 0;
-        b->light_b = 0;
-        b->light_n = 31;
+        bdsetid(b, BLOCKNO_BORDER);
+        bdsetsubid(b, 0);
+        bdsetlight(b, 0, 0, 0, 31);
         return;
     }
     x &= 0xF;
     z &= 0xF;
     int c = cx + cz * rendinf.chunks->info.width;
     if (!rendinf.chunks->renddata[c].generated) {
-        b->id = BLOCKNO_BORDER;
-        b->subid = 0;
-        b->light_r = 0;
-        b->light_g = 0;
-        b->light_b = 0;
-        b->light_n = 31;
+        bdsetid(b, BLOCKNO_BORDER);
+        bdsetsubid(b, 0);
+        bdsetlight(b, 0, 0, 0, 31);
         return;
     }
     *b = rendinf.chunks->data[c][y * 256 + z * 16 + x];
@@ -808,7 +799,7 @@ static void mesh(int64_t x, int64_t z, uint64_t id) {
     struct blockdata* b = &rendinf.chunks->data[c][131071];
     while (maxy >= 0) {
         for (int i = 0; i < 256; ++i) {
-            if (b->id) goto foundblock;
+            if (bdgetid(*b)) goto foundblock;
             --b;
         }
         --maxy;
@@ -838,7 +829,10 @@ static void mesh(int64_t x, int64_t z, uint64_t id) {
             for (int z = 0; z < 16; ++z) {
                 for (int x = 0; x < 16; ++x) {
                     rendGetBlock(nx, nz, x, y, z, &bdata);
-                    if (!bdata.id || !blockinf[bdata.id].id || !blockinf[bdata.id].data[bdata.subid].id) continue;
+                    uint8_t bdataid = bdgetid(bdata);
+                    if (!bdataid || !blockinf[bdataid].id) continue;
+                    uint8_t bdatasubid = bdgetsubid(bdata);
+                    if (!blockinf[bdataid].data[bdatasubid].id) continue;
                     rendGetBlock(nx, nz, x, y + 1, z, &bdata2[0]);
                     rendGetBlock(nx, nz, x + 1, y, z, &bdata2[1]);
                     rendGetBlock(nx, nz, x, y, z + 1, &bdata2[2]);
@@ -846,29 +840,31 @@ static void mesh(int64_t x, int64_t z, uint64_t id) {
                     rendGetBlock(nx, nz, x - 1, y, z, &bdata2[4]);
                     rendGetBlock(nx, nz, x, y, z - 1, &bdata2[5]);
                     for (int i = 0; i < 6; ++i) {
-                        if (bdata2[i].id && blockinf[bdata2[i].id].id) {
-                            if (blockinf[bdata2[i].id].data[bdata2[i].subid].transparency) {
-                                if (bdata.id == bdata2[i].id && bdata.subid == bdata2[i].subid) continue;
+                        uint8_t bdata2id = bdgetid(bdata2[i]);
+                        uint8_t bdata2subid = bdgetsubid(bdata2[i]);
+                        if (bdata2id && blockinf[bdata2id].id) {
+                            if (blockinf[bdata2id].data[bdata2subid].transparency) {
+                                if (bdataid == bdata2id && bdatasubid == bdata2subid) continue;
                             } else {
                                 continue;
                             }
                         }
-                        if (bdata2[i].id == 255) continue;
+                        if (bdata2id == BLOCKNO_BORDER) continue;
 
                         baseVert[0] = ((x << 28) | (y << 12) | (z << 4)) & 0xF0FFF0F0;
 
-                        int16_t light_n = bdata2[i].light_n - light_n_tweak[i];
+                        int16_t light_n = bdgetlightn(bdata2[i]) - light_n_tweak[i];
                         if (light_n < 0) light_n = 0;
-                        baseVert[1] = (bdata2[i].light_r << 24) | (bdata2[i].light_g << 16) | (bdata2[i].light_b << 8) | light_n;
+                        baseVert[1] = (bdgetlightr(bdata2[i]) << 24) | (bdgetlightg(bdata2[i]) << 16) | (bdgetlightb(bdata2[i]) << 8) | light_n;
 
-                        baseVert[2] = ((blockinf[bdata.id].data[bdata.subid].texoff[i] << 16) & 0xFFFF0000);
-                        baseVert[2] |= ((blockinf[bdata.id].data[bdata.subid].anict[i] << 8) & 0xFF00);
-                        baseVert[2] |= (blockinf[bdata.id].data[bdata.subid].anidiv & 0xFF);
+                        baseVert[2] = ((blockinf[bdataid].data[bdatasubid].texoff[i] << 16) & 0xFFFF0000);
+                        baseVert[2] |= ((blockinf[bdataid].data[bdatasubid].anict[i] << 8) & 0xFF00);
+                        baseVert[2] |= (blockinf[bdataid].data[bdatasubid].anidiv & 0xFF);
 
-                        baseVert[3] = blockinf[bdata.id].data[bdata.subid].transparency << 8;
+                        baseVert[3] = blockinf[bdataid].data[bdatasubid].transparency << 8;
 
-                        if (blockinf[bdata.id].data[bdata.subid].transparency >= 2) {
-                            if (!bdata2[i].id && blockinf[bdata.id].data[bdata.subid].backfaces) {
+                        if (blockinf[bdataid].data[bdatasubid].transparency >= 2) {
+                            if (!bdata2id && blockinf[bdataid].data[bdatasubid].backfaces) {
                                 for (int j = 5; j >= 0; --j) {
                                     mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert[0] | constBlockVert[0][i][j]);
                                     mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert[1]/* | constBlockVert[1][i][j]*/);
@@ -921,7 +917,7 @@ static void mesh(int64_t x, int64_t z, uint64_t id) {
             for (int _z = 0; _z < 16; ++_z) {
                 for (int _x = 0; _x < 16; ++_x) {
                     rendGetBlock(nx, nz, _x, _y, _z, &bdata);
-                    if (blockinf[bdata.id].data[bdata.subid].transparency && !visited[_x][_y % 16][_z]) {
+                    if (blockinf[bdgetid(bdata)].data[bdgetsubid(bdata)].transparency && !visited[_x][_y % 16][_z]) {
                         uint8_t touched[6] = {0};
                         //memset(posqueue, 0, sizeof(posqueue));
                         int pqptr = 0;
@@ -939,7 +935,7 @@ static void mesh(int64_t x, int64_t z, uint64_t id) {
 
                             if (y < maxy + 15) {
                                 rendGetBlock(nx, nz, x, y + 1, z, &bdata);
-                                if (blockinf[bdata.id].data[bdata.subid].transparency && !visited[x][(y + 1) % 16][z]) {
+                                if (blockinf[bdgetid(bdata)].data[bdgetsubid(bdata)].transparency && !visited[x][(y + 1) % 16][z]) {
                                     posqueue[pqptr++] = (struct pq){.x = x, .y = y + 1, .z = z};
                                     visited[x][(y + 1) % 16][z] = 1;
                                     //printf("ADD Y+1 [%d, %d, %d] [%d]\n", posqueue[pqptr - 1].x, posqueue[pqptr - 1].y, posqueue[pqptr - 1].z, pqptr);
@@ -949,7 +945,7 @@ static void mesh(int64_t x, int64_t z, uint64_t id) {
                             }
                             if (x < 15) {
                                 rendGetBlock(nx, nz, x + 1, y, z, &bdata);
-                                if (blockinf[bdata.id].data[bdata.subid].transparency && !visited[x + 1][y % 16][z]) {
+                                if (blockinf[bdgetid(bdata)].data[bdgetsubid(bdata)].transparency && !visited[x + 1][y % 16][z]) {
                                     posqueue[pqptr++] = (struct pq){.x = x + 1, .y = y, .z = z};
                                     visited[x + 1][y % 16][z] = 1;
                                     //printf("ADD X+1 [%d, %d, %d] [%d]\n", posqueue[pqptr - 1].x, posqueue[pqptr - 1].y, posqueue[pqptr - 1].z, pqptr);
@@ -959,7 +955,7 @@ static void mesh(int64_t x, int64_t z, uint64_t id) {
                             }
                             if (z < 15) {
                                 rendGetBlock(nx, nz, x, y, z + 1, &bdata);
-                                if (blockinf[bdata.id].data[bdata.subid].transparency && !visited[x][y % 16][z + 1]) {
+                                if (blockinf[bdgetid(bdata)].data[bdgetsubid(bdata)].transparency && !visited[x][y % 16][z + 1]) {
                                     posqueue[pqptr++] = (struct pq){.x = x, .y = y, .z = z + 1};
                                     visited[x][y % 16][z + 1] = 1;
                                     //printf("ADD Z+1 [%d, %d, %d] [%d]\n", posqueue[pqptr - 1].x, posqueue[pqptr - 1].y, posqueue[pqptr - 1].z, pqptr);
@@ -969,7 +965,7 @@ static void mesh(int64_t x, int64_t z, uint64_t id) {
                             }
                             if (y > maxy) {
                                 rendGetBlock(nx, nz, x, y - 1, z, &bdata);
-                                if (blockinf[bdata.id].data[bdata.subid].transparency && !visited[x][(y - 1) % 16][z]) {
+                                if (blockinf[bdgetid(bdata)].data[bdgetsubid(bdata)].transparency && !visited[x][(y - 1) % 16][z]) {
                                     posqueue[pqptr++] = (struct pq){.x = x, .y = y - 1, .z = z};
                                     visited[x][(y - 1) % 16][z] = 1;
                                     //printf("ADD Y-1 [%d, %d, %d] [%d]\n", posqueue[pqptr - 1].x, posqueue[pqptr - 1].y, posqueue[pqptr - 1].z, pqptr);
@@ -979,7 +975,7 @@ static void mesh(int64_t x, int64_t z, uint64_t id) {
                             }
                             if (x > 0) {
                                 rendGetBlock(nx, nz, x - 1, y, z, &bdata);
-                                if (blockinf[bdata.id].data[bdata.subid].transparency && !visited[x - 1][y % 16][z]) {
+                                if (blockinf[bdgetid(bdata)].data[bdgetsubid(bdata)].transparency && !visited[x - 1][y % 16][z]) {
                                     posqueue[pqptr++] = (struct pq){.x = x - 1, .y = y, .z = z};
                                     visited[x - 1][y % 16][z] = 1;
                                     //printf("ADD X-1 [%d, %d, %d] [%d]\n", posqueue[pqptr - 1].x, posqueue[pqptr - 1].y, posqueue[pqptr - 1].z, pqptr);
@@ -989,7 +985,7 @@ static void mesh(int64_t x, int64_t z, uint64_t id) {
                             }
                             if (z > 0) {
                                 rendGetBlock(nx, nz, x, y, z - 1, &bdata);
-                                if (blockinf[bdata.id].data[bdata.subid].transparency && !visited[x][y % 16][z - 1]) {
+                                if (blockinf[bdgetid(bdata)].data[bdgetsubid(bdata)].transparency && !visited[x][y % 16][z - 1]) {
                                     posqueue[pqptr++] = (struct pq){.x = x, .y = y, .z = z - 1};
                                     visited[x][y % 16][z - 1] = 1;
                                     //printf("ADD Z-1 [%d, %d, %d] [%d]\n", posqueue[pqptr - 1].x, posqueue[pqptr - 1].y, posqueue[pqptr - 1].z, pqptr);

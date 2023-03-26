@@ -32,20 +32,20 @@ void getChunkOfBlock(int64_t x, int64_t z, int64_t* chunkx, int64_t* chunkz) {
 }
 
 void getBlock(struct chunkdata* data, int64_t x, int y, int64_t z, struct blockdata* b) {
-    if (y < 0 || y > 511) {b->id = BLOCKNO_NULL; return;}
+    if (y < 0 || y > 511) {bdsetid(b, BLOCKNO_NULL); return;}
     int64_t cx, cz;
     _getChunkOfBlock(x, z, &cx, &cz);
     //printf("[%"PRId64"][%"PRId64"] -> [%"PRId64"][%"PRId64"]\n", x, z, cx, cz);
     cx = (cx - data->xoff) + data->info.dist;
     cz = data->info.width - ((cz - data->zoff) + data->info.dist) - 1;
-    if (cx < 0 || cz < 0 || cx >= data->info.width || cz >= data->info.width) {b->id = BLOCKNO_BORDER; return;}
+    if (cx < 0 || cz < 0 || cx >= data->info.width || cz >= data->info.width) {bdsetid(b, BLOCKNO_BORDER); return;}
     x += 8;
     z += 8;
     x = i64_mod(x, 16);
     z = i64_mod(z, 16);
     //printf("[%"PRId64"][%"PRId64"], [%"PRId64"][%"PRId64"]\n", x, z, cx, cz);
     int c = cx + cz * data->info.width;
-    if (!data->renddata[c].generated) {b->id = BLOCKNO_BORDER; return;}
+    if (!data->renddata[c].generated) {bdsetid(b, BLOCKNO_BORDER); return;}
     *b = data->data[c][y * 256 + z * 16 + x];
 }
 
