@@ -9,23 +9,23 @@
 #include <string.h>
 #include <inttypes.h>
 
-static uint8_t stone;
-static uint8_t stone_cobble;
-static uint8_t stone_basalt;
-static uint8_t stone_granite;
-static uint8_t dirt;
-static uint8_t grass_block;
-static uint8_t gravel;
-static uint8_t sand;
-static uint8_t water;
-static uint8_t lava;
-static uint8_t bedrock;
+static uint16_t stone;
+static uint16_t stone_cobble;
+static uint16_t stone_basalt;
+static uint16_t stone_granite;
+static uint16_t dirt;
+static uint16_t grass_block;
+static uint16_t gravel;
+static uint16_t sand;
+static uint16_t water;
+static uint16_t lava;
+static uint16_t bedrock;
 
 bool initWorldgen() {
     stone = blockNoFromID("stone");
-    stone_cobble = blockSubNoFromID(stone, "cobble");
-    stone_basalt = blockSubNoFromID(stone, "basalt");
-    stone_granite = blockSubNoFromID(stone, "granite");
+    stone_cobble = blockSubNoFromID(stone, "cobble") << 8;
+    stone_basalt = blockSubNoFromID(stone, "basalt") << 8;
+    stone_granite = blockSubNoFromID(stone, "granite") << 8;
     dirt = blockNoFromID("dirt");
     grass_block = blockNoFromID("grass_block");
     gravel = blockNoFromID("gravel");
@@ -66,21 +66,21 @@ void genChunk(int64_t cx, int64_t cz, struct blockdata* data, int type) {
     }
     #endif
     //uint64_t t = altutime();
+    memset(data, 0, 131072 * sizeof(*data));
     int64_t nx = cx * 16;
     int64_t nz = cz * 16;
     for (int z = 0; z < 16; ++z) {
         for (int x = 0; x < 16; ++x) {
-            int xzoff = z * 16 + x;
             double cx = (double)(nx + x) - 8;
             double cz = (double)(nz + z) - 8;
-            struct blockdata sliver[512];
+            uint16_t sliver[512];
             memset(&sliver, 0, sizeof(sliver));
             switch (type) {
                 default:; {
-                    sliver[0].id = bedrock;
-                    sliver[1].id = stone;
-                    sliver[2].id = dirt;
-                    sliver[3].id = grass_block;
+                    sliver[0] = bedrock;
+                    sliver[1] = stone;
+                    sliver[2] = dirt;
+                    sliver[3] = grass_block;
                 } break;
                 case 1:; {
                     bool block[512] = {0};
@@ -93,7 +93,7 @@ void genChunk(int64_t cx, int64_t cz, struct blockdata* data, int type) {
                     if (finalheight > 511.0) finalheight = 511.0;
                     if (finalheight < 0.0) finalheight = 0.0;
                     for (int i = finalheight; i <= 128; ++i) {
-                        sliver[i].id = water;
+                        sliver[i] = water;
                     }
                     for (int i = 0; i <= round(finalheight) && i < 512; ++i) {
                         block[i] = true;
@@ -121,43 +121,41 @@ void genChunk(int64_t cx, int64_t cz, struct blockdata* data, int type) {
                                 float mixnoise = noise3(9, cx / 28.56, fi / 4.2, cz / 28.56);
                                 if (mixnoise > 0.62 + (fi - 128.0) / 38.0) {
                                     if (mixnoise > 0.295 - seanoise * 0.33) {
-                                        sliver[i].id = dirt;
+                                        sliver[i] = dirt;
                                     } else {
-                                        sliver[i].id = gravel;
+                                        sliver[i] = gravel;
                                     }
                                 } else {
-                                    sliver[i].id = sand;
+                                    sliver[i] = sand;
                                 }
                             } else if (i == lastair - 1) {
                                 if (humidity >= 0.425 + dirtnoise * 0.159) {
                                     if (i >= 128) {
-                                        sliver[i].id = grass_block;
+                                        sliver[i] = grass_block;
                                     } else {
-                                        sliver[i].id = dirt;
+                                        sliver[i] = dirt;
                                     }
                                 } else {
-                                    sliver[i].id = sand;
+                                    sliver[i] = sand;
                                 }
                             } else if (fi > fl - ((511.0 - fi + dirtnoise * 15.0) / 511.0) * 24.0 + 12.75) {
-                                sliver[i].id = dirt;
+                                sliver[i] = dirt;
                             } else {
-                                sliver[i].id = stone;
+                                sliver[i] = stone;
                                 if (noise3(10, cx / 7.33, fi / 2.1, cz / 7.33) < (fi / 512.0) * 2.5 - 1.25) {
-                                    sliver[i].subid = stone_granite;
+                                    sliver[i] |= stone_granite;
                                 } else {
                                     float mix1 = noise3(11, cx / 6.2, fi / 5.6, cz / 6.2);
                                     if (mix1 + 0.5 > fi / 60.0) {
-                                        sliver[i].subid = stone_basalt;
+                                        sliver[i] |= stone_basalt;
                                     } else if (mix1 < -0.5) {
-                                        sliver[i].subid = stone_cobble;
+                                        sliver[i] |= stone_cobble;
                                     } else if (mix1 > -0.25 && mix1 < 0.25) {
                                         float mix2 = noise3(12, cx / 14.1, fi / 7.8, cz / 14.1);
                                         if (mix2 > 0.56) {
-                                            sliver[i].id = dirt;
-                                            sliver[i].subid = 0;
+                                            sliver[i] = dirt;
                                         } else if (mix2 < -0.62) {
-                                            sliver[i].id = gravel;
-                                            sliver[i].subid = 0;
+                                            sliver[i] = gravel;
                                         }
                                     }
                                 }
@@ -167,32 +165,29 @@ void genChunk(int64_t cx, int64_t cz, struct blockdata* data, int type) {
                         }
                     }
                     for (int i = 0; i <= maxblock; ++i) {
-                        if (sliver[i].id && sliver[i].id != water) {
+                        if (sliver[i] && sliver[i] != water) {
                             float fi = i;
                             float cave = noise3(16, cx / 20.1473, fi / 15.21837, cz / 20.1473);
                             float cavemult = tanhf(((fabs(fi - (finalheight / 2.0)) / round(finalheight * 1.05)) * 2.0 - 1.0) * 10.0) * 0.5 + 0.5;
                             if (cave > cavemult + 0.37) {
-                                sliver[i].id = 0;
-                                sliver[i].subid = 0;
+                                sliver[i] = 0;
                             }
                         }
                     }
                     float n0 = nperlin2d(63, cx, cz, 0.4, 2);
-                    if (n0 > -0.25) {sliver[1].id = bedrock; sliver[1].subid = 0;}
-                    if (n0 > 0.0) {sliver[2].id = bedrock; sliver[2].subid = 0;}
-                    if (n0 > 0.25) {sliver[3].id = bedrock; sliver[3].subid = 0;}
-                    if (!sliver[4].id && n0 > 0.5) {sliver[4].id = bedrock; sliver[4].subid = 0;}
-                    sliver[0].id = bedrock;
-                    sliver[0].subid = 0;
+                    if (n0 > -0.25) {sliver[1] = bedrock;}
+                    if (n0 > 0.0) {sliver[2] = bedrock;}
+                    if (n0 > 0.2) {sliver[3] = bedrock;}
+                    if (!sliver[4] && n0 > 0.5) {sliver[4] = bedrock;}
+                    sliver[0] = bedrock;
                 } break;
             }
+            int xzoff = z * 16 + x;
             for (int i = 511; i >= 0; --i) {
                 struct blockdata* tdata = &data[256 * i + xzoff];
-                *tdata = (struct blockdata){
-                    .id = sliver[i].id,
-                    .subid = sliver[i].subid,
-                    .light_n = 30
-                };
+                bdsetid(tdata, sliver[i] & 0xFF);
+                bdsetsubid(tdata, (sliver[i] >> 8) & 0x3F);
+                bdsetlightn(tdata, 30);
                 /*
                 ((uint16_t*)tdata)[0] = getRandDWord(15);
                 ((uint16_t*)tdata)[1] = getRandDWord(15);

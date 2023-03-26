@@ -482,19 +482,6 @@ static void* servthread(void* args) {
                             outdata->z = data->z;
                             struct blockdata* blocks = malloc(131072 * sizeof(*blocks));
                             genChunk(data->x, data->z, blocks, worldtype);
-                            uint16_t* netorder = malloc(393216 * sizeof(*netorder));
-                            for (int i = 0, n = 0; i < 131072; ++i) {
-                                netorder[n] = (blocks[i].id << 8) | (blocks[i].subid);
-                                netorder[n] = host2net16(netorder[n]);
-                                ++n;
-                                netorder[n] = (blocks[i].rotx << 14) | (blocks[i].roty << 12) | (blocks[i].rotz << 10) | (blocks[i].charge << 6) | (blocks[i].light_n);
-                                netorder[n] = host2net16(netorder[n]);
-                                ++n;
-                                netorder[n] = (blocks[i].light_r << 10) | (blocks[i].light_g << 5) | (blocks[i].light_b);
-                                netorder[n] = host2net16(netorder[n]);
-                                ++n;
-                            }
-                            free(blocks);
                             int len = 1 << 20;
                             int complvl;
                             #if MODULEID == MODULEID_SERVER
@@ -502,8 +489,8 @@ static void* servthread(void* args) {
                             #else
                             complvl = 1;
                             #endif
-                            len = ezCompress(complvl, 393216 * sizeof(uint16_t), netorder, len, (outdata->cdata = malloc(len)));
-                            free(netorder);
+                            len = ezCompress(complvl, 131072 * sizeof(*blocks), blocks, len, (outdata->cdata = malloc(len)));
+                            free(blocks);
                             if (len >= 0) {
                                 outdata->len = len;
                                 outdata->cdata = realloc(outdata->cdata, outdata->len);
@@ -1196,38 +1183,16 @@ static void* clinetthread(void* args) {
                     ptr += 8;
                     data.z = net2host64(data.z);
                     //uint64_t stime = altutime();
-                    uint16_t* netorder = malloc(393216 * sizeof(*netorder));
-                    if (ezDecompress(tmpsize - 8 - 8 - 1, &buf[ptr], 393216 * sizeof(uint16_t), netorder) >= 0) {
+                    data.bdata = malloc(131072 * sizeof(*data.bdata));
+                    if (ezDecompress(tmpsize - 8 - 8 - 1, &buf[ptr], 131072 * sizeof(*data.bdata), data.bdata) >= 0) {
                         //printf("recv [%"PRId64", %"PRId64"]: [%d]\n", data.x, data.z, tmpsize - 8 - 8 - 1);
-                        data.bdata = malloc(131072 * sizeof(*data.bdata));
-                        for (int i = 0, n = 0; i < 131072; ++i) {
-                            netorder[n] = host2net16(netorder[n]);
-                            data.bdata[i].id = netorder[n] >> 8;
-                            data.bdata[i].subid = netorder[n] >> 2;
-                            data.bdata[i].rotx = netorder[n];
-                            ++n;
-
-                            netorder[n] = host2net16(netorder[n]);
-                            data.bdata[i].roty = netorder[n] >> 14;
-                            data.bdata[i].rotz = netorder[n] >> 12;
-                            data.bdata[i].charge = netorder[n] >> 8;
-                            data.bdata[i].light_n = netorder[n];
-                            ++n;
-
-                            netorder[n] = host2net16(netorder[n]);
-                            data.bdata[i].light_r = netorder[n] >> 10;
-                            data.bdata[i].light_g = netorder[n] >> 5;
-                            data.bdata[i].light_b = netorder[n];
-                            ++n;
-                        }
                         cbresult = callback(SERVER_UPDATECHUNK, &data);
-                        free(data.bdata);
                         /*
                         double time = (altutime() - stime) / 1000.0;
                         printf("decompressed: [%"PRId64", %"PRId64"] in [%lgms]\n", data.x, data.z, time);
                         */
                     }
-                    free(netorder);
+                    free(data.bdata);
                 } break;
                 case SERVER_SETSKYCOLOR:; {
                     struct server_data_setskycolor data;
