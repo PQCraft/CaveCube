@@ -466,8 +466,6 @@ uint64_t qhash(char* str, int max) {
 }
 
 #define SEED_DEFAULT (0xDE8BADADBEF0EF0D)
-#define SEED_OP1 (0xA101D0C304A09683)
-#define SEED_OP2 (0xB070C0050907A09C)
 
 uint64_t randSeed[16] = {
     SEED_DEFAULT,
@@ -492,11 +490,16 @@ void setRandSeed(int s, uint64_t val) {
     randSeed[s] = val;
 }
 
+static inline uint8_t getRand(int s) {
+    //printf("before: [%016"PRIX64"]\n", randSeed[s]);
+    randSeed[s] += 0xE52B2227D64B6E4A;
+    randSeed[s] ^= (randSeed[s] % 9268311);
+    //printf("after: [%016"PRIX64"]\n", randSeed[s]);
+    return (randSeed[s] & (randSeed[s] >> 8)) | ((randSeed[s] >> 16) & ((randSeed[s] >> 24) | 0x55));
+}
+
 uint8_t getRandByte(int s) {
-    randSeed[s] *= SEED_OP1;
-    randSeed[s] ^= SEED_OP2;
-    randSeed[s] >>= 5;
-    return randSeed[s];
+    return getRand(s) ^ getRand(s) ^ getRand(s);
 }
 
 uint16_t getRandWord(int s) {

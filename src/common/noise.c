@@ -5,13 +5,22 @@
 #include <math.h>
 #include <stdlib.h>
 
-unsigned char perm[NOISE_TABLES][512];
+uint8_t perm[NOISE_TABLES][512];
 
 void initNoiseTable(int s) {
     for (int i = 0; i < NOISE_TABLES; ++i) {
         //if (!hash[i]) hash[i] = malloc(512);
+        //printf("TABLE: [%d]\n", i);
         for (int j = 0; j < 512; ++j) {
             perm[i][j] = getRandByte(s);
+            //printf("%02X ", perm[i][j]);
+            //if (j % 32 == 31) putchar('\n');
+        }
+        for (int j = 0; j < 511; ++j) {
+            if (perm[i][j] == perm[i][j + 1]) {
+                //printf("FIX: [%d][%d]\n", i, j);
+                perm[i][j] += (getRandByte(s) % 7) + 3;
+            }
         }
     }
 }
@@ -131,7 +140,7 @@ float noise1(int tbl, noisefloat x) {
     noisefloat fx0, fx1;
     noisefloat s, n0, n1;
 
-    x += perm[tbl][0] * 0.003906;
+    //x += perm[tbl][0] * 0.003906;
 
     ix0 = FASTFLOOR(x);
     fx0 = x - ix0;
@@ -152,7 +161,7 @@ float pnoise1(int tbl, noisefloat x, noiseint px) {
     noisefloat fx0, fx1;
     noisefloat s, n0, n1;
 
-    x += perm[tbl][0] * 0.003906;
+    //x += perm[tbl][0] * 0.003906;
 
     ix0 = FASTFLOOR(x);
     fx0 = x - ix0;
@@ -173,8 +182,8 @@ float noise2(int tbl, noisefloat x, noisefloat y) {
     noisefloat fx0, fy0, fx1, fy1;
     noisefloat s, t, nx0, nx1, n0, n1;
 
-    x += perm[tbl][0] * 0.003906;
-    y += perm[tbl][1] * 0.003906;
+    //x += perm[tbl][0] * 0.003906;
+    //y += perm[tbl][1] * 0.003906;
 
     ix0 = FASTFLOOR(x);
     iy0 = FASTFLOOR(y);
@@ -206,8 +215,8 @@ float pnoise2(int tbl, noisefloat x, noisefloat y, noiseint px, noiseint py) {
     noisefloat fx0, fy0, fx1, fy1;
     noisefloat s, t, nx0, nx1, n0, n1;
 
-    x += perm[tbl][0] * 0.003906;
-    y += perm[tbl][1] * 0.003906;
+    //x += perm[tbl][0] * 0.003906;
+    //y += perm[tbl][1] * 0.003906;
 
     ix0 = FASTFLOOR(x);
     iy0 = FASTFLOOR(y);
@@ -240,9 +249,9 @@ float noise3(int tbl, noisefloat x, noisefloat y, noisefloat z) {
     noisefloat s, t, r;
     noisefloat nxy0, nxy1, nx0, nx1, n0, n1;
 
-    x += perm[tbl][0] * 0.003906;
-    y += perm[tbl][1] * 0.003906;
-    z += perm[tbl][2] * 0.003906;
+    //x += perm[tbl][0] * 0.003906;
+    //y += perm[tbl][1] * 0.003906;
+    //z += perm[tbl][2] * 0.003906;
 
     ix0 = FASTFLOOR(x);
     iy0 = FASTFLOOR(y);
@@ -293,9 +302,9 @@ float pnoise3(int tbl, noisefloat x, noisefloat y, noisefloat z, noiseint px, no
     noisefloat s, t, r;
     noisefloat nxy0, nxy1, nx0, nx1, n0, n1;
 
-    x += perm[tbl][0] * 0.003906;
-    y += perm[tbl][1] * 0.003906;
-    z += perm[tbl][2] * 0.003906;
+    //x += perm[tbl][0] * 0.003906;
+    //y += perm[tbl][1] * 0.003906;
+    //z += perm[tbl][2] * 0.003906;
 
     ix0 = FASTFLOOR(x);
     iy0 = FASTFLOOR(y);
@@ -346,10 +355,10 @@ float noise4(int tbl, noisefloat x, noisefloat y, noisefloat z, noisefloat w) {
     noisefloat s, t, r, q;
     noisefloat nxyz0, nxyz1, nxy0, nxy1, nx0, nx1, n0, n1;
 
-    x += perm[tbl][0] * 0.003906;
-    y += perm[tbl][1] * 0.003906;
-    z += perm[tbl][2] * 0.003906;
-    w += perm[tbl][3] * 0.003906;
+    //x += perm[tbl][0] * 0.003906;
+    //y += perm[tbl][1] * 0.003906;
+    //z += perm[tbl][2] * 0.003906;
+    //w += perm[tbl][3] * 0.003906;
 
     ix0 = FASTFLOOR(x);
     iy0 = FASTFLOOR(y);
@@ -430,10 +439,10 @@ float pnoise4(int tbl, noisefloat x, noisefloat y, noisefloat z, noisefloat w, n
     noisefloat s, t, r, q;
     noisefloat nxyz0, nxyz1, nxy0, nxy1, nx0, nx1, n0, n1;
 
-    x += perm[tbl][0] * 0.003906;
-    y += perm[tbl][1] * 0.003906;
-    z += perm[tbl][2] * 0.003906;
-    w += perm[tbl][3] * 0.003906;
+    //x += perm[tbl][0] * 0.003906;
+    //y += perm[tbl][1] * 0.003906;
+    //z += perm[tbl][2] * 0.003906;
+    //w += perm[tbl][3] * 0.003906;
 
     ix0 = FASTFLOOR(x);
     iy0 = FASTFLOOR(y);
