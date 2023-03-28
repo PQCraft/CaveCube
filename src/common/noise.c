@@ -16,9 +16,17 @@ void initNoiseTable(int s) {
             //printf("%02X ", perm[i][j]);
             //if (j % 32 == 31) putchar('\n');
         }
+        /*
         for (int j = 0; j < 511; ++j) {
             if (perm[i][j] == perm[i][j + 1]) {
-                //printf("FIX: [%d][%d]\n", i, j);
+                printf("FIX: [%d][%d]\n", i, j);
+            }
+        }
+        */
+    }
+    for (int i = 0; i < NOISE_TABLES; ++i) {
+        for (int j = 0; j < 511; ++j) {
+            if (perm[i][j] == perm[i][j + 1]) {
                 perm[i][j] += (getRandByte(s) % 7) + 3;
             }
         }
