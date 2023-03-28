@@ -27,7 +27,7 @@ skin =
 [Input]
 xSen = 1
 ySen = 1
-rawMouse = true
+rawMouse = false
 
 [GLFW Keybinds]
 move.forward = k,b,87;\0,\0,0
