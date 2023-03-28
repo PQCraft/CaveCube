@@ -492,10 +492,10 @@ void setRandSeed(int s, uint64_t val) {
 
 static inline uint8_t getRand(int s) {
     //printf("before: [%016"PRIX64"]\n", randSeed[s]);
-    randSeed[s] += 0xE52B2227D64B6E4A;
-    randSeed[s] ^= (randSeed[s] % 9268311);
+    randSeed[s] += 0xE52B22D624B6EA47;
+    randSeed[s] ^= (randSeed[s] & 0x3FF);
     //printf("after: [%016"PRIX64"]\n", randSeed[s]);
-    return (randSeed[s] & (randSeed[s] >> 8)) | ((randSeed[s] >> 16) & ((randSeed[s] >> 24) | 0x55));
+    return (randSeed[s] & (randSeed[s] >> 8)) | ((randSeed[s] >> 16) & ((randSeed[s] >> 24) | 0xAA));
 }
 
 uint8_t getRandByte(int s) {
