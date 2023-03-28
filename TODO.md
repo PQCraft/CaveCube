@@ -41,6 +41,7 @@
 - Implement extensions in `src/main/extmgr.(c|h)` using libdl
 
 ### IN-PROGRESS:
+- Make server executable work again
 - Flesh out UI
     - More UI elements (text boxes, scrollbars, drop-down menus, sliders, toggles, etc)
     - UI interaction (elem states, tooltips, text input, etc)

@@ -331,8 +331,20 @@ static inline float keyState(input_keys k, bool* r) {
 
 static uint64_t polltime;
 
-//static double oldmxpos, oldmypos;
+static double oldmxpos, oldmypos;
 static double newmxpos, newmypos;
+
+static void getMouseChange(double* x, double* y) {
+    #if defined(USESDL2)
+    sdl2getmouse(&newmxpos, &newmypos);
+    #else
+    glfwGetCursorPos(rendinf.window, &newmxpos, &newmypos);
+    #endif
+    *x = newmxpos - oldmxpos;
+    *y = newmypos - oldmypos;
+    oldmxpos = newmxpos;
+    oldmypos = newmypos;
+}
 
 void resetInput() {
     polltime = altutime();
@@ -340,13 +352,13 @@ void resetInput() {
     if ((SDL_GetWindowFlags(rendinf.window) & SDL_WINDOW_INPUT_FOCUS) != 0) {
         SDL_WarpMouseInWindow(rendinf.window, floor((double)rendinf.width / 2.0), floor((double)rendinf.height / 2.0));
     }
-    //sdl2getmouse(&oldmxpos, &oldmypos);
+    sdl2getmouse(&oldmxpos, &oldmypos);
     #else
     glfwPollEvents();
     if (glfwGetWindowAttrib(rendinf.window, GLFW_FOCUSED)) {
         glfwSetCursorPos(rendinf.window, floor((double)rendinf.width / 2.0), floor((double)rendinf.height / 2.0));
     }
-    //glfwGetCursorPos(rendinf.window, &oldmxpos, &oldmypos);
+    glfwGetCursorPos(rendinf.window, &oldmxpos, &oldmypos);
     #endif
     //getInput();
 }
@@ -379,11 +391,6 @@ void getInput(struct input_info* _inf) {
         mscrollup = 0;
         mscrolldown = -sdl2mscroll;
     }
-    sdl2getmouse(&newmxpos, &newmypos);
-    if (inputMode == INPUT_MODE_GAME && inf->focus) {
-        sdl2getmouse(&newmxpos, &newmypos);
-        SDL_WarpMouseInWindow(rendinf.window, floor((double)rendinf.width / 2.0), floor((double)rendinf.height / 2.0));
-    }
     #else
     glfwPollEvents();
     #ifndef __EMSCRIPTEN__
@@ -405,18 +412,9 @@ void getInput(struct input_info* _inf) {
         if ((glfwgp = glfwGetGamepadState(GLFW_JOYSTICK_1, &glfwgpstate))) break;
     }
     #endif
-    if (inputMode == INPUT_MODE_GAME && inf->focus) {
-        glfwGetCursorPos(rendinf.window, &newmxpos, &newmypos);
-        glfwSetCursorPos(rendinf.window, floor((double)rendinf.width / 2.0), floor((double)rendinf.height / 2.0));
-        //glfwGetCursorPos(rendinf.window, &newmxpos, &newmypos);
-        //printf("Mouse pos: [%lf, %lf]\n", newmxpos, newmypos);
-    }
     #endif
-    mmovx = newmxpos - (floor((double)rendinf.width / 2.0));
-    mmovy = newmypos - (floor((double)rendinf.height / 2.0));
+    getMouseChange(&mmovx, &mmovy);
     //printf("Mouse movement: [%lf, %lf] [%lf, %lf]\n", newmxpos, newmypos, mmovx, mmovy);
-    //oldmxpos = newmxpos;
-    //oldmypos = newmypos;
     if (quitRequest) goto ret;
     #if defined(USESDL2)
     if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) sdlreszevent(event.window.data1, event.window.data2);
@@ -542,7 +540,7 @@ static inline void readKeyCfg(input_keys* k, char* sect, char* name) {
 bool initInput() {
     declareConfigKey(config, "Input", "xSen", "1", false);
     declareConfigKey(config, "Input", "ySen", "1", false);
-    declareConfigKey(config, "Input", "rawMouse", "true", false);
+    declareConfigKey(config, "Input", "rawMouse", "false", false);
     rotsenx = atof(getConfigKey(config, "Input", "xSen"));
     rotseny = atof(getConfigKey(config, "Input", "ySen"));
     bool rawmouse = getBool(getConfigKey(config, "Input", "rawMouse"));
