@@ -5,6 +5,8 @@ ifeq ($(MODULE),game)
     MODULEID := 0
 else ifeq ($(MODULE),server)
     MODULEID := 1
+else ifeq ($(MODULE),toolbox)
+    MODULEID := 2
 else
     .PHONY: error
     error:
