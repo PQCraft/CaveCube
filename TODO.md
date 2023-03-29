@@ -72,3 +72,6 @@
 - New worldgen
 - Memory management fixes
 - Renderer improvements
+- RNG improvements
+- Update stb_image
+- Improve image resource loading

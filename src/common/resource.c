@@ -64,7 +64,7 @@ void setResourcePacks(int ct, char** dirs) {
     free(npath);
 }
 
-char* getResourcePath(char* path) {
+static char* getResourcePath(char* path) {
     char* npath = malloc(MAX_PATH + 1);
     for (int i = packct - 1; i >= 0; --i) {
         if (!packs[i].dir) continue;
@@ -74,22 +74,42 @@ char* getResourcePath(char* path) {
     return npath;
 }
 
-void* makeResource(int type, char* path) {
-    if (isFile(path) != 1) {fprintf(stderr, "makeResource: Cannot load %s\n", path); return NULL;}
+static inline bool mkres_isFile(char* path) {
+    if (isFile(path) != 1) {
+        fprintf(stderr, "makeResource: No such file: %s\n", path);
+        return false;
+    }
+    return true;
+}
+
+static void* makeResource(int type, char* path) {
     void* data = NULL;
     switch (type) {
         case RESOURCE_TEXTFILE:; {
+            if (!mkres_isFile(path)) return NULL;
             data = malloc(sizeof(resdata_file));
             *(file_data*)data = getTextFile(path);
         } break;
         case RESOURCE_BINFILE:; {
+            if (!mkres_isFile(path)) return NULL;
             data = malloc(sizeof(resdata_file));
             *(file_data*)data = getBinFile(path);
         } break;
         case RESOURCE_IMAGE:; {
             resdata_image* imagedata = data = calloc(1, sizeof(resdata_image));
             imagedata->data = stbi_load(path, &imagedata->width, &imagedata->height, &imagedata->channels, STBI_rgb_alpha);
-            imagedata->channels = 4;
+            if (!imagedata->data) {
+                fprintf(stderr, "makeResource: stbi_load: Failed to load %s\n", path);
+                char* npath = getResourcePath("game/textures/common/missing.png");
+                if (!npath) {
+                    free(npath);
+                    return NULL;
+                }
+                data = makeResource(RESOURCE_IMAGE, npath);
+                free(npath);
+            } else {
+                imagedata->channels = 4;
+            }
         } break;
     }
     return data;
@@ -134,7 +154,7 @@ int resourceExists(char* path) {
     return ret;
 }
 
-void freeResStub(resentry* ent) {
+static void freeResStub(resentry* ent) {
     switch (ent->type) {
         case RESOURCE_TEXTFILE:;
         case RESOURCE_BINFILE:; {
