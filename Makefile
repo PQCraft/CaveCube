@@ -124,10 +124,12 @@ else
     endif
 endif
 
-ifeq ($(MODULE),game)
-    BINNAME := cavecube
-else
+ifeq ($(MODULE),server)
+    BINNAME := cctoolbx
+else ifeq ($(MODULE),toolbox)
     BINNAME := ccserver
+else
+    BINNAME := cavecube
 endif
 
 BIN := $(BINNAME)$(BINEXT)

@@ -157,9 +157,17 @@ int game_main() {
 int main(int _argc, char** _argv) {
     argc = _argc;
     argv = _argv;
-    #if MODULEID == MODULEID_GAME
-        return game_main();
-    #else
-        return server_main();
+    int ret = 0;
+    #if defined(_WIN32) && (MODULEID == MODULEID_GAME || MODULEID == MODULEID_SERVER)
     #endif
+    #if MODULEID == MODULEID_GAME
+        ret = game_main();
+    #elif MODULEID == MODULEID_SERVER
+        ret = server_main();
+    #elif MODULEID == MODULEID_TOOLBOX
+        ret = toolbox_main();
+    #else
+        return 1;
+    #endif
+    return ret;
 }

@@ -2,10 +2,32 @@
 - Next version: 0.7.0
 
 ### NEED TO DO:
+- Redo the way UI works
+- Flesh out UI
+    - More UI elements (text boxes, scrollbars, drop-down menus, sliders, toggles, etc)
+    - UI interaction (elem states, tooltips, text input, etc)
+    - Move text processing from meshUIElem to calcUIProperties
+    - Add `text_fmt` attrib
+    - Add escape code processing when `text_fmt` is `true`
+        - `\eFCh` sets foreground color to 0xh
+        - `\eBCh` sets foreground color to 0xh
+        - `\eFAhh` sets foreground alpha to 0xhh
+        - `\eBAhh` sets foreground alpha to 0xhh
+        - `\eAh` sets text attributes to 0xh
+            - 0x1 = bold
+            - 0x2 = italic
+            - 0x4 = underline
+            - 0x8 = strikethrough
+        - `\eR` resets all changes made by escape codes
+    - Add `t` as a number suffix for size to fit to number \* text size
+    - Add `c` as a number suffix for size to fit to number \* size of children
+    - Add `minwidth` and `maxwidth` attribs
+    - Add items to hotbar
+- Make server executable work again
 - Implement server chunk cache/pool
 - Add back block placement
 - Add physics in `src/physics/`
-    - Use ticks https://gafferongames.com/post/fix_your_timestep/ and add interpolation
+    - Use [ticks](https://gafferongames.com/post/fix_your_timestep/) and add interpolation
     - Add AABB collision in `collision.(c|h)`
     - Add raycasting in `raycasting.(c|h)`
 - Implement world saves in `src/server/saves.(c|h)`
@@ -41,27 +63,6 @@
 - Implement extensions in `src/main/extmgr.(c|h)` using libdl
 
 ### IN-PROGRESS:
-- Make server executable work again
-- Flesh out UI
-    - More UI elements (text boxes, scrollbars, drop-down menus, sliders, toggles, etc)
-    - UI interaction (elem states, tooltips, text input, etc)
-    - Move text processing from meshUIElem to calcUIProperties
-    - Add `text_fmt` attrib
-    - Add escape code processing when `text_fmt` is `true`
-        - `\eFCh` sets foreground color to 0xh
-        - `\eBCh` sets foreground color to 0xh
-        - `\eFAhh` sets foreground alpha to 0xhh
-        - `\eBAhh` sets foreground alpha to 0xhh
-        - `\eAh` sets text attributes to 0xh
-            - 0x1 = bold
-            - 0x2 = italic
-            - 0x4 = underline
-            - 0x8 = strikethrough
-        - `\eR` resets all changes made by escape codes
-    - Add `t` as a number suffix for size to fit to number \* text size
-    - Add `c` as a number suffix for size to fit to number \* size of children
-    - Add `minwidth` and `maxwidth` attribs
-    - Add items to hotbar
 
 ### DONE:
 - Made natural light monochrome to save bits
