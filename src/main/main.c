@@ -159,6 +159,16 @@ int main(int _argc, char** _argv) {
     argv = _argv;
     int ret = 0;
     #if defined(_WIN32) && (MODULEID == MODULEID_GAME || MODULEID == MODULEID_SERVER)
+        TIMECAPS tc;
+        UINT tmrres = 1;
+        if (timeGetDevCaps(&tc, sizeof(tc)) != TIMERR_NOERROR) {
+            if (tmrres < tc.wPeriodMin) {
+                tmrres = tc.wPeriodMin;
+            } else if (tmrres > tc.wPeriodMax) {
+                tmrres = tc.wPeriodMax;
+            }
+        }
+        timeBeginPeriod(tmrres);
     #endif
     #if MODULEID == MODULEID_GAME
         ret = game_main();
@@ -167,7 +177,10 @@ int main(int _argc, char** _argv) {
     #elif MODULEID == MODULEID_TOOLBOX
         ret = toolbox_main();
     #else
-        return 1;
+        ret = 1;
+    #endif
+    #if defined(_WIN32) && (MODULEID == MODULEID_GAME || MODULEID == MODULEID_SERVER)
+        timeEndPeriod(tmrres);
     #endif
     return ret;
 }
