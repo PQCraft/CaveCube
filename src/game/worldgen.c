@@ -69,12 +69,14 @@ void genChunk(int64_t cx, int64_t cz, struct blockdata* data, int type) {
     memset(data, 0, 131072 * sizeof(*data));
     int64_t nx = cx * 16;
     int64_t nz = cz * 16;
+    unsigned sliver[512];
+    unsigned block[512];
     for (int z = 0; z < 16; ++z) {
         for (int x = 0; x < 16; ++x) {
             double cx = (double)(nx + x) - 8;
             double cz = (double)(nz + z) - 8;
-            uint16_t sliver[512];
             memset(&sliver, 0, sizeof(sliver));
+            memset(&block, 0, sizeof(block));
             switch (type) {
                 default:; {
                     sliver[0] = bedrock;
@@ -83,30 +85,37 @@ void genChunk(int64_t cx, int64_t cz, struct blockdata* data, int type) {
                     sliver[3] = grass_block;
                 } break;
                 case 1:; {
-                    bool block[512] = {0};
                     float height = nperlin2d(1, cx, cz, 0.0042, 4) * 1.2 + 0.1;
-                    float heightmult = tanhf(nperlin2d(2, cx, cz, 0.00267, 2) * 2.5 + 0.33) * 0.5 + 0.5;
+                    float heightmult = tanhf(nperlin2d(2, cx, cz, 0.00267, 2) * 2.5 + 0.225) * 0.5 + 0.5;
                     float humidity = clamp(nperlin2d(3, cx, cz, 0.00127, 1) * 6.9 + 3.33) * 0.5 + 0.5;
                     heightmult *= (humidity * 0.9 + 0.15);
-                    float detail = perlin2d(4, cx, cz, 0.027, 3);
-                    float finalheight = (height * heightmult * 85.0) * humidity + 20.0 * (1.0 - humidity) + (detail * 12.8) + 128.0;
-                    if (finalheight > 511.0) finalheight = 511.0;
-                    if (finalheight < 0.0) finalheight = 0.0;
-                    for (int i = finalheight; i <= 128; ++i) {
-                        sliver[i] = water;
+                    float detail = perlin2d(4, cx, cz, 0.028, 3);
+                    float finalheight = (height * heightmult * 85.0) * humidity + 20.0 * (1.0 - humidity) + (detail * 11.7) + 128.0;
+                    {
+                        unsigned i = finalheight;
+                        if (i > 511) i = 511;
+                        for (; i <= 128; ++i) {
+                            sliver[i] = water;
+                        }
                     }
-                    for (int i = 0; i <= round(finalheight) && i < 512; ++i) {
-                        block[i] = true;
+                    {
+                        unsigned tmp = round(finalheight);
+                        if (tmp > 511) tmp = 511;
+                        for (unsigned i = 0; i <= tmp; ++i) {
+                            block[i] = true;
+                        }
                     }
                     float extraheight = (tanhf(nperlin2d(5, cx, cz, 0.0145, 1) * 1.5 - (2.15 - (heightmult + (1.0 - humidity) * 0.75) * 1.0)) * 0.5 + 0.5) * heightmult * 64.33;
                     extraheight *= clamp(height * 5.0 + 5.0);
                     float extrafinalh = extraheight + finalheight;
-                    if (extrafinalh > 511.0) extrafinalh = 511.0;
-                    if (extrafinalh < 0.0) extrafinalh = 0.0;
-                    for (int i = finalheight; i < extrafinalh; ++i) {
-                        float fi = i;
-                        if (!block[i] && noise3(6, cx / 18.67, fi / 19.0, cz / 18.67) > -(((extrafinalh - fi) / extraheight)) * 1.33 + 0.45) {
-                            block[i] = true;
+                    {
+                        unsigned i = finalheight;
+                        if (i > 511) i = 511;
+                        for (; i < extrafinalh; ++i) {
+                            float fi = i;
+                            if (!block[i] && noise3(6, cx / 18.67, fi / 19.0, cz / 18.67) > -(((extrafinalh - fi) / extraheight)) * 1.33 + 0.45) {
+                                block[i] = true;
+                            }
                         }
                     }
                     int maxblock = 511;
