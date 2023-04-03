@@ -2,7 +2,6 @@
 - Next version: 0.7.0
 
 ### NEED TO DO:
-- Redo the way UI works
 - Flesh out UI
     - More UI elements (text boxes, scrollbars, drop-down menus, sliders, toggles, etc)
     - UI interaction (elem states, tooltips, text input, etc)
@@ -63,6 +62,11 @@
 - Implement extensions in `src/main/extmgr.(c|h)` using libdl
 
 ### IN-PROGRESS:
+- Redo the way UI works
+    - Redo how the hierarchy works
+    - Use a texture map instead of drawing rectangles
+    - Add a texture map for symbols
+    - Improve UI input
 
 ### DONE:
 - Made natural light monochrome to save bits
