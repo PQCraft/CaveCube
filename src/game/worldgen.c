@@ -105,7 +105,8 @@ void genChunk(int64_t cx, int64_t cz, struct blockdata* data, int type) {
                             block[i] = true;
                         }
                     }
-                    float extraheight = (tanhf(nperlin2d(5, cx, cz, 0.0145, 1) * 1.5 - (2.15 - (heightmult + (1.0 - humidity) * 0.75) * 1.0)) * 0.5 + 0.5) * heightmult * 64.33;
+                    float exhm = heightmult + (1.0 - humidity) * 0.5;
+                    float extraheight = (tanhf(nperlin2d(5, cx, cz, 0.0145, 1) * 1.67 - (2.2 - exhm)) * 0.5 + 0.5) * exhm * 60.33;
                     extraheight *= clamp(height * 5.0 + 5.0);
                     float extrafinalh = extraheight + finalheight;
                     {
@@ -113,7 +114,7 @@ void genChunk(int64_t cx, int64_t cz, struct blockdata* data, int type) {
                         if (i > 511) i = 511;
                         for (; i < extrafinalh; ++i) {
                             float fi = i;
-                            if (!block[i] && noise3(6, cx / 18.67, fi / 19.0, cz / 18.67) > -(((extrafinalh - fi) / extraheight)) * 1.33 + 0.45) {
+                            if (!block[i] && noise3(6, cx / 22.3, fi / 17.2, cz / 22.3) > -(((extrafinalh - fi) / extraheight)) * 1.5 + 0.33) {
                                 block[i] = true;
                             }
                         }
@@ -173,11 +174,13 @@ void genChunk(int64_t cx, int64_t cz, struct blockdata* data, int type) {
                             lastair = i;
                         }
                     }
+                    float maxblockf = maxblock;
+                    float fhtweak = (finalheight + maxblock) / 2.0;
                     for (int i = 0; i <= maxblock; ++i) {
                         if (sliver[i] && sliver[i] != water) {
                             float fi = i;
                             float cave = noise3(16, cx / 20.1473, fi / 15.21837, cz / 20.1473);
-                            float cavemult = tanhf(((fabs(fi - (finalheight / 2.0)) / round(finalheight * 1.05)) * 2.0 - 1.0) * 10.0) * 0.5 + 0.5;
+                            float cavemult = tanhf(((fabs(fi - (fhtweak / 2.0)) / round(maxblockf * 1.05)) * 2.0 - 1.0) * 10.0) * 0.5 + 0.5;
                             if (cave > cavemult + 0.37) {
                                 sliver[i] = 0;
                             }
