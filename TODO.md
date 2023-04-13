@@ -46,7 +46,6 @@
 - Redo worldgen in `src/game/worldgen.(c|h)`
     - Add structures to worldgen (trees, buildings, etc)
     - Generate values for height, spikes, details, moisture, and structures
-- Integrate BCBASIC
 - Implement gameplay
     - 40ms tick speed (25 ticks/sec)
 - Add a sky (sun, moon, and stars)
@@ -67,6 +66,7 @@
     - Use a texture map instead of drawing rectangles
     - Add a texture map for symbols
     - Improve UI input
+- CCScript
 
 ### DONE:
 - Made natural light monochrome to save bits
