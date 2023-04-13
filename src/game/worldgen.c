@@ -85,7 +85,7 @@ void genChunk(int64_t cx, int64_t cz, struct blockdata* data, int type) {
                     sliver[3] = grass_block;
                 } break;
                 case 1:; {
-                    float height = nperlin2d(1, cx, cz, 0.0042, 4) * 1.2 + 0.1;
+                    float height = nperlin2d(1, cx, cz, 0.0042, 4) * 1.2;
                     float heightmult = tanhf(nperlin2d(2, cx, cz, 0.00267, 2) * 2.5 + 0.225) * 0.5 + 0.5;
                     float humidity = clamp(nperlin2d(3, cx, cz, 0.00127, 1) * 6.9 + 3.33) * 0.5 + 0.5;
                     heightmult *= (humidity * 0.9 + 0.15);
@@ -114,7 +114,7 @@ void genChunk(int64_t cx, int64_t cz, struct blockdata* data, int type) {
                         if (i > 511) i = 511;
                         for (; i < extrafinalh; ++i) {
                             float fi = i;
-                            if (!block[i] && noise3(6, cx / 22.3, fi / 17.2, cz / 22.3) > -(((extrafinalh - fi) / extraheight)) * 1.5 + 0.33) {
+                            if (!block[i] && noise3(6, cx / 20.3, fi / 16.2, cz / 20.3) > -(((extrafinalh - fi) / extraheight)) * 1.33 + 0.275) {
                                 block[i] = true;
                             }
                         }
