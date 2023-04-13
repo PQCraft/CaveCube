@@ -1,8 +1,12 @@
 defsub runscript s name, s desc
     println "Starting ", name, " (", desc, ")..."
     def:local s reason
-    err = cc.run("/game/scripts/" + name, , reason)
-    if err != error(none) then
+    def:local u64 thread
+    def:local i err
+    set err = cc.run("/game/scripts/" + name, thread, reason)
+    if err == error(none) then
+        println "Started ", name, " on thread ", thread
+    else
         println:err "Failed to start ", name, ": ", reason
         exit err
     end
