@@ -2305,6 +2305,9 @@ bool reloadRenderer() {
             }
         }
     }
+    int texlayers = 0;
+    glGetIntegerv(GL_MAX_ARRAY_TEXTURE_LAYERS, &texlayers);
+    printf("Block text layer: %d/%d (%.2f%%)\n", texmapsize, texlayers, ((float)texmapsize / (float)texlayers) * 100.0);
     free(tmpbuf);
     {
         char tmpstr[256];
