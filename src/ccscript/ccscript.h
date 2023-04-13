@@ -42,6 +42,16 @@ union ccs_data {
     struct ccs_str s;
 };
 
+struct ccs_numval {
+    int type;
+    union ccs_num data;
+};
+
+struct ccs_val {
+    int type;
+    union ccs_data data;
+};
+
 struct ccs_var {
     char* name;
     int type;
@@ -69,6 +79,7 @@ enum {
 };
 
 struct ccs_thread {
+    uint64_t id;
     int error;
     char* errinfo;
     unsigned programs;
@@ -86,6 +97,8 @@ struct ccs_state {
 enum {
     CCS_CMD_NOP,
     CCS_CMD_CALL,
+    CCS_CMD_SET,
+    CCS_CMD_ZERO,
     CCS_CMD_MATH,
     CCS_CMD_VMATH,
     CCS_CMD_MATHTO,
@@ -94,6 +107,17 @@ enum {
     CCS_CMD_VSTRCAT,
     CCS_CMD_STRCATTO,
     CCS_CMD_VSTRCATTO,
+};
+
+struct ccs_cmd_set {
+    struct ccs_var* var;
+    int dim;
+    struct ccs_val val;
+};
+
+struct ccs_cmd_zero {
+    struct ccs_var* var;
+    int dim;
 };
 
 typedef void (*ccs_cmd_call_func)(struct ccs_state, int /*thread*/, void* /*data*/);
@@ -111,8 +135,7 @@ enum {
 struct ccs_cmd_math {
     struct ccs_var* var;
     int op;
-    union ccs_num num;
-    int numtype;
+    struct ccs_numval num;
 };
 struct ccs_cmd_vmath {
     struct ccs_var* var1;

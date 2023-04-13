@@ -1,0 +1,9 @@
+defsub runscript s name, s desc
+    println "    Starting ", name, " (", desc, ")..."
+    def:local s reason
+    err = cc.run("/game/scripts/" + name, , reason)
+    if err != error(none) then
+        println:err "    Failed to start ", name, ": ", reason
+        term err
+    end
+end
