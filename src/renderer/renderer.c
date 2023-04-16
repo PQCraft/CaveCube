@@ -467,7 +467,7 @@ static force_inline void rendGetBlock(int cx, int cz, int x, int y, int z, struc
     if (cx < 0 || cz < 0 || cx >= (int)rendinf.chunks->info.width || cz >= (int)rendinf.chunks->info.width) {
         bdsetid(b, BLOCKNO_BORDER);
         bdsetsubid(b, 0);
-        bdsetlight(b, 0, 0, 0, 31);
+        bdsetlight(b, 0, 0, 0, 0);
         return;
     }
     x &= 0xF;
@@ -476,7 +476,7 @@ static force_inline void rendGetBlock(int cx, int cz, int x, int y, int z, struc
     if (!rendinf.chunks->renddata[c].generated) {
         bdsetid(b, BLOCKNO_BORDER);
         bdsetsubid(b, 0);
-        bdsetlight(b, 0, 0, 0, 31);
+        bdsetlight(b, 0, 0, 0, 0);
         return;
     }
     *b = rendinf.chunks->data[c][y * 256 + z * 16 + x];
@@ -651,8 +651,8 @@ static uint32_t constBlockVert[4][6][6] = {
 };
 
 //static int light_n_tweak[6] = {0, 0, 0, 0, 0, 0};
-//static int light_n_tweak[6] = {0, 2, 1, 4, 2, 3};
-static int light_n_tweak[6] = {0, 4, 2, 8, 4, 6};
+static int light_n_tweak[6] = {0, 2, 1, 4, 2, 3};
+//static int light_n_tweak[6] = {0, 4, 2, 8, 4, 6};
 //static int light_n_tweak[6] = {0, 1, 1, 2, 1, 1};
 //static int light_n_tweak[6] = {0, 1, 1, 1, 1, 1};
 
@@ -740,6 +740,142 @@ void sortChunk(int32_t c, int xoff, int zoff, bool update) {
     _sortChunk_inline(c, xoff, zoff, update);
 }
 
+static inline void calcNLight_stub(struct blockdata* data, int cx, int cz, int x, int y, int z) {
+    int off = x + z * 16 + y * 256;
+    uint8_t id = bdgetid(data[off]);
+    uint8_t subid = bdgetsubid(data[off]);
+    if (id && !blockinf[id].data[subid].transparency) {
+        bdsetlightn(&data[off], 0);
+        return;
+    }
+    int8_t maxlight = 0;
+    uint8_t tmplight;
+    struct blockdata bdata;
+    memset(&bdata, 0, sizeof(bdata));
+    rendGetBlock(cx, cz, x, y + 1, z, &bdata);
+    if ((tmplight = bdgetlightn(bdata)) > maxlight) {
+        maxlight = tmplight;
+    }
+    rendGetBlock(cx, cz, x + 1, y, z, &bdata);
+    if ((tmplight = bdgetlightn(bdata)) > maxlight) {
+        maxlight = tmplight;
+    }
+    rendGetBlock(cx, cz, x, y, z + 1, &bdata);
+    if ((tmplight = bdgetlightn(bdata)) > maxlight) {
+        maxlight = tmplight;
+    }
+    rendGetBlock(cx, cz, x, y - 1, z, &bdata);
+    if ((tmplight = bdgetlightn(bdata)) > maxlight) {
+        maxlight = tmplight;
+    }
+    rendGetBlock(cx, cz, x - 1, y, z, &bdata);
+    if ((tmplight = bdgetlightn(bdata)) > maxlight) {
+        maxlight = tmplight;
+    }
+    rendGetBlock(cx, cz, x, y, z - 1, &bdata);
+    if ((tmplight = bdgetlightn(bdata)) > maxlight) {
+        maxlight = tmplight;
+    }
+    --maxlight;
+    if (maxlight < 0) maxlight = 0;
+    tmplight = bdgetlightn(data[off]);
+    if (maxlight > tmplight) bdsetlightn(&data[off], maxlight);
+}
+
+static bool clientlighting = false;
+static void calcNLight(int cx, int cz, int maxy) {
+    uint32_t c = cx + cz * rendinf.chunks->info.width;
+    /*
+    if (cx < 0 || cz < 0 || cx >= (int)rendinf.chunks->info.width || cz >= (int)rendinf.chunks->info.width || !rendinf.chunks->renddata[c].generated) {
+        return;
+    }
+    */
+    //if (maxy > 511) maxy = 511;
+    struct blockdata* data = rendinf.chunks->data[c];
+    if (!clientlighting) {
+        for (int i = 0; i < 256; ++i) {
+            for (int y = 511; y >= 0; --y) {
+                int off = y * 256 + i;
+                bdsetlightn(&data[off], 31);
+            }
+        }
+        return;
+    }
+    {
+        static uint8_t water = 0;
+        if (!water) water = blockNoFromID("water");
+        for (int i = 0; i < 256; ++i) {
+            uint8_t nlight = 31;
+            for (int y = 511; y >= 0; --y) {
+                int off = y * 256 + i;
+                uint8_t id = bdgetid(data[off]);
+                if (id == water) {
+                    if (nlight > 0) --nlight;
+                } else if (id) {
+                    nlight = 0;
+                }
+                bdsetlightn(&data[off], nlight);
+            }
+        }
+    }
+    for (int y = 0; y <= maxy; ++y) {
+        for (int z = 0; z <= 15; ++z) {
+            for (int x = 0; x <= 15; ++x) {
+                calcNLight_stub(data, cx, cz, x, y, z);
+            }
+        }
+    }
+    for (int y = 0; y <= maxy; ++y) {
+        for (int z = 0; z <= 15; ++z) {
+            for (int x = 15; x >= 0; --x) {
+                calcNLight_stub(data, cx, cz, x, y, z);
+            }
+        }
+    }
+    for (int y = 0; y <= maxy; ++y) {
+        for (int z = 15; z >= 0; --z) {
+            for (int x = 0; x <= 15; ++x) {
+                calcNLight_stub(data, cx, cz, x, y, z);
+            }
+        }
+    }
+    for (int y = 0; y <= maxy; ++y) {
+        for (int z = 15; z >= 0; --z) {
+            for (int x = 15; x >= 0; --x) {
+                calcNLight_stub(data, cx, cz, x, y, z);
+            }
+        }
+    }
+    for (int y = maxy; y >= 0; --y) {
+        for (int z = 0; z <= 15; ++z) {
+            for (int x = 0; x <= 15; ++x) {
+                calcNLight_stub(data, cx, cz, x, y, z);
+            }
+        }
+    }
+    for (int y = maxy; y >= 0; --y) {
+        for (int z = 0; z <= 15; ++z) {
+            for (int x = 15; x >= 0; --x) {
+                calcNLight_stub(data, cx, cz, x, y, z);
+            }
+        }
+    }
+    for (int y = maxy; y >= 0; --y) {
+        for (int z = 15; z >= 0; --z) {
+            for (int x = 0; x <= 15; ++x) {
+                calcNLight_stub(data, cx, cz, x, y, z);
+            }
+        }
+    }
+    for (int y = maxy; y >= 0; --y) {
+        for (int z = 15; z >= 0; --z) {
+            for (int x = 15; x >= 0; --x) {
+                calcNLight_stub(data, cx, cz, x, y, z);
+            }
+        }
+    }
+}
+
 static void mesh(int64_t x, int64_t z, uint64_t id) {
     struct blockdata bdata;
     struct blockdata bdata2[6];
@@ -805,12 +941,13 @@ static void mesh(int64_t x, int64_t z, uint64_t id) {
         --maxy;
     }
     foundblock:;
-    uint8_t vispass[32][6][6];
-    memset(vispass, 1, sizeof(vispass));
     //secttime[0] = altutime() - secttime[0];
     maxy /= 16;
     int ychunk = maxy;
     maxy *= 16;
+    calcNLight(nx, nz, maxy + 15);
+    uint8_t vispass[32][6][6];
+    memset(vispass, 1, sizeof(vispass));
     pthread_mutex_unlock(&rendinf.chunks->lock);
     microwait(0);
     uint32_t vplenold = 0;
@@ -2040,6 +2177,7 @@ bool initRenderer() {
     declareConfigKey(config, "Renderer", "fullScreen", "false", false);
     declareConfigKey(config, "Renderer", "FOV", "85", false);
     declareConfigKey(config, "Renderer", "mipmaps", "true", false);
+    declareConfigKey(config, "Renderer", "clientLighting", "false", false);
     declareConfigKey(config, "Renderer", "nearPlane", "0.05", false);
     declareConfigKey(config, "Renderer", "farPlane", "2500", false);
     declareConfigKey(config, "Renderer", "lazyMesher", "false", false);
@@ -2051,6 +2189,7 @@ bool initRenderer() {
     rendinf.camrot = GFX_DEFAULT_ROT;
 
     cavecull = atoi(getConfigKey(config, "Renderer", "caveCullLevel"));
+    clientlighting = getBool(getConfigKey(config, "Renderer", "clientLighting"));
     MESHER_THREADS_MAX = atoi(getConfigKey(config, "Renderer", "mesherThreadsMax"));
 
     #if defined(USESDL2)

@@ -99,6 +99,8 @@ enum {
     CCS_CMD_CALL,
     CCS_CMD_SET,
     CCS_CMD_ZERO,
+    CCS_CMD_ARRAYSET,
+    CCS_CMD_ARRAYZERO,
     CCS_CMD_MATH,
     CCS_CMD_VMATH,
     CCS_CMD_MATHTO,
@@ -111,13 +113,24 @@ enum {
 
 struct ccs_cmd_set {
     struct ccs_var* var;
-    int dim;
     struct ccs_val val;
 };
 
 struct ccs_cmd_zero {
     struct ccs_var* var;
+};
+
+struct ccs_cmd_arrayset {
+    struct ccs_var* var;
     int dim;
+    unsigned index;
+    struct ccs_val val;
+};
+
+struct ccs_cmd_arrayzero {
+    struct ccs_var* var;
+    int dim;
+    unsigned index;
 };
 
 typedef void (*ccs_cmd_call_func)(struct ccs_state, int /*thread*/, void* /*data*/);
