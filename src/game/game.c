@@ -254,8 +254,8 @@ static void gameLoop() {
 
     int viewdist = atoi(getConfigKey(config, "Game", "viewDist"));
     rendinf.chunks = allocChunks(viewdist);
-    //rendinf.chunks->xoff = 375;
-    //rendinf.chunks->zoff = 347;
+    rendinf.chunks->xoff = 25;
+    rendinf.chunks->zoff = 24;
     //rendinf.chunks->zoff = rendinf.chunks->xoff = ((int64_t)1 << 30) + (int64_t)324359506;
     //rendinf.chunks->zoff = rendinf.chunks->xoff = ((int64_t)1 << 31) + (int64_t)648719012;
     reqChunks(rendinf.chunks);

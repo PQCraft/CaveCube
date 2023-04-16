@@ -194,11 +194,20 @@ void genChunk(int64_t cx, int64_t cz, struct blockdata* data, int type) {
                 } break;
             }
             int xzoff = z * 16 + x;
+            //int nlight = 31;
             for (int i = 511; i >= 0; --i) {
                 struct blockdata* tdata = &data[256 * i + xzoff];
                 bdsetid(tdata, sliver[i] & 0xFF);
                 bdsetsubid(tdata, (sliver[i] >> 8) & 0x3F);
-                bdsetlightn(tdata, 30);
+                /*
+                bdsetlightn(tdata, nlight);
+                if (sliver[i] == water) {
+                    if (nlight > 0) --nlight;
+                } else if (sliver[i]) {
+                    nlight = 0;
+                }
+                */
+                //bdsetlightn(tdata, 31);
                 /*
                 ((uint16_t*)tdata)[0] = getRandDWord(15);
                 ((uint16_t*)tdata)[1] = getRandDWord(15);

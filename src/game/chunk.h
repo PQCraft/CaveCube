@@ -11,7 +11,7 @@ struct __attribute__((packed)) blockdata {
 // <8 bits: id>
 // <2 bits: 0><6 bits: subid>
 // <2 bits: 0><2 bits: X rotation><2 bits: Y rotation><2 bits: Z rotation>
-// <4 bits: charge><1 bit: nat light top bit><1 bit: light r top bit><1 bit: light g top bit><1 bit: light b top bit>
+// <4 bits: 0><1 bit: nat light top bit><1 bit: light r top bit><1 bit: light g top bit><1 bit: light b top bit>
 // <4 bits: nat light bottom bits><4 bits: light r bottom bits>
 // <4 bits: light g bottom bits><4 bits: light b bottom bits>
 
@@ -30,9 +30,6 @@ static force_inline uint8_t bdgetroty(struct blockdata b) {
 }
 static force_inline uint8_t bdgetrotz(struct blockdata b) {
     return b.data[2] & 0b00000011;
-}
-static force_inline uint8_t bdgetcharge(struct blockdata b) {
-    return (b.data[3] & 0b11110000) >> 4;
 }
 static force_inline uint8_t bdgetlightn(struct blockdata b) {
     return ((b.data[3] & 0b00001000) << 1) | ((b.data[4] >> 4) & 0b00001111);
@@ -68,11 +65,6 @@ static force_inline void bdsetrotz(struct blockdata* b, uint8_t d) {
     b->data[2] &= 0b11111100;
     //b->data[2] |= d & 0b00000011;
     b->data[2] |= d;
-}
-static force_inline void bdsetcharge(struct blockdata* b, uint8_t d) {
-    b->data[3] &= 0b00001111;
-    //b->data[3] |= (d & 0b00001111) << 4;
-    b->data[3] |= d << 4;
 }
 static force_inline void bdsetlightn(struct blockdata* b, uint8_t d) {
     b->data[3] &= 0b11110111;
