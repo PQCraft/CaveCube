@@ -7,6 +7,7 @@
 
 #include <inttypes.h>
 #include <stdbool.h>
+#include <pthread.h>
 
 enum {
     UI_ELEM_CONTAINER,
@@ -24,7 +25,17 @@ enum {
 enum {
     UI_STATE_NORMAL,
     UI_STATE_HOVERED,
-    UI_STATE_CLICKED,
+    UI_STATE_PRESSED,
+};
+
+enum {
+    UI_EVENT_NONE,
+    UI_EVENT_UPDATE,
+    UI_EVENT_ENTER,
+    UI_EVENT_LEAVE,
+    UI_EVENT_PRESS,
+    UI_EVENT_RELEASE,
+    UI_EVENT_CLICK,
 };
 
 enum {
@@ -135,7 +146,32 @@ struct ui_elem {
     int* childdata;
 };
 
+struct ui_event {
+    int event;
+    int elemid;
+    struct ui_elem* elem;
+    union {
+        struct {
+            float x;
+            float y;
+            int button;
+        } press;
+        struct {
+            float x;
+            float y;
+            int button;
+        } release;
+        struct {
+            float x;
+            float y;
+            int button;
+        } click;
+    } data;
+};
+
 struct ui_layer {
+    pthread_mutex_t lock;
+    char* name;
     bool hidden;
     float scale;
     int elems;
@@ -144,8 +180,8 @@ struct ui_layer {
     int* childdata;
 };
 
-struct ui_layer* allocUI(void);
-void freeUI(struct ui_layer*);
+struct ui_layer* allocUI(char* /*name*/);
+void freeUI(struct ui_layer* /*layer*/);
 int newUIElem(struct ui_layer* /*layer*/, int /*type*/, int /*parent*/, ... /*attribs*/);
 void editUIElem(struct ui_layer* /*layer*/, int /*id*/, ... /*attribs*/);
 void deleteUIElem(struct ui_layer* /*layer*/, int /*id*/);
