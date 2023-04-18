@@ -26,7 +26,7 @@ extern int pblockx, pblocky, pblockz;
 extern bool debug_wireframe;
 extern bool debug_nocavecull;
 
-extern struct ui_data* game_ui[4];
+extern struct ui_layer* game_ui[4];
 
 #endif
 
