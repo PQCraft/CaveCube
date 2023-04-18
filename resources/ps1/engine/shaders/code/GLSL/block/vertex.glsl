@@ -28,7 +28,7 @@ void main() {
     transparency = (data4 >> 8) & uint(3);
     fragPos += vec3(ccoord.x, 0.0, ccoord.y) * 16.0;
     texOffset = float(((data3 >> 16) & uint(65535)) + ((aniMult / (data3 & uint(255))) % ((data3 >> 8) & uint(255))));
-    vec3 nat = (natLight * 0.8 + skycolor * 0.2) * (float(data2 & uint(31)) / 31.0);
+    vec3 nat = pow((natLight * 0.8 + skycolor * 0.2) * ((float(data2 & uint(31)) + 14.0) / 45.0), vec3(2.0));
     light.r = float((data2 >> 24) & uint(31)) / 31.0;
     light.g = float((data2 >> 16) & uint(31)) / 31.0;
     light.b = float((data2 >> 8) & uint(31)) / 31.0;

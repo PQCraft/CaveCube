@@ -34,7 +34,7 @@ int pblockx, pblocky, pblockz;
 bool debug_wireframe = false;
 bool debug_nocavecull = false;
 
-struct ui_data* game_ui[4];
+struct ui_layer* game_ui[4];
 
 static inline void writeChunk(struct chunkdata* chunks, int64_t x, int64_t z, struct blockdata* data) {
     pthread_mutex_lock(&chunks->lock);
@@ -112,7 +112,8 @@ static force_inline coord_3d_dbl icoord2wcoord(coord_3d cam, int64_t cx, int64_t
 
 static force_inline void updateHotbar(int hb, int slot) {
     char hbslot[2] = {slot + '0', 0};
-    editUIElem(game_ui[UILAYER_CLIENT], hb, UI_ATTR_DONE, "slot", hbslot, NULL);
+    editUIElem(game_ui[UILAYER_CLIENT], hb,
+        UI_ATTR_HOTBAR_SLOT, hbslot, UI_ATTR__END);
 }
 
 static pthread_mutex_t gfxlock = PTHREAD_MUTEX_INITIALIZER;
@@ -213,19 +214,11 @@ static inline void commonEvents(struct input_info* input) {
     }
     if (inputMode == INPUT_MODE_UI) {
         for (int i = 3; i >= 0; --i) {
-            if (doUIEvents(input, game_ui[i])) break;
+            if (doUIEvents(game_ui[i], input)) break;
         }
     }
 }
 
-static int gameLoop_clickedbtn;
-static void gameLoop_btncb(struct ui_data* elemdata, int id, struct ui_elem* e, int event) {
-    (void)elemdata;
-    (void)e;
-    if (event == UI_EVENT_CLICK) {
-        gameLoop_clickedbtn = id;
-    }
-}
 static void gameLoop() {
     struct input_info input;
     resetInput();
@@ -264,37 +257,14 @@ static void gameLoop() {
     setVisibility(0.5, 1.0);
     setScreenMult(1.0, 1.0, 1.0);
 
-    gameLoop_clickedbtn = -1;
+    int ui_hud = newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_CONTAINER, -1,
+        UI_ATTR_NAME, "hud", UI_ATTR_SIZE, "100%", "100%", UI_ATTR__END);
 
-    int ui_ingame_menu = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BOX,
-        UI_ATTR_NAME, "ingame_menu", UI_ATTR_CALLBACK, gameLoop_btncb, UI_ATTR_DONE,
-        "width", "100%", "height", "100%", "color", "#000000", "alpha", "0.25", NULL);
-    int ui_ingame_return = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
-        UI_ATTR_NAME, "ingame_return", UI_ATTR_PARENT, ui_ingame_menu, UI_ATTR_CALLBACK, gameLoop_btncb, UI_ATTR_DONE,
-        "width", "320", "height", "32", "y_offset", "-44", "text", "Return to game", NULL);
-    /*int ui_ingame_options =*/ newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
-        UI_ATTR_NAME, "ingame_options", UI_ATTR_PARENT, ui_ingame_menu, UI_ATTR_CALLBACK, gameLoop_btncb, UI_ATTR_DONE,
-        "width", "320", "height", "32", "y_offset", "0", "text", "Options", NULL);
-    int ui_ingame_exit = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
-        UI_ATTR_NAME, "ingame_exit", UI_ATTR_PARENT, ui_ingame_menu, UI_ATTR_CALLBACK, gameLoop_btncb, UI_ATTR_DONE,
-        "width", "320", "height", "32", "y_offset", "44", "text", "Exit to main menu", NULL);
-
-    int ui_hud = newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_CONTAINER,
-        UI_ATTR_NAME, "hud", UI_ATTR_DONE,
-        "width", "100%", "height", "100%", NULL);
-    int ui_hotbar = newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_HOTBAR,
-        UI_ATTR_NAME, "hotbar", UI_ATTR_PARENT, ui_hud, UI_ATTR_DONE,
-        "align", "0,1", "margin", "0,10,0,10", NULL);
+    int ui_hotbar = newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_HOTBAR, ui_hud,
+        UI_ATTR_NAME, "hotbar", UI_ATTR_ALIGN, 0, 1, UI_ATTR_MARGIN, "0", "10", "0", "10", UI_ATTR__END);
     updateHotbar(ui_hotbar, invspot);
 
-    #if 0
-    int ui_inv_main = newUIElem(game_ui[UILAYER_SERVER], UI_ELEM_BOX, "main", -1, -1, "width", "100%", "height", "100%", "color", "#000000", "alpha", "0.25", "z", "-100", NULL);
-    int ui_inventory = newUIElem(game_ui[UILAYER_SERVER], UI_ELEM_FANCYBOX, "inventory", ui_inv_main, -1, "width", "332", "height", "360", NULL);
-    int ui_inv_grid = newUIElem(game_ui[UILAYER_SERVER], UI_ELEM_ITEMGRID, "inv_grid", ui_inventory, -1, "width", "10", "height", "4", "align", "0,1", "margin", "0,6,0,16", NULL);
-    /*int ui_inv_hb = */newUIElem(game_ui[UILAYER_SERVER], UI_ELEM_ITEMGRID, "inv_hotbar", ui_inventory, ui_inv_grid, "width", "10", "height", "1", "align", "0,1", "margin", "0,6,0,6", NULL);
-    #endif
-
-    while (!quitRequest && gameLoop_clickedbtn != ui_ingame_exit) {
+    while (!quitRequest) {
         frametime = altutime();
         getInput(&input);
         if (!input.focus && inputMode != INPUT_MODE_UI) {
@@ -423,21 +393,7 @@ static void gameLoop() {
             }
             case INPUT_MODE_UI:; {
                 for (int i = 3; i >= 0; --i) {
-                    if (doUIEvents(&input, game_ui[i])) break;
-                }
-                if (gameLoop_clickedbtn == ui_ingame_return) {
-                    game_ui[UILAYER_INGAME]->hidden = true;
-                    setInputMode(INPUT_MODE_GAME);
-                    resetInput();
-                    gameLoop_clickedbtn = -1;
-                } else {
-                    switch (input.single_action) {
-                        case INPUT_ACTION_SINGLE_ESC:;
-                            game_ui[UILAYER_INGAME]->hidden = true;
-                            setInputMode(INPUT_MODE_GAME);
-                            resetInput();
-                            break;
-                    }
+                    if (doUIEvents(game_ui[i], &input)) break;
                 }
                 break;
             }
@@ -528,7 +484,6 @@ static void gameLoop() {
     }
 
     rendergame = false;
-    deleteUIElem(game_ui[UILAYER_INGAME], ui_ingame_menu);
     deleteUIElem(game_ui[UILAYER_CLIENT], ui_hud);
 
     //puts("cliDisconnect");
@@ -545,114 +500,15 @@ static void gameLoop() {
     setInputMode(INPUT_MODE_UI);
 }
 
-static bool pb_init = false;
-static int pb_parent;
-static int pb_title;
-static int pb_box;
-static int pb_pbar;
-static int pb_cancel;
-static bool pb_clickedcancel = false;
-static void pb_cancelcb(struct ui_data* elemdata, int id, struct ui_elem* e, int event) {
-    (void)elemdata;
-    (void)e;
-    if (event == UI_EVENT_CLICK && id == pb_cancel) {
-        pb_clickedcancel = true;
-    }
-}
 static void showProgressBox(char* title, char* text, float progress, bool showcancel) {
-    if (!pb_init) {
-        pb_parent = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_CONTAINER,
-            UI_ATTR_NAME, "pb_parent", UI_ATTR_DONE,
-            "width", "50%", "z", "100", NULL);
-        pb_box = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_FANCYBOX,
-            UI_ATTR_NAME, "pb_box", UI_ATTR_PARENT, pb_parent, UI_ATTR_DONE,
-            "width", "100%", "height", "80", "text_margin", "8,8", "text_align", "-1,-1", NULL);
-        pb_title = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_FANCYBOX,
-            UI_ATTR_NAME, "pb_title", UI_ATTR_PARENT, pb_parent, UI_ATTR_PREV, pb_box, UI_ATTR_DONE,
-            "width", "100%", "height", "32", "align", "0,-1", "y_offset", "-30", "text_margin", "8,8", "text_align", "-1,-1", NULL);
-        pb_pbar = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_PROGRESSBAR,
-            UI_ATTR_NAME, "pb_pbar", UI_ATTR_PARENT, pb_parent, UI_ATTR_PREV, pb_box, UI_ATTR_DONE,
-            "height", "32", "align", "-1,1", "y_offset", "30", NULL);
-        pb_cancel = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
-            UI_ATTR_NAME, "pb_cancel", UI_ATTR_PARENT, pb_parent, UI_ATTR_PREV, pb_box, UI_ATTR_CALLBACK, pb_cancelcb, UI_ATTR_DONE,
-            "width", "64", "height", "32", "align", "1,1", "y_offset", "30", "text", "Cancel", NULL);
-        pb_init = true;
-    }
-    editUIElem(game_ui[UILAYER_INGAME], pb_parent, UI_ATTR_DONE, "hidden", "false", NULL);
-    if (title) editUIElem(game_ui[UILAYER_INGAME], pb_title, UI_ATTR_DONE, "text", title, NULL);
-    editUIElem(game_ui[UILAYER_INGAME], pb_box, UI_ATTR_DONE, "text", text, NULL);
-    char pstr[16];
-    snprintf(pstr, sizeof(pstr), "%g", progress);
-    //printf("progress: [%g]->{%s}\n", progress, pstr);
-    editUIElem(game_ui[UILAYER_INGAME], pb_pbar, UI_ATTR_DONE, "width", ((showcancel) ? "100%-62" : "100%"), "progress", pstr, NULL);
-    editUIElem(game_ui[UILAYER_INGAME], pb_cancel, UI_ATTR_DONE, "hidden", ((showcancel) ? "false" : "true"), NULL);
-    /*
-    static struct input_info input;
-    getInput(&input);
-    commonEvents(&input);
-    doRender();
-    frametime = altutime();
-    */
 }
 static void hideProgressBox() {
-    editUIElem(game_ui[UILAYER_INGAME], pb_parent, UI_ATTR_DONE, "hidden", "true", NULL);
-    /*
-    static struct input_info input;
-    getInput(&input);
-    commonEvents(&input);
-    doRender();
-    frametime = altutime();
-    */
 }
 static bool progressBoxCancelled() {
-    if (pb_clickedcancel) {
-        pb_clickedcancel = false;
-        return true;
-    }
     return false;
 }
 
-static bool eb_init = false;
-static int eb_parent;
-static int eb_title;
-static int eb_box;
-static int eb_ok;
-static bool eb_clickedok = false;
-static void eb_okcb(struct ui_data* elemdata, int id, struct ui_elem* e, int event) {
-    (void)elemdata;
-    (void)e;
-    if (event == UI_EVENT_CLICK && id == eb_ok) {
-        eb_clickedok = true;
-    }
-}
 static void dispErrorBox(char* title, char* text) {
-    if (!eb_parent) {
-        eb_parent = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_CONTAINER,
-            UI_ATTR_NAME, "eb_parent", UI_ATTR_DONE,
-            "width", "50%", "z", "100", NULL);
-        eb_box = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_FANCYBOX,
-            UI_ATTR_NAME, "eb_box", UI_ATTR_PARENT, eb_parent, UI_ATTR_DONE,
-            "width", "100%", "height", "80", "text_margin", "8,8", "text_align", "-1,-1", NULL);
-        eb_title = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_FANCYBOX,
-            UI_ATTR_NAME, "eb_title", UI_ATTR_PARENT, eb_parent, UI_ATTR_PREV, eb_box, UI_ATTR_DONE,
-            "width", "100%", "height", "32", "align", "0,-1", "y_offset", "-30", "text_margin", "8,8", "text_align", "-1,-1", NULL);
-        eb_ok = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
-            UI_ATTR_NAME, "eb_ok", UI_ATTR_PARENT, eb_parent, UI_ATTR_PREV, eb_box, UI_ATTR_CALLBACK, eb_okcb, UI_ATTR_DONE,
-            "width", "100%", "height", "32", "align", "0,1", "y_offset", "30", "text", "OK", NULL);
-        eb_init = true;
-    }
-    editUIElem(game_ui[UILAYER_INGAME], eb_parent, UI_ATTR_DONE, "hidden", "false", NULL);
-    editUIElem(game_ui[UILAYER_INGAME], eb_title, UI_ATTR_DONE, "text", title, NULL);
-    editUIElem(game_ui[UILAYER_INGAME], eb_box, UI_ATTR_DONE, "text", text, NULL);
-    while (!eb_clickedok && !quitRequest) {
-        frametime = altutime();
-        static struct input_info input;
-        getInput(&input);
-        commonEvents(&input);
-        doRender();
-    }
-    editUIElem(game_ui[UILAYER_INGAME], eb_parent, UI_ATTR_DONE, "hidden", "true", NULL);
-    eb_clickedok = false;
 }
 
 static int connectToServ_shouldQuit() {
@@ -747,14 +603,6 @@ static int startSPGame(char* error, int errlen) {
     return 1;
 }
 
-static int doGame_clickedbtn = -1;
-static void doGame_btncb(struct ui_data* elemdata, int id, struct ui_elem* e, int event) {
-    (void)elemdata;
-    (void)e;
-    if (event == UI_EVENT_CLICK) {
-        doGame_clickedbtn = id;
-    }
-}
 bool doGame() {
     declareConfigKey(config, "Game", "viewDist", "8", false);
     declareConfigKey(config, "Player", "name", "Player", false);
@@ -778,36 +626,6 @@ bool doGame() {
     game_ui[UILAYER_DBGINF]->hidden = !showDebugInfo;
     game_ui[UILAYER_INGAME]->hidden = false;
 
-    int ui_main_menu = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_CONTAINER,
-        UI_ATTR_NAME, "main_menu", UI_ATTR_DONE,
-        NULL);
-
-    int ui_spbtn = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
-        UI_ATTR_NAME, "spbtn", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_CALLBACK, doGame_btncb, UI_ATTR_DONE,
-        "width", "320", "height", "32", "x_offset", "-18", "y_offset", "-44", "text", "Singleplayer", NULL);
-    int ui_mpbtn = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
-        UI_ATTR_NAME, "mpbtn", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_CALLBACK, doGame_btncb, UI_ATTR_DONE,
-        "width", "320", "height", "32", "x_offset", "-6", "y_offset", "0", "text", "Multiplayer", NULL);
-    int ui_opbtn = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
-        UI_ATTR_NAME, "opbtn", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_CALLBACK, doGame_btncb, UI_ATTR_DONE,
-        "width", "320", "height", "32", "x_offset", "6", "y_offset", "44", "text", "Options", NULL);
-    int ui_qbtn = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
-        UI_ATTR_NAME, "qbtn", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_CALLBACK, doGame_btncb, UI_ATTR_DONE,
-        "width", "320", "height", "32", "x_offset", "18", "y_offset", "88", "text", "Quit", NULL);
-    int ui_logo = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_CONTAINER,
-        UI_ATTR_NAME, "logo", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_DONE,
-        "width", "448", "height", "112", "x_offset", "3", "y_offset", "-160", "text", PROG_NAME, "text_scale", "7", NULL);
-    /*int ui_version =*/ newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_CONTAINER,
-        UI_ATTR_NAME, "version", UI_ATTR_PARENT, ui_main_menu, UI_ATTR_PREV, ui_logo, UI_ATTR_DONE,
-        "width", "448", "height", "16", "x_offset", "-3", "y_offset", "4", "text", "Version "VER_STR, "align", "0,1", NULL);
-
-    //ui_status = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_FANCYBOX,
-    //    UI_ATTR_NAME, "status", UI_ATTR_DONE,
-    //    "width", "50%", "height", "160", "text_margin", "8,8", "text", "", "hidden", "true", NULL);
-    //ui_okbtn = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON,
-    //    UI_ATTR_NAME, "okbtn", UI_ATTR_PREV, ui_status, UI_ATTR_CALLBACK, btncb, UI_ATTR_DONE,
-    //    "width", "50%", "height", "32", "align", "0,-1", "y_offset", "-2", "text", "OK", "hidden", "true", NULL);
-
     struct input_info input;
     while (!quitRequest) {
         frametime = altutime();
@@ -815,24 +633,6 @@ bool doGame() {
         commonEvents(&input);
         doRender();
         microwait(0);
-        if (doGame_clickedbtn >= 0) {
-            char error[4096];
-            if (doGame_clickedbtn == ui_spbtn) {
-                editUIElem(game_ui[UILAYER_INGAME], ui_main_menu, UI_ATTR_DONE, "hidden", "true", NULL);
-                frametime = altutime();
-                if (!startSPGame(error, sizeof(error))) {
-                    dispErrorBox("Failed to start singleplayer game", error);
-                }
-                editUIElem(game_ui[UILAYER_INGAME], ui_main_menu, UI_ATTR_DONE, "hidden", "false", NULL);
-            } else if (doGame_clickedbtn == ui_mpbtn) {
-                dispErrorBox("Not implemented", "The multiplayer menu has not been implemented yet.");
-            } else if (doGame_clickedbtn == ui_opbtn) {
-                dispErrorBox("Not implemented", "The options menu has not been implemented yet.");
-            } else if (doGame_clickedbtn == ui_qbtn) {
-                goto longbreak;
-            }
-            doGame_clickedbtn = -1;
-        }
     }
     longbreak:;
 

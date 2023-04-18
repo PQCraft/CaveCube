@@ -18,6 +18,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <pthread.h>
+#include <limits.h>
 
 #if defined(USESDL2)
     #ifndef __EMSCRIPTEN__
@@ -1437,306 +1438,8 @@ static inline void syncTextColors() {
     setUniform3f(rendinf.shaderprog, "textColor[15]", textColor[15]);
 }
 
-struct meshdata {
-    int s;
-    int l;
-    uint32_t* _v;
-    uint32_t* v;
-};
-
-static force_inline void writeuielemvert(struct meshdata* md, int x, int y, int8_t z, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
-    mtsetvert(&md->_v, &md->s, &md->l, &md->v, (((x) << 16) & 0xFFFF0000) | ((y) & 0xFFFF));
-    mtsetvert(&md->_v, &md->s, &md->l, &md->v, ((z) & 0xFF));
-    mtsetvert(&md->_v, &md->s, &md->l, &md->v, (((r) << 24) & 0xFF000000) | (((g) << 16) & 0xFF0000) | (((b) << 8) & 0xFF00) | ((a) & 0xFF));
-    mtsetvert(&md->_v, &md->s, &md->l, &md->v, 0);
-}
-
-static force_inline void writeuitextvert(struct meshdata* md, int x, int y, int8_t z,
-                                         char c, uint8_t tx, uint8_t ty, uint8_t tmx, uint8_t tmy,
-                                         uint8_t fgc, uint8_t bgc, uint8_t fga, uint8_t bga, uint8_t attrib) {
-    mtsetvert(&md->_v, &md->s, &md->l, &md->v, (((x) << 16) & 0xFFFF0000) | ((y) & 0xFFFF));
-    mtsetvert(&md->_v, &md->s, &md->l, &md->v, 0x80000000 | (((attrib) << 24) & 0xF000000) | (((c) << 8) & 0xFF00) | ((z) & 0xFF));
-    mtsetvert(&md->_v, &md->s, &md->l, &md->v, (((fga) << 24) & 0xFF000000) | (((bga) << 16) & 0xFF0000) | (((fgc) << 12) & 0xF000) | (((bgc) << 8) & 0xF00));
-    mtsetvert(&md->_v, &md->s, &md->l, &md->v, (((tx) << 24) & 0xFF000000) | (((ty) << 16) & 0xFF0000) | (((tmx) << 8) & 0xFF00) | ((tmy) & 0xFF));
-}
-
-static force_inline void writeuielemrect(struct meshdata* md, int x0, int y0, int x1, int y1, int8_t z, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
-    writeuielemvert(md, x0, y0, z, r, g, b, a);
-    writeuielemvert(md, x0, y1, z, r, g, b, a);
-    writeuielemvert(md, x1, y0, z, r, g, b, a);
-    writeuielemvert(md, x1, y0, z, r, g, b, a);
-    writeuielemvert(md, x0, y1, z, r, g, b, a);
-    writeuielemvert(md, x1, y1, z, r, g, b, a);
-}
-
-static force_inline void writeuitextchar(struct meshdata* md, int x, int y, int z,
-                                         uint8_t ol, uint8_t ot, uint8_t or, uint8_t ob,
-                                         uint8_t tmx, uint8_t tmy, char c, uint8_t attrib,
-                                         uint8_t fgc, uint8_t bgc, uint8_t fga, uint8_t bga) {
-    writeuitextvert(md, x + ol, y + ot, z, c, ol, ot, tmx, tmy, fgc, bgc, fga, bga, attrib);
-    writeuitextvert(md, x + ol, y + ob, z, c, ol, ob, tmx, tmy, fgc, bgc, fga, bga, attrib);
-    writeuitextvert(md, x + or, y + ot, z, c, or, ot, tmx, tmy, fgc, bgc, fga, bga, attrib);
-    writeuitextvert(md, x + or, y + ot, z, c, or, ot, tmx, tmy, fgc, bgc, fga, bga, attrib);
-    writeuitextvert(md, x + ol, y + ob, z, c, ol, ob, tmx, tmy, fgc, bgc, fga, bga, attrib);
-    writeuitextvert(md, x + or, y + ob, z, c, or, ob, tmx, tmy, fgc, bgc, fga, bga, attrib);
-}
-
-struct muie_textline {
-    int width;
-    int chars;
-    char* ptr;
-};
-
-static void meshUIElem(struct meshdata* md, struct ui_data* elemdata, struct ui_elem* e) {
-    //printf("mesh: {%s} [hidden:%d]\n", e->name, e->calcprop.hidden);
-    struct ui_elem_calcprop* p = &e->calcprop;
-    int s = elemdata->scale;
-    char* curprop;
-    {
-        int x0 = p->x, y0 = p->y, x1 = p->x + p->width, y1 = p->y + p->height;
-        switch (e->type) {
-            case UI_ELEM_BOX:; {
-                writeuielemrect(md, x0, y0, x1, y1, p->z, p->r, p->g, p->b, p->a);
-            } break;
-            case UI_ELEM_FANCYBOX:; {
-                writeuielemrect(md, x0, y0 + s, x1, y1 - s, p->z, p->r / 2, p->g / 2, p->b / 2, p->a);
-                writeuielemrect(md, x0 + s, y0, x1 - s, y1, p->z, p->r / 2, p->g / 2, p->b / 2, p->a);
-                writeuielemrect(md, x0 + 2 * s, y0 + 2 * s, x1 - 2 * s, y1 - 2 * s, p->z, p->r, p->g, p->b, p->a);
-            } break;
-            case UI_ELEM_HOTBAR:; {
-                int slot = -1;
-                curprop = getUIElemProperty(e, "slot");
-                if (curprop) slot = atoi(curprop);
-                writeuielemrect(md, x0, y0 + s, x1, y1 - s, p->z, 63, 63, 63, p->a);
-                writeuielemrect(md, x0 + s, y0, x1 - s, y1, p->z, 63, 63, 63, p->a);
-                for (int i = 0; i < 10; ++i) {
-                    uint8_t r, g, b;
-                    if (i == slot) {
-                        r = 255;
-                        g = 255;
-                        b = 127;
-                    } else {
-                        r = 127;
-                        g = 127;
-                        b = 127;
-                    }
-                    writeuielemrect(
-                        md,
-                        x0 + (i * 30 + 2) * s, y0 + s * 2, x0 + ((i + 1) * 30) * s, y1 - s * 2,
-                        p->z,
-                        r, g, b, p->a / 2
-                    );
-                }
-            } break;
-            case UI_ELEM_ITEMGRID:; {
-                writeuielemrect(md, x0, y0 + s, x1, y1 - s, p->z, 63, 63, 63, p->a);
-                writeuielemrect(md, x0 + s, y0, x1 - s, y1, p->z, 63, 63, 63, p->a);
-                curprop = getUIElemProperty(e, "width");
-                int width = (curprop) ? atoi(curprop) : 1;
-                curprop = getUIElemProperty(e, "height");
-                int height = (curprop) ? atoi(curprop) : 1;
-                for (int y = 0; y < height; ++y) {
-                    for (int x = 0; x < width; ++x) {
-                        writeuielemrect(
-                            md,
-                            x0 + (x * 30 + 2) * s, y0 + (y * 30 + 2) * s, x0 + ((x + 1) * 30) * s, y0 + ((y + 1) * 30) * s,
-                            p->z,
-                            140, 140, 140, p->a
-                        );
-                    }
-                }
-            } break;
-            case UI_ELEM_BUTTON:; {
-                writeuielemrect(md, x0, y0 + s, x1, y1 - s, p->z, p->r / 2, p->g / 2, p->b / 2, p->a);
-                writeuielemrect(md, x0 + s, y0, x1 - s, y1, p->z, p->r / 2, p->g / 2, p->b / 2, p->a);
-                switch (e->state) {
-                    case UI_STATE_HOVERED:;
-                        writeuielemrect(md, x0 + 2 * s, y0 + 2 * s, x1 - 2 * s, y1 - 2 * s, p->z, 191, 191, 127, p->a);
-                        break;
-                    case UI_STATE_CLICKED:;
-                        writeuielemrect(md, x0 + 2 * s, y0 + 2 * s, x1 - 2 * s, y1 - 2 * s, p->z, p->r / 2, p->g / 2, p->b / 2, p->a);
-                        break;
-                    default:;
-                        writeuielemrect(md, x0 + 2 * s, y0 + 2 * s, x1 - 2 * s, y1 - 2 * s, p->z, p->r, p->g, p->b, p->a);
-                        break;
-                }
-            } break;
-            case UI_ELEM_PROGRESSBAR:; {
-                writeuielemrect(md, x0, y0 + s, x1, y1 - s, p->z, p->r / 2, p->g / 2, p->b / 2, p->a);
-                writeuielemrect(md, x0 + s, y0, x1 - s, y1, p->z, p->r / 2, p->g / 2, p->b / 2, p->a);
-                writeuielemrect(md, x0 + 2 * s, y0 + 2 * s, x1 - 2 * s, y1 - 2 * s, p->z, p->r, p->g, p->b, p->a);
-                curprop = getUIElemProperty(e, "progress");
-                float progress = (curprop) ? atof(curprop) / 100.0 : 0.0;
-                int newx1 = (int)((float)p->x + (float)p->width * progress) - 2 * s;
-                int newx0 = x0 + 2 * s;
-                if (newx1 > newx0) {
-                    writeuielemrect(md, newx0, y0 + 2 * s, newx1, y1 - 2 * s, p->z, 0, 63, 191, p->a);
-                }
-            } break;
-        }
-    }
-    char* text = getUIElemProperty(e, "text");
-    if (text) {
-        char* t = text;
-        int ax = 0, ay = 0;
-        curprop = getUIElemProperty(e, "text_align");
-        if (curprop) sscanf(curprop, "%d,%d", &ax, &ay);
-        uint8_t fgc = 15;
-        curprop = getUIElemProperty(e, "text_fgc");
-        if (curprop) fgc = atoi(curprop);
-        uint8_t bgc = 0;
-        curprop = getUIElemProperty(e, "text_bgc");
-        if (curprop) bgc = atoi(curprop);
-        uint8_t fga = 255;
-        curprop = getUIElemProperty(e, "text_fga");
-        if (curprop) fga = 255.0 * atof(curprop);
-        uint8_t bga = 0;
-        curprop = getUIElemProperty(e, "text_bga");
-        if (curprop) bga = 255.0 * atof(curprop);
-        curprop = getUIElemProperty(e, "text_margin");
-        int mx = 0;
-        int my = 0;
-        if (curprop) {
-            sscanf(curprop, "%d,%d", &mx, &my);
-            mx *= s;
-            my *= s;
-            p->x += mx;
-            p->width -= mx * 2;
-            p->y += my;
-            p->height -= my * 2;
-        }
-        uint8_t attrib = 0;
-        curprop = getUIElemProperty(e, "text_bold");
-        if (curprop) attrib |= getBool(curprop);
-        curprop = getUIElemProperty(e, "text_italic");
-        if (curprop) attrib |= getBool(curprop) << 1;
-        curprop = getUIElemProperty(e, "text_underline");
-        if (curprop) attrib |= getBool(curprop) << 2;
-        curprop = getUIElemProperty(e, "text_strikethrough");
-        if (curprop) attrib |= getBool(curprop) << 3;
-        int text_scale = 1;
-        curprop = getUIElemProperty(e, "text_scale");
-        if (curprop) text_scale = atoi(curprop);
-        int end = p->x + p->width;
-        static int tcw = 8, tch = 16;
-        int lines = 1;
-        struct muie_textline* tdata = calloc(lines, sizeof(*tdata));
-        {
-            int l = 0;
-            #define nextline(p) {\
-                if (*p) {\
-                    tdata = realloc(tdata, (++lines) * sizeof(*tdata));\
-                    ++l;\
-                    memset(&tdata[l], 0, sizeof(*tdata));\
-                    tdata[l].ptr = (p);\
-                }\
-            }
-            tdata[0].ptr = t;
-            while (*t) {
-                if (*t == ' ' || *t == '\t') {
-                    int tmpw = tdata[l].width + tcw * s * text_scale;
-                    for (int i = 1; t[i] && t[i] != ' ' && t[i] != '\t' && t[i] != '\n'; ++i) {
-                        tmpw += tcw * s * text_scale;
-                    }
-                    if (tmpw > p->width) {
-                        nextline(t + 1);
-                    } else {
-                        tdata[l].width += tcw * s * text_scale;
-                        ++tdata[l].chars;
-                    }
-                } else if (*t == '\n') {
-                    nextline(t + 1);
-                } else {
-                    tdata[l].width += tcw * s * text_scale;
-                    if (tdata[l].width > p->width) {
-                        tdata[l].width -= tcw * s * text_scale;
-                        nextline(t);
-                    }
-                    ++tdata[l].chars;
-                }
-                ++t;
-            }
-        }
-        {
-            int x, y;
-            switch (ay) {
-                case -1:; y = p->y; break;
-                default:; y = ((float)p->y + (float)p->height / 2.0) - (float)(lines * tch * s * text_scale) / 2.0; break;
-                case 1:; y = p->y + (p->height - lines * tch * s * text_scale); break;
-            }
-            for (int i = 0; i < lines; ++i) {
-                switch (ax) {
-                    case -1:; x = p->x; break;
-                    default:; x = ((float)p->x + (float)p->width / 2.0) - (float)tdata[i].width / 2.0; break;
-                    case 1:; x = (end - tdata[i].width); break;
-                }
-                for (int j = 0; j < tdata[i].chars; ++j) {
-                    uint8_t ol = 0, or = tcw * s * text_scale, ot = 0, ob = tch * s * text_scale, stcw = tcw * s * text_scale, stch = tch * s * text_scale;
-                    if (/*x + or >= p->x && x <= p->x + p->width &&*/ y + ob >= p->y && y <= p->y + p->height) {
-                        //if (x + or > p->x + p->width) or -= (x + or) - (p->x + p->width);
-                        if (y + ob > p->y + p->height) ob -= (y + ob) - (p->y + p->height);
-                        //if (x + ol < p->x) ol += (p->x) - (x + or);
-                        if (y + ot < p->y) ot += (p->y) - (y + ot);
-                        writeuitextchar(md, x, y, p->z, ol, ot, or, ob, stcw, stch, tdata[i].ptr[j], attrib, fgc, bgc, fga, bga);
-                    }
-                    x += tcw * s * text_scale;
-                }
-                y += tch * s * text_scale;
-            }
-        }
-        free(tdata);
-        p->x -= mx;
-        p->width += mx * 2;
-        p->y -= my;
-        p->height += my * 2;
-    }
-}
-
-static inline void meshUIElemTree(struct meshdata* md, struct ui_data* elemdata, struct ui_elem* e) {
-    meshUIElem(md, elemdata, e);
-    for (int i = 0; i < e->children; ++i) {
-        if (isUIElemValid(elemdata, e->childdata[i])) {
-            struct ui_elem* c = &elemdata->data[e->childdata[i]];
-            if (!c->calcprop.hidden) {
-                meshUIElemTree(md, elemdata, c);
-            }
-        }
-    }
-}
-
-static force_inline void meshUIElems(struct meshdata* md, struct ui_data* elemdata) {
-    for (int i = 0; i < elemdata->count; ++i) {
-        struct ui_elem* e = &elemdata->data[i];
-        if (isUIElemValid(elemdata, i) && e->parent < 0 && !e->calcprop.hidden) {
-            //printf("mesh tree: %s\n", e->name);
-            meshUIElemTree(md, elemdata, e);
-        }
-    }
-}
-
-static force_inline bool renderUI(struct ui_data* data) {
-    if (data->hidden) return false;
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glBindBuffer(GL_ARRAY_BUFFER, data->renddata.VBO);
-    if (calcUIProperties(data)) {
-        struct meshdata mdata;
-        mdata.s = 64;
-        mdata._v = malloc(mdata.s * sizeof(uint32_t));
-        mdata.l = 0;
-        mdata.v = mdata._v;
-        meshUIElems(&mdata, data);
-        glBufferData(GL_ARRAY_BUFFER, mdata.l * sizeof(uint32_t), mdata._v, GL_STATIC_DRAW);
-        data->renddata.vcount = mdata.l / 4;
-        free(mdata._v);
-    }
-    if (!data->renddata.vcount) return false;
-    setUniform1f(rendinf.shaderprog, "scale", data->scale);
-    glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(0));
-    glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(sizeof(uint32_t)));
-    glVertexAttribIPointer(2, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * 2));
-    glVertexAttribIPointer(3, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * 3));
-    glDrawArrays(GL_TRIANGLES, 0, data->renddata.vcount);
-    return true;
+static force_inline bool renderUI(struct ui_layer* data) {
+    return false;
 }
 
 const unsigned char* glver;
@@ -1745,8 +1448,6 @@ const unsigned char* glvend;
 const unsigned char* glrend;
 
 static resdata_image* crosshair;
-
-static int dbgtextuih = -1;
 
 struct pq {
     int8_t x;
@@ -1826,6 +1527,7 @@ static inline void fpush(int8_t x, int8_t y, int8_t z, bool vis) {
 static int cavecull;
 bool rendergame = false;
 
+static int dbgtextuih = -1;
 void render() {
     //printf("rendergame: [%d]\n", rendergame);
     if (showDebugInfo) {
@@ -1833,12 +1535,12 @@ void render() {
         static int toff = 0;
         if (game_ui[UILAYER_DBGINF] && dbgtextuih == -1) {
             dbgtextuih = newUIElem(
-                game_ui[UILAYER_DBGINF], UI_ELEM_CONTAINER,
-                UI_ATTR_NAME, "debugText", UI_ATTR_DONE,
-                "width", "100%", "height", "100%",
-                "text_align", "-1,-1", "text_fgc", "14", "text_bga", "0.5",
-                "text", "",
-                NULL
+                game_ui[UILAYER_DBGINF], UI_ELEM_CONTAINER, -1,
+                UI_ATTR_NAME, "debugText",
+                UI_ATTR_SIZE, "100%", "100%",
+                UI_ATTR_TEXTALIGN, -1, -1, UI_ATTR_TEXTCOLORFG, 14, UI_ATTR_TEXTALPHABG, 127,
+                UI_ATTR_TEXT, "",
+                UI_ATTR__END
             );
         }
         if (!tbuf[0][0]) {
@@ -1884,7 +1586,7 @@ void render() {
                 fps, realfps
             );
         }
-        if (game_ui[UILAYER_DBGINF]) editUIElem(game_ui[UILAYER_DBGINF], dbgtextuih, UI_ATTR_DONE, "text", tbuf, NULL);
+        if (game_ui[UILAYER_DBGINF]) editUIElem(game_ui[UILAYER_DBGINF], dbgtextuih, UI_ATTR_TEXT, tbuf, UI_ATTR__END);
     }
 
     if (rendergame) {
@@ -2091,6 +1793,7 @@ void render() {
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), UIFBTEXID - GL_TEXTURE0);
     setUniform3f(rendinf.shaderprog, "mcolor", (float[]){1, 1, 1});
     if (!rendergame) {
+        //TODO: gmod-like fading background of screenshots
         uint64_t time = altutime() / 1000;
         glClearColor(
             (sin(time / 1735.0) * 0.5 + 0.5) * 0.1,
@@ -2104,14 +1807,10 @@ void render() {
     for (int i = 0; i < 4; ++i) {
         setShaderProg(shader_ui);
         glBindFramebuffer(GL_FRAMEBUFFER, UIFBO);
-        glEnable(GL_DEPTH_TEST);
-        glDisable(GL_BLEND);
         if (renderUI(game_ui[i])) {
             //printf("renderUI(game_ui[%d])\n", i);
             setShaderProg(shader_framebuffer);
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
-            glDisable(GL_DEPTH_TEST);
-            glEnable(GL_BLEND);
             glBindBuffer(GL_ARRAY_BUFFER, VBO2D);
             glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
             glDrawArrays(GL_TRIANGLES, 0, 6);
