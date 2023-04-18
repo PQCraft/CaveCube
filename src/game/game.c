@@ -620,9 +620,11 @@ bool doGame() {
     setSkyColor(0.5, 0.5, 0.5);
     setFullscreen(rendinf.fullscr);
 
-    for (int i = 0; i < 4; ++i) {
-        game_ui[i] = allocUI();
-    }
+    game_ui[UILAYER_CLIENT] = allocUI("client");
+    game_ui[UILAYER_SERVER] = allocUI("server");
+    game_ui[UILAYER_DBGINF] = allocUI("debug info");
+    game_ui[UILAYER_INGAME] = allocUI("in-game menu");
+
     game_ui[UILAYER_DBGINF]->hidden = !showDebugInfo;
     game_ui[UILAYER_INGAME]->hidden = false;
 
@@ -636,9 +638,11 @@ bool doGame() {
     }
     longbreak:;
 
-    for (int i = 0; i < 4; ++i) {
-        freeUI(game_ui[i]);
-    }
+    freeUI(game_ui[UILAYER_CLIENT]);
+    freeUI(game_ui[UILAYER_SERVER]);
+    freeUI(game_ui[UILAYER_DBGINF]);
+    freeUI(game_ui[UILAYER_INGAME]);
+
     stopRenderer();
 
     return true;
