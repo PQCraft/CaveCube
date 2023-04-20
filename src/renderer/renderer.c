@@ -47,6 +47,7 @@ struct renderer_info rendinf;
 static GLuint shader_block;
 static GLuint shader_2d;
 static GLuint shader_ui;
+static GLuint shader_text;
 static GLuint shader_framebuffer;
 
 static unsigned VAO;
@@ -2033,6 +2034,17 @@ bool reloadRenderer() {
     freeResource(vs);
     freeResource(fs);
     #if DBGLVL(1)
+    puts("Compiling text shader...");
+    #endif
+    vs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/text/vertex.glsl");
+    fs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/text/fragment.glsl");
+    if (!vs || !fs || !makeShaderProg((char*)hdr->data, (char*)vs->data, (char*)fs->data, &shader_text)) {
+        fputs("reloadRenderer: Failed to compile text shader\n", stderr);
+        return false;
+    }
+    freeResource(vs);
+    freeResource(fs);
+    #if DBGLVL(1)
     puts("Compiling framebuffer shader...");
     #endif
     vs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/framebuffer/vertex.glsl");
@@ -2233,6 +2245,12 @@ bool reloadRenderer() {
     glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, 8, 16, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, charset->data);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    {
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+        float bcolor[] = {0.0, 0.0, 0.0, 0.0};
+        glTexParameterfv(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_BORDER_COLOR, bcolor);
+    }
 
     setShaderProg(shader_block);
 

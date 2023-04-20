@@ -3,3 +3,5 @@
 precision mediump float;
 precision mediump sampler2DArray;
 precision highp int;
+
+#line 0
