@@ -1,6 +1,6 @@
 #include <main/main.h>
 #include "common.h"
-#include <zlib/zlib.h>
+#include <compression/zlib.h>
 
 #include <stdio.h>
 #include <stdlib.h>

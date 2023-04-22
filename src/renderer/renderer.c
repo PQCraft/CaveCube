@@ -14,6 +14,7 @@
 #include <game/game.h>
 #include <game/chunk.h>
 #include <game/blocks.h>
+#include <common/glue.h>
 
 #include <stdbool.h>
 #include <string.h>
@@ -44,11 +45,11 @@ int MESHER_THREADS_MAX = 1;
 struct renderer_info rendinf;
 //static resdata_bmd* blockmodel;
 
-static GLuint shader_block;
-static GLuint shader_2d;
-static GLuint shader_ui;
-static GLuint shader_text;
-static GLuint shader_framebuffer;
+static GLuint shader_block = 0;
+static GLuint shader_2d = 0;
+static GLuint shader_ui = 0;
+static GLuint shader_text = 0;
+static GLuint shader_framebuffer = 0;
 
 static unsigned VAO;
 static unsigned VBO2D;
@@ -1981,6 +1982,25 @@ bool initRenderer() {
     return true;
 }
 
+bool makeShader(file_data* hdr, char* name, char* dirname, GLuint* shader) {
+    if (!dirname) dirname = name;
+    if (*shader) glDeleteProgram(*shader);
+    printf("Compiling %s shader...\n", name);
+    static char tmpbuf[MAX_PATH];
+    snprintf(tmpbuf, MAX_PATH, "engine/shaders/code/GLSL/%s/vertex.glsl", dirname);
+    file_data* vs = loadResource(RESOURCE_TEXTFILE, tmpbuf);
+    snprintf(tmpbuf, MAX_PATH, "engine/shaders/code/GLSL/%s/fragment.glsl", dirname);
+    file_data* fs = loadResource(RESOURCE_TEXTFILE, tmpbuf);
+    if (!vs || !fs || !makeShaderProg((char*)hdr->data, (char*)vs->data, (char*)fs->data, shader)) {
+        putchar('\n');
+        fprintf(stderr, "makeShader: Failed to compile %s shader\n", name);
+        return false;
+    }
+    freeResource(vs);
+    freeResource(fs);
+    return true;
+}
+
 bool reloadRenderer() {
     bool sorttransparent = getBool(getConfigKey(config, "Renderer", "sortTransparent"));
     #if defined(USEGLES)
@@ -2000,61 +2020,11 @@ bool reloadRenderer() {
         hdr->data = realloc(hdr->data, hdr->size);
         strcat((char*)hdr->data, line);
     }
-    #if DBGLVL(1)
-    puts("Compiling block shader...");
-    #endif
-    file_data* vs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/block/vertex.glsl");
-    file_data* fs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/block/fragment.glsl");
-    if (!vs || !fs || !makeShaderProg((char*)hdr->data, (char*)vs->data, (char*)fs->data, &shader_block)) {
-        fputs("reloadRenderer: Failed to compile block shader\n", stderr);
-        return false;
-    }
-    freeResource(vs);
-    freeResource(fs);
-    #if DBGLVL(1)
-    puts("Compiling 2D shader...");
-    #endif
-    vs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/2D/vertex.glsl");
-    fs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/2D/fragment.glsl");
-    if (!vs || !fs || !makeShaderProg((char*)hdr->data, (char*)vs->data, (char*)fs->data, &shader_2d)) {
-        fputs("reloadRenderer: Failed to compile 2D shader\n", stderr);
-        return false;
-    }
-    freeResource(vs);
-    freeResource(fs);
-    #if DBGLVL(1)
-    puts("Compiling UI shader...");
-    #endif
-    vs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/ui/vertex.glsl");
-    fs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/ui/fragment.glsl");
-    if (!vs || !fs || !makeShaderProg((char*)hdr->data, (char*)vs->data, (char*)fs->data, &shader_ui)) {
-        fputs("reloadRenderer: Failed to compile UI shader\n", stderr);
-        return false;
-    }
-    freeResource(vs);
-    freeResource(fs);
-    #if DBGLVL(1)
-    puts("Compiling text shader...");
-    #endif
-    vs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/text/vertex.glsl");
-    fs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/text/fragment.glsl");
-    if (!vs || !fs || !makeShaderProg((char*)hdr->data, (char*)vs->data, (char*)fs->data, &shader_text)) {
-        fputs("reloadRenderer: Failed to compile text shader\n", stderr);
-        return false;
-    }
-    freeResource(vs);
-    freeResource(fs);
-    #if DBGLVL(1)
-    puts("Compiling framebuffer shader...");
-    #endif
-    vs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/framebuffer/vertex.glsl");
-    fs = loadResource(RESOURCE_TEXTFILE, "engine/shaders/code/GLSL/framebuffer/fragment.glsl");
-    if (!vs || !fs || !makeShaderProg((char*)hdr->data, (char*)vs->data, (char*)fs->data, &shader_framebuffer)) {
-        fputs("reloadRenderer: Failed to compile framebuffer shader\n", stderr);
-        return false;
-    }
-    freeResource(vs);
-    freeResource(fs);
+    if (!makeShader(hdr, "block", NULL, &shader_block)) return false;
+    if (!makeShader(hdr, "2D", "2d", &shader_2d)) return false;
+    if (!makeShader(hdr, "UI", "ui", &shader_ui)) return false;
+    if (!makeShader(hdr, "text", NULL, &shader_text)) return false;
+    if (!makeShader(hdr, "framebuffer", NULL, &shader_framebuffer)) return false;
 
     int gltex = GL_TEXTURE0;
 
