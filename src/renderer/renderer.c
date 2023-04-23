@@ -6,6 +6,7 @@
 #ifndef __EMSCRIPTEN__
     #include "glad.h"
 #endif
+#include "cglm/cglm.h"
 #include <main/version.h>
 #include <common/common.h>
 #include <common/resource.h>
@@ -14,7 +15,6 @@
 #include <game/game.h>
 #include <game/chunk.h>
 #include <game/blocks.h>
-#include <common/glue.h>
 
 #include <stdbool.h>
 #include <string.h>
@@ -37,7 +37,7 @@
     #define glPolygonMode(a, b)
 #endif
 
-#include "cglm/cglm.h"
+#include <common/glue.h>
 
 int MESHER_THREADS;
 int MESHER_THREADS_MAX = 1;
@@ -1540,9 +1540,9 @@ void render() {
                 game_ui[UILAYER_DBGINF], UI_ELEM_CONTAINER, -1,
                 UI_ATTR_NAME, "debugText",
                 UI_ATTR_SIZE, "100%", "100%",
-                UI_ATTR_TEXTALIGN, -1, -1, UI_ATTR_TEXTCOLORFG, 14, UI_ATTR_TEXTALPHABG, 127,
+                UI_ATTR_TEXTALIGN, -1, -1, UI_ATTR_TEXTCOLOR, 14, -1, UI_ATTR_TEXTALPHA, -1, 127,
                 UI_ATTR_TEXT, "",
-                UI_ATTR__END
+                UI_END
             );
         }
         if (!tbuf[0][0]) {
@@ -1588,7 +1588,7 @@ void render() {
                 fps, realfps
             );
         }
-        if (game_ui[UILAYER_DBGINF]) editUIElem(game_ui[UILAYER_DBGINF], dbgtextuih, UI_ATTR_TEXT, tbuf, UI_ATTR__END);
+        if (game_ui[UILAYER_DBGINF]) editUIElem(game_ui[UILAYER_DBGINF], dbgtextuih, UI_ATTR_TEXT, tbuf, UI_END);
     }
 
     if (rendergame) {

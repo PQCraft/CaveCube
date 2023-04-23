@@ -19,9 +19,9 @@
             - 0x8 = strikethrough
         - `\eR` resets all changes made by escape codes
     - Add `t` as a number suffix for size to fit to number \* text size
-    - Add `c` as a number suffix for size to fit to number \* size of children
     - Add `minwidth` and `maxwidth` attribs
     - Add items to hotbar
+- Send max height in SERVER_UPDATECHUNK
 - Make server executable work again
 - Implement server chunk cache/pool
 - Add back block placement
@@ -73,7 +73,6 @@
 - Improved mesher performance
 - Improved server memory management
 - Server now also disconnects on a write error
-- Fixed a bug that prevented Windows from connecting in -connect mode
 - New worldgen
 - Memory management fixes
 - Renderer improvements
