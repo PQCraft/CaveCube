@@ -113,7 +113,7 @@ static force_inline coord_3d_dbl icoord2wcoord(coord_3d cam, int64_t cx, int64_t
 static force_inline void updateHotbar(int hb, int slot) {
     char hbslot[2] = {slot + '0', 0};
     editUIElem(game_ui[UILAYER_CLIENT], hb,
-        UI_ATTR_HOTBAR_SLOT, hbslot, UI_ATTR__END);
+        UI_ATTR_HOTBAR_SLOT, hbslot, UI_END);
 }
 
 static pthread_mutex_t gfxlock = PTHREAD_MUTEX_INITIALIZER;
@@ -258,10 +258,10 @@ static void gameLoop() {
     setScreenMult(1.0, 1.0, 1.0);
 
     int ui_hud = newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_CONTAINER, -1,
-        UI_ATTR_NAME, "hud", UI_ATTR_SIZE, "100%", "100%", UI_ATTR__END);
+        UI_ATTR_NAME, "hud", UI_ATTR_SIZE, "100%", "100%", UI_END);
 
     int ui_hotbar = newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_HOTBAR, ui_hud,
-        UI_ATTR_NAME, "hotbar", UI_ATTR_ALIGN, 0, 1, UI_ATTR_MARGIN, "0", "10", "0", "10", UI_ATTR__END);
+        UI_ATTR_NAME, "hotbar", UI_ATTR_ALIGN, 0, 1, UI_ATTR_MARGIN, "10", "10", "0", "0", UI_END);
     updateHotbar(ui_hotbar, invspot);
 
     while (!quitRequest) {
@@ -636,7 +636,6 @@ bool doGame() {
         doRender();
         microwait(0);
     }
-    longbreak:;
 
     freeUI(game_ui[UILAYER_CLIENT]);
     freeUI(game_ui[UILAYER_SERVER]);

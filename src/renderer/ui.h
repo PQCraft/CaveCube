@@ -9,6 +9,17 @@
 #include <stdbool.h>
 #include <pthread.h>
 
+#define isUIElemValid(l, i) ((i) >= 0 && (i) < (l)->elems)
+
+enum {
+    UI_ERROR_NONE,
+    UI_ERROR_BADELEM,
+};
+
+enum {
+    UI_END = -1,
+};
+
 enum {
     UI_ELEM_CONTAINER,
     UI_ELEM_BOX,
@@ -33,6 +44,7 @@ enum {
     UI_EVENT_UPDATE,
     UI_EVENT_ENTER,
     UI_EVENT_LEAVE,
+    UI_EVENT_HOVER,
     UI_EVENT_PRESS,
     UI_EVENT_RELEASE,
     UI_EVENT_CLICK,
@@ -44,6 +56,8 @@ enum {
     UI_ATTR_ANCHOR,
     UI_ATTR_CALLBACK,
     UI_ATTR_SIZE,
+    UI_ATTR_MINSIZE,
+    UI_ATTR_MAXSIZE,
     UI_ATTR_Z,
     UI_ATTR_ALIGN,
     UI_ATTR_MARGIN,
@@ -57,10 +71,8 @@ enum {
     UI_ATTR_TEXTALIGN,
     UI_ATTR_TEXTOFFSET,
     UI_ATTR_TEXTSCALE,
-    UI_ATTR_TEXTCOLORFG,
-    UI_ATTR_TEXTCOLORBG,
-    UI_ATTR_TEXTALPHAFG,
-    UI_ATTR_TEXTALPHABG,
+    UI_ATTR_TEXTCOLOR,
+    UI_ATTR_TEXTALPHA,
     UI_ATTR_TEXTATTRIB,
     UI_ATTR_RICHTEXT,
     UI_ATTR_TOOLTIP,
@@ -74,15 +86,20 @@ enum {
     UI_ATTR_HOTBAR_ITEMS,
     UI_ATTR_ITEMGRID_CELL,
     UI_ATTR_ITEMGRID_ITEMS,
-    UI_ATTR__END,
 };
+
+struct ui_event;
+typedef void (*ui_callback_t)(struct ui_event* /*event*/);
 
 struct ui_attribs {
     char* name;
     int state;
     int anchor;
+    ui_callback_t callback;
     struct {char* width; char* height;} size;
-    int16_t z;
+    struct {char* width; char* height;} minsize;
+    struct {char* width; char* height;} maxsize;
+    float z;
     struct {int8_t x; int8_t y;} align;
     struct {char* top; char* bottom; char* left; char* right;} margin;
     struct {char* top; char* bottom; char* left; char* right;} padding;
@@ -127,14 +144,15 @@ struct ui_attribs {
 };
 
 struct ui_calcattribs {
-    int viswidth;
-    int visheight;
+    float x;
+    float y;
     float totalwidth;
     float totalheight;
     int visx;
     int visy;
-    float x;
-    float y;
+    int viswidth;
+    int visheight;
+    int16_t z;
     /*struct ui_textlines* text;*/
 };
 
@@ -146,11 +164,27 @@ struct ui_elem {
     int* childdata;
 };
 
+struct ui_layer {
+    pthread_mutex_t lock;
+    char* name;
+    bool hidden;
+    float scale;
+    int elems;
+    struct ui_elem* elemdata;
+    int children;
+    int* childdata;
+};
+
 struct ui_event {
     int event;
+    struct ui_layer* layer;
     int elemid;
     struct ui_elem* elem;
     union {
+        struct {
+            float x;
+            float y;
+        } hover;
         struct {
             float x;
             float y;
@@ -166,26 +200,16 @@ struct ui_event {
             float y;
             int button;
         } click;
-    } data;
-};
-
-struct ui_layer {
-    pthread_mutex_t lock;
-    char* name;
-    bool hidden;
-    float scale;
-    int elems;
-    struct ui_elem* elemdata;
-    int children;
-    int* childdata;
+    };
 };
 
 struct ui_layer* allocUI(char* /*name*/);
 void freeUI(struct ui_layer* /*layer*/);
 int newUIElem(struct ui_layer* /*layer*/, int /*type*/, int /*parent*/, ... /*attribs*/);
-void editUIElem(struct ui_layer* /*layer*/, int /*id*/, ... /*attribs*/);
-void deleteUIElem(struct ui_layer* /*layer*/, int /*id*/);
+int editUIElem(struct ui_layer* /*layer*/, int /*id*/, ... /*attribs*/);
+int deleteUIElem(struct ui_layer* /*layer*/, int /*id*/);
 int doUIEvents(struct ui_layer* /*layer*/, struct input_info* /*input*/);
+bool isUIElemInvalid(struct ui_layer* /*layer*/, int /*id*/);
 
 #endif
 
