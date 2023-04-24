@@ -158,6 +158,7 @@ struct ui_calcattribs {
 
 struct ui_elem {
     int type;
+    int parent;
     struct ui_attribs attribs;
     struct ui_calcattribs calcattribs;
     int children;
