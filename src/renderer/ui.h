@@ -148,8 +148,16 @@ struct ui_calcattribs {
     float y;
     float totalwidth;
     float totalheight;
-    int visx;
-    int visy;
+    union {
+        int visx;
+        int visx0;
+    };
+    union {
+        int visy;
+        int visy0;
+    };
+    int visx1;
+    int visy1;
     int viswidth;
     int visheight;
     int16_t z;
@@ -163,6 +171,8 @@ struct ui_elem {
     struct ui_calcattribs calcattribs;
     int children;
     int* childdata;
+    bool changed;
+    bool update;
 };
 
 struct ui_layer {
@@ -174,6 +184,8 @@ struct ui_layer {
     struct ui_elem* elemdata;
     int children;
     int* childdata;
+    bool recalc;
+    bool remesh;
 };
 
 struct ui_event {
@@ -211,6 +223,8 @@ int editUIElem(struct ui_layer* /*layer*/, int /*id*/, ... /*attribs*/);
 int deleteUIElem(struct ui_layer* /*layer*/, int /*id*/);
 int doUIEvents(struct ui_layer* /*layer*/, struct input_info* /*input*/);
 bool isUIElemInvalid(struct ui_layer* /*layer*/, int /*id*/);
+
+void _calcUI(struct ui_layer* /*layer*/);
 
 #endif
 

@@ -26,6 +26,8 @@ struct ui_layer* allocUI(char* name) {
     layer->elemdata = NULL;
     layer->children = 0;
     layer->childdata = NULL;
+    layer->recalc = true;
+    layer->remesh = true;
     return layer;
 }
 
@@ -33,6 +35,10 @@ static void deleteSingleElem(struct ui_elem* e) {
     free(e->attribs.name);
     free(e->attribs.size.width);
     free(e->attribs.size.height);
+    free(e->attribs.minsize.width);
+    free(e->attribs.minsize.height);
+    free(e->attribs.maxsize.width);
+    free(e->attribs.maxsize.height);
     free(e->attribs.margin.top);
     free(e->attribs.margin.bottom);
     free(e->attribs.margin.left);
@@ -126,6 +132,8 @@ int newUIElem(struct ui_layer* layer, int type, int parent, ...) {
     memset(&e->calcattribs, 0, sizeof(e->calcattribs));
     e->children = 0;
     e->childdata = NULL;
+    e->changed = true;
+    e->update = false;
     e->attribs.anchor = -1;
     e->attribs.color.r = 255;
     e->attribs.color.g = 255;
@@ -343,6 +351,7 @@ int newUIElem(struct ui_layer* layer, int type, int parent, ...) {
     } else {
         attachChild(&layer->children, &layer->childdata, elemid);
     }
+    layer->recalc = true;
     pthread_mutex_unlock(&layer->lock);
     return elemid;
 }
@@ -593,6 +602,8 @@ int editUIElem(struct ui_layer* layer, int id, ...) {
     }
     longbreak:;
     va_end(args);
+    e->changed = true;
+    layer->recalc = true;
     pthread_mutex_unlock(&layer->lock);
     return UI_ERROR_NONE;
 }
@@ -616,16 +627,62 @@ int deleteUIElem(struct ui_layer* layer, int id) {
     if (e->parent >= 0) {
         struct ui_elem* p = &layer->elemdata[e->parent];
         dettachChild(&p->children, &p->childdata, id);
+        p->changed = true;
     } else {
         dettachChild(&layer->children, &layer->childdata, id);
     }
     deleteElemTree(layer, &layer->elemdata[id]);
+    layer->recalc = true;
     pthread_mutex_unlock(&layer->lock);
     return UI_ERROR_NONE;
 }
 
-int doUIEvents(struct ui_layer* layer, struct input_info* input) {
+void genUpdate(struct ui_layer* layer, struct ui_elem* e) {
+    e->update = true;
+    while (e->parent >= 0) {
+        e = &layer->elemdata[e->parent];
+        e->update = true;
+    }
+}
+
+static inline void calcElem(struct ui_elem* e) {
     
+}
+
+void _calcUI(struct ui_layer* layer) {
+    if (!layer->recalc) return;
+    for (int i = 0; i < layer->elems; ++i) {
+        struct ui_elem* e = &layer->elemdata[i];
+        if (e->changed) {
+            genUpdate(layer, e);
+            e->changed = false;
+        }
+        calcElem(e);
+    }
+    layer->recalc = false;
+    layer->remesh = true;
+}
+
+int doUIEvents(struct ui_layer* layer, struct input_info* input) {
+    pthread_mutex_lock(&layer->lock);
+    _calcUI(layer);
+    for (int i = 0; i < layer->elems; ++i) {
+        struct ui_elem* e = &layer->elemdata[i];
+        if (e->update) {
+            if (e->attribs.callback) {
+                struct ui_event event;
+                memset(&event, 0, sizeof(event));
+                event.event = UI_EVENT_UPDATE;
+                event.layer = layer;
+                event.elemid = i;
+                event.elem = e;
+                e->attribs.callback(&event);
+            }
+            e->update = false;
+        }
+    }
+    pthread_mutex_unlock(&layer->lock);
+    return false;
 }
 
 #endif

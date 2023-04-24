@@ -219,6 +219,10 @@ static inline void commonEvents(struct input_info* input) {
     }
 }
 
+static void gameLoop_hud_callback(struct ui_event* event) {
+    printf("Event %d on layer \"%s\", elem \"%s\" (%d)\n",
+        event->event, event->layer->name, event->elem->attribs.name, event->elemid);
+}
 static void gameLoop() {
     struct input_info input;
     resetInput();
@@ -258,7 +262,7 @@ static void gameLoop() {
     setScreenMult(1.0, 1.0, 1.0);
 
     int ui_hud = newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_CONTAINER, -1,
-        UI_ATTR_NAME, "hud", UI_ATTR_SIZE, "100%", "100%", UI_END);
+        UI_ATTR_NAME, "hud", UI_ATTR_SIZE, "100%", "100%", UI_ATTR_CALLBACK, gameLoop_hud_callback, UI_END);
 
     int ui_hotbar = newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_HOTBAR, ui_hud,
         UI_ATTR_NAME, "hotbar", UI_ATTR_ALIGN, 0, 1, UI_ATTR_MARGIN, "10", "10", "0", "0", UI_END);
