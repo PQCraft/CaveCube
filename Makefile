@@ -5,6 +5,8 @@ ifeq ($(MODULE),game)
     MODULEID := 0
 else ifeq ($(MODULE),server)
     MODULEID := 1
+else ifeq ($(MODULE),toolbox)
+    MODULEID := 2
 else
     .PHONY: error
     error:
@@ -122,26 +124,29 @@ else
     endif
 endif
 
-ifeq ($(MODULE),game)
-    BINNAME := cavecube
-else
+ifeq ($(MODULE),server)
+    BINNAME := cctoolbx
+else ifeq ($(MODULE),toolbox)
     BINNAME := ccserver
+else
+    BINNAME := cavecube
 endif
 
 BIN := $(BINNAME)$(BINEXT)
 
-CFLAGS += -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -pthread
-CFLAGS += $(MODULECFLAGS) -DMODULEID=$(MODULEID) -DMODULE=$(MODULE)
+CFLAGS += -Wall -Wextra -D_DEFAULT_SOURCE -D_GNU_SOURCE -pthread -msse2 -ffast-math
 ifdef OS
     WRFLAGS += $(MODULECFLAGS) -DMODULE=$(MODULE)
 else
     ifdef EMSCR
-        CFLAGS += -DUSEGLES -s USE_ZLIB=1
+        CFLAGS += -msimd128 -DUSEGLES -s USE_ZLIB=1
         ifndef EMSCR
             CFLAGS += -s USE_GLFW=3
         else
             CFLAGS += -s USE_SDL=2
         endif
+    else
+        CFLAGS += -mfpmath=sse
     endif
 endif
 ifdef DEBUG
@@ -153,7 +158,7 @@ else
     CFLAGS += -O2
 endif
 ifdef NATIVE
-    CC := $(CC) -march=native -mtune=native
+    CFLAGS += -march=native -mtune=native
 endif
 ifdef M32
     CFLAGS += -DM32
@@ -161,6 +166,7 @@ ifdef M32
         WRFLAGS += -DM32
     endif
 endif
+CFLAGS += $(MODULECFLAGS) -DMODULEID=$(MODULEID) -DMODULE=$(MODULE)
 
 BINFLAGS += -lm
 ifndef OS
@@ -168,8 +174,8 @@ ifndef OS
         ifdef DEBUG
             BINFLAGS += -g
         endif
-        BINFLAGS += -O2 -s WASM=1 -s USE_PTHREADS=1 -s PTHREAD_POOL_SIZE=8 -s INITIAL_MEMORY=1024MB -s ASYNCIFY=1
-        BINFLAGS += -s USE_WEBGL2=1 -s FULL_ES2 -s FULL_ES3 -s USE_ZLIB=1
+        BINFLAGS += -O2 -s WASM=1 -s USE_PTHREADS=1 -s PTHREAD_POOL_SIZE=navigator.hardwareConcurrency -s INITIAL_MEMORY=1024MB -s ASYNCIFY=1
+        BINFLAGS += -s USE_WEBGL2=1 -s USE_ZLIB=1
         ifndef USESDL2
             BINFLAGS += -s USE_GLFW=3
         else
@@ -180,7 +186,7 @@ ifndef OS
         BINFLAGS += -pthread -lpthread
     endif
 else
-    BINFLAGS += -l:libwinpthread.a -lws2_32
+    BINFLAGS += -l:libwinpthread.a -lws2_32 -lwinmm
 endif
 ifdef USEGLES
     CFLAGS += -DUSEGLES
@@ -219,7 +225,6 @@ endif
 ifdef MSYS2
     undefine OS
 endif
-
 ifdef WINCROSS
     undefine OS
 endif

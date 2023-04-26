@@ -1,3 +1,6 @@
+[Main]
+showConsole = false
+
 [Renderer]
 compositing = true
 resolution = 1024x768
@@ -5,13 +8,18 @@ fullScreenRes =
 vSync = true
 fullScreen = false
 FOV = 85
+mipmaps = true
+clientLighting = false
 nearPlane = 0.05
 farPlane = 2500
 lazyMesher = false
+sortTransparent = true
+caveCullLevel = 1
+mesherThreadsMax = 1
+waitWithVsync = true
 
 [Game]
 viewDist = 8
-loopDelay = 1000
 
 [Player]
 name = Player
@@ -20,7 +28,7 @@ skin =
 [Input]
 xSen = 1
 ySen = 1
-rawMouse = true
+rawMouse = false
 
 [GLFW Keybinds]
 move.forward = k,b,87;\0,\0,0

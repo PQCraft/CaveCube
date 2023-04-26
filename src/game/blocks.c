@@ -18,16 +18,14 @@ void initBlocks() {
         if (resourceExists(buf) == -1) continue;
         resdata_file* blockcfg = loadResource(RESOURCE_TEXTFILE, buf);
         blockinf[i].id = getInfoVarAlloc((char*)blockcfg->data, "id", "", 256);
+        char* defaultname = getInfoVarAlloc((char*)blockcfg->data, "name", "Unknown", 256);
         freeResource(blockcfg);
-        #if DBGLVL(1)
-        printf("Block #%d: id \"%s\"\n", i, blockinf[i].id);
-        #endif
         for (int j = 0; j < 64; ++j) {
             blockinf[i].data[j].id = NULL;
             sprintf(buf, "game/data/blocks/%d/%d.inf", i, j);
             if (resourceExists(buf) == -1) continue;
             resdata_file* varcfg = loadResource(RESOURCE_TEXTFILE, buf);
-            blockinf[i].data[j].name = getInfoVarAlloc((char*)varcfg->data, "name", "Unknown", 256);
+            blockinf[i].data[j].name = getInfoVarAlloc((char*)varcfg->data, "name", defaultname, 256);
             blockinf[i].data[j].id = getInfoVarAlloc((char*)varcfg->data, "id", "", 256);
             {
                 char* texa = getInfoVarAlloc((char*)varcfg->data, "texa", ".0", 256);
@@ -66,17 +64,20 @@ void initBlocks() {
             blockinf[i].data[j].light_b = atof(getInfoVarStatic((char*)varcfg->data, "light_b", "0", 16));
             blockinf[i].data[j].backfaces = getBool(getInfoVarStatic((char*)varcfg->data, "backfaces", "false", 16));
             freeResource(varcfg);
-            #if DBGLVL(1)
+        }
+        free(defaultname);
+        #if DBGLVL(1)
+        printf("Block #%d: id \"%s\"\n", i, blockinf[i].id);
+        for (int j = 0; j < 64; ++j) {
+            if (!blockinf[i].data[j].id) break;
             printf("  Variant #%d: id \"%s\", name \"%s\"\n", j, blockinf[i].data[j].id, blockinf[i].data[j].name);
-            #endif
-            #if DBGLVL(1)
             printf("    textures: {");
             for (int k = 0; k < 6; ++k) {
                 printf("%s%s", (k > 0) ? ", " : "", blockinf[i].data[j].texstr[k]);
             }
             puts("}");
-            #endif
         }
+        #endif
     }
 }
 

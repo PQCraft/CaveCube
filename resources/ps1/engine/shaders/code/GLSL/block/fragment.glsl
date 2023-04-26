@@ -1,4 +1,5 @@
 noperspective in vec2 texCoord;
+flat in uint transparency;
 in vec3 fragPos;
 in float texOffset;
 in vec3 light;
@@ -8,19 +9,13 @@ uniform int dist;
 uniform float fogNear;
 uniform float fogFar;
 uniform vec3 cam;
+uniform bool mipmap;
 
 out vec4 fragColor;
 
 void main() {
-    vec4 color = texture(texData, vec3(texCoord, texOffset));
-    if (color.a > 0.0) {
-        fragColor.r = float(color.r * 8.0) / 8.0;
-        fragColor.g = float(color.g * 8.0) / 8.0;
-        fragColor.b = float(color.b * 4.0) / 4.0;
-        fragColor.a = color.a;
-    } else {
-        discard;
-    }
+    fragColor = textureLod(texData, vec3(texCoord, texOffset), 0.0);
+    if (transparency == uint(1) && fragColor.a == 0.0) {discard; return;}
     float fogdist = distance(vec3(fragPos.x, abs(cam.y - fragPos.y) * 0.5, fragPos.z), vec3(cam.x, 0, cam.z));
     float fogdmin = (float(dist) * 16.0) * fogNear;
     float fogdmax = (float(dist) * 16.0) * fogFar;

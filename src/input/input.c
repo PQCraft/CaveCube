@@ -4,8 +4,10 @@
 #include "input.h" 
 #include <common/common.h>
 #include <renderer/renderer.h>
-#include <renderer/ui.h>
 #include <game/game.h>
+#ifdef __EMSCRIPTEN__
+    #include <emscripten/html5.h>
+#endif
 
 #if defined(USESDL2)
     #include <SDL2/SDL.h>
@@ -84,19 +86,19 @@ input_keys input_mov[] = {
     KEY('k', 'b', SDL_SCANCODE_S, 0, 0, 0),
     KEY('k', 'b', SDL_SCANCODE_A, 0, 0, 0),
     KEY('k', 'b', SDL_SCANCODE_D, 0, 0, 0),
+    KEY(0, 0, 0, 0, 0, 0),
     KEY('m', 'm', 1, 0, 0, 0),
-    KEY(0, 0, 0, 0, 0, 0),
-    KEY(0, 0, 0, 0, 0, 0),
     KEY('m', 'm', 0, 0, 0, 0),
+    KEY(0, 0, 0, 0, 0, 0),
     #else
     KEY('k', 'b', GLFW_KEY_W, 0, 0, 0),
     KEY('k', 'b', GLFW_KEY_S, 0, 0, 0),
     KEY('k', 'b', GLFW_KEY_A, 0, 0, 0),
     KEY('k', 'b', GLFW_KEY_D, 0, 0, 0),
+    KEY(0, 0, 0, 0, 0, 0),
     KEY('m', 'm', 1, 0, 0, 0),
-    KEY(0, 0, 0, 0, 0, 0),
-    KEY(0, 0, 0, 0, 0, 0),
     KEY('m', 'm', 0, 0, 0, 0),
+    KEY(0, 0, 0, 0, 0, 0),
     #endif
 };
 input_keys input_ma[INPUT_ACTION_MULTI__MAX] = {
@@ -136,8 +138,8 @@ input_keys input_sa[INPUT_ACTION_SINGLE__MAX] = {
     KEY('k', 'b', SDL_SCANCODE_8,            0, 0, 0),
     KEY('k', 'b', SDL_SCANCODE_9,            0, 0, 0),
     KEY('k', 'b', SDL_SCANCODE_0,            0, 0, 0),
-    KEY('k', 'b', SDL_SCANCODE_RIGHTBRACKET, 'm', 'w', 1),
-    KEY('k', 'b', SDL_SCANCODE_LEFTBRACKET,  'm', 'w', -1),
+    KEY('k', 'b', SDL_SCANCODE_RIGHTBRACKET, 'm', 'w', -1),
+    KEY('k', 'b', SDL_SCANCODE_LEFTBRACKET,  'm', 'w', 1),
     KEY('k', 'b', SDL_SCANCODE_EQUALS,       0, 0, 0),
     KEY('k', 'b', SDL_SCANCODE_MINUS,        0, 0, 0),
     KEY('k', 'b', SDL_SCANCODE_R,            0, 0, 0),
@@ -162,8 +164,8 @@ input_keys input_sa[INPUT_ACTION_SINGLE__MAX] = {
     KEY('k', 'b', GLFW_KEY_8,              0, 0, 0),
     KEY('k', 'b', GLFW_KEY_9,              0, 0, 0),
     KEY('k', 'b', GLFW_KEY_0,              0, 0, 0),
-    KEY('k', 'b', GLFW_KEY_RIGHT_BRACKET,  'm', 'w', 1),
-    KEY('k', 'b', GLFW_KEY_LEFT_BRACKET,   'm', 'w', -1),
+    KEY('k', 'b', GLFW_KEY_RIGHT_BRACKET,  'm', 'w', -1),
+    KEY('k', 'b', GLFW_KEY_LEFT_BRACKET,   'm', 'w', 1),
     KEY('k', 'b', GLFW_KEY_EQUAL,          0, 0, 0),
     KEY('k', 'b', GLFW_KEY_MINUS,          0, 0, 0),
     KEY('k', 'b', GLFW_KEY_R,              0, 0, 0),
@@ -181,7 +183,7 @@ input_keys input_sa[INPUT_ACTION_SINGLE__MAX] = {
 static float rotsenx;
 static float rotseny;
 
-int inputMode = INPUT_MODE_GAME;
+int inputMode = INPUT_MODE_UI;
 
 void setInputMode(int mode) {
     inputMode = mode;
@@ -192,7 +194,9 @@ void setInputMode(int mode) {
             #else
             glfwSetInputMode(rendinf.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
             #endif
-            if (game_ui[UILAYER_INGAME]) game_ui[UILAYER_INGAME]->hidden = true;
+            #ifdef __EMSCRIPTEN__
+            emscripten_request_pointerlock("canvas", true);
+            #endif
             break;
         default:;
             #if defined(USESDL2)
@@ -200,35 +204,21 @@ void setInputMode(int mode) {
             #else
             glfwSetInputMode(rendinf.window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
             #endif
-            if (game_ui[UILAYER_INGAME]) game_ui[UILAYER_INGAME]->hidden = false;
+            /*
+            #ifdef __EMSCRIPTEN__
+            emscripten_exit_pointerlock();
+            #endif
+            */
             break;
     }
 }
 
 #if defined(USESDL2)
 void sdl2getmouse(double* mx, double* my) {
-    switch (inputMode) {
-        case INPUT_MODE_GAME:; {
-            static double mmx = 0, mmy = 0;
-            if (!(SDL_GetWindowFlags(rendinf.window) & SDL_WINDOW_INPUT_FOCUS)) {
-                *mx = mmx;
-                *my = mmy;
-                return;
-            }
-            int imx, imy;
-            SDL_GetRelativeMouseState(&imx, &imy);
-            mmx += imx;
-            mmy += imy;
-            *mx = mmx;
-            *my = mmy;
-        } break;
-        case INPUT_MODE_UI:; {
-            int imx, imy;
-            SDL_GetMouseState(&imx, &imy);
-            *mx = imx;
-            *my = imy;
-        } break;
-    }
+    int imx, imy;
+    SDL_GetMouseState(&imx, &imy);
+    *mx = (float)imx;
+    *my = (float)imy;
 }
 
 static const uint8_t* sdl2keymap;
@@ -242,14 +232,16 @@ void glfwmscrollcb(GLFWwindow* w, double x, double y) {
     //printf("scroll: [%lf]\n", y);
 }
 
+#ifndef __EMSCRIPTEN__
 static bool glfwgp = false;
 GLFWgamepadstate glfwgpstate;
 #endif
+#endif
 
-static double mxpos, mypos;
+static double mmovx, mmovy;
 static int mscrollup, mscrolldown;
 
-static force_inline float _keyState(int device, int type, int key) {
+static inline float _keyState(int device, int type, int key, bool* repeat) {
     switch (device) {
         case 'k':; {
             switch (type) {
@@ -272,31 +264,23 @@ static force_inline float _keyState(int device, int type, int key) {
                     #endif
                 } break;
                 case 'm':; {
-                    static double nmxpos, nmypos;
-                    #if defined(USESDL2)
-                    sdl2getmouse(&nmxpos, &nmypos);
-                    #else
-                    glfwGetCursorPos(rendinf.window, &nmxpos, &nmypos);
-                    #endif
-                    float ret = 0.0;
                     switch (key) {
                         case 0:;
-                            ret = mxpos - nmxpos;
-                            mxpos = nmxpos;
+                            return mmovx;
                             break;
                         case 1:;
-                            ret = mypos - nmypos;
-                            mypos = nmypos;
+                            return mmovy;
                             break;
                     }
-                    return ret;
                 } break;
                 case 'w':; {
                     switch (key) {
                         case 1:;
+                            *repeat = true;
                             return mscrollup;
                             break;
                         case -1:;
+                            *repeat = true;
                             return mscrolldown;
                             break;
                     }
@@ -308,17 +292,21 @@ static force_inline float _keyState(int device, int type, int key) {
                 case 'a':; {
                     #if defined(USESDL2)
                     #else
+                    #ifndef __EMSCRIPTEN__
                     if (glfwgp) {
                         if (fabs(glfwgpstate.axes[key]) >= 0.2) return glfwgpstate.axes[key];
                     }
+                    #endif
                     #endif
                 } break;
                 case 'b':; {
                     #if defined(USESDL2)
                     #else
+                    #ifndef __EMSCRIPTEN__
                     if (glfwgp) {
                         return glfwgpstate.buttons[key];
                     }
+                    #endif
                     #endif
                 } break;
             }
@@ -327,24 +315,50 @@ static force_inline float _keyState(int device, int type, int key) {
     return 0.0;
 }
 
-static force_inline float keyState(input_keys k) {
+static inline float keyState(input_keys k, bool* r) {
     float v1 = 0, v2 = 0;
-    v1 = _keyState(k.kd1, k.kt1, k.key1);
-    v2 = _keyState(k.kd2, k.kt2, k.key2);
-    return (fabs(v2) > fabs(v1)) ? v2 : v1;
+    bool r1 = false, r2 = false;
+    v1 = _keyState(k.kd1, k.kt1, k.key1, &r1);
+    v2 = _keyState(k.kd2, k.kt2, k.key2, &r2);
+    if (fabs(v2) > fabs(v1)) {
+        if (r) *r = r2;
+        return v2;
+    } else {
+        if (r) *r = r1;
+        return v1;
+    }
 }
 
 static uint64_t polltime;
 
+static double oldmxpos, oldmypos;
+static double newmxpos, newmypos;
+
+static void getMouseChange(double* x, double* y) {
+    #if defined(USESDL2)
+    sdl2getmouse(&newmxpos, &newmypos);
+    #else
+    glfwGetCursorPos(rendinf.window, &newmxpos, &newmypos);
+    #endif
+    *x = newmxpos - oldmxpos;
+    *y = newmypos - oldmypos;
+    oldmxpos = newmxpos;
+    oldmypos = newmypos;
+}
+
 void resetInput() {
     polltime = altutime();
     #if defined(USESDL2)
-    SDL_WarpMouseInWindow(rendinf.window, rendinf.width / 2, rendinf.height / 2);
-    sdl2getmouse(&mxpos, &mypos);
+    if ((SDL_GetWindowFlags(rendinf.window) & SDL_WINDOW_INPUT_FOCUS) != 0) {
+        SDL_WarpMouseInWindow(rendinf.window, floor((double)rendinf.width / 2.0), floor((double)rendinf.height / 2.0));
+    }
+    sdl2getmouse(&oldmxpos, &oldmypos);
     #else
     glfwPollEvents();
-    glfwSetCursorPos(rendinf.window, rendinf.width / 2, rendinf.height / 2);
-    glfwGetCursorPos(rendinf.window, &mxpos, &mypos);
+    if (glfwGetWindowAttrib(rendinf.window, GLFW_FOCUSED)) {
+        glfwSetCursorPos(rendinf.window, floor((double)rendinf.width / 2.0), floor((double)rendinf.height / 2.0));
+    }
+    glfwGetCursorPos(rendinf.window, &oldmxpos, &oldmypos);
     #endif
     //getInput();
 }
@@ -355,65 +369,79 @@ void getInput(struct input_info* _inf) {
     struct input_info* inf;
     if (!_inf) inf = malloc(sizeof(*inf));
     else inf = _inf;
+    *inf = INPUT_EMPTY_INFO;
     #if defined(USESDL2)
     SDL_PumpEvents();
-    SDL_Event event;
-    SDL_PollEvent(&event);
-    quitRequest += (event.type == SDL_QUIT);
     sdl2keymap = SDL_GetKeyboardState(NULL);
-    int sdl2mscroll = (event.type == SDL_MOUSEWHEEL) ? event.wheel.y : 0;
-    if (sdl2mscroll > 0) {
+    SDL_Event event;
+    #ifndef __EMSCRIPTEN__
+    inf->focus = ((SDL_GetWindowFlags(rendinf.window) & SDL_WINDOW_INPUT_FOCUS) != 0);
+    #else
+    inf->focus = true;
+    #endif
+    int sdl2mscroll = 0;
+    while (SDL_PollEvent(&event)) {
+        quitRequest += (event.type == SDL_QUIT);
+        sdl2mscroll += (event.type == SDL_MOUSEWHEEL) ? event.wheel.y : 0;
+    }
+    if (sdl2mscroll >= 0) {
         mscrollup = sdl2mscroll;
         mscrolldown = 0;
-    } else if (sdl2mscroll < 0) {
-        mscrollup = 0;
-        mscrolldown = -sdl2mscroll;
     } else {
         mscrollup = 0;
-        mscrolldown = 0;
+        mscrolldown = -sdl2mscroll;
     }
     #else
     glfwPollEvents();
+    #ifndef __EMSCRIPTEN__
+    inf->focus = glfwGetWindowAttrib(rendinf.window, GLFW_FOCUSED);
+    #else
+    inf->focus = true;
+    #endif
     quitRequest += (glfwWindowShouldClose(rendinf.window) != 0);
-    if (glfwmscroll > 0) {
+    if (glfwmscroll >= 0) {
         mscrollup = glfwmscroll;
         mscrolldown = 0;
-    } else if (glfwmscroll < 0) {
-        mscrollup = 0;
-        mscrolldown = -glfwmscroll;
     } else {
         mscrollup = 0;
-        mscrolldown = 0;
+        mscrolldown = -glfwmscroll;
     }
     glfwmscroll = 0.0;
+    #ifndef __EMSCRIPTEN__
     for (int i = GLFW_JOYSTICK_1; i < GLFW_JOYSTICK_LAST; ++i) {
         if ((glfwgp = glfwGetGamepadState(GLFW_JOYSTICK_1, &glfwgpstate))) break;
     }
     #endif
-    *inf = INPUT_EMPTY_INFO;
+    #endif
+    getMouseChange(&mmovx, &mmovy);
+    //printf("Mouse movement: [%lf, %lf] [%lf, %lf]\n", newmxpos, newmypos, mmovx, mmovy);
     if (quitRequest) goto ret;
     #if defined(USESDL2)
     if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) sdlreszevent(event.window.data1, event.window.data2);
     #endif
-    #if defined(USESDL2)
-    inf->focus = ((SDL_GetWindowFlags(rendinf.window) & SDL_WINDOW_INPUT_FOCUS) != 0);
-    #else
-    inf->focus = glfwGetWindowAttrib(rendinf.window, GLFW_FOCUSED);
+    /*
+    #ifdef __EMSCRIPTEN__
+    if (inputMode == INPUT_MODE_GAME) {
+        EmscriptenPointerlockChangeEvent plock;
+        emscripten_get_pointerlock_status(&plock);
+        inf->focus = (inf->focus && plock.isActive);
+    }
     #endif
+    */
     inf->rot_mult_x = rotsenx * 0.15;
     inf->rot_mult_y = rotseny * 0.15;
     switch (inputMode) {
         case INPUT_MODE_GAME:; {
             inf->mov_mult = ((double)((uint64_t)altutime() - (uint64_t)polltime) / (double)1000000);
-            inf->mov_up += keyState(input_mov[0]);
-            inf->mov_up -= keyState(input_mov[1]);
-            inf->mov_right -= keyState(input_mov[2]);
-            inf->mov_right += keyState(input_mov[3]);
+            inf->mov_up += keyState(input_mov[0], NULL);
+            inf->mov_up -= keyState(input_mov[1], NULL);
+            inf->mov_right -= keyState(input_mov[2], NULL);
+            inf->mov_right += keyState(input_mov[3], NULL);
             //if (inf->focus) {
-                inf->rot_up += keyState(input_mov[4]);
-                inf->rot_up -= keyState(input_mov[5]);
-                inf->rot_right -= keyState(input_mov[6]);
-                inf->rot_right += keyState(input_mov[7]);
+                inf->rot_up += keyState(input_mov[4], NULL);
+                inf->rot_up -= keyState(input_mov[5], NULL);
+                inf->rot_right -= keyState(input_mov[6], NULL);
+                inf->rot_right += keyState(input_mov[7], NULL);
             //}
             float mul = atan2(fabs(inf->mov_right), fabs(inf->mov_up));
             mul = fabs(1 / (cos(mul) + sin(mul)));
@@ -421,31 +449,48 @@ void getInput(struct input_info* _inf) {
             inf->mov_right *= mul;
             inf->mov_bal = mul;
             for (int i = 0; i < INPUT_ACTION_MULTI__MAX - 1; ++i) {
-                if (keyState(input_ma[i]) >= 0.2) {
+                if (keyState(input_ma[i], NULL) >= 0.2) {
                     inf->multi_actions |= 1 << i;
                 }
             }
             if (lastsa == INPUT_ACTION_SINGLE__NONE) {
                 for (int i = 0; i < INPUT_ACTION_SINGLE__MAX; ++i) {
-                    if (keyState(input_sa[i]) >= 0.2) {
-                        lastsa = inf->single_action = i;
+                    bool repeat = false;
+                    if (keyState(input_sa[i], &repeat) >= 0.2) {
+                        inf->single_action = i;
+                        if (!repeat) lastsa = i;
                         break;
                     }
                 }
             } else {
-                if (keyState(input_sa[lastsa]) < 0.2) lastsa = INPUT_ACTION_SINGLE__NONE;
+                if (keyState(input_sa[lastsa], NULL) < 0.2) lastsa = INPUT_ACTION_SINGLE__NONE;
             }
         } break;
         case INPUT_MODE_UI:; {
+            double dmx, dmy;
+            #if defined(USESDL2)
+            sdl2getmouse(&dmx, &dmy);
+            #else
+            glfwGetCursorPos(rendinf.window, &dmx, &dmy);
+            #endif
+            inf->ui_mouse_x = dmx;
+            inf->ui_mouse_y = dmy;
+            #if defined(USESDL2)
+            inf->ui_mouse_click = ((SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(1)) != 0);
+            #else
+            inf->ui_mouse_click = (glfwGetMouseButton(rendinf.window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS);
+            #endif
             if (lastsa == INPUT_ACTION_SINGLE__NONE) {
                 for (int i = 0; i < INPUT_ACTION_SINGLE__MAX; ++i) {
-                    if (keyState(input_sa[i]) >= 0.2) {
-                        lastsa = inf->single_action = i;
+                    bool repeat = false;
+                    if (keyState(input_sa[i], &repeat) >= 0.2) {
+                        inf->single_action = i;
+                        if (!repeat) lastsa = i;
                         break;
                     }
                 }
             } else {
-                if (keyState(input_sa[lastsa]) < 0.2) lastsa = INPUT_ACTION_SINGLE__NONE;
+                if (keyState(input_sa[lastsa], NULL) < 0.2) lastsa = INPUT_ACTION_SINGLE__NONE;
             }
         } break;
     }
@@ -454,7 +499,7 @@ void getInput(struct input_info* _inf) {
     if (!_inf) free(inf);
 }
 
-static force_inline int _writeKeyCfg(char* data, unsigned char kd, unsigned char kt, int key) {
+static inline int _writeKeyCfg(char* data, unsigned char kd, unsigned char kt, int key) {
     int off = 0;
     switch (kd) {
         case 0:;
@@ -468,7 +513,7 @@ static force_inline int _writeKeyCfg(char* data, unsigned char kd, unsigned char
     return off;
 }
 
-static force_inline void writeKeyCfg(input_keys k, char* sect, char* name) {
+static inline void writeKeyCfg(input_keys k, char* sect, char* name) {
     char str[256];
     int off = _writeKeyCfg(str, k.kd1, k.kt1, k.key1);
     str[off++] = ';';
@@ -476,7 +521,7 @@ static force_inline void writeKeyCfg(input_keys k, char* sect, char* name) {
     declareConfigKey(config, sect, name, str, false);
 }
 
-static force_inline void _readKeyCfg(char* data, unsigned char* kd, unsigned char* kt, int* key) {
+static inline void _readKeyCfg(char* data, unsigned char* kd, unsigned char* kt, int* key) {
     char str[2][3];
     sscanf(data, "%2[^,],%2[^,],%d", str[0], str[1], key);
     if (str[0][0] == '\'' && str[0][1] == '0') *kd = 0;
@@ -485,7 +530,7 @@ static force_inline void _readKeyCfg(char* data, unsigned char* kd, unsigned cha
     else *kt = str[1][0];
 }
 
-static force_inline void readKeyCfg(input_keys* k, char* sect, char* name) {
+static inline void readKeyCfg(input_keys* k, char* sect, char* name) {
     char str[2][128];
     sscanf(getConfigKey(config, sect, name), "%[^;];%[^;]", str[0], str[1]);
     _readKeyCfg(str[0], &k->kd1, &k->kt1, &k->key1);
@@ -495,7 +540,7 @@ static force_inline void readKeyCfg(input_keys* k, char* sect, char* name) {
 bool initInput() {
     declareConfigKey(config, "Input", "xSen", "1", false);
     declareConfigKey(config, "Input", "ySen", "1", false);
-    declareConfigKey(config, "Input", "rawMouse", "true", false);
+    declareConfigKey(config, "Input", "rawMouse", "false", false);
     rotsenx = atof(getConfigKey(config, "Input", "xSen"));
     rotseny = atof(getConfigKey(config, "Input", "ySen"));
     bool rawmouse = getBool(getConfigKey(config, "Input", "rawMouse"));
@@ -503,7 +548,13 @@ bool initInput() {
     if (rawmouse) SDL_SetHintWithPriority(SDL_HINT_MOUSE_RELATIVE_MODE_WARP, "1", SDL_HINT_OVERRIDE);
     char* sect = "SDL2 Keybinds";
     #else
-    if (rawmouse && glfwRawMouseMotionSupported()) glfwSetInputMode(rendinf.window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+    if (rawmouse) {
+        if (glfwRawMouseMotionSupported()) {
+            glfwSetInputMode(rendinf.window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+        } else {
+            fputs("Failed to enable raw mouse\n", stderr);
+        }
+    }
     glfwSetScrollCallback(rendinf.window, glfwmscrollcb);
     char* sect = "GLFW Keybinds";
     #endif

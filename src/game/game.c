@@ -22,7 +22,11 @@
 
 double fps;
 double realfps;
-bool showDebugInfo = true;
+#if DBGLVL(0)
+    bool showDebugInfo = true;
+#else
+    bool showDebugInfo = false;
+#endif
 coord_3d_dbl pcoord;
 coord_3d pvelocity;
 int pblockx, pblocky, pblockz;
@@ -30,12 +34,9 @@ int pblockx, pblocky, pblockz;
 bool debug_wireframe = false;
 bool debug_nocavecull = false;
 
-struct ui_data* game_ui[4];
+struct ui_layer* game_ui[4];
 
-static float posmult = 6.5;
-static float fpsmult = 0;
-
-static force_inline void writeChunk(struct chunkdata* chunks, int64_t x, int64_t z, struct blockdata* data) {
+static inline void writeChunk(struct chunkdata* chunks, int64_t x, int64_t z, struct blockdata* data) {
     pthread_mutex_lock(&chunks->lock);
     int64_t nx = (x - chunks->xoff) + chunks->info.dist;
     int64_t nz = chunks->info.width - ((z - chunks->zoff) + chunks->info.dist) - 1;
@@ -48,11 +49,11 @@ static force_inline void writeChunk(struct chunkdata* chunks, int64_t x, int64_t
     memcpy(chunks->data[coff], data, 131072 * sizeof(struct blockdata));
     chunks->renddata[coff].generated = true;
     chunks->renddata[coff].requested = false;
-    updateChunk(x, z, CHUNKUPDATE_PRIO_NORMAL, 1);
     pthread_mutex_unlock(&chunks->lock);
+    updateChunk(x, z, CHUNKUPDATE_PRIO_NORMAL, 1);
 }
 
-static force_inline void reqChunk(struct chunkdata* chunks, int64_t x, int64_t z) {
+static inline void reqChunk(struct chunkdata* chunks, int64_t x, int64_t z) {
     uint32_t coff = (z + chunks->info.dist) * chunks->info.width + (x + chunks->info.dist);
     if (!chunks->renddata[coff].generated && !chunks->renddata[coff].requested) {
         //printf("REQ [%"PRId64", %"PRId64"]\n", (int64_t)((int64_t)(x) + chunks->xoff), (int64_t)((int64_t)(-z) + chunks->zoff));
@@ -61,7 +62,7 @@ static force_inline void reqChunk(struct chunkdata* chunks, int64_t x, int64_t z
     }
 }
 
-static force_inline void reqChunks(struct chunkdata* chunks) {
+static inline void reqChunks(struct chunkdata* chunks) {
     pthread_mutex_lock(&chunks->lock);
     reqChunk(chunks, 0, 0);
     for (int i = 1; i <= (int)chunks->info.dist; ++i) {
@@ -111,45 +112,28 @@ static force_inline coord_3d_dbl icoord2wcoord(coord_3d cam, int64_t cx, int64_t
 
 static force_inline void updateHotbar(int hb, int slot) {
     char hbslot[2] = {slot + '0', 0};
-    editUIElem(game_ui[UILAYER_CLIENT], hb, NULL, -1, "slot", hbslot, NULL);
+    editUIElem(game_ui[UILAYER_CLIENT], hb,
+        UI_ATTR_HOTBAR_SLOT, hbslot, UI_END);
 }
 
 static pthread_mutex_t gfxlock = PTHREAD_MUTEX_INITIALIZER;
-static bool ping = false;
-static int compat = 0;
 static bool setskycolor = false;
 static color newskycolor;
 static bool setnatcolor = false;
 static color newnatcolor;
 
-static void handleServer(int msg, void* _data) {
+static bool handleServer(int msg, void* _data) {
     //printf("Recieved [%d] from server\n", msg);
     switch (msg) {
+        /*
         case SERVER_PONG:; {
             //printf("Server ponged\n");
             ping = true;
         } break;
-        case SERVER_COMPATINFO:; {
-            struct server_data_compatinfo* data = _data;
-            printf("Server version is %s %d.%d.%d\n", data->server_str, data->ver_major, data->ver_minor, data->ver_patch);
-            if (data->flags & SERVER_FLAG_NOAUTH) puts("- No authentication required");
-            if (data->flags & SERVER_FLAG_PASSWD) puts("- Password protected");
-            if (strcasecmp(data->server_str, PROG_NAME)) {
-                printf("Incompatible game (%s (server) != %s (client))\n", data->server_str, PROG_NAME);
-                compat = -1;
-            } else if (data->ver_major != VER_MAJOR || data->ver_minor != VER_MINOR || data->ver_patch != VER_PATCH) {
-                printf("Incompatible game version (%d.%d.%d (server) != %d.%d.%d (client))\n",
-                    data->ver_major, data->ver_minor, data->ver_patch,
-                    VER_MAJOR, VER_MINOR, VER_PATCH
-                );
-                compat = -1;
-            } else {
-                compat = 1;
-            }
-        } break;
+        */
         case SERVER_UPDATECHUNK:; {
             struct server_data_updatechunk* data = _data;
-            writeChunk(rendinf.chunks, data->x, data->z, data->data);
+            writeChunk(rendinf.chunks, data->x, data->z, data->bdata);
         } break;
         case SERVER_SETSKYCOLOR:; {
             struct server_data_setskycolor* data = _data;
@@ -175,259 +159,254 @@ static void handleServer(int msg, void* _data) {
             setBlock(rendinf.chunks, data->x, data->y, data->z, data->data);
             updateChunk(ucx, ucz, CHUNKUPDATE_PRIO_HIGH, 1);
         } break;
+        case SERVER_DISCONNECT:; {
+            struct server_data_disconnect* data = _data;
+            printf("Disconnected: %s\n", data->reason);
+            return false;
+        } break;
+        default:; {
+            printf("Unhandled message from server: [%d]\n", msg);
+        } break;
+    }
+    return true;
+}
+
+static bool waitwithvsync;
+
+static uint64_t fpsupdate;
+static uint64_t frametime;
+static int frames = 0;
+static inline void doRender() {
+    render();
+    updateScreen();
+    ++frames;
+    if (rendinf.fps && (!rendinf.vsync || (waitwithvsync || rendinf.fps < rendinf.disphz))) {
+        int64_t framediff = (1000000 / rendinf.fps) - (altutime() - frametime);
+        //printf("Wait for %"PRId64"us\n", framediff);
+        if (framediff > 0) microwait(framediff);
+    }
+    static uint64_t totalframetime = 0;
+    static uint64_t highframetime = 0;
+    frametime = altutime() - frametime;
+    totalframetime += frametime;
+    if (frametime > highframetime) highframetime = frametime;
+    if (altutime() - fpsupdate >= 200000) {
+        fpsupdate = altutime();
+        fps = 1000000.0 / ((double)totalframetime / (double)frames);
+        realfps = 1000000.0 / (double)highframetime;
+        if (realfps > rendinf.disphz) realfps = rendinf.disphz;
+        //printf("Rendered %d frames in %lfus\n", frames, ((double)totalframetime / (double)frames));
+        frames = 0;
+        totalframetime = 0;
+        highframetime = 0;
     }
 }
 
-static int loopdelay = 0;
+static inline void commonEvents(struct input_info* input) {
+    switch (input->single_action) {
+        case INPUT_ACTION_SINGLE_FULLSCR:;
+            setFullscreen(!rendinf.fullscr);
+            break;
+        case INPUT_ACTION_SINGLE_DEBUG:;
+            game_ui[UILAYER_DBGINF]->hidden = showDebugInfo;
+            showDebugInfo = !showDebugInfo;
+            break;
+    }
+    if (inputMode == INPUT_MODE_UI) {
+        for (int i = 3; i >= 0; --i) {
+            if (doUIEvents(game_ui[i], input)) break;
+        }
+    }
+}
 
-bool doGame(char* addr, int port) {
-    char** tmpbuf = malloc(16 * sizeof(char*));
-    for (int i = 0; i < 16; ++i) {
-        tmpbuf[i] = malloc(4096);
-    }
-    declareConfigKey(config, "Game", "viewDist", "8", false);
-    declareConfigKey(config, "Game", "loopDelay", "1000", false);
-    declareConfigKey(config, "Player", "name", "Player", false);
-    declareConfigKey(config, "Player", "skin", "", false);
-    int viewdist = atoi(getConfigKey(config, "Game", "viewDist"));
-    rendinf.chunks = allocChunks(viewdist);
-    //rendinf.chunks->xoff = 230;
-    //rendinf.chunks->zoff = 550;
-    if (rendinf.fps || rendinf.vsync) loopdelay = atoi(getConfigKey(config, "Game", "loopDelay"));
-    printf("Allocated chunks: [%d] [%d] [%d]\n", rendinf.chunks->info.dist, rendinf.chunks->info.width, rendinf.chunks->info.widthsq);
-    rendinf.campos.y = 201.5;
-    initInput();
-    float pmult = posmult;
-    puts("Connecting to server...");
-    if (!cliConnect((addr) ? addr : "127.0.0.1", port, handleServer)) {
-        fputs("Failed to connect to server\n", stderr);
-        return false;
-    }
-    puts("Sending ping...");
-    cliSend(CLIENT_PING);
-    while (!ping && !quitRequest) {
-        #ifdef __EMSCRIPTEN__
-        emscripten_sleep(0);
-        #endif
-        getInput(NULL);
-        microwait(100000);
-    }
-    if (quitRequest) return false;
-    puts("Server responded to ping");
-    puts("Exchanging compatibility info...");
-    cliSend(CLIENT_COMPATINFO, VER_MAJOR, VER_MINOR, VER_PATCH, 0, PROG_NAME);
-    while (!compat && !quitRequest) {
-        #ifdef __EMSCRIPTEN__
-        emscripten_sleep(0);
-        #endif
-        getInput(NULL);
-        microwait(100000);
-    }
-    if (compat < 0) {
-        fputs("Server compatibility error\n", stderr);
-        return false;
-    }
-    if (quitRequest) return false;
-    reqChunks(rendinf.chunks);
-
+static void gameLoop() {
     struct input_info input;
-    //genChunks(&chunks, cx, cz);
-    double fpstime = 0;
-    double lowframe = 1000000.0 / (double)rendinf.disphz;
-    uint64_t fpsstarttime2 = altutime();
-    uint64_t fpsstarttime = fpsstarttime2;
-    int fpsct = 0;
-    float xcm = 0.0;
-    float zcm = 0.0;
-    int invspot = 0;
-    int invoff = 0;
-    int blocksub = 0;
-    startMesher();
-    setRandSeed(8, altutime());
-    coord_3d tmpcamrot = {0, 0, 0};
-
     resetInput();
     setInputMode(INPUT_MODE_GAME);
-    setSkyColor(0.5, 0.5, 0.5);
-    for (int i = 0; i < 4; ++i) {
-        game_ui[i] = allocUI();
-    }
     getInput(&input);
-    game_ui[UILAYER_DBGINF]->hidden = !showDebugInfo;
-    game_ui[UILAYER_INGAME]->hidden = input.focus;
 
-    int ui_main = newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BOX, "main", -1, -1, "width", "100%", "height", "100%", "color", "#000000", "alpha", "0.25", "z", "-100", NULL);
-    /*int ui_placeholder = */newUIElem(game_ui[UILAYER_INGAME], UI_ELEM_BUTTON, "placeholder", ui_main, -1, "width", "128", "height", "36", "text", "[Placeholder]", NULL);
+    startMesher();
+    setRandSeed(8, altutime());
 
-    int ui_hotbar = newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_HOTBAR, "hotbar", -1, -1, "align", "0,1", "margin", "0,10,0,10", NULL);
+    game_ui[UILAYER_INGAME]->hidden = true;
+    rendergame = true;
+
+    rendinf.camrot.x = 0.0;
+    rendinf.camrot.y = 0.0;
+    rendinf.camrot.z = 0.0;
+    rendinf.campos.x = 0.0;
+    rendinf.campos.y = 0.0;
+    rendinf.campos.z = 0.0;
+
+    int invspot = 0;
+    int invoff = 0;
+
+    float bps = 25;
+
+    coord_3d tmpcamrot = rendinf.camrot;
+
+    int viewdist = atoi(getConfigKey(config, "Game", "viewDist"));
+    rendinf.chunks = allocChunks(viewdist);
+    rendinf.chunks->xoff = 25;
+    rendinf.chunks->zoff = 24;
+    //rendinf.chunks->zoff = rendinf.chunks->xoff = ((int64_t)1 << 30) + (int64_t)324359506;
+    //rendinf.chunks->zoff = rendinf.chunks->xoff = ((int64_t)1 << 31) + (int64_t)648719012;
+    reqChunks(rendinf.chunks);
+    printf("Allocated chunks: [%d] [%d] [%d]\n", rendinf.chunks->info.dist, rendinf.chunks->info.width, rendinf.chunks->info.widthsq);
+    rendinf.campos.y = 201.5;
+    setVisibility(0.5, 1.0);
+    setScreenMult(1.0, 1.0, 1.0);
+
+    int ui_hud = newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_CONTAINER, -1,
+        UI_ATTR_NAME, "hud", UI_ATTR_SIZE, "100%", "100%", UI_END);
+
+    int ui_hotbar = newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_HOTBAR, ui_hud,
+        UI_ATTR_NAME, "hotbar", UI_ATTR_ALIGN, 0, 1, UI_ATTR_MARGIN, "10", "10", "0", "0", UI_END);
     updateHotbar(ui_hotbar, invspot);
-#if 0
-    int ui_inv_main = newUIElem(game_ui[UILAYER_SERVER], UI_ELEM_BOX, "main", -1, -1, "width", "100%", "height", "100%", "color", "#000000", "alpha", "0.25", "z", "-100", NULL);
-    int ui_inventory = newUIElem(game_ui[UILAYER_SERVER], UI_ELEM_FANCYBOX, "inventory", ui_inv_main, -1, "width", "332", "height", "360", NULL);
-    int ui_inv_grid = newUIElem(game_ui[UILAYER_SERVER], UI_ELEM_ITEMGRID, "inv_grid", ui_inventory, -1, "width", "10", "height", "4", "align", "0,1", "margin", "0,6,0,16", NULL);
-    /*int ui_inv_hb = */newUIElem(game_ui[UILAYER_SERVER], UI_ELEM_ITEMGRID, "inv_hotbar", ui_inventory, ui_inv_grid, "width", "10", "height", "1", "align", "0,1", "margin", "0,6,0,6", NULL);
-#endif
-    setFullscreen(rendinf.fullscr);
-    while (!quitRequest) {
-        uint64_t st1 = altutime();
-        if (loopdelay) microwait(loopdelay);
-        float bps = 25;
-        getInput(&input);
-        {
-            if (!input.focus && inputMode != INPUT_MODE_UI) {
-                setInputMode(INPUT_MODE_UI);
-                resetInput();
-            }
 
-            #if defined(USESDL2)
-            #else
-            static int debugkey = 0;
-            if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_DEBUG)) {
-                //input = INPUT_EMPTY_INFO;
-                input.mov_mult = 0;
-                input.mov_up = 0;
-                input.mov_right = 0;
-                input.mov_bal = 0;
-                input.single_action = INPUT_ACTION_SINGLE__NONE;
-                input.multi_actions = INPUT_ACTION_MULTI__NONE;
-                if (!debugkey) {
-                    if (glfwGetKey(rendinf.window, (debugkey = GLFW_KEY_H)) == GLFW_PRESS) {
-                        puts("DEBUG HELP:");
-                        puts("Hold the multi.debug key (F4 by default) and press one of the following:");
-                        puts("H - Display the debug help");
-                        puts("W - Toggle wireframe mode");
-                        puts("M - Remesh chunks");
-                        puts("R - Reload chunks");
-                        puts("- - Decrease view distance");
-                        puts("= - Increase view distance");
-                        puts("C - Toggle disabling cave culling");
-                    } else if (glfwGetKey(rendinf.window, (debugkey = GLFW_KEY_W)) == GLFW_PRESS) {
-                        printf("DEBUG: Wireframe: [%d]\n", (debug_wireframe = !debug_wireframe));
-                    } else if (glfwGetKey(rendinf.window, (debugkey = GLFW_KEY_M)) == GLFW_PRESS) {
-                        printf("DEBUG: Remeshing chunks...\n");
-                        int64_t xo = rendinf.chunks->xoff;
-                        int64_t zo = rendinf.chunks->zoff;
-                        for (int i = 1; i <= (int)rendinf.chunks->info.dist; ++i) {
-                            updateChunk(xo + i, zo, CHUNKUPDATE_PRIO_HIGH, 0);
-                            updateChunk(xo - i, zo, CHUNKUPDATE_PRIO_HIGH, 0);
-                            updateChunk(xo, zo + i, CHUNKUPDATE_PRIO_HIGH, 0);
-                            updateChunk(xo, zo - i, CHUNKUPDATE_PRIO_HIGH, 0);
-                            for (int j = 1; j < i; ++j) {
-                                updateChunk(xo - j, zo + i, CHUNKUPDATE_PRIO_HIGH, 0);
-                                updateChunk(xo + j, zo + i, CHUNKUPDATE_PRIO_HIGH, 0);
-                                updateChunk(xo + j, zo - i, CHUNKUPDATE_PRIO_HIGH, 0);
-                                updateChunk(xo - j, zo - i, CHUNKUPDATE_PRIO_HIGH, 0);
-                                updateChunk(xo - i, zo - j, CHUNKUPDATE_PRIO_HIGH, 0);
-                                updateChunk(xo - i, zo + j, CHUNKUPDATE_PRIO_HIGH, 0);
-                                updateChunk(xo + i, zo + j, CHUNKUPDATE_PRIO_HIGH, 0);
-                                updateChunk(xo + i, zo - j, CHUNKUPDATE_PRIO_HIGH, 0);
-                            }
-                            updateChunk(xo - i, zo + i, CHUNKUPDATE_PRIO_HIGH, 0);
-                            updateChunk(xo + i, zo - i, CHUNKUPDATE_PRIO_HIGH, 0);
-                            updateChunk(xo - i, zo - i, CHUNKUPDATE_PRIO_HIGH, 0);
-                            updateChunk(xo + i, zo + i, CHUNKUPDATE_PRIO_HIGH, 0);
+    while (!quitRequest) {
+        frametime = altutime();
+        getInput(&input);
+        if (!input.focus && inputMode != INPUT_MODE_UI) {
+            game_ui[UILAYER_INGAME]->hidden = false;
+            setInputMode(INPUT_MODE_UI);
+            resetInput();
+        }
+
+        #if defined(USESDL2)
+        #else
+        static int debugkey = 0;
+        if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_DEBUG)) {
+            //input = INPUT_EMPTY_INFO;
+            input.mov_mult = 0;
+            input.mov_up = 0;
+            input.mov_right = 0;
+            input.mov_bal = 0;
+            input.single_action = INPUT_ACTION_SINGLE__NONE;
+            input.multi_actions = INPUT_ACTION_MULTI__NONE;
+            if (!debugkey) {
+                if (glfwGetKey(rendinf.window, (debugkey = GLFW_KEY_H)) == GLFW_PRESS) {
+                    puts("DEBUG HELP:");
+                    puts("Hold the multi.debug key (F4 by default) and press one of the following:");
+                    puts("H - Display the debug help");
+                    puts("W - Toggle wireframe mode");
+                    puts("M - Remesh chunks");
+                    puts("R - Reload chunks");
+                    puts("- - Decrease view distance");
+                    puts("= - Increase view distance");
+                    puts("C - Toggle disabling cave culling");
+                } else if (glfwGetKey(rendinf.window, (debugkey = GLFW_KEY_W)) == GLFW_PRESS) {
+                    printf("DEBUG: Wireframe: [%d]\n", (debug_wireframe = !debug_wireframe));
+                } else if (glfwGetKey(rendinf.window, (debugkey = GLFW_KEY_M)) == GLFW_PRESS) {
+                    printf("DEBUG: Remeshing chunks...\n");
+                    int64_t xo = rendinf.chunks->xoff;
+                    int64_t zo = rendinf.chunks->zoff;
+                    updateChunk(xo, zo, CHUNKUPDATE_PRIO_HIGH, 0);
+                    for (int i = 1; i <= (int)rendinf.chunks->info.dist; ++i) {
+                        updateChunk(xo + i, zo, CHUNKUPDATE_PRIO_HIGH, 0);
+                        updateChunk(xo - i, zo, CHUNKUPDATE_PRIO_HIGH, 0);
+                        updateChunk(xo, zo + i, CHUNKUPDATE_PRIO_HIGH, 0);
+                        updateChunk(xo, zo - i, CHUNKUPDATE_PRIO_HIGH, 0);
+                        for (int j = 1; j < i; ++j) {
+                            updateChunk(xo - j, zo + i, CHUNKUPDATE_PRIO_HIGH, 0);
+                            updateChunk(xo + j, zo + i, CHUNKUPDATE_PRIO_HIGH, 0);
+                            updateChunk(xo + j, zo - i, CHUNKUPDATE_PRIO_HIGH, 0);
+                            updateChunk(xo - j, zo - i, CHUNKUPDATE_PRIO_HIGH, 0);
+                            updateChunk(xo - i, zo - j, CHUNKUPDATE_PRIO_HIGH, 0);
+                            updateChunk(xo - i, zo + j, CHUNKUPDATE_PRIO_HIGH, 0);
+                            updateChunk(xo + i, zo + j, CHUNKUPDATE_PRIO_HIGH, 0);
+                            updateChunk(xo + i, zo - j, CHUNKUPDATE_PRIO_HIGH, 0);
                         }
-                    } else if (glfwGetKey(rendinf.window, (debugkey = GLFW_KEY_R)) == GLFW_PRESS) {
-                        printf("DEBUG: Reloading chunks...\n");
-                        resizeChunks(rendinf.chunks, viewdist);
-                        reqChunks(rendinf.chunks);
-                    } else if (glfwGetKey(rendinf.window, (debugkey = GLFW_KEY_MINUS)) == GLFW_PRESS && (viewdist > 1)) {
-                        printf("DEBUG: View distance: [%d]\n", (--viewdist));
-                        resizeChunks(rendinf.chunks, viewdist);
-                        reqChunks(rendinf.chunks);
-                    } else if (glfwGetKey(rendinf.window, (debugkey = GLFW_KEY_EQUAL)) == GLFW_PRESS) {
-                        printf("DEBUG: View distance: [%d]\n", (++viewdist));
-                        resizeChunks(rendinf.chunks, viewdist);
-                        reqChunks(rendinf.chunks);
-                    } else if (glfwGetKey(rendinf.window, (debugkey = GLFW_KEY_C)) == GLFW_PRESS) {
-                        printf("DEBUG: Disable cave culling: [%d]\n", (debug_nocavecull = !debug_nocavecull));
-                    } else {
-                        debugkey = 0;
+                        updateChunk(xo - i, zo + i, CHUNKUPDATE_PRIO_HIGH, 0);
+                        updateChunk(xo + i, zo - i, CHUNKUPDATE_PRIO_HIGH, 0);
+                        updateChunk(xo - i, zo - i, CHUNKUPDATE_PRIO_HIGH, 0);
+                        updateChunk(xo + i, zo + i, CHUNKUPDATE_PRIO_HIGH, 0);
                     }
-                } else if (!(glfwGetKey(rendinf.window, debugkey) == GLFW_PRESS)) {
+                } else if (glfwGetKey(rendinf.window, (debugkey = GLFW_KEY_R)) == GLFW_PRESS) {
+                    printf("DEBUG: Reloading chunks...\n");
+                    resizeChunks(rendinf.chunks, viewdist);
+                    reqChunks(rendinf.chunks);
+                } else if (glfwGetKey(rendinf.window, (debugkey = GLFW_KEY_MINUS)) == GLFW_PRESS && (viewdist > 1)) {
+                    printf("DEBUG: View distance: [%d]\n", (--viewdist));
+                    resizeChunks(rendinf.chunks, viewdist);
+                    reqChunks(rendinf.chunks);
+                } else if (glfwGetKey(rendinf.window, (debugkey = GLFW_KEY_EQUAL)) == GLFW_PRESS) {
+                    printf("DEBUG: View distance: [%d]\n", (++viewdist));
+                    resizeChunks(rendinf.chunks, viewdist);
+                    reqChunks(rendinf.chunks);
+                } else if (glfwGetKey(rendinf.window, (debugkey = GLFW_KEY_C)) == GLFW_PRESS) {
+                    printf("DEBUG: Disable cave culling: [%d]\n", (debug_nocavecull = !debug_nocavecull));
+                } else {
                     debugkey = 0;
                 }
-            }
-            #endif
-
-            switch (input.single_action) {
-                case INPUT_ACTION_SINGLE_FULLSCR:;
-                    setFullscreen(!rendinf.fullscr);
-                    break;
-            }
-            switch (inputMode) {
-                case INPUT_MODE_GAME:; {
-                    switch (input.single_action) {
-                        case INPUT_ACTION_SINGLE_INV_0 ... INPUT_ACTION_SINGLE_INV_9:;
-                            invspot = input.single_action - INPUT_ACTION_SINGLE_INV_0;
-                            updateHotbar(ui_hotbar, invspot);
-                            blocksub = 0;
-                            break;
-                        case INPUT_ACTION_SINGLE_INV_NEXT:;
-                            ++invspot;
-                            if (invspot > 9) invspot = 0;
-                            updateHotbar(ui_hotbar, invspot);
-                            blocksub = 0;
-                            break;
-                        case INPUT_ACTION_SINGLE_INV_PREV:;
-                            --invspot;
-                            if (invspot < 0) invspot = 9;
-                            updateHotbar(ui_hotbar, invspot);
-                            blocksub = 0;
-                            break;
-                        case INPUT_ACTION_SINGLE_INVOFF_NEXT:;
-                            ++invoff;
-                            if (invoff > 4) invoff = 0;
-                            blocksub = 0;
-                            break;
-                        case INPUT_ACTION_SINGLE_INVOFF_PREV:;
-                            --invoff;
-                            if (invoff < 0) invoff = 4;
-                            blocksub = 0;
-                            break;
-                        case INPUT_ACTION_SINGLE_ROT_X:;
-                            ++blocksub;
-                            break;
-                        case INPUT_ACTION_SINGLE_ROT_Y:;
-                            --blocksub;
-                            if (blocksub < 0) blocksub = 0;
-                            break;
-                        case INPUT_ACTION_SINGLE_DEBUG:;
-                            game_ui[UILAYER_DBGINF]->hidden = !(showDebugInfo = !showDebugInfo);
-                            break;
-                        case INPUT_ACTION_SINGLE_ESC:;
-                            setInputMode(INPUT_MODE_UI);
-                            resetInput();
-                            break;
-                    }
-                    break;
-                }
-                case INPUT_MODE_UI:; {
-                    switch (input.single_action) {
-                        case INPUT_ACTION_SINGLE_ESC:;
-                            setInputMode(INPUT_MODE_GAME);
-                            resetInput();
-                            break;
-                    }
-                    break;
-                }
+            } else if (!(glfwGetKey(rendinf.window, debugkey) == GLFW_PRESS)) {
+                debugkey = 0;
             }
         }
+        #endif
+
+        commonEvents(&input);
+        switch (inputMode) {
+            case INPUT_MODE_GAME:; {
+                switch (input.single_action) {
+                    case INPUT_ACTION_SINGLE_INV_0 ... INPUT_ACTION_SINGLE_INV_9:;
+                        invspot = input.single_action - INPUT_ACTION_SINGLE_INV_0;
+                        updateHotbar(ui_hotbar, invspot);
+                        //blocksub = 0;
+                        break;
+                    case INPUT_ACTION_SINGLE_INV_NEXT:;
+                        ++invspot;
+                        if (invspot > 9) invspot = 0;
+                        updateHotbar(ui_hotbar, invspot);
+                        //blocksub = 0;
+                        break;
+                    case INPUT_ACTION_SINGLE_INV_PREV:;
+                        --invspot;
+                        if (invspot < 0) invspot = 9;
+                        updateHotbar(ui_hotbar, invspot);
+                        //blocksub = 0;
+                        break;
+                    case INPUT_ACTION_SINGLE_INVOFF_NEXT:;
+                        ++invoff;
+                        if (invoff > 4) invoff = 0;
+                        //blocksub = 0;
+                        break;
+                    case INPUT_ACTION_SINGLE_INVOFF_PREV:;
+                        --invoff;
+                        if (invoff < 0) invoff = 4;
+                        //blocksub = 0;
+                        break;
+                    case INPUT_ACTION_SINGLE_ROT_X:;
+                        //++blocksub;
+                        break;
+                    case INPUT_ACTION_SINGLE_ROT_Y:;
+                        //--blocksub;
+                        //if (blocksub < 0) blocksub = 0;
+                        break;
+                    case INPUT_ACTION_SINGLE_ESC:;
+                        game_ui[UILAYER_INGAME]->hidden = false;
+                        setInputMode(INPUT_MODE_UI);
+                        resetInput();
+                        break;
+                }
+                break;
+            }
+            case INPUT_MODE_UI:; {
+                for (int i = 3; i >= 0; --i) {
+                    if (doUIEvents(game_ui[i], &input)) break;
+                }
+                break;
+            }
+        }
+        float speed = bps;
+        float runmult = (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_RUN)) ? 1.6875 : 1.0;
+        float leanmult = ((speed < 10.0) ? speed : 10.0) * 0.125 * 1.0;
         float zoomrotmult;
         if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_ZOOM)) {
-            zoomrotmult = 0.25;
+            zoomrotmult = 0.5;
         } else {
             zoomrotmult = 1.0;
         }
-        float runmult = 1.0;
-        bool crouch = false;
-        if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_CROUCH)) {
-            crouch = true;
-            //bps *= 0.375;
-        } /*else*/ if ((input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_RUN)) && input.mov_up > 0.0) {
-            runmult = 1.6875;
-        }
-        float leanmult = ((bps < 10.0) ? bps : 10.0) * 0.125 * 1.0;
         tmpcamrot.x += input.rot_up * input.rot_mult_y * zoomrotmult;
         tmpcamrot.y -= input.rot_right * input.rot_mult_x * zoomrotmult;
         rendinf.camrot.x = tmpcamrot.x - input.mov_up * leanmult;
@@ -435,16 +414,32 @@ bool doGame(char* addr, int port) {
         if (rendinf.camrot.x < -89.99) rendinf.camrot.x = -89.99;
         rendinf.camrot.y = tmpcamrot.y;
         rendinf.camrot.z = input.mov_right * leanmult;
+        tmpcamrot.y = fmod(tmpcamrot.y, 360.0);
         if (tmpcamrot.y < 0) tmpcamrot.y += 360;
-        else if (tmpcamrot.y >= 360) tmpcamrot.y -= 360;
         if (tmpcamrot.x > 90.0) tmpcamrot.x = 90.0;
         if (tmpcamrot.x < -90.0) tmpcamrot.x = -90.0;
-        float yrotrad = (tmpcamrot.y / 180 * M_PI);
-        int cmx = 0, cmz = 0;
-        rendinf.campos.z += zcm * input.mov_mult;
-        rendinf.campos.x += xcm * input.mov_mult;
+        float yrotrad = (rendinf.camrot.y / 180 * M_PI);
+        float f1 = input.mov_up * ((input.mov_up > 0.0) ? runmult : 1.0) * sinf(yrotrad);
+        float f2 = input.mov_right * cosf(yrotrad);
+        float f3 = input.mov_up * ((input.mov_up > 0.0) ? runmult : 1.0) * cosf(yrotrad);
+        float f4 = (input.mov_right * sinf(yrotrad)) * -1;
+        float xcm = (f1 * speed) + (f2 * speed);
+        float zcm = (f3 * speed) + (f4 * speed);
         pvelocity.x = xcm;
         pvelocity.z = zcm;
+        rendinf.campos.z += zcm * input.mov_mult;
+        rendinf.campos.x += xcm * input.mov_mult;
+        if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_JUMP)) {
+            rendinf.campos.y += 17.5 * runmult * input.mov_mult;
+        }
+        if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_CROUCH)) {
+            rendinf.campos.y -= 17.5 * runmult * input.mov_mult;
+        }
+        pcoord.x = rendinf.campos.x + (double)((int64_t)(rendinf.chunks->xoff * 16));
+        pcoord.y = rendinf.campos.y;
+        pcoord.z = rendinf.campos.z + (double)((int64_t)(rendinf.chunks->zoff * 16));
+
+        int cmx = 0, cmz = 0;
         while (rendinf.campos.z > 8.0) {
             rendinf.campos.z -= 16.0;
             ++cmz;
@@ -464,96 +459,191 @@ bool doGame(char* addr, int port) {
         if (cmx || cmz) {
             moveChunks(rendinf.chunks, cmx, cmz);
             reqChunks(rendinf.chunks);
-            //microwait(1000000);
         }
-        float f1 = input.mov_up * runmult * sinf(yrotrad);
-        float f2 = input.mov_right * cosf(yrotrad);
-        float f3 = input.mov_up * runmult * cosf(yrotrad);
-        float f4 = (input.mov_right * sinf(yrotrad)) * -1;
-        xcm = (f1 * bps) + (f2 * bps);
-        zcm = (f3 * bps) + (f4 * bps);
-        float yvel = 0.0;
-        if (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_JUMP)) {
-            yvel += 2.0 * (1.0 + (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_RUN)) * 0.0175);
+
+        pthread_mutex_lock(&gfxlock);
+        if (setskycolor) {
+            setSkyColor(newskycolor.r, newskycolor.g, newskycolor.b);
+            setskycolor = false;
         }
-        if (crouch) {
-            yvel -= 2.0 * (1.0 + (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_RUN)) * 0.0175);
+        if (setnatcolor) {
+            setNatColor(newnatcolor.r, newnatcolor.g, newnatcolor.b);
+            setnatcolor = false;
         }
-        pvelocity.y = yvel;
-        rendinf.campos.y += yvel * pmult;
-        //if (rendinf.campos.y < -11.5) rendinf.campos.y = -11.5;
-        if ((!rendinf.vsync && !rendinf.fps) || !rendinf.fps || (altutime() - fpsstarttime2) >= (1000000 / rendinf.fps) - loopdelay) {
-            if (rendinf.fps) {
-                uint64_t mwdtime = (1000000 / rendinf.fps) - (altutime() - fpsstarttime2);
-                if (mwdtime < (1000000 / rendinf.fps)) microwait(mwdtime);
-            }
-            //puts("render");
-            double tmp = (double)(altutime() - fpsstarttime2);
-            fpsstarttime2 = altutime();
-            //if (crouch) rendinf.campos.y -= 0.375;
-            float oldfov = rendinf.camfov;
-            bool zoom = (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_ZOOM));
-            bool run = (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_RUN));
-            if (zoom) rendinf.camfov = 12.5;
-            else if (run) rendinf.camfov += ((input.mov_up > 0.0) ? input.mov_up : 0.0) * 1.25;
-            struct blockdata curbdata;
-            getBlockF(rendinf.chunks, rendinf.chunks->xoff, rendinf.chunks->zoff, rendinf.campos.x, rendinf.campos.y, rendinf.campos.z, &curbdata);
-            if (false && curbdata.id == 7) {
-                setVisibility(-0.75, 0.5);
-                setScreenMult(0.425, 0.6, 0.75);
-            } else {
-                setVisibility(0.25, 1.0);
-                setScreenMult(1.0, 1.0, 1.0);
-            }
-            pthread_mutex_lock(&gfxlock);
-            if (setskycolor) {
-                setSkyColor(newskycolor.r, newskycolor.g, newskycolor.b);
-                setskycolor = false;
-            }
-            if (setnatcolor) {
-                setNatColor(newnatcolor.r, newnatcolor.g, newnatcolor.b);
-                setnatcolor = false;
-            }
-            pthread_mutex_unlock(&gfxlock);
-            updateCam();
-            if (zoom || run) rendinf.camfov = oldfov;
-            updateChunks();
-            //if (crouch) rendinf.campos.y += 0.375;
-            render();
-            updateScreen();
-            fpstime += tmp;
-            if (tmp > lowframe) lowframe = tmp;
-            ++fpsct;
-            uint64_t curtime = altutime();
-            if (curtime - fpsstarttime >= 200000) {
-                fps = 1000000.0 / (double)((fpstime / (double)fpsct));
-                realfps = 1000000.0 / (double)lowframe;
-                fpsstarttime = curtime;
-                fpsct = 0;
-                fpstime = 0;
-                lowframe = 1000000.0 / (double)rendinf.disphz;
-            }
-        }
-        pcoord.x = rendinf.campos.x + rendinf.chunks->xoff * 16;
-        pcoord.y = rendinf.campos.y;
-        pcoord.z = rendinf.campos.z + rendinf.chunks->zoff * 16;
-        coord_3d_dbl bcoord = w2bCoord(pcoord);
-        pblockx = bcoord.x;
-        pblocky = bcoord.y;
-        pblockz = bcoord.z;
-        fpsmult = (double)((uint64_t)altutime() - (uint64_t)st1) / 1000000.0;
-        pmult = posmult * fpsmult;
-        #ifdef __EMSCRIPTEN__
-        emscripten_sleep(0);
-        #endif
+        pthread_mutex_unlock(&gfxlock);
+        float oldfov = rendinf.camfov;
+        bool zoom = (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_ZOOM));
+        bool run = (input.multi_actions & INPUT_GETMAFLAG(INPUT_ACTION_MULTI_RUN) && input.mov_up > 0.0);
+        if (zoom) rendinf.camfov = 15.0;
+        else if (run) rendinf.camfov += input.mov_up * 1.25;
+        updateCam();
+        if (zoom || run) rendinf.camfov = oldfov;
+        updateChunks();
+        doRender();
+        microwait(0);
     }
-    for (int i = 0; i < 4; ++i) {
-        freeUI(game_ui[i]);
+
+    rendergame = false;
+    deleteUIElem(game_ui[UILAYER_CLIENT], ui_hud);
+
+    //puts("cliDisconnect");
+    cliDisconnect();
+    //puts("stopMesher");
+    stopMesher();
+    //puts("freeChunks");
+    freeChunks(rendinf.chunks);
+    //rendinf.chunks = NULL;
+    //puts(".done");
+
+    game_ui[UILAYER_INGAME]->hidden = false;
+
+    setInputMode(INPUT_MODE_UI);
+}
+
+static void showProgressBox(char* title, char* text, float progress, bool showcancel) {
+}
+static void hideProgressBox() {
+}
+static bool progressBoxCancelled() {
+    return false;
+}
+
+static void dispErrorBox(char* title, char* text) {
+}
+
+static int connectToServ_shouldQuit() {
+    static struct input_info input;
+    getInput(&input);
+    commonEvents(&input);
+    doRender();
+    frametime = altutime();
+    return quitRequest || progressBoxCancelled();
+}
+
+static void connectToServ_setText(char* _text, float progress) {
+    char text[4096] = "Connecting to server...\n";
+    snprintf(text, sizeof(text), "Connecting to server: %s", _text);
+    showProgressBox(NULL, text, progress, true);
+}
+
+static int connectToServ(char* addr, int port, char* error, int errlen) {
+    puts("Connecting to server...");
+    {
+        char err[4096];
+        static bool firsttime = true;
+        static struct cliSetupInfo inf;
+        if (firsttime) {
+            memset(&inf, 0, sizeof(inf));
+            firsttime = false;
+        }
+        inf.in.quit = connectToServ_shouldQuit;
+        inf.in.settext = connectToServ_setText;
+        inf.in.timeout = 5000;
+        inf.in.login.new = true;
+        inf.in.login.username = getConfigKey(config, "Player", "name");
+        int ecode = cliConnectAndSetup((addr) ? addr : "127.0.0.1", port, handleServer, err, sizeof(err), &inf);
+        if (ecode == 0) {
+            fprintf(stderr, "Failed to connect to server: %s\n", err);
+            snprintf(error, errlen, "%s", err);
+            return 0;
+        } else if (ecode == -1) {
+            fputs("Connection to server cancelled by user\n", stderr);
+            return -1;
+        }
     }
-    for (int i = 0; i < 16; ++i) {
-        free(tmpbuf[i]);
+    puts("Connected to server.");
+    return 1;
+}
+
+static void stopServerWithBox() {
+    showProgressBox("Stopping singleplayer game...", "Stopping server...", 0.0, false);
+    stopServer();
+    showProgressBox(NULL, "Stopping server...", 100.0, false);
+    hideProgressBox();
+}
+
+static int startSPGame(char* error, int errlen) {
+    int cores = getCoreCt();
+    if (cores < 1) cores = 1;
+    cores -= 4;
+    if (cores < 2) cores = 2;
+    SERVER_THREADS = cores / 2;
+    cores -= SERVER_THREADS;
+    MESHER_THREADS = cores;
+
+    showProgressBox("Starting singleplayer game...", "Starting server...", 0.0, false);
+    int servport;
+    if ((servport = startServer(NULL, 0, 1, "World")) < 0) {
+        fputs("Failed to start server\n", stderr);
+        snprintf(error, errlen, "Failed to start server");
+        hideProgressBox();
+        return 0;
     }
-    free(tmpbuf);
+    showProgressBox(NULL, "Connecting to server...", 0.0, true);
+    if (progressBoxCancelled()) {
+        hideProgressBox();
+        goto usercancel;
+    }
+    char serverr[4096];
+    int ecode = connectToServ(NULL, servport, serverr, sizeof(serverr));
+    hideProgressBox();
+    if (ecode == 0) {
+        snprintf(error, errlen, "Failed to connect to server: %s", serverr);
+        stopServerWithBox();
+        return 0;
+    } else if (ecode == -1) {
+        goto usercancel;
+    }
+
+    gameLoop();
+    usercancel:;
+
+    stopServerWithBox();
+
+    return 1;
+}
+
+bool doGame() {
+    declareConfigKey(config, "Game", "viewDist", "8", false);
+    declareConfigKey(config, "Player", "name", "Player", false);
+    declareConfigKey(config, "Player", "skin", "", false);
+    declareConfigKey(config, "Renderer", "waitWithVsync", "true", false);
+    waitwithvsync = getBool(getConfigKey(config, "Renderer", "waitWithVsync"));
+
+    fpsupdate = altutime();
+
+    if (!initRenderer()) return false;
+    if (!startRenderer()) return false;
+    if (!initInput()) return false;
+    setInputMode(INPUT_MODE_UI);
+    rendergame = false;
+    setSkyColor(0.5, 0.5, 0.5);
+    setFullscreen(rendinf.fullscr);
+
+    game_ui[UILAYER_CLIENT] = allocUI("client");
+    game_ui[UILAYER_SERVER] = allocUI("server");
+    game_ui[UILAYER_DBGINF] = allocUI("debug info");
+    game_ui[UILAYER_INGAME] = allocUI("in-game menu");
+
+    game_ui[UILAYER_DBGINF]->hidden = !showDebugInfo;
+    game_ui[UILAYER_INGAME]->hidden = false;
+
+    struct input_info input;
+    while (!quitRequest) {
+        frametime = altutime();
+        getInput(&input);
+        commonEvents(&input);
+        doRender();
+        microwait(0);
+    }
+
+    freeUI(game_ui[UILAYER_CLIENT]);
+    freeUI(game_ui[UILAYER_SERVER]);
+    freeUI(game_ui[UILAYER_DBGINF]);
+    freeUI(game_ui[UILAYER_INGAME]);
+
+    stopRenderer();
+
     return true;
 }
 

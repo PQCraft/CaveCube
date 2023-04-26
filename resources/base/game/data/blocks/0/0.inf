@@ -1,4 +1,3 @@
-name=Air
 # tex<n>={.<tex>|$[subid].<tex>|@<id>.[subid].<tex>}
 # . = texture in current block and variant
 # $ = texture in current block but different variant
