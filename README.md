@@ -30,10 +30,10 @@ For outdated/stable Linux distributions (such as Debian or Ubuntu), GLFW must be
 OpenGL 3.3 or OpenGLES 3.0 support.
 
 ---
-### Bulding
+### Building
 - To build, run `make -j`.<br>
 - To build and run once done compiling, run `make -j run`.<br>
-- To build for debugging, add `DEBUG=[level]` after `make` (eg. `make DEBUG=0 -j run`). This will build the executable with debug symbols, disable symbol stripping, and define the internal `DEBUG` macro with the level specified.<br>
+- To build for debugging, add `DEBUG=[level]` after `make` (e.g. `make DEBUG=0 -j run`). This will build the executable with debug symbols, disable symbol stripping, and define the internal `DEBUG` macro with the level specified.<br>
 - To compile with using SDL2 instead of GLFW, add `USESDL2=y` after `make`.<br>
 - To compile using OpenGL ES instead of OpenGL, add `USEGLES=y` after `make`.<br>
 - To change the target to the standalone server, add `MODULE=server` after `make`. This variable will change the object directory.<br>
@@ -45,7 +45,7 @@ For example, `make USESDL2=y WINCROSS=y -j run` will build CaveCube for Windows 
 <br>
 For any variables that change the object directory or binary name, you must use these flags again when running the `clean` rule in order to remove the correct files.<br>
 <br>
-When using MSYS2, the MINGW64 environment is recommended and always use `MSYS2=y` (eg. `make MSYS2=y -j`, `make MSYS2=y clean`).<br>
+When using MSYS2, the MINGW64 environment is recommended and always use `MSYS2=y` (e.g. `make MSYS2=y -j`, `make MSYS2=y clean`).<br>
 
 ---
 ### Notes <img src="https://repology.org/badge/vertical-allrepos/cavecube.svg" alt="Packaging status" align="right"/><br>
