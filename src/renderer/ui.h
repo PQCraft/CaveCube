@@ -52,9 +52,10 @@ enum {
 
 enum {
     UI_ATTR_NAME,
-    UI_ATTR_STATE,
-    UI_ATTR_ANCHOR,
     UI_ATTR_CALLBACK,
+    UI_ATTR_HIDDEN,
+    UI_ATTR_DISABLED,
+    UI_ATTR_ANCHOR,
     UI_ATTR_SIZE,
     UI_ATTR_MINSIZE,
     UI_ATTR_MAXSIZE,
@@ -65,8 +66,6 @@ enum {
     UI_ATTR_OFFSET,
     UI_ATTR_COLOR,
     UI_ATTR_ALPHA,
-    UI_ATTR_HIDDEN,
-    UI_ATTR_DISABLED,
     UI_ATTR_TEXT,
     UI_ATTR_TEXTALIGN,
     UI_ATTR_TEXTOFFSET,
@@ -146,6 +145,8 @@ struct ui_attribs {
 struct ui_calcattribs {
     float x;
     float y;
+    float width;
+    float height;
     float totalwidth;
     float totalheight;
     union {
@@ -180,6 +181,8 @@ struct ui_layer {
     char* name;
     bool hidden;
     float scale;
+    int width;
+    int height;
     int elems;
     struct ui_elem* elemdata;
     int children;

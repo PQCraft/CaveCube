@@ -51,7 +51,9 @@ pause
 tsk "Building..."
 ./build.sh || _exit
 inf "Making cavecube_data.zip..."
-_zip_r "cavecube_data.zip" extras/ resources/
+_zip_r "cavecube_data.zip" resources/
+inf "Making cavecube_extras.zip..."
+_zip_r "cavecube_extras.zip" extras/
 pause
 
 tsk "Pushing..."

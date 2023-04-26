@@ -2,6 +2,8 @@
 
 #include <main/main.h>
 #include "ui.h"
+#include "renderer.h"
+#include <input/input.h>
 
 #include <pthread.h>
 #include <stdlib.h>
@@ -22,6 +24,8 @@ struct ui_layer* allocUI(char* name) {
     layer->name = (name) ? strdup(name) : NULL;
     layer->hidden = true;
     layer->scale = 1.0;
+    layer->width = -1;
+    layer->height = -1;
     layer->elems = 0;
     layer->elemdata = NULL;
     layer->children = 0;
@@ -165,14 +169,17 @@ int newUIElem(struct ui_layer* layer, int type, int parent, ...) {
             case UI_ATTR_NAME:; {
                 e->attribs.name = strdupn(va_arg(args, char*));
             } break;
-            case UI_ATTR_STATE:; {
-                e->attribs.state = va_arg(args, int);
+            case UI_ATTR_CALLBACK:; {
+                e->attribs.callback = va_arg(args, ui_callback_t);
+            } break;
+            case UI_ATTR_HIDDEN:; {
+                e->attribs.hidden = va_arg(args, int);
+            } break;
+            case UI_ATTR_DISABLED:; {
+                e->attribs.disabled = va_arg(args, int);
             } break;
             case UI_ATTR_ANCHOR:; {
                 e->attribs.anchor = va_arg(args, int);
-            } break;
-            case UI_ATTR_CALLBACK:; {
-                e->attribs.callback = va_arg(args, ui_callback_t);
             } break;
             case UI_ATTR_SIZE:; {
                 e->attribs.size.width = strdupn(va_arg(args, char*));
@@ -216,12 +223,6 @@ int newUIElem(struct ui_layer* layer, int type, int parent, ...) {
             } break;
             case UI_ATTR_ALPHA:; {
                 e->attribs.alpha = va_arg(args, int);
-            } break;
-            case UI_ATTR_HIDDEN:; {
-                e->attribs.hidden = va_arg(args, int);
-            } break;
-            case UI_ATTR_DISABLED:; {
-                e->attribs.disabled = va_arg(args, int);
             } break;
             case UI_ATTR_TEXT:; {
                 e->attribs.text = strdupn(va_arg(args, char*));
@@ -375,14 +376,17 @@ int editUIElem(struct ui_layer* layer, int id, ...) {
                 free(e->attribs.name);
                 e->attribs.name = strdupn(va_arg(args, char*));
             } break;
-            case UI_ATTR_STATE:; {
-                e->attribs.state = va_arg(args, int);
+            case UI_ATTR_CALLBACK:; {
+                e->attribs.callback = va_arg(args, ui_callback_t);
+            } break;
+            case UI_ATTR_HIDDEN:; {
+                e->attribs.hidden = va_arg(args, int);
+            } break;
+            case UI_ATTR_DISABLED:; {
+                e->attribs.disabled = va_arg(args, int);
             } break;
             case UI_ATTR_ANCHOR:; {
                 e->attribs.anchor = va_arg(args, int);
-            } break;
-            case UI_ATTR_CALLBACK:; {
-                e->attribs.callback = va_arg(args, ui_callback_t);
             } break;
             case UI_ATTR_SIZE:; {
                 char* width = va_arg(args, char*);
@@ -490,12 +494,6 @@ int editUIElem(struct ui_layer* layer, int id, ...) {
             } break;
             case UI_ATTR_ALPHA:; {
                 e->attribs.alpha = va_arg(args, int);
-            } break;
-            case UI_ATTR_HIDDEN:; {
-                e->attribs.hidden = va_arg(args, int);
-            } break;
-            case UI_ATTR_DISABLED:; {
-                e->attribs.disabled = va_arg(args, int);
             } break;
             case UI_ATTR_TEXT:; {
                 free(e->attribs.text);
@@ -637,27 +635,87 @@ int deleteUIElem(struct ui_layer* layer, int id) {
     return UI_ERROR_NONE;
 }
 
-void genUpdate(struct ui_layer* layer, struct ui_elem* e) {
-    e->update = true;
+static inline void genUpdateUp(struct ui_layer* layer, struct ui_elem* e) {
     while (e->parent >= 0) {
         e = &layer->elemdata[e->parent];
         e->update = true;
     }
 }
 
-static inline void calcElem(struct ui_elem* e) {
-    
+static void genUpdateDown(struct ui_layer* layer, struct ui_elem* e) {
+    e->update = true;
+    for (int i = 0; i < e->children; ++i) {
+        int child = e->childdata[i];
+        if (child >= 0) genUpdateDown(layer, &layer->elemdata[child]);
+    }
+}
+
+static void genUpdate(struct ui_layer* layer, struct ui_elem* e) {
+    genUpdateUp(layer, e);
+    genUpdateDown(layer, e);
+}
+
+static inline float getSize(char* propval, float max) {
+    float num = 0;
+    char suff = 0;
+    char op = 0;
+    float opnum = 0;
+    sscanf(propval, "%f%c%c%f", &num, &suff, &op, &opnum);
+    if (suff == '%') {
+        num = max * num * 0.01;
+    }
+    if (op == '+') {
+        num += opnum;
+    } else if (op == '-') {
+        num -= opnum;
+    }
+    return num;
+}
+
+static inline void calcElem(struct ui_layer* layer, struct ui_elem* e) {
+    struct ui_calcattribs* c = &e->calcattribs;
+    struct ui_calcattribs _p;
+    struct ui_calcattribs* p;
+    if (e->parent >= 0) {
+        p = &layer->elemdata[e->parent].calcattribs;
+    } else {
+        _p.x = 0;
+        _p.y = 0;
+        _p.width = layer->width;
+        _p.y = layer->width;
+        p = &_p;
+    }
+    c->
+}
+
+static void calcRecursive(struct ui_layer* layer, struct ui_elem* e) {
+    if (e->changed) {
+        genUpdate(layer, e);
+        e->changed = false;
+    }
+    calcElem(layer, e);
+    for (int i = 0; i < e->children; ++i) {
+        int child = e->childdata[i];
+        if (child >= 0) calcRecursive(layer, &layer->elemdata[child]);
+    }
 }
 
 void _calcUI(struct ui_layer* layer) {
+    bool reschanged = false;
+    if (layer->width != (int)rendinf.width || layer->height != (int)rendinf.height) {
+        layer->recalc = true;
+        reschanged = true;
+        layer->width = rendinf.width;
+        layer->height = rendinf.height;
+    }
     if (!layer->recalc) return;
-    for (int i = 0; i < layer->elems; ++i) {
-        struct ui_elem* e = &layer->elemdata[i];
-        if (e->changed) {
-            genUpdate(layer, e);
-            e->changed = false;
+    for (int i = 0; i < layer->children; ++i) {
+        int child = layer->childdata[i];
+        if (child >= 0) {
+            struct ui_elem* e = &layer->elemdata[child];
+            if (reschanged) genUpdateDown(layer, e);
+            calcRecursive(layer, e);
         }
-        calcElem(e);
     }
     layer->recalc = false;
     layer->remesh = true;
