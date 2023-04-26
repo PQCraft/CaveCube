@@ -64,7 +64,7 @@
         }
         ``` 
     - Try not to split lines until around a 140-150 character width
-    - Write in C99 (this is now enforced with `-std=c99`; POSIX and GNU extensions are enabled due to `-D_DEFAULT_SOURCE -D_GNU_SOURCE`)
+    - Write in a way compatible with C99
     - For headers (.h), use the following layout:
         ```c
         #ifndef [FOLDER]_[BASE FILENAME]_H
@@ -74,11 +74,7 @@
         
         [System includes]
         
-        [Macro definitons (use newline to seperate groups of macros)]
-        
-        [Typedefs, structs, and enums (seperate with newline)]
-        
-        [More macro definitons (use newline to seperate groups of macros)]
+        [Macros, typedefs, structs, and enums (seperate groups with newlines)]
         
         [Function declarations]
         
@@ -93,12 +89,6 @@
         [More local includes]
         
         [System includes]
-        
-        [Macro definitons (use newline to seperate groups of macros)]
-        
-        [Typedefs, structs, and enums (seperate with newline)]
-        
-        [More macro definitons (use newline to seperate groups of macros)]
         
         [Code]
         ```

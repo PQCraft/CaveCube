@@ -1,6 +1,6 @@
 #include <main/main.h>
 #include "common.h"
-#include <zlib/zlib.h>
+#include <compression/zlib.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -65,10 +65,15 @@ void microwait(uint64_t d) {
     dts.tv_nsec = (d % 1000000) * 1000;
     nanosleep(&dts, NULL);
     #else
-    emscripten_sleep(round((double)(d) / (double)(1000.0)));
+    emscripten_sleep(round((double)(d) / 1000.0));
     #endif
     #else
-    Sleep(round((double)(d) / (double)(1000.0)));
+    HANDLE timer = CreateWaitableTimer(NULL, true, NULL);
+    LARGE_INTEGER _d;
+    _d.QuadPart = -d * 10;
+    SetWaitableTimer(timer, &_d, 0, NULL, NULL, false);
+    WaitForSingleObject(timer, INFINITE);
+    CloseHandle(timer);
     #endif
 }
 
@@ -285,11 +290,19 @@ file_data getBinFile(char* name) {
 
 file_data getTextFile(char* name) {
     file_data file = getFile(name, "r");
-    if ((file.size > 0 && file.data[file.size - 1]) || file.size == 0) {
-        ++file.size;
-        file.data = realloc(file.data, file.size);
-        file.data[file.size - 1] = 0;
+    char* newdata = malloc(file.size + 1);
+    int newsize = 0;
+    for (int i = 0; i < file.size && file.data[i]; ++i) {
+        if (file.data[i] != '\r') {
+            newdata[newsize++] = file.data[i];
+        }
     }
+    newdata[newsize++] = 0;
+    newdata = realloc(newdata, newsize);
+    free(file.data);
+    file.data = (unsigned char*)newdata;
+    file.size = newsize;
+    //printf("getTextFile: %s:\n%s\n", name, newdata);
     return file;
 }
 
@@ -453,8 +466,6 @@ uint64_t qhash(char* str, int max) {
 }
 
 #define SEED_DEFAULT (0xDE8BADADBEF0EF0D)
-#define SEED_OP1 (0xF0E1D2C3B4A59687)
-#define SEED_OP2 (0x1F7BC9250917AD9C)
 
 uint64_t randSeed[16] = {
     SEED_DEFAULT,
@@ -479,11 +490,16 @@ void setRandSeed(int s, uint64_t val) {
     randSeed[s] = val;
 }
 
+static inline uint8_t getRand(int s) {
+    //printf("before: [%016"PRIX64"]\n", randSeed[s]);
+    randSeed[s] += 0xE52B22D624B6EA47;
+    randSeed[s] ^= (randSeed[s] & 0x3FF);
+    //printf("after: [%016"PRIX64"]\n", randSeed[s]);
+    return (randSeed[s] & (randSeed[s] >> 8)) | ((randSeed[s] >> 16) & ((randSeed[s] >> 24) | 0xAA));
+}
+
 uint8_t getRandByte(int s) {
-    randSeed[s] *= SEED_OP1;
-    randSeed[s] += SEED_OP2;
-    randSeed[s] >>= 1;
-    return randSeed[s];
+    return getRand(s) ^ getRand(s) ^ getRand(s);
 }
 
 uint16_t getRandWord(int s) {

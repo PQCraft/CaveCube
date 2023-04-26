@@ -32,36 +32,37 @@ void getChunkOfBlock(int64_t x, int64_t z, int64_t* chunkx, int64_t* chunkz) {
 }
 
 void getBlock(struct chunkdata* data, int64_t x, int y, int64_t z, struct blockdata* b) {
-    if (y < 0 || y > 511) {b->id = BLOCKNO_NULL; return;}
+    if (y < 0 || y > 511) {bdsetid(b, BLOCKNO_NULL); return;}
     int64_t cx, cz;
     _getChunkOfBlock(x, z, &cx, &cz);
     //printf("[%"PRId64"][%"PRId64"] -> [%"PRId64"][%"PRId64"]\n", x, z, cx, cz);
     cx = (cx - data->xoff) + data->info.dist;
     cz = data->info.width - ((cz - data->zoff) + data->info.dist) - 1;
-    if (cx < 0 || cz < 0 || cx >= data->info.width || cz >= data->info.width) {b->id = BLOCKNO_BORDER; return;}
+    if (cx < 0 || cz < 0 || cx >= data->info.width || cz >= data->info.width) {bdsetid(b, BLOCKNO_BORDER); return;}
     x += 8;
     z += 8;
     x = i64_mod(x, 16);
     z = i64_mod(z, 16);
     //printf("[%"PRId64"][%"PRId64"], [%"PRId64"][%"PRId64"]\n", x, z, cx, cz);
     int c = cx + cz * data->info.width;
-    if (!data->renddata[c].generated) {b->id = BLOCKNO_BORDER; return;}
+    if (!data->renddata[c].generated) {bdsetid(b, BLOCKNO_BORDER); return;}
     *b = data->data[c][y * 256 + z * 16 + x];
 }
 
 void setBlock(struct chunkdata* data, int64_t x, int y, int64_t z, struct blockdata bdata) {
     pthread_mutex_lock(&data->lock);
-    if (y < 0 || y > 511) return;
+    if (y < 0 || y > 511) goto ret;
     int64_t cx, cz;
     _getChunkOfBlock(x, z, &cx, &cz);
     cx = (cx - data->xoff) + data->info.dist;
     cz = data->info.width - ((cz - data->zoff) + data->info.dist) - 1;
-    if (cx < 0 || cz < 0 || cx >= data->info.width || cz >= data->info.width) return;
+    if (cx < 0 || cz < 0 || cx >= data->info.width || cz >= data->info.width) goto ret;
     x = i64_mod(x + 8, 16);
     z = 15 - i64_mod(z + 8, 16);
     int c = cx + cz * data->info.width;
-    if (!data->renddata[c].generated) return;
+    if (!data->renddata[c].generated) goto ret;
     data->data[c][y * 256 + z * 16 + x] = bdata;
+    ret:;
     pthread_mutex_unlock(&data->lock);
 }
 
@@ -92,6 +93,9 @@ struct chunkdata* allocChunks(int dist) {
         chunks->data[i] = malloc(sizeof(**chunks->data) * 131072);
     }
     chunks->renddata = calloc(sizeof(*chunks->renddata), dist);
+    for (int i = 0; i < dist; ++i) {
+        memset(chunks->renddata[i].vispass, 1, sizeof(chunks->renddata[i].vispass));
+    }
     chunks->rordr = calloc(sizeof(*chunks->rordr), dist);
     for (unsigned x = 0; x < chunks->info.width; ++x) {
         for (unsigned z = 0; z < chunks->info.width; ++z) {
@@ -128,6 +132,9 @@ void resizeChunks(struct chunkdata* chunks, int dist) {
         chunks->data[i] = calloc(sizeof(**chunks->data), 131072);
     }
     chunks->renddata = calloc(sizeof(*chunks->renddata), dist);
+    for (int i = 0; i < dist; ++i) {
+        memset(chunks->renddata[i].vispass, 1, sizeof(chunks->renddata[i].vispass));
+    }
     chunks->rordr = calloc(sizeof(*chunks->rordr), dist);
     for (unsigned x = 0; x < chunks->info.width; ++x) {
         for (unsigned z = 0; z < chunks->info.width; ++z) {
@@ -140,7 +147,23 @@ void resizeChunks(struct chunkdata* chunks, int dist) {
     pthread_mutex_unlock(&chunks->lock);
 }
 
-static force_inline void nullattrib(struct chunkdata* chunks, int c) {
+void freeChunks(struct chunkdata* chunks) {
+    pthread_mutex_lock(&chunks->lock);
+    for (int i = 0; i < (int)chunks->info.widthsq; ++i) {
+        free(chunks->data[i]);
+        free(chunks->renddata[i].vertices[0]);
+        free(chunks->renddata[i].vertices[1]);
+        free(chunks->renddata[i].sortvert);
+    }
+    free(chunks->data);
+    free(chunks->renddata);
+    free(chunks->rordr);
+    pthread_mutex_unlock(&chunks->lock);
+    pthread_mutex_destroy(&chunks->lock);
+    free(chunks);
+}
+
+static inline void nullattrib(struct chunkdata* chunks, int c) {
     if (chunks->renddata[c].generated) {
         chunks->renddata[c].vcount[0] = 0;
         chunks->renddata[c].vcount[1] = 0;
@@ -149,6 +172,7 @@ static force_inline void nullattrib(struct chunkdata* chunks, int c) {
         chunks->renddata[c].buffered = false;
         chunks->renddata[c].generated = false;
     }
+    memset(chunks->renddata[c].vispass, 1, sizeof(chunks->renddata[c].vispass));
     chunks->renddata[c].requested = false;
 }
 

@@ -31,6 +31,10 @@ OpenGL 3.3 or OpenGLES 3.0 support.
 
 ---
 ### Building
+Command to download source code:<br>
+```
+git clone -b dev --depth 1 https://github.com/PQCraft/CaveCube.git
+```
 - To build, run `make -j`.<br>
 - To build and run once done compiling, run `make -j run`.<br>
 - To build for debugging, add `DEBUG=[level]` after `make` (e.g. `make DEBUG=0 -j run`). This will build the executable with debug symbols, disable symbol stripping, and define the internal `DEBUG` macro with the level specified.<br>

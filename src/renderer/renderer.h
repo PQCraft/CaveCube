@@ -1,9 +1,6 @@
 #if MODULEID == MODULEID_GAME
 
 #ifndef RENDERER_RENDERER_H
-
-#ifndef RENDERER_H_STUB
-
 #define RENDERER_RENDERER_H
 
 #ifndef __EMSCRIPTEN__
@@ -16,10 +13,15 @@
         #include <SDL2/SDL.h>
     #else
         #include <SDL.h>
-        #include <GLES3/gl3.h>
     #endif
 #else
     #include <GLFW/glfw3.h>
+#endif
+#ifdef __EMSCRIPTEN__
+    #include <GLES3/gl3.h>
+    //#include <emscripten/html5.h>
+    #define glFramebufferTexture(a, b, c, d) glFramebufferTexture2D((a), (b), GL_TEXTURE_2D, (c), (d));
+    #define glPolygonMode(a, b)
 #endif
 
 #include <stdbool.h>
@@ -79,21 +81,6 @@ struct renderer_info {
     GLuint shaderprog;
 };
 
-struct model_renddata {
-    unsigned VAO;
-    unsigned VBO;
-    unsigned EBO;
-    resdata_texture* texture;
-};
-
-struct model {
-    coord_3d pos;
-    coord_3d rot;
-    coord_3d scale;
-    resdata_bmd* model;
-    struct model_renddata* renddata;
-};
-
 enum {
     CVIS_UP,
     CVIS_RIGHT,
@@ -112,10 +99,10 @@ struct chunk_renddata {
     uint32_t tcount[2];
     uint32_t* sortvert;
     bool remesh[2];
-    uint32_t yvcount[32];
     uint32_t yvoff[32];
-    uint32_t ytcount[32];
+    uint32_t yvcount[32];
     uint32_t ytoff[32];
+    uint32_t ytcount[32];
     uint8_t vispass[32][6][6];
     uint32_t visible;
     bool visfull:1;
@@ -143,28 +130,23 @@ enum {
     CHUNKUPDATE_PRIO__MAX,
 };
 
-#endif
-
-#ifndef RENDERER_H_STUB
-
-typedef unsigned int texture_t;
-
 extern struct renderer_info rendinf;
 extern int MESHER_THREADS;
 extern int MESHER_THREADS_MAX;
+extern bool rendergame;
 
 bool initRenderer(void);
 bool startRenderer(void);
+bool reloadRenderer(void);
 void stopRenderer(void);
-void createTexture(unsigned char*, resdata_texture*);
-void destroyTexture(resdata_texture*);
-struct model* loadModel(char*, char**);
+void setRendererMode(int);
 void updateCam(void);
 void updateScreen(void);
 void setMeshChunks(void*);
 void updateChunks(void);
 void sortChunk(int32_t, int, int, bool);
 void startMesher(void);
+void stopMesher(void);
 void updateChunk(int64_t, int64_t, int, int);
 void setMeshChunkOff(int64_t, int64_t);
 void render(void);
@@ -183,8 +165,6 @@ extern struct renderer_info rendinf;
 #define GFX_DEFAULT_ROT (coord_3d){0.0, 0.0, 0.0}
 #define GFX_DEFAULT_SCALE (coord_3d){1.0, 1.0, 1.0}
 #define GFX_DEFAULT_MAT4 {{1.0, 0.0, 0.0, 0.0}, {0.0, 1.0, 0.0, 0.0}, {0.0, 0.0, -1.0, 0.0}, {0.0, 0.0, 0.0, 1.0}}
-
-#endif
 
 #endif
 

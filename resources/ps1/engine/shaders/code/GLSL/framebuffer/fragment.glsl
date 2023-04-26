@@ -37,9 +37,11 @@ void main() {
     float mult = 31.0;
     fragColor = floor(fragColor * mult);
     fragColor /= mult;
-    vec3 hsvFrag = rgb2hsv(fragColor.rgb);
-    hsvFrag.x *= (1.0 + h);
-    hsvFrag.y *= (1.0 + s);
-    hsvFrag.z *= (1.0 + v);
-    fragColor.rgb = hsv2rgb(hsvFrag) * mcolor;
+    if (fbtype == 0) {
+        vec3 hsvFrag = rgb2hsv(fragColor.rgb);
+        hsvFrag.x *= (1.0 + h);
+        hsvFrag.y *= (1.0 + s);
+        hsvFrag.z *= (1.0 + v);
+        fragColor.rgb = hsv2rgb(hsvFrag) * mcolor;
+    }
 }

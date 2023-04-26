@@ -1,5 +1,4 @@
-name=Bookshelf
-id=occupied
+id=used
 tex0=@planks..0
 tex1=@planks..0
 tex2=@planks..0
