@@ -7,6 +7,7 @@
 
 #include <pthread.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
 
@@ -685,7 +686,6 @@ static inline void calcElem(struct ui_layer* layer, struct ui_elem* e) {
         _p.y = layer->width;
         p = &_p;
     }
-    c->
 }
 
 static void calcRecursive(struct ui_layer* layer, struct ui_elem* e) {
