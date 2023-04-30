@@ -142,6 +142,32 @@ struct ui_attribs {
     };
 };
 
+struct ui_textsect {
+    float xoff;
+    uint8_t fgc;
+    uint8_t bgc;
+    uint8_t fga;
+    uint8_t bga;
+    uint8_t attribs;
+    int start;
+    int chars;
+};
+
+struct ui_textline {
+    float xoff;
+    float yoff;
+    int sects;
+    struct ui_textsect* sectdata;
+};
+
+struct ui_text {
+    float x;
+    float y;
+    char* str;
+    int lines;
+    struct ui_textline* linedata;
+};
+
 struct ui_calcattribs {
     float x;
     float y;
@@ -149,20 +175,14 @@ struct ui_calcattribs {
     float height;
     float totalwidth;
     float totalheight;
-    union {
-        int visx;
-        int visx0;
-    };
-    union {
-        int visy;
-        int visy0;
-    };
-    int visx1;
-    int visy1;
-    int viswidth;
-    int visheight;
+    float visx0;
+    float visy0;
+    float visx1;
+    float visy1;
+    float viswidth;
+    float visheight;
     int16_t z;
-    /*struct ui_textlines* text;*/
+    struct ui_text* text;
 };
 
 struct ui_elem {

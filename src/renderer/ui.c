@@ -673,18 +673,54 @@ static inline float getSize(char* propval, float max) {
     return num;
 }
 
+static inline struct ui_text* allocText() {
+    struct ui_text* text = calloc(1, sizeof(*text));
+    return text;
+}
+
+static inline void freeText(struct ui_text* text) {
+    for (int i = 0; i < text->lines; ++i) {
+        free(text->linedata[i].sectdata);
+    }
+    free(text->linedata);
+    free(text->str);
+    free(text);
+}
+
 static inline void calcElem(struct ui_layer* layer, struct ui_elem* e) {
     struct ui_calcattribs* c = &e->calcattribs;
     struct ui_calcattribs _p;
     struct ui_calcattribs* p;
+    struct ui_elem* p_elem;
     if (e->parent >= 0) {
-        p = &layer->elemdata[e->parent].calcattribs;
+        p_elem = &layer->elemdata[e->parent];
+        p = &p_elem->calcattribs;
     } else {
+        p_elem = NULL;
         _p.x = 0;
         _p.y = 0;
         _p.width = layer->width;
-        _p.y = layer->width;
+        _p.height = layer->height;
         p = &_p;
+    }
+    float width = getSize(e->attribs.size.width, p->width);
+    float height = getSize(e->attribs.size.height, p->height);
+    float minwidth = (*e->attribs.minsize.width) ? getSize(e->attribs.minsize.width, p->width) : width;
+    float minheight = (*e->attribs.minsize.height) ? getSize(e->attribs.minsize.height, p->height) : height;
+    float maxwidth = (*e->attribs.maxsize.width) ? getSize(e->attribs.maxsize.width, p->width) : width;
+    float maxheight = (*e->attribs.maxsize.height) ? getSize(e->attribs.maxsize.height, p->height) : height;
+    char* text = e->attribs.text;
+    if (c->text) {
+        freeText(c->text);
+        c->text = NULL;
+    }
+    if (text) {
+        bool richtext = e->attribs.richtext;
+        float textscale = e->attribs.textscale;
+        float charw = 8.0, charh = 16.0;
+        float tmpw = 0.0;
+        c->text = allocText();
+        struct ui_text* t = c->text;
     }
 }
 

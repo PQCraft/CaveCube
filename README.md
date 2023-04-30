@@ -33,7 +33,7 @@ OpenGL 3.3 or OpenGLES 3.0 support.
 ### Building
 Command to download source code:<br>
 ```
-git clone -b dev --depth 1 https://github.com/PQCraft/CaveCube.git
+git clone -b dev --filter=tree:0 https://github.com/PQCraft/CaveCube.git
 ```
 - To build, run `make -j`.<br>
 - To build and run once done compiling, run `make -j run`.<br>
