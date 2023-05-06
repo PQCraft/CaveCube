@@ -74,6 +74,7 @@ enum {
     UI_ATTR_TEXTALPHA,
     UI_ATTR_TEXTATTRIB,
     UI_ATTR_RICHTEXT,
+    UI_ATTR_FANCYTEXT,
     UI_ATTR_TOOLTIP,
     UI_ATTR_TOGGLE_STATE,
     UI_ATTR_TEXTBOX_EDITABLE,
@@ -115,6 +116,7 @@ struct ui_attribs {
     struct {uint8_t fg; uint8_t bg;} textalpha;
     struct {bool b : 1; bool u : 1; bool i : 1; bool s : 1;} textattrib;
     bool richtext;
+    bool fancytext;
     char* tooltip;
     union {
         struct {
@@ -143,9 +145,8 @@ struct ui_attribs {
 };
 
 struct ui_textsect {
-    float xoff;
-    uint8_t fgc;
-    uint8_t bgc;
+    uint8_t fgc : 4;
+    uint8_t bgc : 4;
     uint8_t fga;
     uint8_t bga;
     uint8_t attribs;
@@ -154,15 +155,14 @@ struct ui_textsect {
 };
 
 struct ui_textline {
-    float xoff;
-    float yoff;
     int sects;
     struct ui_textsect* sectdata;
 };
 
 struct ui_text {
-    float x;
-    float y;
+    int8_t alignx;
+    int8_t aligny;
+    float scale;
     char* str;
     int lines;
     struct ui_textline* linedata;

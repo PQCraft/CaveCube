@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
+#include <ctype.h>
 
 static inline bool badElem(struct ui_layer* layer, int id) {
     return id < 0 || id >= layer->elems || layer->elemdata[id].type < 0;
@@ -34,53 +35,6 @@ struct ui_layer* allocUI(char* name) {
     layer->recalc = true;
     layer->remesh = true;
     return layer;
-}
-
-static void deleteSingleElem(struct ui_elem* e) {
-    free(e->attribs.name);
-    free(e->attribs.size.width);
-    free(e->attribs.size.height);
-    free(e->attribs.minsize.width);
-    free(e->attribs.minsize.height);
-    free(e->attribs.maxsize.width);
-    free(e->attribs.maxsize.height);
-    free(e->attribs.margin.top);
-    free(e->attribs.margin.bottom);
-    free(e->attribs.margin.left);
-    free(e->attribs.margin.right);
-    free(e->attribs.padding.top);
-    free(e->attribs.padding.bottom);
-    free(e->attribs.padding.left);
-    free(e->attribs.padding.right);
-    free(e->attribs.offset.x);
-    free(e->attribs.offset.y);
-    free(e->attribs.text);
-    free(e->attribs.textoffset.x);
-    free(e->attribs.textoffset.y);
-    free(e->attribs.tooltip);
-    switch (e->type) {
-        case UI_ELEM_TEXTBOX:;
-            free(e->attribs.textbox.shadowtext);
-            break;
-        case UI_ELEM_HOTBAR:;
-            free(e->attribs.hotbar.items);
-            break;
-        case UI_ELEM_ITEMGRID:;
-            free(e->attribs.itemgrid.items);
-            break;
-    }
-    e->type = -1;
-    free(e->childdata);
-}
-
-void freeUI(struct ui_layer* layer) {
-    for (int i = 0; i < layer->elems; ++i) {
-        deleteSingleElem(&layer->elemdata[i]);
-    }
-    free(layer->elemdata);
-    free(layer->childdata);
-    free(layer->name);
-    pthread_mutex_destroy(&layer->lock);
 }
 
 static void attachChild(int* children, int** childdata, int id) {
@@ -147,6 +101,7 @@ int newUIElem(struct ui_layer* layer, int type, int parent, ...) {
     e->attribs.textscale = 1.0;
     e->attribs.textcolor.fg = 15;
     e->attribs.textalpha.fg = 255;
+    e->attribs.fancytext = true;
     switch (type) {
         case UI_ELEM_TEXTBOX:;
             e->attribs.textalign.x = -1;
@@ -259,6 +214,9 @@ int newUIElem(struct ui_layer* layer, int type, int parent, ...) {
             } break;
             case UI_ATTR_RICHTEXT:; {
                 e->attribs.richtext = va_arg(args, int);
+            } break;
+            case UI_ATTR_FANCYTEXT:; {
+                e->attribs.fancytext = va_arg(args, int);
             } break;
             case UI_ATTR_TOOLTIP:; {
                 e->attribs.tooltip = strdupn(va_arg(args, char*));
@@ -540,6 +498,9 @@ int editUIElem(struct ui_layer* layer, int id, ...) {
             case UI_ATTR_RICHTEXT:; {
                 e->attribs.richtext = va_arg(args, int);
             } break;
+            case UI_ATTR_FANCYTEXT:; {
+                e->attribs.fancytext = va_arg(args, int);
+            } break;
             case UI_ATTR_TOOLTIP:; {
                 free(e->attribs.tooltip);
                 e->attribs.tooltip = strdupn(va_arg(args, char*));
@@ -607,35 +568,6 @@ int editUIElem(struct ui_layer* layer, int id, ...) {
     return UI_ERROR_NONE;
 }
 
-static void deleteElemTree(struct ui_layer* layer, struct ui_elem* e) {
-    for (int i = 0; i < e->children; ++i) {
-        int id = e->childdata[i];
-        if (badElem(layer, id)) continue;
-        deleteElemTree(layer, &layer->elemdata[id]);
-    }
-    deleteSingleElem(e);
-}
-
-int deleteUIElem(struct ui_layer* layer, int id) {
-    pthread_mutex_lock(&layer->lock);
-    if (badElem(layer, id)) {
-        pthread_mutex_unlock(&layer->lock);
-        return UI_ERROR_BADELEM;
-    }
-    struct ui_elem* e = &layer->elemdata[id];
-    if (e->parent >= 0) {
-        struct ui_elem* p = &layer->elemdata[e->parent];
-        dettachChild(&p->children, &p->childdata, id);
-        p->changed = true;
-    } else {
-        dettachChild(&layer->children, &layer->childdata, id);
-    }
-    deleteElemTree(layer, &layer->elemdata[id]);
-    layer->recalc = true;
-    pthread_mutex_unlock(&layer->lock);
-    return UI_ERROR_NONE;
-}
-
 static inline void genUpdateUp(struct ui_layer* layer, struct ui_elem* e) {
     while (e->parent >= 0) {
         e = &layer->elemdata[e->parent];
@@ -656,6 +588,35 @@ static void genUpdate(struct ui_layer* layer, struct ui_elem* e) {
     genUpdateDown(layer, e);
 }
 
+static inline void newSect(struct ui_textline* line, struct ui_textsect* dval) {
+    int i = line->sects++;
+    line->sectdata = realloc(line->sectdata, line->sects * sizeof(*line->sectdata));
+    memcpy(&line->sectdata[i], dval, sizeof(*line->sectdata));
+}
+
+static inline void newLine(struct ui_text* text, struct ui_textsect* dval) {
+    int i = text->lines++;
+    text->linedata = realloc(text->linedata, text->lines * sizeof(*text->linedata));
+    text->linedata[i].sects = 0;
+    text->linedata[i].sectdata = NULL;
+    newSect(&text->linedata[i], dval);
+}
+
+static inline struct ui_text* allocText(struct ui_textsect* dval) {
+    struct ui_text* text = calloc(1, sizeof(*text));
+    newLine(text, dval);
+    return text;
+}
+
+static inline void freeText(struct ui_text* text) {
+    for (int i = 0; i < text->lines; ++i) {
+        free(text->linedata[i].sectdata);
+    }
+    free(text->linedata);
+    free(text->str);
+    free(text);
+}
+
 static inline float getSize(char* propval, float max) {
     float num = 0;
     char suff = 0;
@@ -671,20 +632,6 @@ static inline float getSize(char* propval, float max) {
         num -= opnum;
     }
     return num;
-}
-
-static inline struct ui_text* allocText() {
-    struct ui_text* text = calloc(1, sizeof(*text));
-    return text;
-}
-
-static inline void freeText(struct ui_text* text) {
-    for (int i = 0; i < text->lines; ++i) {
-        free(text->linedata[i].sectdata);
-    }
-    free(text->linedata);
-    free(text->str);
-    free(text);
 }
 
 static inline void calcElem(struct ui_layer* layer, struct ui_elem* e) {
@@ -716,11 +663,169 @@ static inline void calcElem(struct ui_layer* layer, struct ui_elem* e) {
     }
     if (text) {
         bool richtext = e->attribs.richtext;
-        float textscale = e->attribs.textscale;
+        bool fancytext = e->attribs.fancytext;
+        float scale = e->attribs.textscale;
         float charw = 8.0, charh = 16.0;
         float tmpw = 0.0;
-        c->text = allocText();
+        struct ui_textsect ds;
+        ds.fgc = e->attribs.textcolor.fg;
+        ds.bgc = e->attribs.textcolor.bg;
+        ds.fga = e->attribs.textalpha.fg;
+        ds.bga = e->attribs.textalpha.bg;
+        ds.attribs = e->attribs.textattrib.b | (e->attribs.textattrib.i << 1);
+        ds.attribs |= (e->attribs.textattrib.u << 2) | (e->attribs.textattrib.s << 3);
+        c->text = allocText(&ds);
         struct ui_text* t = c->text;
+        t->alignx = e->attribs.align.x;
+        t->aligny = e->attribs.align.y;
+        t->scale = scale;
+        t->str = strdup(text);
+        int line = 0;
+        int sect = 0;
+        int pos = 0;
+        struct ui_textsect* s = &t->linedata[0].sectdata[0];
+        while (1) {
+            char tmpc = text[pos];
+            if (!tmpc) {
+                s->chars = pos - s->start;
+                goto done;
+            }
+            if (richtext) {
+                if (tmpc == '\e') {
+                    int newpos = pos;
+                    char tmpc2 = text[++newpos];
+                    switch (tmpc2) {
+                        case '\e':; {
+                            pos = newpos;
+                            goto badseq;
+                        } break;
+                        case 'F':; {
+                            tmpc2 = text[++newpos];
+                            switch (tmpc2) {
+                                case 'C':; {
+                                    tmpc2 = text[++newpos];
+                                    uint8_t fgc;
+                                    if (isxdigit(tmpc2)) {
+                                        fgc = (tmpc2 & 15) + (tmpc2 >> 6) * 9;
+                                    } else {
+                                        goto badseq;
+                                    }
+                                    pos = newpos++;
+                                    // create new sect with new fgc
+                                    goto goodseq;
+                                } break;
+                                case 'A':; {
+                                    tmpc2 = text[++newpos];
+                                    uint8_t fga;
+                                    if (isxdigit(tmpc2)) {
+                                        fga = (tmpc2 & 15) + (tmpc2 >> 6) * 9;
+                                        fga <<= 4;
+                                        tmpc2 = text[++newpos];
+                                        if (isxdigit(tmpc2)) {
+                                            fga |= (tmpc2 & 15) + (tmpc2 >> 6) * 9;
+                                        } else {
+                                            goto badseq;
+                                        }
+                                    } else {
+                                        goto badseq;
+                                    }
+                                    pos = newpos++;
+                                    // create new sect with new fga
+                                    goto goodseq;
+                                } break;
+                                default:; {
+                                    goto badseq;
+                                }
+                            }
+                        } break;
+                        case 'B':; {
+                            tmpc2 = text[++newpos];
+                            switch (tmpc2) {
+                                case 'C':; {
+                                    tmpc2 = text[++newpos];
+                                    uint8_t bgc;
+                                    if (isxdigit(tmpc2)) {
+                                        bgc = (tmpc2 & 15) + (tmpc2 >> 6) * 9;
+                                    } else {
+                                        goto badseq;
+                                    }
+                                    pos = newpos++;
+                                    // create new sect with new bgc
+                                    goto goodseq;
+                                } break;
+                                case 'A':; {
+                                    tmpc2 = text[++newpos];
+                                    uint8_t bga;
+                                    if (isxdigit(tmpc2)) {
+                                        bga = (tmpc2 & 15) + (tmpc2 >> 6) * 9;
+                                        bga <<= 4;
+                                        tmpc2 = text[++newpos];
+                                        if (isxdigit(tmpc2)) {
+                                            bga |= (tmpc2 & 15) + (tmpc2 >> 6) * 9;
+                                        } else {
+                                            goto badseq;
+                                        }
+                                    } else {
+                                        goto badseq;
+                                    }
+                                    pos = newpos++;
+                                    // create new sect with new bga
+                                    goto goodseq;
+                                } break;
+                                default:; {
+                                    goto badseq;
+                                }
+                            }
+                        } break;
+                        case 'A':; {
+                            tmpc2 = text[++newpos];
+                            uint8_t attribs;
+                            if (isxdigit(tmpc2)) {
+                                attribs = (tmpc2 & 15) + (tmpc2 >> 6) * 9;
+                            } else {
+                                goto badseq;
+                            }
+                            pos = newpos++;
+                            // create new sect with new attribs
+                            goto goodseq;
+                        }
+                        case 'R':; {
+                            pos = newpos++;
+                            // create new sect and restore all vars to default
+                            goto goodseq;
+                        }
+                        default:; {
+                            goto badseq;
+                        }
+                    }
+                }
+            }
+            badseq:;
+            {
+                float tmpw2 = tmpw + charw;
+                if (fancytext && (tmpc == ' ' || tmpc == '-')) {
+                    int newpos = pos + 1;
+                    while (1) {
+                        char tmpc2 = text[newpos];
+                        if (!tmpc2 || tmpc2 == ' ' || tmpc2 == '\n') break;
+                        tmpw2 += charw;
+                        ++newpos;
+                    }
+                }
+                if (tmpc == '\n' || (pos > s->start && tmpw2 * scale > maxwidth)) {
+                    // finalize current line and create new
+                    // if tmpc == ' ' and fancytext then remove from end of line
+                    s->chars = pos - s->start - (fancytext && tmpc == ' ');
+                    newLine(t, &ds);
+                    s = &t->linedata[++line].sectdata[(sect = 0)];
+                    s->start = pos + 1;
+                }
+                tmpw += charw;
+            }
+            goodseq:;
+            ++pos;
+        }
+        done:;
     }
 }
 
@@ -777,6 +882,85 @@ int doUIEvents(struct ui_layer* layer, struct input_info* input) {
     }
     pthread_mutex_unlock(&layer->lock);
     return false;
+}
+
+static void deleteSingleElem(struct ui_elem* e) {
+    free(e->attribs.name);
+    free(e->attribs.size.width);
+    free(e->attribs.size.height);
+    free(e->attribs.minsize.width);
+    free(e->attribs.minsize.height);
+    free(e->attribs.maxsize.width);
+    free(e->attribs.maxsize.height);
+    free(e->attribs.margin.top);
+    free(e->attribs.margin.bottom);
+    free(e->attribs.margin.left);
+    free(e->attribs.margin.right);
+    free(e->attribs.padding.top);
+    free(e->attribs.padding.bottom);
+    free(e->attribs.padding.left);
+    free(e->attribs.padding.right);
+    free(e->attribs.offset.x);
+    free(e->attribs.offset.y);
+    free(e->attribs.text);
+    free(e->attribs.textoffset.x);
+    free(e->attribs.textoffset.y);
+    free(e->attribs.tooltip);
+    switch (e->type) {
+        case UI_ELEM_TEXTBOX:;
+            free(e->attribs.textbox.shadowtext);
+            break;
+        case UI_ELEM_HOTBAR:;
+            free(e->attribs.hotbar.items);
+            break;
+        case UI_ELEM_ITEMGRID:;
+            free(e->attribs.itemgrid.items);
+            break;
+    }
+    if (e->calcattribs.text) {
+        freeText(e->calcattribs.text);
+    }
+    e->type = -1;
+    free(e->childdata);
+}
+
+static void deleteElemTree(struct ui_layer* layer, struct ui_elem* e) {
+    for (int i = 0; i < e->children; ++i) {
+        int id = e->childdata[i];
+        if (badElem(layer, id)) continue;
+        deleteElemTree(layer, &layer->elemdata[id]);
+    }
+    deleteSingleElem(e);
+}
+
+int deleteUIElem(struct ui_layer* layer, int id) {
+    pthread_mutex_lock(&layer->lock);
+    if (badElem(layer, id)) {
+        pthread_mutex_unlock(&layer->lock);
+        return UI_ERROR_BADELEM;
+    }
+    struct ui_elem* e = &layer->elemdata[id];
+    if (e->parent >= 0) {
+        struct ui_elem* p = &layer->elemdata[e->parent];
+        dettachChild(&p->children, &p->childdata, id);
+        p->changed = true;
+    } else {
+        dettachChild(&layer->children, &layer->childdata, id);
+    }
+    deleteElemTree(layer, &layer->elemdata[id]);
+    layer->recalc = true;
+    pthread_mutex_unlock(&layer->lock);
+    return UI_ERROR_NONE;
+}
+
+void freeUI(struct ui_layer* layer) {
+    for (int i = 0; i < layer->elems; ++i) {
+        deleteSingleElem(&layer->elemdata[i]);
+    }
+    free(layer->elemdata);
+    free(layer->childdata);
+    free(layer->name);
+    pthread_mutex_destroy(&layer->lock);
 }
 
 #endif
