@@ -1583,7 +1583,7 @@ void render() {
             sprintf(
                 &tbuf[0][toff],
                 "Resolution: %ux%u@%u vsync %s\n"
-                "FPS: %.2lf (%.2lf)\n",
+                "FPS: %.2lf (%.2lf)",
                 rendinf.width, rendinf.height, rendinf.fps, (rendinf.vsync) ? "on" : "off",
                 fps, realfps
             );

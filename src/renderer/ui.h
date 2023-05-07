@@ -155,6 +155,7 @@ struct ui_textsect {
 };
 
 struct ui_textline {
+    int start;
     int sects;
     struct ui_textsect* sectdata;
 };
