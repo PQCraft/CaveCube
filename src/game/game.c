@@ -399,6 +399,13 @@ static void gameLoop() {
                 for (int i = 3; i >= 0; --i) {
                     if (doUIEvents(game_ui[i], &input)) break;
                 }
+                switch (input.single_action) {
+                    case INPUT_ACTION_SINGLE_ESC:;
+                        game_ui[UILAYER_INGAME]->hidden = true;
+                        setInputMode(INPUT_MODE_GAME);
+                        resetInput();
+                        break;
+                }
                 break;
             }
         }
@@ -414,8 +421,8 @@ static void gameLoop() {
         tmpcamrot.x += input.rot_up * input.rot_mult_y * zoomrotmult;
         tmpcamrot.y -= input.rot_right * input.rot_mult_x * zoomrotmult;
         rendinf.camrot.x = tmpcamrot.x - input.mov_up * leanmult;
-        if (rendinf.camrot.x > 89.99) rendinf.camrot.x = 89.99;
-        if (rendinf.camrot.x < -89.99) rendinf.camrot.x = -89.99;
+        if (rendinf.camrot.x > 90.0) rendinf.camrot.x = 90.0;
+        if (rendinf.camrot.x < -90.0) rendinf.camrot.x = -90.0;
         rendinf.camrot.y = tmpcamrot.y;
         rendinf.camrot.z = input.mov_right * leanmult;
         tmpcamrot.y = fmod(tmpcamrot.y, 360.0);
@@ -631,6 +638,9 @@ bool doGame() {
 
     game_ui[UILAYER_DBGINF]->hidden = !showDebugInfo;
     game_ui[UILAYER_INGAME]->hidden = false;
+
+    char error[4096];
+    startSPGame(error, sizeof(error));
 
     struct input_info input;
     while (!quitRequest) {

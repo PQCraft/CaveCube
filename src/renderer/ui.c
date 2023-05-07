@@ -957,6 +957,7 @@ int doUIEvents(struct ui_layer* layer, struct input_info* input) {
 }
 
 static void deleteSingleElem(struct ui_elem* e) {
+    printf("deleteSingleElem: type=%d\n", e->type);
     free(e->attribs.name);
     free(e->attribs.size.width);
     free(e->attribs.size.height);
@@ -1027,6 +1028,7 @@ int deleteUIElem(struct ui_layer* layer, int id) {
 
 void freeUI(struct ui_layer* layer) {
     for (int i = 0; i < layer->elems; ++i) {
+        if (badElem(layer, i)) continue;
         deleteSingleElem(&layer->elemdata[i]);
     }
     free(layer->elemdata);

@@ -219,11 +219,9 @@ void updateCam() {
     static float uc_rotradx, uc_rotrady, uc_rotradz;
     static amat4 uc_proj;
     static amat4 uc_view;
-    static avec3 uc_direction;
     static avec3 uc_up;
     static avec3 uc_front;
     static bool uc_uproj = false;
-    static avec3 uc_z1z = {0.0, 1.0, 0.0};
     if (rendinf.aspect != uc_asp) {uc_asp = rendinf.aspect; uc_uproj = true;}
     if (rendinf.camfov != uc_fov) {uc_fov = rendinf.camfov; uc_uproj = true;}
     if (uc_uproj) {
@@ -239,17 +237,26 @@ void updateCam() {
     uc_campos[1] = sc_camy = rendinf.campos.y;
     uc_campos[2] = -(sc_camz = rendinf.campos.z);
     uc_rotradx = rendinf.camrot.x * M_PI / 180.0;
-    uc_rotrady = (rendinf.camrot.y - 90.0) * M_PI / 180.0;
+    uc_rotrady = (rendinf.camrot.y - 180.0) * M_PI / 180.0;
     uc_rotradz = rendinf.camrot.z * M_PI / 180.0;
-    uc_direction[0] = cos(uc_rotrady) * cos(uc_rotradx);
-    uc_direction[1] = sin(uc_rotradx);
-    uc_direction[2] = sin(uc_rotrady) * cos(uc_rotradx);
-    glm_vec3_copy(uc_z1z, uc_up);
-    glm_vec3_copy(uc_direction, uc_front);
-    glm_vec3_add(uc_campos, uc_direction, uc_direction);
-    glm_vec3_rotate(uc_up, uc_rotradz, uc_front);
+    //printf("rot: [%.3f, %.3f, %.3f] -> [%.3f, %.3f, %.3f]\n",
+    //    rendinf.camrot.x, rendinf.camrot.y, rendinf.camrot.z, cos(uc_rotradx), sin(uc_rotrady), sin(uc_rotradz));
+    uc_front[0] = (-sin(uc_rotrady)) * cos(uc_rotradx);
+    uc_front[1] = sin(uc_rotradx);
+    uc_front[2] = cos(uc_rotrady) * cos(uc_rotradx);
+    uc_up[0] = sin(uc_rotrady) * sin(uc_rotradx) * cos(uc_rotradz) + cos(uc_rotrady) * (-sin(uc_rotradz));
+    uc_up[1] = cos(uc_rotradx) * cos(uc_rotradz);
+    uc_up[2] = (-cos(uc_rotrady)) * sin(uc_rotradx) * cos(uc_rotradz) + sin(uc_rotrady) * (-sin(uc_rotradz));
+    //printf("front: [%.3f, %.3f, %.3f], up: [%.3f, %.3f, %.3f]\n",
+    //    uc_front[0], uc_front[1], uc_front[2], uc_up[0], uc_up[1], uc_up[2]);
+    //glm_vec3_copy(uc_z1z, uc_up);
+    //glm_vec3_copy(uc_direction, uc_front);
+    //glm_vec3_add(uc_campos, uc_direction, uc_direction);
+    //glm_vec3_rotate(uc_up, uc_rotradz, uc_front);
     glm_mat4_copy((mat4)GLM_MAT4_IDENTITY_INIT, uc_view);
-    glm_lookat(uc_campos, uc_direction, uc_up, uc_view);
+    //glm_lookat(campos, front, up, view_out);
+    glm_vec3_add(uc_campos, uc_front, uc_front);
+    glm_lookat(uc_campos, uc_front, uc_up, uc_view);
     setShaderProg(shader_block);
     setMat4(rendinf.shaderprog, "view", uc_view);
     //setShaderProg(shader_3d);
