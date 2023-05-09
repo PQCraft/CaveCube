@@ -134,7 +134,7 @@ endif
 
 BIN := $(BINNAME)$(BINEXT)
 
-CFLAGS += -Wall -Wextra -D_DEFAULT_SOURCE -D_GNU_SOURCE -pthread -msse2 -ffast-math
+CFLAGS += -Wall -Wextra -D_DEFAULT_SOURCE -D_GNU_SOURCE -pthread -ffast-math
 ifdef OS
     WRFLAGS += $(MODULECFLAGS) -DMODULE=$(MODULE)
 else
@@ -145,8 +145,6 @@ else
         else
             CFLAGS += -s USE_SDL=2
         endif
-    else
-        CFLAGS += -mfpmath=sse
     endif
 endif
 ifdef DEBUG

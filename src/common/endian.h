@@ -19,7 +19,7 @@
 #define SWAPEDN64(x) ((uint64_t)((((x) << 56) & 0xFF00000000000000LLU) | (((x) << 40) & 0xFF000000000000LLU) | (((x) << 24) & 0xFF0000000000LLU) | (((x) << 8) & 0xFF00000000LLU) |\
                      (((x) >> 8) & 0xFF000000LLU) | (((x) >> 24) & 0xFF0000LLU) | (((x) >> 40) & 0xFF00LLU) | (((x) >> 56) & 0xFFLLU)))
 
-#ifdef B_EDN
+#ifdef L_EDN
     #define host2net16(x) ((uint16_t)(x))
     #define host2net32(x) ((uint32_t)(x))
     #define host2net64(x) ((uint64_t)(x))
