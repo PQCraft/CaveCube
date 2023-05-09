@@ -138,6 +138,11 @@ struct chunkdata* allocChunks(int);
 void resizeChunks(struct chunkdata*, int);
 void freeChunks(struct chunkdata*);
 void moveChunks(struct chunkdata*, int, int);
+void extendChunk(struct chunkdata*, int);
+void resizeChunk(struct chunkdata*, int);
+void resizeChunkTo(struct chunkdata*, int, int);
+int findChunkDataTop(struct blockdata*);
+int findChunkTop(struct chunkdata*, int);
 #endif
 
 #endif

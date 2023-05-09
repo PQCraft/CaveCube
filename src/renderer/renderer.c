@@ -479,6 +479,12 @@ static force_inline void rendGetBlock(int cx, int cz, int x, int y, int z, struc
         bdsetlight(b, 0, 0, 0, 0);
         return;
     }
+    if (y > rendinf.chunks->metadata[c].top) {
+        bdsetid(b, BLOCKNO_NULL);
+        bdsetsubid(b, 0);
+        bdsetlight(b, 0, 0, 0, 31);
+        return;
+    }
     *b = rendinf.chunks->data[c][y * 256 + z * 16 + x];
 }
 
@@ -794,7 +800,7 @@ static void calcNLight(int cx, int cz, int maxy) {
     struct blockdata* data = rendinf.chunks->data[c];
     if (!clientlighting) {
         for (int i = 0; i < 256; ++i) {
-            for (int y = 511; y >= 0; --y) {
+            for (int y = maxy; y >= 0; --y) {
                 int off = y * 256 + i;
                 bdsetlightn(&data[off], 31);
             }
@@ -806,7 +812,7 @@ static void calcNLight(int cx, int cz, int maxy) {
         if (!water) water = blockNoFromID("water");
         for (int i = 0; i < 256; ++i) {
             uint8_t nlight = 31;
-            for (int y = 511; y >= 0; --y) {
+            for (int y = maxy; y >= 0; --y) {
                 int off = y * 256 + i;
                 uint8_t id = bdgetid(data[off]);
                 if (id == water) {
@@ -918,7 +924,6 @@ static void mesh(int64_t x, int64_t z, uint64_t id) {
     uint32_t* vptr = _vptr;
     uint32_t* vptr2 = _vptr2;
     uint32_t baseVert[4];
-    int maxy = 511;
     //secttime[0] = altutime();
     nx = (x - rendinf.chunks->xoff) + rendinf.chunks->info.dist;
     nz = rendinf.chunks->info.width - ((z - rendinf.chunks->zoff) + rendinf.chunks->info.dist) - 1;
@@ -934,25 +939,15 @@ static void mesh(int64_t x, int64_t z, uint64_t id) {
         yvcount[i] = 0;
     }
     int c = nx + nz * rendinf.chunks->info.width;
-    struct blockdata* b = &rendinf.chunks->data[c][131071];
-    while (maxy >= 0) {
-        for (int i = 0; i < 256; ++i) {
-            if (bdgetid(*b)) goto foundblock;
-            --b;
-        }
-        --maxy;
-    }
-    foundblock:;
     //secttime[0] = altutime() - secttime[0];
-    maxy /= 16;
-    int ychunk = maxy;
-    maxy *= 16;
-    calcNLight(nx, nz, maxy + 15);
+    calcNLight(nx, nz, rendinf.chunks->metadata[c].top);
     uint8_t vispass[32][6][6];
     memset(vispass, 1, sizeof(vispass));
     pthread_mutex_unlock(&rendinf.chunks->lock);
     microwait(0);
     uint32_t vplenold = 0;
+    int maxy = rendinf.chunks->metadata[c].alignedtop - 15;
+    int ychunk = rendinf.chunks->metadata[c].sects - 1;
     for (; maxy >= 0; maxy -= 16) {
         //uint64_t secttime2[2];
         //secttime2[0] = altutime();
@@ -967,7 +962,19 @@ static void mesh(int64_t x, int64_t z, uint64_t id) {
         for (int y = maxy + 15; y >= maxy; --y) {
             for (int z = 0; z < 16; ++z) {
                 for (int x = 0; x < 16; ++x) {
+                    /*
+                    if (x == 0 && z == 0) {
+                        printf("MESH: READ: [%d, %d, %d] on [%"PRId64", %"PRId64"] (%d): top=%d, alignedtop=%d, sects=%d\n",
+                            x, y, z, nx, nz, c,
+                            rendinf.chunks->metadata[c].top, rendinf.chunks->metadata[c].alignedtop, rendinf.chunks->metadata[c].sects);
+                    }
+                    */
                     rendGetBlock(nx, nz, x, y, z, &bdata);
+                    /*
+                    if (x == 0 && z == 0) {
+                        puts("OK");
+                    }
+                    */
                     uint8_t bdataid = bdgetid(bdata);
                     if (!bdataid || !blockinf[bdataid].id) continue;
                     uint8_t bdatasubid = bdgetsubid(bdata);
