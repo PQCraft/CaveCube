@@ -79,10 +79,7 @@ static force_inline float distance(float x1, float z1, float x2, float z2) {
     return /*f*/ sqrt(fabs(x2 - x1) * fabs(x2 - x1) + fabs(z2 - z1) * fabs(z2 - z1));
 }
 
-struct chunkdata* allocChunks(int dist) {
-    if (dist < 1) dist = 1;
-    struct chunkdata* chunks = malloc(sizeof(*chunks));
-    pthread_mutex_init(&chunks->lock, NULL);
+static void initChunks(struct chunkdata* chunks, int dist) {
     chunks->info.dist = dist;
     dist = 1 + dist * 2;
     chunks->info.width = dist;
@@ -92,10 +89,14 @@ struct chunkdata* allocChunks(int dist) {
     for (int i = 0; i < dist; ++i) {
         chunks->data[i] = malloc(sizeof(**chunks->data) * 131072);
     }
-    chunks->renddata = calloc(sizeof(*chunks->renddata), dist);
+    chunks->metadata = calloc(sizeof(*chunks->metadata), dist);
     for (int i = 0; i < dist; ++i) {
-        memset(chunks->renddata[i].vispass, 1, sizeof(chunks->renddata[i].vispass));
+        struct chunk_metadata* m = &chunks->metadata[i];
+        m->sects = 0;
+        m->top = -1;
+        m->alignedtop = m->sects * 16 - 1;
     }
+    chunks->renddata = calloc(sizeof(*chunks->renddata), dist);
     chunks->rordr = calloc(sizeof(*chunks->rordr), dist);
     for (unsigned x = 0; x < chunks->info.width; ++x) {
         for (unsigned z = 0; z < chunks->info.width; ++z) {
@@ -105,6 +106,26 @@ struct chunkdata* allocChunks(int dist) {
         }
     }
     qsort(chunks->rordr, chunks->info.widthsq, sizeof(*chunks->rordr), compare);
+}
+
+static void deinitChunks(struct chunkdata* chunks) {
+    for (int i = 0; i < (int)chunks->info.widthsq; ++i) {
+        free(chunks->data[i]);
+        free(chunks->renddata[i].vertices[0]);
+        free(chunks->renddata[i].vertices[1]);
+        free(chunks->renddata[i].sortvert);
+    }
+    free(chunks->data);
+    free(chunks->metadata);
+    free(chunks->renddata);
+    free(chunks->rordr);
+}
+
+struct chunkdata* allocChunks(int dist) {
+    if (dist < 1) dist = 1;
+    struct chunkdata* chunks = malloc(sizeof(*chunks));
+    pthread_mutex_init(&chunks->lock, NULL);
+    initChunks(chunks, dist);
     chunks->xoff = 0;
     chunks->zoff = 0;
     return chunks;
@@ -113,51 +134,14 @@ struct chunkdata* allocChunks(int dist) {
 void resizeChunks(struct chunkdata* chunks, int dist) {
     if (dist < 1) dist = 1;
     pthread_mutex_lock(&chunks->lock);
-    for (int i = 0; i < (int)chunks->info.widthsq; ++i) {
-        free(chunks->data[i]);
-        free(chunks->renddata[i].vertices[0]);
-        free(chunks->renddata[i].vertices[1]);
-        free(chunks->renddata[i].sortvert);
-    }
-    free(chunks->data);
-    free(chunks->renddata);
-    free(chunks->rordr);
-    chunks->info.dist = dist;
-    dist = 1 + dist * 2;
-    chunks->info.width = dist;
-    dist *= dist;
-    chunks->info.widthsq = dist;
-    chunks->data = malloc(dist * sizeof(*chunks->data));
-    for (int i = 0; i < dist; ++i) {
-        chunks->data[i] = calloc(sizeof(**chunks->data), 131072);
-    }
-    chunks->renddata = calloc(sizeof(*chunks->renddata), dist);
-    for (int i = 0; i < dist; ++i) {
-        memset(chunks->renddata[i].vispass, 1, sizeof(chunks->renddata[i].vispass));
-    }
-    chunks->rordr = calloc(sizeof(*chunks->rordr), dist);
-    for (unsigned x = 0; x < chunks->info.width; ++x) {
-        for (unsigned z = 0; z < chunks->info.width; ++z) {
-            uint32_t c = x + z * chunks->info.width;
-            chunks->rordr[c].dist = distance((int)(x - chunks->info.dist), (int)(chunks->info.dist - z), 0, 0);
-            chunks->rordr[c].c = c;
-        }
-    }
-    qsort(chunks->rordr, chunks->info.widthsq, sizeof(*chunks->rordr), compare);
+    deinitChunks(chunks);
+    initChunks(chunks, dist);
     pthread_mutex_unlock(&chunks->lock);
 }
 
 void freeChunks(struct chunkdata* chunks) {
     pthread_mutex_lock(&chunks->lock);
-    for (int i = 0; i < (int)chunks->info.widthsq; ++i) {
-        free(chunks->data[i]);
-        free(chunks->renddata[i].vertices[0]);
-        free(chunks->renddata[i].vertices[1]);
-        free(chunks->renddata[i].sortvert);
-    }
-    free(chunks->data);
-    free(chunks->renddata);
-    free(chunks->rordr);
+    deinitChunks(chunks);
     pthread_mutex_unlock(&chunks->lock);
     pthread_mutex_destroy(&chunks->lock);
     free(chunks);

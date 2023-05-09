@@ -239,22 +239,12 @@ void updateCam() {
     uc_rotradx = rendinf.camrot.x * M_PI / 180.0;
     uc_rotrady = (rendinf.camrot.y - 180.0) * M_PI / 180.0;
     uc_rotradz = rendinf.camrot.z * M_PI / 180.0;
-    //printf("rot: [%.3f, %.3f, %.3f] -> [%.3f, %.3f, %.3f]\n",
-    //    rendinf.camrot.x, rendinf.camrot.y, rendinf.camrot.z, cos(uc_rotradx), sin(uc_rotrady), sin(uc_rotradz));
     uc_front[0] = (-sin(uc_rotrady)) * cos(uc_rotradx);
     uc_front[1] = sin(uc_rotradx);
     uc_front[2] = cos(uc_rotrady) * cos(uc_rotradx);
     uc_up[0] = sin(uc_rotrady) * sin(uc_rotradx) * cos(uc_rotradz) + cos(uc_rotrady) * (-sin(uc_rotradz));
     uc_up[1] = cos(uc_rotradx) * cos(uc_rotradz);
     uc_up[2] = (-cos(uc_rotrady)) * sin(uc_rotradx) * cos(uc_rotradz) + sin(uc_rotrady) * (-sin(uc_rotradz));
-    //printf("front: [%.3f, %.3f, %.3f], up: [%.3f, %.3f, %.3f]\n",
-    //    uc_front[0], uc_front[1], uc_front[2], uc_up[0], uc_up[1], uc_up[2]);
-    //glm_vec3_copy(uc_z1z, uc_up);
-    //glm_vec3_copy(uc_direction, uc_front);
-    //glm_vec3_add(uc_campos, uc_direction, uc_direction);
-    //glm_vec3_rotate(uc_up, uc_rotradz, uc_front);
-    glm_mat4_copy((mat4)GLM_MAT4_IDENTITY_INIT, uc_view);
-    //glm_lookat(campos, front, up, view_out);
     glm_vec3_add(uc_campos, uc_front, uc_front);
     glm_lookat(uc_campos, uc_front, uc_up, uc_view);
     setShaderProg(shader_block);
@@ -914,8 +904,10 @@ static void mesh(int64_t x, int64_t z, uint64_t id) {
         //printf("meshing [%"PRId64", %"PRId64"] -> [%"PRId64", %"PRId64"] (c=%d, offset=[%"PRId64", %"PRId64"])\n",
         //    x, z, nx, nz, c, rendinf.chunks->xoff, rendinf.chunks->zoff);
     }
-    //printf("mesh: [%"PRId64", %"PRId64"]\n", x, z);
-    //uint64_t stime = altutime();
+    /*
+    printf("mesh: [%"PRId64", %"PRId64"]\n", x, z);
+    uint64_t stime = altutime();
+    */
     //uint64_t secttime[4] = {0};
     int vpsize = 65536;
     int vpsize2 = 65536;
@@ -1213,6 +1205,8 @@ static void mesh(int64_t x, int64_t z, uint64_t id) {
         /*
         double time = (altutime() - stime) / 1000.0;
         printf("meshed: [%"PRId64", %"PRId64"] in [%lgms]\n", x, z, time);
+        */
+        /*
         time = secttime[0] / 1000.0;
         printf("    find low: [%lgms]\n", time);
         time = secttime[1] / 1000.0;

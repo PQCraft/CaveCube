@@ -636,6 +636,7 @@ static inline float getSize(char* propval, float max) {
 }
 
 static inline void calcElem(struct ui_layer* layer, struct ui_elem* e) {
+    //printf("calcElem: name=%s\n", e->attribs.name);
     struct ui_calcattribs* c = &e->calcattribs;
     struct ui_calcattribs _p;
     struct ui_calcattribs* p;
@@ -889,12 +890,12 @@ static inline void calcElem(struct ui_layer* layer, struct ui_elem* e) {
         printf("MADE TEXT: %d lines\n", t->lines);
         for (int i = 0; i < t->lines; ++i) {
             struct ui_textline* l = &t->linedata[i];
-            printf("    Line %d (%d sects): start=%d\n", i, l->sects, l->start);
+            printf("  Line %d (%d sects): start=%d\n", i, l->sects, l->start);
             for (int j = 0; j < l->sects; ++j) {
                 struct ui_textsect* s = &l->sectdata[j];
-                printf("        Sect %d: start=%d, chars=%d, end=%d, fgc=%d, bgc=%d, fga=%d, bga=%d, attribs=%01X\n",
+                printf("    Sect %d: start=%d, chars=%d, end=%d, fgc=%d, bgc=%d, fga=%d, bga=%d, attribs=%01X\n",
                     j, s->start, s->chars, s->start + s->chars, s->fgc, s->bgc, s->fga, s->bga, s->attribs);
-                printf("            text=\"%.*s\"\n", s->chars, &t->str[s->start]);
+                printf("      text=\"%.*s\"\n", s->chars, &t->str[s->start]);
             }
         }
         #endif
@@ -902,6 +903,7 @@ static inline void calcElem(struct ui_layer* layer, struct ui_elem* e) {
 }
 
 static void calcRecursive(struct ui_layer* layer, struct ui_elem* e) {
+    //printf("calcRecursive: name=%s\n", e->attribs.name);
     if (e->changed) {
         genUpdate(layer, e);
         e->changed = false;
@@ -914,6 +916,7 @@ static void calcRecursive(struct ui_layer* layer, struct ui_elem* e) {
 }
 
 void _calcUI(struct ui_layer* layer) {
+    //printf("_calcUI: name=%s\n", layer->name);
     bool reschanged = false;
     if (layer->width != (int)rendinf.width || layer->height != (int)rendinf.height) {
         layer->recalc = true;
@@ -934,8 +937,13 @@ void _calcUI(struct ui_layer* layer) {
     layer->remesh = true;
 }
 
-int doUIEvents(struct ui_layer* layer, struct input_info* input) {
+int doUIEvents(struct ui_layer* layer, struct input_info* input, struct ui_doeventinfo* info) {
+    if (!info->init) {
+        info->tookfocus = false;
+        info->init = true;
+    }
     pthread_mutex_lock(&layer->lock);
+    //printf("doUIEvents: name=%s\n", layer->name);
     _calcUI(layer);
     for (int i = 0; i < layer->elems; ++i) {
         struct ui_elem* e = &layer->elemdata[i];
@@ -957,7 +965,7 @@ int doUIEvents(struct ui_layer* layer, struct input_info* input) {
 }
 
 static void deleteSingleElem(struct ui_elem* e) {
-    printf("deleteSingleElem: type=%d\n", e->type);
+    //printf("deleteSingleElem: type=%d\n", e->type);
     free(e->attribs.name);
     free(e->attribs.size.width);
     free(e->attribs.size.height);

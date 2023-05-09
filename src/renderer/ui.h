@@ -240,12 +240,17 @@ struct ui_event {
     };
 };
 
+struct ui_doeventinfo {
+    bool init;
+    bool tookfocus;
+};
+
 struct ui_layer* allocUI(char* /*name*/);
 void freeUI(struct ui_layer* /*layer*/);
 int newUIElem(struct ui_layer* /*layer*/, int /*type*/, int /*parent*/, ... /*attribs*/);
 int editUIElem(struct ui_layer* /*layer*/, int /*id*/, ... /*attribs*/);
 int deleteUIElem(struct ui_layer* /*layer*/, int /*id*/);
-int doUIEvents(struct ui_layer* /*layer*/, struct input_info* /*input*/);
+int doUIEvents(struct ui_layer* /*layer*/, struct input_info* /*input*/, struct ui_doeventinfo* /*info*/);
 bool isUIElemInvalid(struct ui_layer* /*layer*/, int /*id*/);
 
 void _calcUI(struct ui_layer* /*layer*/);

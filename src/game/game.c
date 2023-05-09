@@ -203,6 +203,10 @@ static inline void doRender() {
 }
 
 static inline void commonEvents(struct input_info* input) {
+    for (int i = 3; i >= 0; --i) {
+        struct ui_doeventinfo info = {.init = false};
+        doUIEvents(game_ui[i], input, &info);
+    }
     switch (input->single_action) {
         case INPUT_ACTION_SINGLE_FULLSCR:;
             setFullscreen(!rendinf.fullscr);
@@ -211,11 +215,6 @@ static inline void commonEvents(struct input_info* input) {
             game_ui[UILAYER_DBGINF]->hidden = showDebugInfo;
             showDebugInfo = !showDebugInfo;
             break;
-    }
-    if (inputMode == INPUT_MODE_UI) {
-        for (int i = 3; i >= 0; --i) {
-            if (doUIEvents(game_ui[i], input)) break;
-        }
     }
 }
 
@@ -396,9 +395,6 @@ static void gameLoop() {
                 break;
             }
             case INPUT_MODE_UI:; {
-                for (int i = 3; i >= 0; --i) {
-                    if (doUIEvents(game_ui[i], &input)) break;
-                }
                 switch (input.single_action) {
                     case INPUT_ACTION_SINGLE_ESC:;
                         game_ui[UILAYER_INGAME]->hidden = true;

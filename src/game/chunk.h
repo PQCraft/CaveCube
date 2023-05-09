@@ -114,6 +114,12 @@ struct chunkinfo {
     uint32_t widthsq;
 };
 
+struct chunk_metadata {
+    int top;        // highest block (-1 for an empty chunk)
+    int alignedtop; // highest block aligned to the top of the max section (-1 for 0, 15 for 1, 31 for 2, ...)
+    int sects;      // number of 16x16x16 sections allocated (max is 32)
+};
+
 struct chunkdata {
     pthread_mutex_t lock;
     struct chunkinfo info;
@@ -121,6 +127,7 @@ struct chunkdata {
     struct blockdata** data;
     int64_t xoff;
     int64_t zoff;
+    struct chunk_metadata* metadata;
     struct chunk_renddata* renddata;
 };
 
