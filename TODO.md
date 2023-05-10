@@ -59,6 +59,8 @@
 - Android support (requires that it be buildable from the command-line using `make` so it can be used in `mkrelease.sh`)
 - Make updateChunks() use a message list
 - Implement extensions in `src/main/extmgr.(c|h)` using libdl
+- Palette compression
+    - Variable index size
 
 ### IN-PROGRESS:
 - Redo the way UI works

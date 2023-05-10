@@ -49,15 +49,23 @@ int findChunkTop(struct chunkdata* data, int c) {
     return findChunkDataTop(data->data[c]);
 }
 
+bool allocexactchunkheight = false;
+
 void resizeChunkTo(struct chunkdata* data, int c, int top) {
     struct chunk_metadata* m = &data->metadata[c];
     if (top != m->top) {
         m->top = top;
         m->sects = (top + 16) / 16;
         m->alignedtop = m->sects * 16 - 1;
+        int size;
+        if (allocexactchunkheight) {
+            size = (m->top + 1) * 256 * sizeof(**data->data);
+        } else {
+            size = m->sects * 4096 * sizeof(**data->data);
+        }
         //printf("RESIZE [%d]: top=%d, alignedtop=%d, sects=%d, size=%gKiB\n",
         //    c, m->top, m->alignedtop, m->sects, (float)(m->sects * 4096 * sizeof(**data->data)) / 1024.0);
-        data->data[c] = realloc(data->data[c], m->sects * 4096 * sizeof(**data->data));
+        data->data[c] = realloc(data->data[c], size);
     }
 }
 

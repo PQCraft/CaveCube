@@ -48,7 +48,7 @@ static inline void writeChunk(struct chunkdata* chunks, int64_t x, int64_t z, st
     int top = findChunkDataTop(data);
     resizeChunkTo(chunks, coff, top);
     //printf("writing chunk to [%"PRId64", %"PRId64"] ([%"PRId64", %"PRId64"])\n", nx, nz, x, z);
-    memcpy(chunks->data[coff], data, chunks->metadata[coff].sects * 4096 * sizeof(struct blockdata));
+    memcpy(chunks->data[coff], data, (chunks->metadata[coff].top + 1) * 256 * sizeof(struct blockdata));
     chunks->renddata[coff].generated = true;
     chunks->renddata[coff].requested = false;
     pthread_mutex_unlock(&chunks->lock);
@@ -614,10 +614,12 @@ static int startSPGame(char* error, int errlen) {
 
 bool doGame() {
     declareConfigKey(config, "Game", "viewDist", "8", false);
+    declareConfigKey(config, "Game", "allocExactHeight", "false", false);
     declareConfigKey(config, "Player", "name", "Player", false);
     declareConfigKey(config, "Player", "skin", "", false);
     declareConfigKey(config, "Renderer", "waitWithVsync", "true", false);
     waitwithvsync = getBool(getConfigKey(config, "Renderer", "waitWithVsync"));
+    allocexactchunkheight = getBool(getConfigKey(config, "Game", "allocExactHeight"));
 
     fpsupdate = altutime();
 

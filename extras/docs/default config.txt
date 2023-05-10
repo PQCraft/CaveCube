@@ -1,34 +1,35 @@
 [Main]
-showConsole = false
+showConsole = false     # show the console on windows
 
 [Renderer]
-compositing = true
-resolution = 1024x768
-fullScreenRes = 
-vSync = true
-fullScreen = false
-FOV = 85
-mipmaps = true
-clientLighting = false
-nearPlane = 0.05
-farPlane = 2500
-lazyMesher = false
-sortTransparent = true
-caveCullLevel = 1
-mesherThreadsMax = 1
-waitWithVsync = true
+compositing = true      # should compositing be left enabled
+resolution = 1024x768   # windowed resolution <width>x<height>[@<hz>]
+fullScreenRes =         # fullscreen resolution <width>x<height>[@<hz>] (defaults to display size and windowed refresh rate)
+vSync = true            # should vsync be enabled
+fullScreen = false      # should start in fullscreen
+FOV = 85                # field of view
+mipmaps = true          # should mipmaps be enabled
+clientLighting = false  # should the client do lighting (buggy, will be removed)
+nearPlane = 0.05        # near plane (only adjust if you experience z-fighting)
+farPlane = 2500         # far plane (only adjust if you experience z-fighting)
+lazyMesher = false      # should the mesher defer meshing neighbors until later
+sortTransparent = true  # should objects only either have full or no transparency be sorted as translucent
+caveCullLevel = 1       # cave culling fidelity (0 = fast, 1 = safe, 2 = extra safe)
+mesherThreadsMax = 1    # maximum amount of mesher threads (too many meshing threads will cause stuttering)
+waitWithVsync = true    # some drivers will not wait after swapping the buffers even if vsync is enabled
 
 [Game]
-viewDist = 8
+viewDist = 8                # view distance (number of chunks after the middle chunk)
+allocExactHeight = false    # this may increase CPU at the cost of some memory savings
 
 [Player]
-name = Player
-skin = 
+name = Player   # Player name
+skin =          # Path to skin (leave blank for default)
 
 [Input]
-xSen = 1
-ySen = 1
-rawMouse = false
+xSen = 1            # Horizontal sensitivity
+ySen = 1            # Vertical sensitivity
+rawMouse = false    # Enable raw mouse input
 
 [GLFW Keybinds]
 move.forward = k,b,87;\0,\0,0

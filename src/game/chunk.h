@@ -143,6 +143,9 @@ void resizeChunk(struct chunkdata*, int);
 void resizeChunkTo(struct chunkdata*, int, int);
 int findChunkDataTop(struct blockdata*);
 int findChunkTop(struct chunkdata*, int);
+
+extern bool allocexactchunkheight;
+
 #endif
 
 #endif
