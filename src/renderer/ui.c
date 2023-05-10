@@ -26,6 +26,7 @@ struct ui_layer* allocUI(char* name) {
     layer->name = (name) ? strdup(name) : NULL;
     layer->hidden = true;
     layer->scale = 1.0;
+    layer->oldscale = 0.0;
     layer->width = -1;
     layer->height = -1;
     layer->elems = 0;
@@ -635,6 +636,255 @@ static inline float getSize(char* propval, float max) {
     return num;
 }
 
+static struct ui_text* calcText(struct ui_elem* e, char* text, float maxwidth) {
+    bool richtext = e->attribs.richtext;
+    bool fancytext = e->attribs.fancytext;
+    float scale = e->attribs.textscale;
+    float charw = 8.0, charh = 16.0;
+    float tmpw = 0.0;
+    struct ui_textsect ds; // default section
+    struct ui_textsect cs; // current section
+    memset(&ds, 0, sizeof(ds));
+    memset(&cs, 0, sizeof(cs));
+    ds.fgc = e->attribs.textcolor.fg;
+    ds.bgc = e->attribs.textcolor.bg;
+    ds.fga = e->attribs.textalpha.fg;
+    ds.bga = e->attribs.textalpha.bg;
+    ds.attribs = e->attribs.textattrib.b | (e->attribs.textattrib.i << 1);
+    ds.attribs |= (e->attribs.textattrib.u << 2) | (e->attribs.textattrib.s << 3);
+    memcpy(&cs, &ds, sizeof(cs)); // copy defaults into current
+    struct ui_text* t = allocText(&cs);
+    t->alignx = e->attribs.align.x;
+    t->aligny = e->attribs.align.y;
+    t->scale = scale;
+    t->str = strdup(text);
+    int line = 0;
+    int sect = 0;
+    int pos = 0;
+    struct ui_textline* l = &t->linedata[0];
+    struct ui_textsect* s = &t->linedata[0].sectdata[0];
+    #if DBGLVL(2)
+    printf("MAKING TEXT: maxwidth=%g\n", maxwidth);
+    #endif
+    bool sepchar = false;
+    while (1) {
+        char tmpc = text[pos];
+        if (!tmpc) {
+            s->chars = pos - s->start;
+            goto done;
+        }
+        if (richtext) {
+            if (tmpc == '\e') {
+                int newpos = pos;
+                char tmpc2 = text[++newpos];
+                switch (tmpc2) {
+                    case '\e':; {
+                        pos = newpos;
+                        goto badseq;
+                    } break;
+                    case 'F':; {
+                        tmpc2 = text[++newpos];
+                        switch (tmpc2) {
+                            case 'C':; {
+                                tmpc2 = text[++newpos];
+                                uint8_t fgc;
+                                if (isxdigit(tmpc2)) {
+                                    cs.fgc = (tmpc2 & 15) + (tmpc2 >> 6) * 9;
+                                } else {
+                                    goto badseq;
+                                }
+                                pos = newpos++;
+                                // create new sect with new fgc
+                                s->chars = pos - s->start;
+                                newSect(&t->linedata[line], &cs);
+                                s = &t->linedata[line].sectdata[++sect];
+                                s->start = newpos;
+                                goto goodseq;
+                            } break;
+                            case 'A':; {
+                                tmpc2 = text[++newpos];
+                                uint8_t fga;
+                                if (isxdigit(tmpc2)) {
+                                    fga = (tmpc2 & 15) + (tmpc2 >> 6) * 9;
+                                    fga <<= 4;
+                                    tmpc2 = text[++newpos];
+                                    if (isxdigit(tmpc2)) {
+                                        cs.fga = fga | ((tmpc2 & 15) + (tmpc2 >> 6) * 9);
+                                    } else {
+                                        goto badseq;
+                                    }
+                                } else {
+                                    goto badseq;
+                                }
+                                pos = newpos++;
+                                // create new sect with new fga
+                                s->chars = pos - s->start;
+                                newSect(&t->linedata[line], &cs);
+                                s = &t->linedata[line].sectdata[++sect];
+                                s->start = newpos;
+                                goto goodseq;
+                            } break;
+                            default:; {
+                                goto badseq;
+                            }
+                        }
+                    } break;
+                    case 'B':; {
+                        tmpc2 = text[++newpos];
+                        switch (tmpc2) {
+                            case 'C':; {
+                                tmpc2 = text[++newpos];
+                                uint8_t bgc;
+                                if (isxdigit(tmpc2)) {
+                                    cs.bgc = (tmpc2 & 15) + (tmpc2 >> 6) * 9;
+                                } else {
+                                    goto badseq;
+                                }
+                                pos = newpos++;
+                                // create new sect with new bgc
+                                s->chars = pos - s->start;
+                                newSect(&t->linedata[line], &cs);
+                                s = &t->linedata[line].sectdata[++sect];
+                                s->start = newpos;
+                                goto goodseq;
+                            } break;
+                            case 'A':; {
+                                tmpc2 = text[++newpos];
+                                uint8_t bga;
+                                if (isxdigit(tmpc2)) {
+                                    bga = (tmpc2 & 15) + (tmpc2 >> 6) * 9;
+                                    bga <<= 4;
+                                    tmpc2 = text[++newpos];
+                                    if (isxdigit(tmpc2)) {
+                                        cs.bga = bga | ((tmpc2 & 15) + (tmpc2 >> 6) * 9);
+                                    } else {
+                                        goto badseq;
+                                    }
+                                } else {
+                                    goto badseq;
+                                }
+                                pos = newpos++;
+                                // create new sect with new bga
+                                s->chars = pos - s->start;
+                                newSect(&t->linedata[line], &cs);
+                                s = &t->linedata[line].sectdata[++sect];
+                                s->start = newpos;
+                                goto goodseq;
+                            } break;
+                            default:; {
+                                goto badseq;
+                            }
+                        }
+                    } break;
+                    case 'A':; {
+                        tmpc2 = text[++newpos];
+                        if (isxdigit(tmpc2)) {
+                            cs.attribs = (tmpc2 & 15) + (tmpc2 >> 6) * 9;
+                        } else {
+                            goto badseq;
+                        }
+                        pos = newpos++;
+                        // create new sect with new attribs
+                        s->chars = pos - s->start;
+                        newSect(&t->linedata[line], &cs);
+                        s = &t->linedata[line].sectdata[++sect];
+                        s->start = newpos;
+                        goto goodseq;
+                    }
+                    case 'R':; {
+                        pos = newpos++;
+                        // create new sect and restore all vars to default
+                        memcpy(&cs, &ds, sizeof(cs));
+                        s->chars = pos - s->start;
+                        newSect(&t->linedata[line], &cs);
+                        s = &t->linedata[line].sectdata[++sect];
+                        s->start = newpos;
+                        goto goodseq;
+                    }
+                    default:; {
+                        goto badseq;
+                    }
+                }
+            }
+        }
+        badseq:;
+        {
+            float tmpw2 = tmpw + charw;
+            if (fancytext) {
+                if (tmpc == ' ' || sepchar) {
+                    int newpos = pos + 1;
+                    while (1) {
+                        char tmpc2 = text[newpos];
+                        if (!tmpc2 || tmpc2 == ' ' || tmpc2 == '\n') break;
+                        tmpw2 += charw;
+                        ++newpos;
+                    }
+                }
+                if (sepchar) sepchar = false;
+                if (tmpc == '-') sepchar = true;
+            }
+            bool nextline = false;
+            bool trimchar = false;
+            if (tmpc == '\n') {
+                nextline = true;
+                trimchar = true;
+                #if DBGLVL(2)
+                puts("NL");
+                #endif
+            } else if (pos > l->start && tmpw2 * scale > maxwidth) {
+                nextline = true;
+                #if DBGLVL(2)
+                printf("next line: %02X (%c)\n", tmpc, tmpc);
+                #endif
+                // if tmpc == ' ' and fancytext then remove from end of line
+                if (fancytext) {
+                    if (tmpc == ' ') trimchar = true;
+                }
+            }
+            if (nextline) {
+                // finalize current line and create new
+                s->chars = pos - s->start;
+                newLine(t, &cs);
+                l = &t->linedata[++line];
+                s = &t->linedata[line].sectdata[(sect = 0)];
+                l->start = s->start = pos + (trimchar);
+                tmpw = 0.0;
+                sepchar = false;
+            } else {
+                if (!trimchar) tmpw += charw;
+            }
+        }
+        goodseq:;
+        ++pos;
+    }
+    done:;
+    t->width = 0.0;
+    for (int i = 0; i < t->lines; ++i) {
+        struct ui_textline* l = &t->linedata[i];
+        float width = 0.0;
+        for (int j = 0; j < l->sects; ++j) {
+            struct ui_textsect* s = &l->sectdata[j];
+            width += s->chars * charw;
+        }
+        if (width > t->width) t->width = width;
+    }
+    #if DBGLVL(2)
+    t->height = (float)(t->lines) * charh;
+    printf("MADE TEXT: lines=%d, width=%g, height=%g, scale=%g\n", t->lines, t->width, t->height, t->scale);
+    for (int i = 0; i < t->lines; ++i) {
+        struct ui_textline* l = &t->linedata[i];
+        printf("  Line %d (%d sects): start=%d\n", i, l->sects, l->start);
+        for (int j = 0; j < l->sects; ++j) {
+            struct ui_textsect* s = &l->sectdata[j];
+            printf("    Sect %d: start=%d, chars=%d, end=%d, fgc=%d, bgc=%d, fga=%d, bga=%d, attribs=%01X\n",
+                j, s->start, s->chars, s->start + s->chars, s->fgc, s->bgc, s->fga, s->bga, s->attribs);
+            printf("      text=\"%.*s\"\n", s->chars, &t->str[s->start]);
+        }
+    }
+    #endif
+    return t;
+}
+
 static inline void calcElem(struct ui_layer* layer, struct ui_elem* e) {
     //printf("calcElem: name=%s\n", e->attribs.name);
     struct ui_calcattribs* c = &e->calcattribs;
@@ -648,8 +898,8 @@ static inline void calcElem(struct ui_layer* layer, struct ui_elem* e) {
         p_elem = NULL;
         _p.x = 0;
         _p.y = 0;
-        _p.width = layer->width;
-        _p.height = layer->height;
+        _p.width = layer->width / layer->scale;
+        _p.height = layer->height / layer->scale;
         p = &_p;
     }
     float width = getSize(e->attribs.size.width, p->width);
@@ -658,247 +908,46 @@ static inline void calcElem(struct ui_layer* layer, struct ui_elem* e) {
     float minheight = (*e->attribs.minsize.height) ? getSize(e->attribs.minsize.height, p->height) : height;
     float maxwidth = (*e->attribs.maxsize.width) ? getSize(e->attribs.maxsize.width, p->width) : width;
     float maxheight = (*e->attribs.maxsize.height) ? getSize(e->attribs.maxsize.height, p->height) : height;
-    char* text = e->attribs.text;
     if (c->text) {
         freeText(c->text);
         c->text = NULL;
     }
+    char* text = e->attribs.text;
     if (text) {
-        bool richtext = e->attribs.richtext;
-        bool fancytext = e->attribs.fancytext;
-        float scale = e->attribs.textscale;
-        float charw = 8.0, charh = 16.0;
-        float tmpw = 0.0;
-        struct ui_textsect ds; // default section
-        struct ui_textsect cs; // current section
-        memset(&ds, 0, sizeof(ds));
-        memset(&cs, 0, sizeof(cs));
-        ds.fgc = e->attribs.textcolor.fg;
-        ds.bgc = e->attribs.textcolor.bg;
-        ds.fga = e->attribs.textalpha.fg;
-        ds.bga = e->attribs.textalpha.bg;
-        ds.attribs = e->attribs.textattrib.b | (e->attribs.textattrib.i << 1);
-        ds.attribs |= (e->attribs.textattrib.u << 2) | (e->attribs.textattrib.s << 3);
-        memcpy(&cs, &ds, sizeof(cs)); // copy defaults into current
-        c->text = allocText(&cs);
-        struct ui_text* t = c->text;
-        t->alignx = e->attribs.align.x;
-        t->aligny = e->attribs.align.y;
-        t->scale = scale;
-        t->str = strdup(text);
-        int line = 0;
-        int sect = 0;
-        int pos = 0;
-        struct ui_textline* l = &t->linedata[0];
-        struct ui_textsect* s = &t->linedata[0].sectdata[0];
-        #if DBGLVL(2)
-        printf("MAKING TEXT: maxwidth=%g\n", maxwidth);
-        #endif
-        bool sepchar = false;
-        while (1) {
-            char tmpc = text[pos];
-            if (!tmpc) {
-                s->chars = pos - s->start;
-                goto done;
-            }
-            if (richtext) {
-                if (tmpc == '\e') {
-                    int newpos = pos;
-                    char tmpc2 = text[++newpos];
-                    switch (tmpc2) {
-                        case '\e':; {
-                            pos = newpos;
-                            goto badseq;
-                        } break;
-                        case 'F':; {
-                            tmpc2 = text[++newpos];
-                            switch (tmpc2) {
-                                case 'C':; {
-                                    tmpc2 = text[++newpos];
-                                    uint8_t fgc;
-                                    if (isxdigit(tmpc2)) {
-                                        cs.fgc = (tmpc2 & 15) + (tmpc2 >> 6) * 9;
-                                    } else {
-                                        goto badseq;
-                                    }
-                                    pos = newpos++;
-                                    // create new sect with new fgc
-                                    s->chars = pos - s->start;
-                                    newSect(&t->linedata[line], &cs);
-                                    s = &t->linedata[line].sectdata[++sect];
-                                    s->start = newpos;
-                                    goto goodseq;
-                                } break;
-                                case 'A':; {
-                                    tmpc2 = text[++newpos];
-                                    uint8_t fga;
-                                    if (isxdigit(tmpc2)) {
-                                        fga = (tmpc2 & 15) + (tmpc2 >> 6) * 9;
-                                        fga <<= 4;
-                                        tmpc2 = text[++newpos];
-                                        if (isxdigit(tmpc2)) {
-                                            cs.fga = fga | ((tmpc2 & 15) + (tmpc2 >> 6) * 9);
-                                        } else {
-                                            goto badseq;
-                                        }
-                                    } else {
-                                        goto badseq;
-                                    }
-                                    pos = newpos++;
-                                    // create new sect with new fga
-                                    s->chars = pos - s->start;
-                                    newSect(&t->linedata[line], &cs);
-                                    s = &t->linedata[line].sectdata[++sect];
-                                    s->start = newpos;
-                                    goto goodseq;
-                                } break;
-                                default:; {
-                                    goto badseq;
-                                }
-                            }
-                        } break;
-                        case 'B':; {
-                            tmpc2 = text[++newpos];
-                            switch (tmpc2) {
-                                case 'C':; {
-                                    tmpc2 = text[++newpos];
-                                    uint8_t bgc;
-                                    if (isxdigit(tmpc2)) {
-                                        cs.bgc = (tmpc2 & 15) + (tmpc2 >> 6) * 9;
-                                    } else {
-                                        goto badseq;
-                                    }
-                                    pos = newpos++;
-                                    // create new sect with new bgc
-                                    s->chars = pos - s->start;
-                                    newSect(&t->linedata[line], &cs);
-                                    s = &t->linedata[line].sectdata[++sect];
-                                    s->start = newpos;
-                                    goto goodseq;
-                                } break;
-                                case 'A':; {
-                                    tmpc2 = text[++newpos];
-                                    uint8_t bga;
-                                    if (isxdigit(tmpc2)) {
-                                        bga = (tmpc2 & 15) + (tmpc2 >> 6) * 9;
-                                        bga <<= 4;
-                                        tmpc2 = text[++newpos];
-                                        if (isxdigit(tmpc2)) {
-                                            cs.bga = bga | ((tmpc2 & 15) + (tmpc2 >> 6) * 9);
-                                        } else {
-                                            goto badseq;
-                                        }
-                                    } else {
-                                        goto badseq;
-                                    }
-                                    pos = newpos++;
-                                    // create new sect with new bga
-                                    s->chars = pos - s->start;
-                                    newSect(&t->linedata[line], &cs);
-                                    s = &t->linedata[line].sectdata[++sect];
-                                    s->start = newpos;
-                                    goto goodseq;
-                                } break;
-                                default:; {
-                                    goto badseq;
-                                }
-                            }
-                        } break;
-                        case 'A':; {
-                            tmpc2 = text[++newpos];
-                            if (isxdigit(tmpc2)) {
-                                cs.attribs = (tmpc2 & 15) + (tmpc2 >> 6) * 9;
-                            } else {
-                                goto badseq;
-                            }
-                            pos = newpos++;
-                            // create new sect with new attribs
-                            s->chars = pos - s->start;
-                            newSect(&t->linedata[line], &cs);
-                            s = &t->linedata[line].sectdata[++sect];
-                            s->start = newpos;
-                            goto goodseq;
-                        }
-                        case 'R':; {
-                            pos = newpos++;
-                            // create new sect and restore all vars to default
-                            memcpy(&cs, &ds, sizeof(cs));
-                            s->chars = pos - s->start;
-                            newSect(&t->linedata[line], &cs);
-                            s = &t->linedata[line].sectdata[++sect];
-                            s->start = newpos;
-                            goto goodseq;
-                        }
-                        default:; {
-                            goto badseq;
-                        }
-                    }
-                }
-            }
-            badseq:;
-            {
-                float tmpw2 = tmpw + charw;
-                if (fancytext) {
-                    if (tmpc == ' ' || sepchar) {
-                        int newpos = pos + 1;
-                        while (1) {
-                            char tmpc2 = text[newpos];
-                            if (!tmpc2 || tmpc2 == ' ' || tmpc2 == '\n') break;
-                            tmpw2 += charw;
-                            ++newpos;
-                        }
-                    }
-                    if (sepchar) sepchar = false;
-                    if (tmpc == '-') sepchar = true;
-                }
-                bool nextline = false;
-                bool trimchar = false;
-                if (tmpc == '\n') {
-                    nextline = true;
-                    trimchar = true;
-                    #if DBGLVL(2)
-                    puts("NL");
-                    #endif
-                } else if (pos > l->start && tmpw2 * scale > maxwidth) {
-                    nextline = true;
-                    #if DBGLVL(2)
-                    printf("next line: %02X (%c)\n", tmpc, tmpc);
-                    #endif
-                    // if tmpc == ' ' and fancytext then remove from end of line
-                    if (fancytext) {
-                        if (tmpc == ' ') trimchar = true;
-                    }
-                }
-                if (nextline) {
-                    // finalize current line and create new
-                    s->chars = pos - s->start;
-                    newLine(t, &cs);
-                    l = &t->linedata[++line];
-                    s = &t->linedata[line].sectdata[(sect = 0)];
-                    l->start = s->start = pos + (trimchar);
-                    tmpw = 0.0;
-                    sepchar = false;
-                } else {
-                    if (!trimchar) tmpw += charw;
-                }
-            }
-            goodseq:;
-            ++pos;
-        }
-        done:;
-        #if DBGLVL(2)
-        printf("MADE TEXT: %d lines\n", t->lines);
-        for (int i = 0; i < t->lines; ++i) {
-            struct ui_textline* l = &t->linedata[i];
-            printf("  Line %d (%d sects): start=%d\n", i, l->sects, l->start);
-            for (int j = 0; j < l->sects; ++j) {
-                struct ui_textsect* s = &l->sectdata[j];
-                printf("    Sect %d: start=%d, chars=%d, end=%d, fgc=%d, bgc=%d, fga=%d, bga=%d, attribs=%01X\n",
-                    j, s->start, s->chars, s->start + s->chars, s->fgc, s->bgc, s->fga, s->bga, s->attribs);
-                printf("      text=\"%.*s\"\n", s->chars, &t->str[s->start]);
-            }
-        }
-        #endif
+        c->text = calcText(e, text, maxwidth);
+        width = c->text->width * c->text->scale;
+        height = c->text->height * c->text->scale;
+    }
+    if (width < minwidth) width = minwidth;
+    if (width > maxwidth) width = maxwidth;
+    if (height < minheight) height = minheight;
+    if (height > maxheight) height = maxheight;
+    c->viswidth = width;
+    c->visheight = height;
+    float margin[4]; // TBLR
+    margin[0] = getSize(e->attribs.margin.top, p->height);
+    margin[1] = getSize(e->attribs.margin.bottom, p->height);
+    margin[2] = getSize(e->attribs.margin.left, p->width);
+    margin[3] = getSize(e->attribs.margin.right, p->width);
+    c->totalwidth = width + margin[2] + margin[3];
+    c->totalheight = height + margin[0] + margin[1];
+    float padding[4];
+    padding[0] = getSize(e->attribs.margin.top, height);
+    padding[1] = getSize(e->attribs.margin.bottom, height);
+    padding[2] = getSize(e->attribs.margin.left, width);
+    padding[3] = getSize(e->attribs.margin.right, width);
+    c->width = width - padding[2] - padding[3];
+    c->height = height - padding[0] - padding[1];
+    switch (e->attrib.align.x) {
+        case 1:; {
+            
+        } break;
+        case -1:; {
+            
+        } break;
+        default:; {
+            
+        } break;
     }
 }
 
@@ -918,11 +967,12 @@ static void calcRecursive(struct ui_layer* layer, struct ui_elem* e) {
 void _calcUI(struct ui_layer* layer) {
     //printf("_calcUI: name=%s\n", layer->name);
     bool reschanged = false;
-    if (layer->width != (int)rendinf.width || layer->height != (int)rendinf.height) {
+    if (layer->width != (int)rendinf.width || layer->height != (int)rendinf.height || layer->scale != layer->oldscale) {
         layer->recalc = true;
         reschanged = true;
         layer->width = rendinf.width;
         layer->height = rendinf.height;
+        layer->oldscale = layer->scale;
     }
     if (!layer->recalc) return;
     for (int i = 0; i < layer->children; ++i) {

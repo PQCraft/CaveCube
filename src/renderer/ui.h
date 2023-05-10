@@ -163,6 +163,8 @@ struct ui_textline {
 struct ui_text {
     int8_t alignx;
     int8_t aligny;
+    float width;
+    float height;
     float scale;
     char* str;
     int lines;
@@ -202,6 +204,7 @@ struct ui_layer {
     char* name;
     bool hidden;
     float scale;
+    float oldscale;
     int width;
     int height;
     int elems;

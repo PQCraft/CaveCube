@@ -21,7 +21,7 @@
     - Add `t` as a number suffix for size to fit to number \* text size
     - Add `minwidth` and `maxwidth` attribs
     - Add items to hotbar
-- Send max height in SERVER_UPDATECHUNK
+- Heavy mesher optimization
 - Make server executable work again
 - Implement server chunk cache/pool
 - Add back block placement
@@ -60,7 +60,12 @@
 - Make updateChunks() use a message list
 - Implement extensions in `src/main/extmgr.(c|h)` using libdl
 - Palette compression
-    - Variable index size
+    - Each 16x16x16 section of a chunk has its own palette
+    - `uint32_t` index
+        - Top 20 bits contain lighting info
+        - bottom 12 bits contain the index
+    - Add palette sharing as an option
+        - May not reduce memory usage by a lot and may use a lot of CPU in return
 
 ### IN-PROGRESS:
 - Redo the way UI works

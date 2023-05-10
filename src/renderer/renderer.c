@@ -1578,7 +1578,7 @@ void render() {
                 "Velocity: (%f, %f, %f)\n"
                 "Rotation: (%f, %f, %f)\n"
                 "Block: (%d, %d, %d)\n"
-                "Chunk: (%"PRId64", %"PRId64")\n",
+                "Chunk: (%"PRId64", %"PRId64")",
                 rendinf.width, rendinf.height, rendinf.fps, (rendinf.vsync) ? "on" : "off",
                 fps, realfps,
                 pcoord.x, pcoord.y, pcoord.z,

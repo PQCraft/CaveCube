@@ -266,7 +266,7 @@ static void gameLoop() {
         UI_ATTR_NAME, "hud", UI_ATTR_SIZE, "100%", "100%", UI_ATTR_CALLBACK, gameLoop_hud_callback, UI_END);
 
     int ui_hotbar = newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_HOTBAR, ui_hud,
-        UI_ATTR_NAME, "hotbar", UI_ATTR_ALIGN, 0, 1, UI_ATTR_MARGIN, "10", "10", "0", "0", UI_END);
+        UI_ATTR_NAME, "hotbar", UI_ATTR_ALIGN, 0, 1, UI_ATTR_MARGIN, "10", "10", "0", "0", UI_ATTR_CALLBACK, gameLoop_hud_callback, UI_END);
     updateHotbar(ui_hotbar, invspot);
 
     while (!quitRequest) {
