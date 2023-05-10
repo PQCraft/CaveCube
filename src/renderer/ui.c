@@ -687,7 +687,6 @@ static struct ui_text* calcText(struct ui_elem* e, char* text, float maxwidth) {
                         switch (tmpc2) {
                             case 'C':; {
                                 tmpc2 = text[++newpos];
-                                uint8_t fgc;
                                 if (isxdigit(tmpc2)) {
                                     cs.fgc = (tmpc2 & 15) + (tmpc2 >> 6) * 9;
                                 } else {
@@ -734,7 +733,6 @@ static struct ui_text* calcText(struct ui_elem* e, char* text, float maxwidth) {
                         switch (tmpc2) {
                             case 'C':; {
                                 tmpc2 = text[++newpos];
-                                uint8_t bgc;
                                 if (isxdigit(tmpc2)) {
                                     cs.bgc = (tmpc2 & 15) + (tmpc2 >> 6) * 9;
                                 } else {
@@ -868,8 +866,8 @@ static struct ui_text* calcText(struct ui_elem* e, char* text, float maxwidth) {
         }
         if (width > t->width) t->width = width;
     }
-    #if DBGLVL(2)
     t->height = (float)(t->lines) * charh;
+    #if DBGLVL(2)
     printf("MADE TEXT: lines=%d, width=%g, height=%g, scale=%g\n", t->lines, t->width, t->height, t->scale);
     for (int i = 0; i < t->lines; ++i) {
         struct ui_textline* l = &t->linedata[i];
@@ -938,7 +936,18 @@ static inline void calcElem(struct ui_layer* layer, struct ui_elem* e) {
     padding[3] = getSize(e->attribs.margin.right, width);
     c->width = width - padding[2] - padding[3];
     c->height = height - padding[0] - padding[1];
-    switch (e->attrib.align.x) {
+    switch (e->attribs.align.x) {
+        case 1:; {
+            
+        } break;
+        case -1:; {
+            
+        } break;
+        default:; {
+            
+        } break;
+    }
+    switch (e->attribs.align.y) {
         case 1:; {
             
         } break;
