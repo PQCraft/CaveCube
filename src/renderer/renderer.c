@@ -1201,7 +1201,7 @@ static void mesh(int64_t x, int64_t z, uint64_t id) {
             rendinf.chunks->renddata[c].yvoff[i] = yvoff[i];
             rendinf.chunks->renddata[c].yvcount[i] = yvcount[i];
         }
-        memcpy(rendinf.chunks->renddata[c].vispass, vispass, sizeof(rendinf.chunks->renddata[c].vispass));
+        memcpy(rendinf.chunks->renddata[c].vispass, vispass, sizeof(rendinf.chunks->renddata->vispass));
         rendinf.chunks->renddata[c].vertices[0] = _vptr;
         rendinf.chunks->renddata[c].vertices[1] = _vptr2;
         rendinf.chunks->renddata[c].updateid = id;

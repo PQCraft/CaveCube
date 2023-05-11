@@ -559,7 +559,7 @@ static void* servthread(void* args) {
         if (activity) {
             acttime = altutime();
         } else if (altutime() - acttime > 100000) {
-            microwait(50000);
+            microwait(10000);
         }
         microwait(0);
     }

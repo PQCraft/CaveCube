@@ -70,7 +70,7 @@ void genChunk(int64_t cx, int64_t cz, struct blockdata* data, int type) {
     int64_t nx = cx * 16;
     int64_t nz = cz * 16;
     unsigned sliver[512];
-    unsigned block[512];
+    uint8_t block[512];
     for (int z = 0; z < 16; ++z) {
         for (int x = 0; x < 16; ++x) {
             double cx = (double)(nx + x) - 8;
@@ -152,15 +152,15 @@ void genChunk(int64_t cx, int64_t cz, struct blockdata* data, int type) {
                                 sliver[i] = dirt;
                             } else {
                                 sliver[i] = stone;
-                                if (noise3(10, cx / 7.33, fi / 2.1, cz / 7.33) < (fi / 512.0) * 2.5 - 1.25) {
+                                float mix1 = noise3(10, cx / 7.33, fi / 5.1, cz / 7.33);
+                                if (mix1 < (fi / 512.0) * 2.5 - 1.25) {
                                     sliver[i] |= stone_granite;
                                 } else {
-                                    float mix1 = noise3(11, cx / 6.2, fi / 5.6, cz / 6.2);
                                     if (mix1 + 0.5 > fi / 60.0) {
                                         sliver[i] |= stone_basalt;
                                     } else if (mix1 < -0.5) {
                                         sliver[i] |= stone_cobble;
-                                    } else if (mix1 > -0.25 && mix1 < 0.25) {
+                                    } else if (mix1 > -0.2 && mix1 < 0.2) {
                                         float mix2 = noise3(12, cx / 14.1, fi / 7.8, cz / 14.1);
                                         if (mix2 > 0.56) {
                                             sliver[i] = dirt;

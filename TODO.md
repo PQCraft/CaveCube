@@ -22,6 +22,7 @@
     - Add `minwidth` and `maxwidth` attribs
     - Add items to hotbar
 - Heavy mesher optimization
+- Worldgen optimization
 - Make server executable work again
 - Implement server chunk cache/pool
 - Add back block placement
@@ -66,6 +67,7 @@
         - bottom 12 bits contain the index
     - Add palette sharing as an option
         - May not reduce memory usage by a lot and may use a lot of CPU in return
+- Heavy optimization and port to OG Xbox
 
 ### IN-PROGRESS:
 - Redo the way UI works

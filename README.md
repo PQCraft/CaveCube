@@ -16,6 +16,7 @@
 
 ---
 ### Contributing
+Development happens on the `dev` branch.<br>
 Please read the [contributing guide](https://github.com/PQCraft/CaveCube/blob/dev/CONTRIBUTING.md).<br>
 The project status is written down in [TODO.md](https://github.com/PQCraft/CaveCube/blob/dev/TODO.md).<br>
 

@@ -113,9 +113,9 @@ static force_inline coord_3d_dbl icoord2wcoord(coord_3d cam, int64_t cx, int64_t
 }
 
 static force_inline void updateHotbar(int hb, int slot) {
-    char hbslot[2] = {slot + '0', 0};
+    //printf("updateHotbar: hb=%d, slot=%d\n", hb, slot);
     editUIElem(game_ui[UILAYER_CLIENT], hb,
-        UI_ATTR_HOTBAR_SLOT, hbslot, UI_END);
+        UI_ATTR_HOTBAR_SLOT, slot, UI_END);
 }
 
 static pthread_mutex_t gfxlock = PTHREAD_MUTEX_INITIALIZER;
