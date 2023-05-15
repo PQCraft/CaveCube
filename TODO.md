@@ -23,6 +23,9 @@
     - Add items to hotbar
 - Heavy mesher optimization
 - Worldgen optimization
+    - Redo code to build a chunk in stages
+    - Cache and interpolate noise to save CPU
+    - Generate multiple noise values at once using SIMD
 - Make server executable work again
 - Implement server chunk cache/pool
 - Add back block placement

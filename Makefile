@@ -135,6 +135,7 @@ endif
 BIN := $(BINNAME)$(BINEXT)
 
 CFLAGS += -Wall -Wextra -D_DEFAULT_SOURCE -D_GNU_SOURCE -pthread -ffast-math
+CFLAGS += -fno-exceptions -fno-stack-clash-protection -fcf-protection=none
 ifdef OS
     WRFLAGS += $(MODULECFLAGS) -DMODULE=$(MODULE)
 else

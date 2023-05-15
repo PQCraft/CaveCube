@@ -111,7 +111,7 @@ noise_t nperlin2d(int t, noisefloat x, noisefloat y, noisefloat freq, int depth)
 
 #define FADE(t) (t * t * t * (t * (t * 6 - 15) + 10))
 
-#define FASTFLOOR(x) (((noiseint)(x) < (x)) ? ((noiseint)x) : ((noiseint)x - 1))
+#define FASTFLOOR(x) (((noiseint)(x) < (x)) ? ((noiseint)(x)) : ((noiseint)(x)) - 1)
 #define LERP(t, a, b) ((a) + (t) * ((b) - (a)))
 
 static force_inline noise_t grad2(int hash, noisefloat x, noisefloat y) {

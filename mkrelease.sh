@@ -65,10 +65,6 @@ tsk "Making release..."
 git tag -s "${VER}" -m "${RELTEXT}" || _exit
 git push --tags || _exit
 gh release create "${VER}" --title "${VER}" --notes "${RELTEXT}" cavecube*.tar.gz cavecube*.zip || _exit
-git checkout master || _exit
-git merge dev || _exit
-git push || _exit
-git checkout dev || _exit
 
 tsk "Updating AUR..."
 updatepkg() {

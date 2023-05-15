@@ -9,7 +9,7 @@
 
 #define noiseint int64_t
 #define noisefloat double
-#define perm_t uint8_t
+#define perm_t int
 #define noise_t float
 
 void initNoiseTable(int);
