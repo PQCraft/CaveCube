@@ -1,4 +1,4 @@
-# <img src="https://raw.githubusercontent.com/PQCraft/CaveCube/dev/extras/icon/hicolor/512x512/apps/cavecube.png" align="right" height="95"/>CaveCube
+# <img src="https://raw.githubusercontent.com/PQCraft/CaveCube/master/extras/icon/hicolor/512x512/apps/cavecube.png" align="right" height="95"/>CaveCube
 **An in-development Minecraft/Infiniminer clone**<br>
 
 ---
@@ -16,7 +16,6 @@
 
 ---
 ### Contributing
-Development happens on the `dev` branch.<br>
 Please read the [contributing guide](https://github.com/PQCraft/CaveCube/blob/dev/CONTRIBUTING.md).<br>
 The project status is written down in [TODO.md](https://github.com/PQCraft/CaveCube/blob/dev/TODO.md).<br>
 
@@ -34,7 +33,7 @@ OpenGL 3.3 or OpenGLES 3.0 support.
 ### Building
 Command to download source code:<br>
 ```
-git clone -b dev --filter=tree:0 https://github.com/PQCraft/CaveCube.git
+git clone --filter=tree:0 https://github.com/PQCraft/CaveCube.git
 ```
 - To build, run `make -j`.<br>
 - To build and run once done compiling, run `make -j run`.<br>

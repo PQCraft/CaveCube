@@ -1,6 +1,4 @@
 ### CONTRIBUTING GUIDE
-- Please fork the `dev` branch and not the `master` branch
-    - The `master` branch is for working releases and is only updated when the version is incremented
 - Please use the coding style/format represented in the rest of the code:<br>
     - Use 4-space tabbing and put the pointer asterisks in the type (`void* ptr` instead of `void *ptr`)
         ```c
