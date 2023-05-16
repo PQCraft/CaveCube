@@ -198,7 +198,7 @@ ifeq ($(MODULE),game)
         CFLAGS += -DUSESDL2
         ifdef OS
             WRFLAGS += -DUSESDL2
-            BINFLAGS += -lSDL2
+            BINFLAGS += -l:libSDL2.a -lole32 -loleaut32 -limm32 -lsetupapi -lversion
         else
             ifndef EMSCR
                 BINFLAGS += -lSDL2

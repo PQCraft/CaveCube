@@ -22,16 +22,16 @@ pause() {
     ask "${TB}Press enter to continue...${TR}"
 }
 _exit() {
-    local ERR="$?"
-    [[ $# -eq 0 ]] || local ERR="$1"
+    local ERR="${?}"
+    [[ ${#} -eq 0 ]] || local ERR="${1}"
     err "Error ${ERR}"
     exit "${ERR}"
 }
 
-_tar() { rm -f "${1}"; tar --transform 's/.*\///g' -zc -f "${1}" ${@:2} 1> /dev/null; }
-_zip() { rm -f "${1}"; zip -j -r -9 "${1}" ${@:2} 1> /dev/null; }
-_tar_r() { rm -f "${1}"; tar -zc -f "${1}" ${@:2} 1> /dev/null; }
-_zip_r() { rm -f "${1}"; zip -r -9 "${1}" ${@:2} 1> /dev/null; }
+_tar() { rm -f -- "${1}"; tar --transform 's/.*\///g' -zc -f "${1}" -- ${@:2} 1> /dev/null; }
+_zip() { rm -f -- "${1}"; zip -qjr9 "./${1}" -- ${@:2}; }
+_tar_r() { rm -f -- "${1}"; tar -zc -f "${1}" -- ${@:2} 1> /dev/null; }
+_zip_r() { rm -f -- "${1}"; zip -qr9 "./${1}" -- ${@:2}; }
 
 if ! (return 0 2> /dev/null); then
 
@@ -78,7 +78,7 @@ updatepkg() {
     git add PKGBUILD .SRCINFO || _exit
     git commit -m "${VER}" || _exit
     git push || _exit
-    cd "$OLDCD"
+    cd "${OLDCD}"
 }
 updatepkg cavecube
 updatepkg cavecube-bin
