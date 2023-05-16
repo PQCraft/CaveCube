@@ -16,8 +16,8 @@
 
 ---
 ### Contributing
-Please read the [contributing guide](https://github.com/PQCraft/CaveCube/blob/dev/CONTRIBUTING.md).<br>
-The project status is written down in [TODO.md](https://github.com/PQCraft/CaveCube/blob/dev/TODO.md).<br>
+Please read the [contributing guide](https://github.com/PQCraft/CaveCube/blob/master/CONTRIBUTING.md).<br>
+The project status is written down in [TODO.md](https://github.com/PQCraft/CaveCube/blob/master/TODO.md).<br>
 
 ---
 ### Requirements
