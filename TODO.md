@@ -22,6 +22,8 @@
     - Add `minwidth` and `maxwidth` attribs
     - Add items to hotbar
 - Heavy mesher optimization
+    - Don't mesh culled chunks
+        - Skip individual sections if possible
 - Worldgen optimization
     - Redo code to build a chunk in stages
     - Cache and interpolate noise to save CPU
@@ -71,6 +73,8 @@
     - Add palette sharing as an option
         - May not reduce memory usage by a lot and may use a lot of CPU in return
 - Heavy optimization and port to OG Xbox
+    - Will probably require the removal of Singleplayer due to RAM limitations
+- Render thread
 
 ### IN-PROGRESS:
 - Redo the way UI works

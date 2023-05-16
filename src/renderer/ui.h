@@ -184,7 +184,6 @@ struct ui_calcattribs {
     float visy1;
     float viswidth;
     float visheight;
-    int16_t z;
     struct ui_text* text;
 };
 

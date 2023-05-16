@@ -636,6 +636,20 @@ static inline float getSize(char* propval, float max) {
     return num;
 }
 
+static inline float getPos(int mode, float ppos, float psize, float size) {
+    switch (mode) {
+        case 1:; {
+            return (ppos + psize) - size;
+        } break;
+        case -1:; {
+            return ppos;
+        } break;
+        default:; {
+            return (ppos + psize / 2.0) - size / 2.0;
+        } break;
+    }
+}
+
 static struct ui_text* calcText(struct ui_elem* e, char* text, float maxwidth) {
     bool richtext = e->attribs.richtext;
     bool fancytext = e->attribs.fancytext;
@@ -896,8 +910,8 @@ static inline void calcElem(struct ui_layer* layer, struct ui_elem* e) {
         p_elem = NULL;
         _p.x = 0;
         _p.y = 0;
-        _p.width = layer->width / layer->scale;
-        _p.height = layer->height / layer->scale;
+        _p.totalwidth = _p.width = layer->width / layer->scale;
+        _p.totalheight = _p.height = layer->height / layer->scale;
         p = &_p;
     }
     float width = getSize(e->attribs.size.width, p->width);
@@ -936,28 +950,8 @@ static inline void calcElem(struct ui_layer* layer, struct ui_elem* e) {
     padding[3] = getSize(e->attribs.margin.right, width);
     c->width = width - padding[2] - padding[3];
     c->height = height - padding[0] - padding[1];
-    switch (e->attribs.align.x) {
-        case 1:; {
-            
-        } break;
-        case -1:; {
-            
-        } break;
-        default:; {
-            
-        } break;
-    }
-    switch (e->attribs.align.y) {
-        case 1:; {
-            
-        } break;
-        case -1:; {
-            
-        } break;
-        default:; {
-            
-        } break;
-    }
+    c->x = getPos(e->attribs.align.x, p->x, p->totalwidth, c->totalwidth);
+    c->y = getPos(e->attribs.align.y, p->y, p->totalheight, c->totalheight);
 }
 
 static void calcRecursive(struct ui_layer* layer, struct ui_elem* e) {

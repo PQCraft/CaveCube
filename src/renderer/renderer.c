@@ -1449,6 +1449,12 @@ static inline void syncTextColors() {
 }
 
 static force_inline bool renderUI(struct ui_layer* data) {
+    /*
+    glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(0));
+    glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 4 * sizeof(uint32_t), (void*)(sizeof(uint32_t)));
+    glVertexAttribIPointer(2, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * 2));
+    glVertexAttribIPointer(3, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * 3));
+    */
     return false;
 }
 

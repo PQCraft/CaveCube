@@ -1,7 +1,7 @@
 layout (location = 0) in uint data1;
 // ui elem: [16 bits: x][16 bits: y]
-layout (location = 1) in uint data2;
-// ui elem: [16 bits: 0][16 bits: z]
+layout (location = 1) in float data2;
+// ui elem: [f32: z]
 layout (location = 2) in uint data3;
 // ui elem: [16 bits: texture x][16 bits: texture y]
 layout (location = 3) in uint data4;
@@ -17,7 +17,7 @@ void main() {
     gl_Position.x = (gl_Position.x / fbsize.x) * 2.0 - 1.0;
     gl_Position.y = float((int(data1) & int(32767)) + (int(data1) & int(32768)) * int(-1));
     gl_Position.y = (1.0 - (gl_Position.y / fbsize.y)) * 2.0 - 1.0;
-    gl_Position.z = float(data2 & uint(65535));
+    gl_Position.z = data2;
     gl_Position.w = 1.0;
     texCoord.x = float((data3 >> 16) & uint(65535));
     texCoord.y = 1.0 - float(data3 & uint(65535));
