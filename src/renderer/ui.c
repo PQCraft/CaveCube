@@ -222,6 +222,10 @@ int newUIElem(struct ui_layer* layer, int type, int parent, ...) {
             case UI_ATTR_TOOLTIP:; {
                 e->attribs.tooltip = strdupn(va_arg(args, char*));
             } break;
+            case UI_ATTR_SLIDER_AMOUNT:; {
+                float amount = va_arg(args, double);
+                if (type == UI_ELEM_SLIDER) e->attribs.slider.amount = amount;
+            } break;
             case UI_ATTR_TOGGLE_STATE:; {
                 int state = va_arg(args, int);
                 if (type == UI_ELEM_TOGGLE) e->attribs.toggle.state = state;
@@ -235,15 +239,15 @@ int newUIElem(struct ui_layer* layer, int type, int parent, ...) {
                 if (type == UI_ELEM_TEXTBOX) e->attribs.textbox.shadowtext = strdupn(shadowtext);
             } break;
             case UI_ATTR_PROGRESSBAR_PROGRESS:; {
-                double progress = va_arg(args, double);
+                float progress = va_arg(args, double);
                 if (type == UI_ELEM_PROGRESSBAR) e->attribs.progressbar.progress = progress;
             } break;
             case UI_ATTR_SCROLLBAR_MAXSCROLL:; {
-                double maxscroll = va_arg(args, double);
+                float maxscroll = va_arg(args, double);
                 if (type == UI_ELEM_SCROLLBAR) e->attribs.scrollbar.maxscroll = maxscroll;
             } break;
             case UI_ATTR_SCROLLBAR_SCROLL:; {
-                double scroll = va_arg(args, double);
+                float scroll = va_arg(args, double);
                 if (type == UI_ELEM_SCROLLBAR) e->attribs.scrollbar.scroll = scroll;
             } break;
             case UI_ATTR_HOTBAR_SLOT:; {
@@ -506,6 +510,10 @@ int editUIElem(struct ui_layer* layer, int id, ...) {
                 free(e->attribs.tooltip);
                 e->attribs.tooltip = strdupn(va_arg(args, char*));
             } break;
+            case UI_ATTR_SLIDER_AMOUNT:; {
+                float amount = va_arg(args, double);
+                if (e->type == UI_ELEM_SLIDER) e->attribs.slider.amount = amount;
+            } break;
             case UI_ATTR_TOGGLE_STATE:; {
                 int state = va_arg(args, int);
                 if (e->type == UI_ELEM_TOGGLE) e->attribs.toggle.state = state;
@@ -522,15 +530,15 @@ int editUIElem(struct ui_layer* layer, int id, ...) {
                 }
             } break;
             case UI_ATTR_PROGRESSBAR_PROGRESS:; {
-                double progress = va_arg(args, double);
+                float progress = va_arg(args, double);
                 if (e->type == UI_ELEM_PROGRESSBAR) e->attribs.progressbar.progress = progress;
             } break;
             case UI_ATTR_SCROLLBAR_MAXSCROLL:; {
-                double maxscroll = va_arg(args, double);
+                float maxscroll = va_arg(args, double);
                 if (e->type == UI_ELEM_SCROLLBAR) e->attribs.scrollbar.maxscroll = maxscroll;
             } break;
             case UI_ATTR_SCROLLBAR_SCROLL:; {
-                double scroll = va_arg(args, double);
+                float scroll = va_arg(args, double);
                 if (e->type == UI_ELEM_SCROLLBAR) e->attribs.scrollbar.scroll = scroll;
             } break;
             case UI_ATTR_HOTBAR_SLOT:; {
@@ -910,8 +918,8 @@ static inline void calcElem(struct ui_layer* layer, struct ui_elem* e) {
         p_elem = NULL;
         _p.x = 0;
         _p.y = 0;
-        _p.totalwidth = _p.width = layer->width / layer->scale;
-        _p.totalheight = _p.height = layer->height / layer->scale;
+        _p.width = layer->width / layer->scale;
+        _p.height = layer->height / layer->scale;
         p = &_p;
     }
     float width = getSize(e->attribs.size.width, p->width);
@@ -950,8 +958,8 @@ static inline void calcElem(struct ui_layer* layer, struct ui_elem* e) {
     padding[3] = getSize(e->attribs.margin.right, width);
     c->width = width - padding[2] - padding[3];
     c->height = height - padding[0] - padding[1];
-    c->x = getPos(e->attribs.align.x, p->x, p->totalwidth, c->totalwidth);
-    c->y = getPos(e->attribs.align.y, p->y, p->totalheight, c->totalheight);
+    c->x = getPos(e->attribs.align.x, p->x, p->width, c->width);
+    c->y = getPos(e->attribs.align.y, p->y, p->height, c->height);
 }
 
 static void calcRecursive(struct ui_layer* layer, struct ui_elem* e) {

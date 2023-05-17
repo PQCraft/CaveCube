@@ -1,30 +1,48 @@
 <World name corrected for general filesystem name limitations>/
     server/
         players/
-            [Player ID in 16 big endian hex chars]
-                <Player data>
+            [Top 4 bytes of player ID in 8 big endian hex chars]/
+                [Next 2 1/2 bytes of player ID in 5 big endian hex chars]/
+                    [Next 1 1/2 bytes of player ID in 3 big endian hex chars]
+                        <Player data>
+                    ...
+                ...
             ...
-        config.cfg
-            <Server config>
+        vars/ (Comparable to gamerules in Minecraft)
+            [Variable name]
+                <Variable data> (Should be stored as little endian)
+            ...
     world/
         entities/
-            [Entity ID in 16 big endian hex chars]
-                <Entity data>
+            [Top 4 bytes of entity ID in 8 big endian hex chars]/
+                [Next 2 bytes of entity ID in 4 big endian hex chars]/
+                    [Next 2 bytes of entity ID in 4 big endian hex chars]
+                        <Entity data>
+                    ...
+                ...
             ...
         chunks/
-            <Dimension text id>/
-                [<Top 7 bytes of big endian chunk X coord in 14 hex chars><Top 7 bytes of big endian chunk Z coord in 14 hex chars>]/
-                    index
-                        <Compressed 65536x 32-bit big endian offset to chunk data> (Offset is <Bottom byte of chunk X><Bottom byte of chunk X> * 4)
-                    data
-                        <Collection of compressed chunk data>
+            <Dimension text ID>/
+                [<Top 60 bits of chunk X as a signed decimal>,<Top 60 bits of chunk Z as a signed decimal>]
+                    <uint32_t[256]: Offset to chunk data> (Index to offset is <Bottom 4 bits of chunk Z><Bottom 4 bits of chunk X>, 0xFFFFFFFF means no chunk)
+                    [Chunk data]
+                        <int32_t: Compressed chunk data size>
+                        <uint8_t[]: Compressed chunk data>
+                            <uint8_t: Max palette (0 - 15)>
+                            <Palette data> (Converted into an array of <uint16_t: <2 bits: 0><6 bits: Sub-ID><8 bits: ID>> on load, 0 if block not found)
+                                <uint16_t: Number of blocks other than air (0 - 4095)>
+                                [char[...0]: Block name]...
+                            ...
+                            <uint32_t[131072]: Palette indices and light>
+                                <20 bits: 0>
+                                <12 bits: index> (i = 0 is air, i = 1... is pallete[i - 1])
+                    ...
                 ...
-        state/ (The state of certain vars at the time of writing the save)
+        state/ (The state of certain vars at the time of writing the save (in-game time, ))
             [Variable name]
-                <Variable data> (Should be stored as big endian)
+                <Variable data> (Should be stored as little endian)
             ...
-    dynamic.inf
-        <Dynamic info about the world (modification date, playtime, etc) in a format readable by common/config.c>
-    static.inf
-        <Static info about the world (name, seed, creation date, etc) in a format readable by common/config.c>
-
+    world.cfg
+        <World config (name, seed, etc) in a format readable and writable by common/config.c>
+    stats.inf
+        <World info (creation date, modification date, playtime/uptime, etc) in a format readable and writable by common/config.c>

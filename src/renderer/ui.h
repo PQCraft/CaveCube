@@ -25,6 +25,7 @@ enum {
     UI_ELEM_BOX,
     UI_ELEM_FANCYBOX,
     UI_ELEM_BUTTON,
+    UI_ELEM_SLIDER,
     UI_ELEM_TOGGLE,
     UI_ELEM_TEXTBOX,
     UI_ELEM_PROGRESSBAR,
@@ -76,6 +77,7 @@ enum {
     UI_ATTR_RICHTEXT,
     UI_ATTR_FANCYTEXT,
     UI_ATTR_TOOLTIP,
+    UI_ATTR_SLIDER_AMOUNT,
     UI_ATTR_TOGGLE_STATE,
     UI_ATTR_TEXTBOX_EDITABLE,
     UI_ATTR_TEXTBOX_SHADOWTEXT,
@@ -119,6 +121,9 @@ struct ui_attribs {
     bool fancytext;
     char* tooltip;
     union {
+        struct {
+            float amount;
+        } slider;
         struct {
             bool state;
         } toggle;
