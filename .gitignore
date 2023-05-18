@@ -5,6 +5,7 @@
 !resources/**
 !src/
 !src/**
+!.github/
 !*.sh
 !CONTRIBUTING.md
 !gen.mk

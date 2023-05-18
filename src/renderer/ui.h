@@ -23,8 +23,9 @@ enum {
 enum {
     UI_ELEM_CONTAINER,
     UI_ELEM_BOX,
-    UI_ELEM_FANCYBOX,
     UI_ELEM_BUTTON,
+    UI_ELEM_CHECKBOX,
+    UI_ELEM_RADIO,
     UI_ELEM_SLIDER,
     UI_ELEM_TOGGLE,
     UI_ELEM_TEXTBOX,
@@ -38,6 +39,16 @@ enum {
     UI_STATE_NORMAL,
     UI_STATE_HOVERED,
     UI_STATE_PRESSED,
+};
+
+enum {
+    UI_BORDER_NONE,
+    UI_BORDER_BLACK,
+    UI_BORDER_WHITE,
+    UI_BORDER_RAISED,
+    UI_BORDER_SUNKEN,
+    UI_BORDER_DOUBLERAISED,
+    UI_BORDER_DOUBLESUNKEN,
 };
 
 enum {
@@ -64,6 +75,7 @@ enum {
     UI_ATTR_ALIGN,
     UI_ATTR_MARGIN,
     UI_ATTR_PADDING,
+    UI_ATTR_BORDER,
     UI_ATTR_OFFSET,
     UI_ATTR_COLOR,
     UI_ATTR_ALPHA,
@@ -105,6 +117,7 @@ struct ui_attribs {
     struct {int8_t x; int8_t y;} align;
     struct {char* top; char* bottom; char* left; char* right;} margin;
     struct {char* top; char* bottom; char* left; char* right;} padding;
+    int border;
     struct {char* x; char* y;} offset;
     struct {uint8_t r; uint8_t g; uint8_t b;} color;
     uint8_t alpha;

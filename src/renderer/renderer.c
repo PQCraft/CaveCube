@@ -436,6 +436,14 @@ static bool makeShaderProg(char* hdrtext, char* _vstext, char* _fstext, GLuint* 
     return retval;
 }
 
+static inline void swapBuffers() {
+    #if defined(USESDL2)
+    SDL_GL_SwapWindow(rendinf.window);
+    #else
+    glfwSwapBuffers(rendinf.window);
+    #endif
+}
+
 void updateScreen() {
     static int lv = -1;
     if (rendinf.vsync != lv) {
@@ -446,11 +454,7 @@ void updateScreen() {
         #endif
         lv = rendinf.vsync;
     }
-    #if defined(USESDL2)
-    SDL_GL_SwapWindow(rendinf.window);
-    #else
-    glfwSwapBuffers(rendinf.window);
-    #endif
+    swapBuffers();
 }
 
 //static force_inline int64_t i64_mod(int64_t v, int64_t m) {return ((v % m) + m) % m;}
@@ -2015,6 +2019,62 @@ bool makeShader(file_data* hdr, char* name, char* dirname, GLuint* shader) {
     return true;
 }
 
+struct texmap_box {
+    int x;
+    int y;
+    int width;
+    int height;
+    int tex;
+};
+
+struct texmap_tex {
+    resdata_image* img;
+};
+
+struct texmap {
+    int size;
+    unsigned char* data;
+    int boxes;
+    struct texmap_box* boxdata;
+    int textures;
+    struct texmap_tex* texturedata;
+};
+
+static void tm_addBox(struct texmap* map, int x, int y, int width, int height) {
+    if (!width || !height) return;
+    int box = ++map->boxes;
+    map->boxdata = realloc(map->boxdata, map->boxes * sizeof(*map->boxdata));
+    struct texmap_box* b = &map->boxdata[box];
+    b->x = x;
+    b->y = y;
+    b->width = width;
+    b->height = height;
+    b->tex = -1;
+}
+
+static void tm_resizeBox(struct texmap* map, int box, int x, int y, int width, int height) {
+    struct texmap_box* b = &map->boxdata[box];
+    b->x = x;
+    b->y = y;
+    b->width = width;
+    b->height = height;
+}
+
+static void initTexmap(struct texmap* map, int size) {
+    if (size <= 0) size = 64;
+    map->size = size;
+    map->data = NULL;
+    map->boxes = 0;
+    map->boxdata = NULL;
+    map->textures = 0;
+    map->texturedata = NULL;
+    tm_addBox(map, 0, 0, size, size);
+}
+
+static void addToTexmap(struct texmap* map, char* path) {
+    
+}
+
 bool reloadRenderer() {
     bool sorttransparent = getBool(getConfigKey(config, "Renderer", "sortTransparent"));
     #if defined(USEGLES)
@@ -2087,25 +2147,21 @@ bool reloadRenderer() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     //TODO: load and render splash
-    #if defined(USESDL2)
-    SDL_GL_SwapWindow(rendinf.window);
-    #else
-    glfwSwapBuffers(rendinf.window);
-    #endif
+    swapBuffers();
 
     glActiveTexture(gltex++);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, rendinf.width, rendinf.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
-    unsigned char* texmap;
-    unsigned texmaph;
+    unsigned char* texarray;
+    unsigned texarrayh;
     unsigned charseth;
     unsigned crosshairh;
 
     //puts("creating texture map...");
-    int texmapsize = 0;
-    texmap = malloc(texmapsize * 1024);
+    int texarraysize = 0;
+    texarray = malloc(texarraysize * 1024);
     char* tmpbuf = malloc(4096);
     blockinf[0].data[0].transparency = 1;
     for (int i = 1; i < 255; ++i) {
@@ -2118,7 +2174,7 @@ bool reloadRenderer() {
             for (int j = 0; j < 32; ++j) {
                 sprintf(tmpbuf, "game/textures/blocks/%d/%d/%d.png", i, s, j);
                 if (resourceExists(tmpbuf) == -1) break;
-                if (j == 0) blockinf[i].data[s].texstart = texmapsize;
+                if (j == 0) blockinf[i].data[s].texstart = texarraysize;
                 ++blockinf[i].data[s].texcount;
                 resdata_image* img = loadResource(RESOURCE_IMAGE, tmpbuf);
                 for (int k = 3; k < 1024; k += 4) {
@@ -2131,17 +2187,17 @@ bool reloadRenderer() {
                         }
                     }
                 }
-                //printf("adding texture {%s} at offset [%u] of map [%d]...\n", tmpbuf, texmapsize * 1024, i);
-                texmap = realloc(texmap, (texmapsize + 1) * 1024);
-                memcpy(texmap + texmapsize * 1024, img->data, 1024);
-                ++texmapsize;
+                //printf("adding texture {%s} at offset [%u] of map [%d]...\n", tmpbuf, texarraysize * 1024, i);
+                texarray = realloc(texarray, (texarraysize + 1) * 1024);
+                memcpy(texarray + texarraysize * 1024, img->data, 1024);
+                ++texarraysize;
                 freeResource(img);
             }
         }
     }
     int texlayers = 0;
     glGetIntegerv(GL_MAX_ARRAY_TEXTURE_LAYERS, &texlayers);
-    printf("Block text layer: %d/%d (%.2f%%)\n", texmapsize, texlayers, ((float)texmapsize / (float)texlayers) * 100.0);
+    printf("Block text layer: %d/%d (%.2f%%)\n", texarraysize, texlayers, ((float)texarraysize / (float)texlayers) * 100.0);
     free(tmpbuf);
     {
         char tmpstr[256];
@@ -2187,10 +2243,10 @@ bool reloadRenderer() {
 
     setShaderProg(shader_block);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), gltex - GL_TEXTURE0);
-    glGenTextures(1, &texmaph);
+    glGenTextures(1, &texarrayh);
     glActiveTexture(gltex++);
-    glBindTexture(GL_TEXTURE_2D_ARRAY, texmaph);
-    glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, 16, 16, texmapsize, 0, GL_RGBA, GL_UNSIGNED_BYTE, texmap);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, texarrayh);
+    glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, 16, 16, texarraysize, 0, GL_RGBA, GL_UNSIGNED_BYTE, texarray);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "mipmap"), mipmaps);
     if (mipmaps) {
         glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
@@ -2200,7 +2256,7 @@ bool reloadRenderer() {
         glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     }
-    free(texmap);
+    free(texarray);
 
     glGenBuffers(1, &VBO2D);
     glBindBuffer(GL_ARRAY_BUFFER, VBO2D);
@@ -2328,11 +2384,7 @@ bool startRenderer() {
     //glLineWidth(3.0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    #if defined(USESDL2)
-    SDL_GL_SwapWindow(rendinf.window);
-    #else
-    glfwSwapBuffers(rendinf.window);
-    #endif
+    swapBuffers();
 
     glEnable(GL_CULL_FACE);
     //glCullFace(GL_FRONT);

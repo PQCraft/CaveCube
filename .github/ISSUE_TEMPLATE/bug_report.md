@@ -17,4 +17,4 @@ assignees: ''
 [What should happen instead?]
 
 **Additional info**
-[Screenshots or video of the problem]
+[Screenshots or videos of the problem]

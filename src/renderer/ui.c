@@ -284,30 +284,16 @@ int newUIElem(struct ui_layer* layer, int type, int parent, ...) {
     if (!e->attribs.margin.bottom) e->attribs.margin.bottom = strdup("0");
     if (!e->attribs.margin.left) e->attribs.margin.left = strdup("0");
     if (!e->attribs.margin.right) e->attribs.margin.right = strdup("0");
+    if (!e->attribs.padding.top) e->attribs.padding.top = strdup("0");
+    if (!e->attribs.padding.bottom) e->attribs.padding.bottom = strdup("0");
+    if (!e->attribs.padding.left) e->attribs.padding.left = strdup("0");
+    if (!e->attribs.padding.right) e->attribs.padding.right = strdup("0");
     switch (type) {
-        case UI_ELEM_FANCYBOX:;
-            if (!e->attribs.padding.top) e->attribs.padding.top = strdup("8");
-            if (!e->attribs.padding.bottom) e->attribs.padding.bottom = strdup("8");
-            if (!e->attribs.padding.left) e->attribs.padding.left = strdup("8");
-            if (!e->attribs.padding.right) e->attribs.padding.right = strdup("8");
-            break;
-        case UI_ELEM_BUTTON:;
-            if (!e->attribs.padding.top) e->attribs.padding.top = strdup("1");
-            if (!e->attribs.padding.bottom) e->attribs.padding.bottom = strdup("1");
-            if (!e->attribs.padding.left) e->attribs.padding.left = strdup("4");
-            if (!e->attribs.padding.right) e->attribs.padding.right = strdup("4");
-            break;
         case UI_ELEM_HOTBAR:;
             if (!e->attribs.hotbar.items) e->attribs.hotbar.items = strdup("");
             break;
         case UI_ELEM_ITEMGRID:;
             if (!e->attribs.itemgrid.items) e->attribs.itemgrid.items = strdup("");
-            break;
-        default:;
-            if (!e->attribs.padding.top) e->attribs.padding.top = strdup("0");
-            if (!e->attribs.padding.bottom) e->attribs.padding.bottom = strdup("0");
-            if (!e->attribs.padding.left) e->attribs.padding.left = strdup("0");
-            if (!e->attribs.padding.right) e->attribs.padding.right = strdup("0");
             break;
     }
     if (parent >= 0) {
