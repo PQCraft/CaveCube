@@ -1,3 +1,0 @@
-[<Server entry name>]
-address = <CSV list of <address>[:port]>
-uid = <UID to log in with>

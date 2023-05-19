@@ -1,0 +1,23 @@
+- The server list is in a format readable and writable by common/config.c
+- Each server is stored as a section
+    - The section is given the name the user inputs when creating the entry
+    - The section contains the following vars
+        - addresses: A comma-separated list of the addresses the server can be reached from
+            - Addresses can be IPv4 addresses or domain names
+            - A port can be specified by adding a colon and then the port number (the default port is 46000)
+        - uid: The UID used to log in to the server
+            - Should be empty if no UID has been provided by the server or user
+
+Example:
+
+[My Server]
+address = 127.0.0.1,127.0.0.1:46000,localhost,localhost:46000
+uid = 000000000000001C
+
+[I'll join later]
+address = later.time
+uid = 
+
+[Foobar Network]
+address = foo.bar,foobar.ddns.net
+uid = 0000000000000042
