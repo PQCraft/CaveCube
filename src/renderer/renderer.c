@@ -1467,7 +1467,8 @@ const unsigned char* glslver;
 const unsigned char* glvend;
 const unsigned char* glrend;
 
-static resdata_image* crosshair;
+static int chwidth;
+static int chheight;
 
 struct pq {
     int8_t x;
@@ -1796,8 +1797,8 @@ void render() {
         glDisable(GL_DEPTH_TEST);
         setShaderProg(shader_2d);
         glBindBuffer(GL_ARRAY_BUFFER, VBO2D);
-        glUniform1f(glGetUniformLocation(rendinf.shaderprog, "xratio"), ((float)(crosshair->width)) / (float)rendinf.width);
-        glUniform1f(glGetUniformLocation(rendinf.shaderprog, "yratio"), ((float)(crosshair->height)) / (float)rendinf.height);
+        glUniform1f(glGetUniformLocation(rendinf.shaderprog, "xratio"), (float)chwidth / (float)rendinf.width);
+        glUniform1f(glGetUniformLocation(rendinf.shaderprog, "yratio"), (float)chheight / (float)rendinf.height);
         glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
         glDrawArrays(GL_TRIANGLES, 0, 6);
     }
@@ -2019,60 +2020,109 @@ bool makeShader(file_data* hdr, char* name, char* dirname, GLuint* shader) {
     return true;
 }
 
-struct texmap_box {
+struct atlas_box {
     int x;
     int y;
     int width;
     int height;
-    int tex;
-};
-
-struct texmap_tex {
     resdata_image* img;
 };
 
-struct texmap {
+struct atlas {
     int size;
     unsigned char* data;
     int boxes;
-    struct texmap_box* boxdata;
-    int textures;
-    struct texmap_tex* texturedata;
+    struct atlas_box* boxdata;
 };
 
-static void tm_addBox(struct texmap* map, int x, int y, int width, int height) {
-    if (!width || !height) return;
-    int box = ++map->boxes;
-    map->boxdata = realloc(map->boxdata, map->boxes * sizeof(*map->boxdata));
-    struct texmap_box* b = &map->boxdata[box];
+static int atlas_addBox(struct atlas* a, int x, int y, int width, int height) {
+    if (!width || !height) return -1;
+    int box = a->boxes++;
+    a->boxdata = realloc(a->boxdata, a->boxes * sizeof(*a->boxdata));
+    struct atlas_box* b = &a->boxdata[box];
     b->x = x;
     b->y = y;
     b->width = width;
     b->height = height;
-    b->tex = -1;
+    b->img = NULL;
+    return box;
 }
 
-static void tm_resizeBox(struct texmap* map, int box, int x, int y, int width, int height) {
-    struct texmap_box* b = &map->boxdata[box];
-    b->x = x;
-    b->y = y;
-    b->width = width;
-    b->height = height;
+static void addToAtlas(struct atlas* a, char* path) {
+    resdata_image* img = loadResource(RESOURCE_IMAGE, path);
+    if (!img) return;
+    int index = -1;
+    for (int i = 0; i < a->boxes; ++i) {
+        struct atlas_box* b = &a->boxdata[i];
+        if (!b->img && img->width <= b->width && img->height <= b->height) {
+            index = i;
+            break;
+        }
+    }
+    if (index < 0) {
+        int size = a->size;
+        int newsize = size;
+        int sizediff;
+        while (1) {
+            newsize *= 2;
+            sizediff = newsize - size;
+            if (img->width <= newsize && img->height <= sizediff) break;
+        }
+        a->size = newsize;
+        atlas_addBox(a, size, 0, sizediff, size);
+        index = atlas_addBox(a, 0, size, newsize, sizediff);
+    }
+    struct atlas_box* b = &a->boxdata[index];
+    b->img = img;
+    int oldwidth = b->width;
+    int oldheight = b->height;
+    b->width = img->width;
+    b->height = img->height;
+    atlas_addBox(a, b->x + b->width, b->y, oldwidth - b->width, b->height);
+    b = &a->boxdata[index];
+    atlas_addBox(a, b->x, b->y + b->height, oldwidth, oldheight - b->height);
 }
 
-static void initTexmap(struct texmap* map, int size) {
-    if (size <= 0) size = 64;
-    map->size = size;
-    map->data = NULL;
-    map->boxes = 0;
-    map->boxdata = NULL;
-    map->textures = 0;
-    map->texturedata = NULL;
-    tm_addBox(map, 0, 0, size, size);
+static void atlas_writeTexture(struct atlas* a, int bx, int by, int width, int height, unsigned char* data) {
+    unsigned char* atex = a->data;
+    int aw = a->size;
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            int i = ((x + bx) + (y + by) * aw) * 4;
+            int texi = (x + y * width) * 4;
+            atex[i] = data[texi];
+            atex[i + 1] = data[texi + 1];
+            atex[i + 2] = data[texi + 2];
+            atex[i + 3] = data[texi + 3];
+        }
+    }
 }
 
-static void addToTexmap(struct texmap* map, char* path) {
-    
+static void makeAtlas(struct atlas* a) {
+    a->data = malloc(a->size * a->size * 4);
+    //printf("makeAtlas: size=%d\n", a->size);
+    for (int i = 0; i < a->boxes; ++i) {
+        struct atlas_box* b = &a->boxdata[i];
+        resdata_image* img = b->img;
+        if (img) {
+            atlas_writeTexture(a, b->x, b->y, img->width, img->height, img->data);
+            freeResource(img);
+        }
+    }
+}
+
+static void initAtlas(struct atlas* a, int size) {
+    if (size <= 0) size = 16;
+    a->size = size;
+    a->data = NULL;
+    a->boxes = 0;
+    a->boxdata = NULL;
+    atlas_addBox(a, 0, 0, size, size);
+}
+
+static void deinitAtlas(struct atlas* a) {
+    free(a->data);
+    free(a->boxdata);
 }
 
 bool reloadRenderer() {
@@ -2099,6 +2149,7 @@ bool reloadRenderer() {
     if (!makeShader(hdr, "UI", "ui", &shader_ui)) return false;
     if (!makeShader(hdr, "text", NULL, &shader_text)) return false;
     if (!makeShader(hdr, "framebuffer", NULL, &shader_framebuffer)) return false;
+    freeResource(hdr);
 
     int gltex = GL_TEXTURE0;
 
@@ -2156,8 +2207,6 @@ bool reloadRenderer() {
 
     unsigned char* texarray;
     unsigned texarrayh;
-    unsigned charseth;
-    unsigned crosshairh;
 
     //puts("creating texture map...");
     int texarraysize = 0;
@@ -2264,20 +2313,25 @@ bool reloadRenderer() {
 
     setShaderProg(shader_2d);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), gltex - GL_TEXTURE0);
+    unsigned crosshairh;
     glGenTextures(1, &crosshairh);
     glActiveTexture(gltex++);
-    crosshair = loadResource(RESOURCE_IMAGE, "game/textures/ui/crosshair.png");
+    resdata_image* crosshair = loadResource(RESOURCE_IMAGE, "game/textures/ui/crosshair.png");
+    chwidth = crosshair->width;
+    chheight = crosshair->height;
     glBindTexture(GL_TEXTURE_2D, crosshairh);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, crosshair->width, crosshair->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, crosshair->data);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     setUniform4f(rendinf.shaderprog, "mcolor", (float[]){1.0, 1.0, 1.0, 1.0});
+    freeResource(crosshair);
 
     setShaderProg(shader_ui);
     syncTextColors();
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "fontTexData"), gltex - GL_TEXTURE0);
     setUniform1f(rendinf.shaderprog, "xsize", rendinf.width);
     setUniform1f(rendinf.shaderprog, "ysize", rendinf.height);
+    unsigned charseth;
     glGenTextures(1, &charseth);
     glActiveTexture(gltex++);
     resdata_image* charset = loadResource(RESOURCE_IMAGE, "game/textures/ui/charset.png");
@@ -2291,6 +2345,7 @@ bool reloadRenderer() {
         float bcolor[] = {0.0, 0.0, 0.0, 0.0};
         glTexParameterfv(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_BORDER_COLOR, bcolor);
     }
+    freeResource(charset);
 
     setShaderProg(shader_block);
 

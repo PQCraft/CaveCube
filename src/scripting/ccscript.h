@@ -111,6 +111,12 @@ enum {
     CCS_CMD_VSTRCATTO,
 };
 
+typedef void (*ccs_cmd_call_func)(struct ccs_state, int /*thread*/, void* /*data*/);
+struct ccs_cmd_call {
+    ccs_cmd_call_func func;
+    void* data;
+};
+
 struct ccs_cmd_set {
     struct ccs_var* var;
     struct ccs_val val;
@@ -131,12 +137,6 @@ struct ccs_cmd_arrayzero {
     struct ccs_var* var;
     int dim;
     unsigned index;
-};
-
-typedef void (*ccs_cmd_call_func)(struct ccs_state, int /*thread*/, void* /*data*/);
-struct ccs_cmd_call {
-    ccs_cmd_call_func func;
-    void* data;
 };
 
 enum {

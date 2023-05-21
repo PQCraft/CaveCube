@@ -117,16 +117,19 @@ static void* makeResource(int type, char* path) {
 
 void* loadResource(int type, char* path) {
     for (int i = 0; i < reslist.entries; ++i) {
-        if (reslist.entry[i].data && !strcmp(reslist.entry[i].path, path)) {
-            ++reslist.entry[i].uses;
-            return reslist.entry[i].data;
+        resentry* ent = &reslist.entry[i];
+        if (ent->type == type && ent->data && !strcmp(ent->path, path)) {
+            ++ent->uses;
+            return ++ent->data;
         }
     }
     char* npath = getResourcePath(path);
     if (!npath) return NULL;
     void* data = makeResource(type, npath);
-    free(npath);
-    if (!data) return NULL;
+    if (!data) {
+        free(npath);
+        return NULL;
+    }
     resentry* ent = NULL;
     for (int i = 0; i < reslist.entries; ++i) {
         if (!reslist.entry[i].data) {
@@ -138,7 +141,7 @@ void* loadResource(int type, char* path) {
         reslist.entry = realloc(reslist.entry, reslist.entries * sizeof(resentry));
         ent = &reslist.entry[reslist.entries - 1];
     }
-    *ent = (resentry){type, strdup(path), 1, data};
+    *ent = (resentry){type, npath, 1, data};
     return data;
 }
 
@@ -154,21 +157,6 @@ int resourceExists(char* path) {
     return ret;
 }
 
-static void freeResStub(resentry* ent) {
-    switch (ent->type) {
-        case RESOURCE_TEXTFILE:;
-        case RESOURCE_BINFILE:; {
-            freeFile(*(file_data*)ent->data);
-        } break;
-        case RESOURCE_IMAGE:; {
-            stbi_image_free(((resdata_image*)ent->data)->data);
-        } break;
-    }
-    free(ent->data);
-    ent->data = NULL;
-    free(ent->path);
-}
-
 void initResource() {
     packct = 1;
     packs = malloc(sizeof(struct pack));
@@ -182,6 +170,21 @@ void initResource() {
     free(npath);
     char* extrapacks[] = {};
     setResourcePacks(sizeof(extrapacks) / sizeof(*extrapacks), extrapacks);
+}
+
+static void freeResStub(resentry* ent) {
+    switch (ent->type) {
+        case RESOURCE_TEXTFILE:;
+        case RESOURCE_BINFILE:; {
+            freeFile(*(file_data*)ent->data);
+        } break;
+        case RESOURCE_IMAGE:; {
+            stbi_image_free(((resdata_image*)ent->data)->data);
+        } break;
+    }
+    free(ent->data);
+    ent->data = NULL;
+    free(ent->path);
 }
 
 void freeResource(void* data) {

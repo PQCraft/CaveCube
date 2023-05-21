@@ -2,9 +2,10 @@
 
 {
 
-I="\e[0m\e[1m\e[37m[\e[36mI\e[37m]\e[0m"
+I="\e[0m\e[1m\e[37m[\e[36mi\e[37m]\e[0m"
 E="\e[0m\e[1m\e[37m[\e[31mX\e[37m]\e[0m"
 Q="\e[0m\e[1m\e[37m[\e[32m?\e[37m]\e[0m"
+H="\e[0m\e[1m\e[37m[\e[34m-\e[37m]\e[0m"
 T="\e[0m\e[1m\e[33m>>>\e[0m"
 TB="\e[0m\e[1m\e[37m"
 TR="\e[0m"
@@ -15,11 +16,12 @@ tsk() { printf "${T} ${TB}${1}${TR}\n"; }
 
 ask() {
     RESPONSE=""
-    printf "${Q} ${1}" >&2
+    printf "${Q} ${1}"
     read RESPONSE
 }
 pause() {
-    ask "${TB}Press enter to continue...${TR}"
+    printf "${H} ${TB}Press enter to continue...${TR}"
+    read
 }
 _exit() {
     local ERR="${?}"
@@ -41,8 +43,22 @@ VER_MINOR="$(grep '#define VER_MINOR ' src/main/version.h | sed 's/#define .* //
 VER_PATCH="$(grep '#define VER_PATCH ' src/main/version.h | sed 's/#define .* //')"
 VER="${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}"
 printf "${I} ${TB}Version:${TR} [%s]\n" "${VER}"
-getreltext() {
+getchanges() {
     sed -n '/^### DONE:$/,$p' TODO.md | tail -n +2
+}
+CNGTEXT="$(getchanges)"
+getreltext() {
+    echo '### Changes'
+    echo "${CNGTEXT}"
+    echo '### How to run'
+    echo '1. Download the `zip` or `tar.gz` matching your platform (the format is `cavecube_<module>[_<differences>][_<OS>_<architecture>]`)'
+    echo '    - `data` is the game resources'
+    echo '    - `extras` are extra files such as docs and icons'
+    echo '    - `game` is the client and server combo'
+    echo '    - `server` is the standalone server'
+    echo '2. If downloading the game or server, also download `cavecube_data.zip`'
+    echo '3. Extract the archives into the same folder'
+    echo '4. Run the executable'
 }
 RELTEXT="$(getreltext)"
 printf "${I} ${TB}Release text:${TR}\n%s\n${TB}EOF${TR}\n" "${RELTEXT}"
@@ -58,11 +74,11 @@ pause
 
 tsk "Pushing..."
 git add . || _exit
-git commit -S -m "${VER}" -m "${RELTEXT}" || _exit
+git commit -S -m "${VER}" -m "${CNGTEXT}" || _exit
 git push || _exit
 
 tsk "Making release..."
-git tag -s "${VER}" -m "${RELTEXT}" || _exit
+git tag -s "${VER}" -m "${CNGTEXT}" || _exit
 git push --tags || _exit
 gh release create "${VER}" --title "${VER}" --notes "${RELTEXT}" cavecube*.tar.gz cavecube*.zip || _exit
 

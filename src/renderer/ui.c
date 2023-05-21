@@ -115,6 +115,24 @@ int newUIElem(struct ui_layer* layer, int type, int parent, ...) {
             e->attribs.itemgrid.cell.y = -1;
             break;
     }
+    switch (type) {
+        case UI_ELEM_TOGGLE:;
+            e->attribs.border = UI_BORDER_GREY;
+            break;
+        case UI_ELEM_BUTTON:;
+            e->attribs.border = UI_BORDER_RAISED;
+            break;
+        case UI_ELEM_CHECKBOX:;
+        case UI_ELEM_RADIO:;
+        case UI_ELEM_TEXTBOX:;
+        case UI_ELEM_PROGRESSBAR:;
+        case UI_ELEM_ITEMGRID:;
+            e->attribs.border = UI_BORDER_SUNKEN;
+            break;
+        case UI_ELEM_BOX:;
+            e->attribs.border = UI_BORDER_DOUBLERAISED;
+            break;
+    }
     va_list args;
     va_start(args, parent);
     while (1) {
@@ -168,6 +186,9 @@ int newUIElem(struct ui_layer* layer, int type, int parent, ...) {
                 e->attribs.padding.bottom = strdupn(va_arg(args, char*));
                 e->attribs.padding.left = strdupn(va_arg(args, char*));
                 e->attribs.padding.right = strdupn(va_arg(args, char*));
+            } break;
+            case UI_ATTR_BORDER:; {
+                e->attribs.border = va_arg(args, int);
             } break;
             case UI_ATTR_OFFSET:; {
                 e->attribs.offset.x = strdupn(va_arg(args, char*));
@@ -424,6 +445,9 @@ int editUIElem(struct ui_layer* layer, int id, ...) {
                     free(e->attribs.padding.right);
                     e->attribs.padding.right = strdupn(right);
                 }
+            } break;
+            case UI_ATTR_BORDER:; {
+                e->attribs.border = va_arg(args, int);
             } break;
             case UI_ATTR_OFFSET:; {
                 char* x = va_arg(args, char*);
