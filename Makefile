@@ -305,7 +305,7 @@ compile: .FORCE
 	@$(MAKE) --no-print-directory -f $(lastword $(MAKEFILE_LIST)) MKSUB=y compile
 
 $(BIN):
-	@$(MAKE) --no-print-directory -f $(lastword $(MAKEFILE_LIST)) MKSUB=y $(BIN)
+	@$(MAKE) --no-print-directory -f $(lastword $(MAKEFILE_LIST)) MKSUB=y bin
 
 run: build
 	@echo Running $(BIN)...
@@ -357,7 +357,10 @@ ifndef DEBUG
 	@$(STRIP) --strip-all $@
 endif
 
-.PHONY: $(BASEDIRS)
+bin: $(BIN) .FORCE
+	$(null)
+
+.PHONY: bin compile $(BASEDIRS)
 
 endif
 
