@@ -1,48 +1,54 @@
-<World name corrected for general filesystem name limitations>/
+<World dir>/
     server/
-        players/
-            [Top 4 bytes of player ID in 8 big endian hex chars]/
-                [Next 2 1/2 bytes of player ID in 5 big endian hex chars]/
-                    [Next 1 1/2 bytes of player ID in 3 big endian hex chars]
-                        <Player data>
-                    ...
+        players.cdb
+            ["%016"PRIX64: Player ID]
+                <Player data>
+            ...
+    client/
+        world.cdb
+            info/
+                name
+                    <char[]: World name (Not null-terminated)>
+                version
+                    <uint16_t: Major><uint16_t: Minor><uint16_t: Patch>
+                seed
+                    <uint64_t: Seed>
+                dates
+                    <uint64_t: Creation date in Unix seconds><uint64_t: Modification date in Unix seconds>
+                playtime
+                    <uint64_t: Playtime in seconds>
+            chunks/
+                [Dimension text ID]/
+                    <"%016"PRIX64: Chunk X><"%016"PRIX64: Chunk Z>/
+                        data
+                            <uint32_t: Size of compressed chunk data>
+                            <uint8_t[]: Compressed chunk data>
+                                <uint8_t: Max palette (0 - 15)>
+                                <Palette data> (Converted into an array of <uint16_t: <2 bits: 0><6 bits: Sub-ID><8 bits: ID>> on load, 0 if block not found)
+                                    <uint16_t: Number of blocks other than air (0 - 4095)>
+                                    [char[...0]: Block name]...
+                                ...
+                                <uint32_t[131072]: Palette indices and light>
+                                    <20 bits: 0>
+                                    <12 bits: index> (i = 0 is air, i = 1... is pallete[i - 1])
+                        vars/
+                            <"%03X": Block Y>
+                                <uint32_t: Size of compressed var data>
+                                <uint8_t[]: Compressed var data>
+                                    <256x: Var data>
+                                        <uint8_t: # of vars>
+                                        [<char[...0]: Var name><char[...0]: Var data>]...
                 ...
-            ...
-        vars/ (Comparable to gamerules in Minecraft)
-            [Variable name]
-                <Variable data> (Should be stored as little endian)
-            ...
-    world/
-        entities/
-            [Top 4 bytes of entity ID in 8 big endian hex chars]/
-                [Next 2 bytes of entity ID in 4 big endian hex chars]/
-                    [Next 2 bytes of entity ID in 4 big endian hex chars]
-                        <Entity data>
-                    ...
+            entities/
+                ["%016"PRIX64: Entity ID]/
+                    basedata (Data that is the same for all entities)
+                        <Data>
+                    data (Data specific to that entity)
+                        <Data>
                 ...
-            ...
-        chunks/
-            <Dimension text ID>/
-                [<Top 60 bits of chunk X as a signed decimal>,<Top 60 bits of chunk Z as a signed decimal>]
-                    <uint32_t[256]: Offset to chunk data> (Index to offset is <Bottom 4 bits of chunk Z><Bottom 4 bits of chunk X>, 0xFFFFFFFF means no chunk)
-                    [Chunk data]
-                        <int32_t: Compressed chunk data size>
-                        <uint8_t[]: Compressed chunk data>
-                            <uint8_t: Max palette (0 - 15)>
-                            <Palette data> (Converted into an array of <uint16_t: <2 bits: 0><6 bits: Sub-ID><8 bits: ID>> on load, 0 if block not found)
-                                <uint16_t: Number of blocks other than air (0 - 4095)>
-                                [char[...0]: Block name]...
-                            ...
-                            <uint32_t[131072]: Palette indices and light>
-                                <20 bits: 0>
-                                <12 bits: index> (i = 0 is air, i = 1... is pallete[i - 1])
-                    ...
+            gamevars/
+                [Var name]
+                    <Var data>
                 ...
-        state/ (The state of certain vars at the time of writing the save (in-game time, ))
-            [Variable name]
-                <Variable data> (Should be stored as little endian)
-            ...
-    world.cfg
-        <World config (name, seed, etc) in a format readable and writable by common/config.c>
-    stats.inf
-        <World info (creation date, modification date, playtime/uptime, etc) in a format readable and writable by common/config.c>
+        info.inf
+            <World info (name, version, seed, creation date, modification date, playtime/uptime, etc) in a format readable and writable by common/config.c>

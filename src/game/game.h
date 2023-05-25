@@ -1,4 +1,4 @@
-#if MODULEID == MODULEID_GAME
+#if defined(MODULE_GAME)
 
 #ifndef GAME_GAME_H
 #define GAME_GAME_H

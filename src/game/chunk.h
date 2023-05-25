@@ -102,7 +102,7 @@ static force_inline void bdsetlight(struct blockdata* b, uint8_t dr, uint8_t dg,
     bdsetlightn(b, dn);
 }
 
-#if MODULEID == MODULEID_GAME
+#if defined(MODULE_GAME)
 struct rendorder {
     uint32_t c;
     float dist;

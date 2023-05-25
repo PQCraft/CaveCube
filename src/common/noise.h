@@ -1,3 +1,5 @@
+#if defined(MODULE_SERVER)
+
 #ifndef COMMON_NOISE_H
 #define COMMON_NOISE_H
 
@@ -19,5 +21,7 @@ noise_t perlin2d(int, noisefloat, noisefloat, noisefloat, int);
 noise_t nperlin2d(int, noisefloat, noisefloat, noisefloat, int);
 noise_t noise2(int, noisefloat, noisefloat);
 noise_t noise3(int, noisefloat, noisefloat, noisefloat);
+
+#endif
 
 #endif

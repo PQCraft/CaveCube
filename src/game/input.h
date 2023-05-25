@@ -1,7 +1,7 @@
-#if MODULEID == MODULEID_GAME
+#if defined(MODULE_GAME)
 
-#ifndef INPUT_INPUT_H
-#define INPUT_INPUT_H
+#ifndef GAME_INPUT_H
+#define GAME_INPUT_H
 
 #include <stdbool.h>
 #include <inttypes.h>

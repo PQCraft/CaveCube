@@ -13,6 +13,8 @@
 #include <string.h>
 #include <pthread.h>
 
+#if defined(MODULE_GAME) || defined(MODULE_SERVER)
+
 int SERVER_THREADS;
 static bool serveralive = false;
 
@@ -152,6 +154,17 @@ static bool getNextMsgForUUID(struct msgdata* mdata, struct msgdata_msg* msg, ui
     return false;
 }
 
+enum {
+    MSG_PRIO_LOW,
+    MSG_PRIO_NORMAL,
+    MSG_PRIO_HIGH,
+    MSG_PRIO__MAX,
+};
+
+#endif
+
+#if defined(MODULE_SERVER)
+
 static force_inline void cleanServerMsg(struct msgdata_msg* msg) {
     if (msg->data) {
         switch (msg->id) {
@@ -187,13 +200,6 @@ static force_inline void cleanClientMsg(struct msgdata_msg* msg) {
         free(msg->data);
     }
 }
-
-enum {
-    MSG_PRIO_LOW,
-    MSG_PRIO_NORMAL,
-    MSG_PRIO_HIGH,
-    MSG_PRIO__MAX,
-};
 
 static struct msgdata servmsgin[3];
 static struct msgdata servmsgout[3];
@@ -251,6 +257,7 @@ static int addTimer(struct timerdata* tdata, int event, int prio, uint64_t inter
     return index;
 }
 
+/* // Commented out to avoid a warning
 static void removeTimer(struct timerdata* tdata, int i) {
     pthread_mutex_lock(&tdata->lock);
     if (tdata->valid) {
@@ -261,6 +268,7 @@ static void removeTimer(struct timerdata* tdata, int i) {
     }
     pthread_mutex_unlock(&tdata->lock);
 }
+*/
 
 static pthread_t servtimerh;
 
@@ -1005,7 +1013,14 @@ void stopServer() {
     puts("Server stopped");
 }
 
-#if MODULEID == MODULEID_GAME
+bool initServer() {
+    if (!initNet()) return false;
+    pthread_mutex_init(&pdatalock, NULL);
+    return true;
+}
+#endif
+
+#if defined(MODULE_GAME)
 
 #include <stdarg.h>
 
@@ -1496,9 +1511,3 @@ void cliSend(int id, ...) {
 }
 
 #endif
-
-bool initServer() {
-    if (!initNet()) return false;
-    pthread_mutex_init(&pdatalock, NULL);
-    return true;
-}

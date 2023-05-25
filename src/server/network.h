@@ -1,3 +1,5 @@
+#if defined(MODULE_GAME) || defined(MODULE_SERVER)
+
 #ifndef SERVER_NETWORK_H
 #define SERVER_NETWORK_H
 
@@ -64,5 +66,7 @@ int readFromCxnBuf(struct netcxn*, void*, int);
 int writeToCxnBuf(struct netcxn*, void*, int);
 void setCxnBufSize(struct netcxn*, int, int);
 char* getCxnAddrStr(struct netcxn*, char*);
+
+#endif
 
 #endif

@@ -1,10 +1,10 @@
-#if MODULEID == MODULEID_GAME
+#if defined(MODULE_GAME)
 
 #include <main/main.h>
 #include "input.h" 
+#include "game.h"
 #include <common/common.h>
 #include <renderer/renderer.h>
-#include <game/game.h>
 #ifdef __EMSCRIPTEN__
     #include <emscripten/html5.h>
 #endif

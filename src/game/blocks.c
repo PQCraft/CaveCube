@@ -1,3 +1,5 @@
+#if defined(MODULE_GAME) || defined(MODULE_SERVER)
+
 #include <main/main.h>
 #include "blocks.h"
 #include <common/common.h>
@@ -96,3 +98,5 @@ int blockSubNoFromID(int block, char* id) {
     }
     return -1;
 }
+
+#endif

@@ -1,15 +1,15 @@
-#if MODULEID == MODULEID_GAME
+#if defined(MODULE_GAME)
 
 #include <main/main.h>
 #include "game.h"
 #include "chunk.h"
 #include "blocks.h"
+#include "input.h"
 #include <main/version.h>
 #include <common/common.h>
 #include <common/resource.h>
 #include <renderer/renderer.h>
 #include <renderer/ui.h>
-#include <input/input.h>
 #include <server/server.h>
 
 #include <stdio.h>

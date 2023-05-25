@@ -1,3 +1,5 @@
+#if defined(MODULE_SERVER)
+
 #include <main/main.h>
 #include "noise.h"
 #include "common.h"
@@ -217,3 +219,5 @@ noise_t noise3(int tbl, noisefloat x, noisefloat y, noisefloat z) {
     
     return 0.936 * (LERP(s, n0, n1));
 }
+
+#endif

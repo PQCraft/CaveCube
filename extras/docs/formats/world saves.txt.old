@@ -1,0 +1,52 @@
+<World name corrected for general filesystem name limitations>/
+    server/
+        players/
+            [Top 4 bytes of player ID in 8 hex chars]/
+                [Next 3 bytes of player ID in 6 hex chars]
+                    <uint32_t[256]: Offset to player data> (Index to offset is bottom byte of player ID, 0xFFFFFFFF means no player)
+                    [Player data]
+                        <int32_t: Size of compressed player data>
+                        <uint8_t[]: Compressed player data>
+                    ...
+                ...
+            ...
+        vars/ (Comparable to gamerules in Minecraft)
+            [Variable name]
+                <Variable data>
+            ...
+    world/
+        entities/
+            [Top 4 bytes of entity ID in 8 hex chars]/
+                [Next 20 bits of entity ID in 5 hex chars]/
+                    <uint32_t[4096]: Offset to entity data> (Index to offset is bottom 12 bits of entity ID, 0xFFFFFFFF means no entity)
+                    [Entity data]
+                        <int32_t: Size of compressed entity data>
+                        <uint8_t[]: Compressed entity data>
+                    ...
+                ...
+            ...
+        chunks/
+            <Dimension text ID>/
+                [<Top 60 bits of chunk X as a signed decimal>,<Top 60 bits of chunk Z as a signed decimal>]
+                    <uint32_t[256]: Offset to chunk data> (Index to offset is <Bottom 4 bits of chunk Z><Bottom 4 bits of chunk X>, 0xFFFFFFFF means no chunk)
+                    [Chunk data]
+                        <int32_t: Size of compressed chunk data>
+                        <uint8_t[]: Compressed chunk data>
+                            <uint8_t: Max palette (0 - 15)>
+                            <Palette data> (Converted into an array of <uint16_t: <2 bits: 0><6 bits: Sub-ID><8 bits: ID>> on load, 0 if block not found)
+                                <uint16_t: Number of blocks other than air (0 - 4095)>
+                                [char[...0]: Block name]...
+                            ...
+                            <uint32_t[131072]: Palette indices and light>
+                                <20 bits: 0>
+                                <12 bits: index> (i = 0 is air, i = 1... is pallete[i - 1])
+                    ...
+                ...
+        state/ (The state of certain vars at the time of writing the save (in-game time, ))
+            [Variable name]
+                <Variable data>
+            ...
+    world.cfg
+        <World config (name, seed, etc) in a format readable and writable by common/config.c>
+    stats.inf
+        <World info (version, creation date, modification date, playtime/uptime, etc) in a format readable and writable by common/config.c>

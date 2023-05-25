@@ -1,3 +1,5 @@
+#if defined(MODULE_SERVER)
+
 #include <main/main.h>
 #include "worldgen.h"
 #include "blocks.h"
@@ -226,3 +228,5 @@ void genChunk(int64_t cx, int64_t cz, struct blockdata* data, int type) {
     //t = altutime() - t;
     //printf("Generated [%"PRId64", %"PRId64"] in %"PRIu64"us\n", cx, cz, t);
 }
+
+#endif

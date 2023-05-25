@@ -31,8 +31,8 @@
 
 extern CONFIG* config;
 extern int quitRequest;
-extern int argc;
-extern char** argv;
+extern int g_argc;
+extern char** g_argv;
 extern char* maindir;
 extern char* startdir;
 extern char* localdir;

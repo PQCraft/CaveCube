@@ -1,0 +1,40 @@
+<DB file>
+    <char[4]: "CCDB">
+    <uint16_t: Major version (1)>
+    <uint16_t: Minor version (0)>
+    <uint8_t: Flags>
+        <6 bits: 0><1 bit: Writing><1 bit: Open>
+    <Root dir data block>
+    [Block]...
+
+Block:
+    <uint8_t: Flags>
+        <6 bits: 0><1 bit: Is continuation><1 bit: Is free space>
+    <uint64_t: Pointer to continuation> (Points to <Block> of same type, 0 if no more continuation)
+    <uint64_t: Reserved data size> (How much data can the block hold)
+    <uint64_t: Data size> (How much data is the block holding)
+    <Part or all of {<Dir data> | <File data> | <File info>}>
+
+Dir data:
+    <Entry> (Must always have a CCDB_ENT_END entry at the end)
+        <uint8_t: Type ({CCDB_ENT_END | CCDB_ENT_NORM | CCDB_ENT_SKIP})>
+        [Data] (Not present if type is CCDB_ENT_END and ignored if type is CCDB_ENT_SKIP)
+            <uint16_t: First or next 2 bytes of file name hash>
+            <uint64_t: Pointer to a dir data <Block> on the first 3 levels and a file info <Block> on the 4th level>
+    ...
+
+File data:
+    <uint8_t[]: File contents>
+
+File info:
+    <uint32_t: # of entries>
+    [File info entry]
+        <uint8_t: Flags>
+            <7 bits: 0><1 bit: Skip>
+        <uint32_t: Size>
+        [Data] (Ignored if skip flag is set)
+            <uint8_t: Type ({CCDB_DIR | CCDB_FILE})>
+            <uint64_t: Pointer to a dir data <Block> if type is CCDB_DIR, or a file data <Block> if type is CCDB_FILE>
+            <uint64_t: File size> (Ignored if type is not CCDB_FILE)
+            <char[...0]: Null-terminated name>
+    ...

@@ -1,4 +1,4 @@
-#if MODULEID == MODULEID_GAME
+#if defined(MODULE_GAME)
 
 #include <main/main.h>
 #include "chunk.h"

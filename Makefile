@@ -1,26 +1,34 @@
-MODULE ?= game
+# VARS
 
-MODULECFLAGS := -DMODULEID_GAME=0 -DMODULEID_SERVER=1 -DMODULEID_TOOLBOX=2
-ifeq ($(MODULE),game)
-    MODULEID := 0
-else ifeq ($(MODULE),server)
-    MODULEID := 1
-else ifeq ($(MODULE),toolbox)
-    MODULEID := 2
-else
-    .PHONY: error
-    error:
-		@echo Invalid module: $(MODULE)
-		@exit 1
-endif
+ifndef MKSUB
 
-ifndef OS
-    ifndef EMSCR
-        ifndef WINCROSS
+    MODULE ?= game
+    CROSS ?= 
+
+    MODULECFLAGS := -DMODULEID_GAME=0 -DMODULEID_SERVER=1 -DMODULEID_TOOLBOX=2
+    ifeq ($(MODULE),game)
+        MODULEID := 0
+        MODULECFLAGS += -DMODULE_GAME
+        MODULECFLAGS += -DMODULE_SERVER
+    else ifeq ($(MODULE),server)
+        MODULEID := 1
+        MODULECFLAGS += -DMODULE_SERVER
+    else ifeq ($(MODULE),toolbox)
+        MODULEID := 2
+        MODULECFLAGS += -DMODULE_TOOLBOX
+    else
+        .PHONY: error
+        error:
+		    @echo Invalid module: $(MODULE)
+		    @exit 1
+    endif
+
+    ifndef OS
+        ifeq ($(CROSS),)
             CC ?= gcc
             STRIP ?= strip
             WINDRES ?= true
-        else
+        else ifeq ($(CROSS),win32)
             ifndef M32
                 CC = x86_64-w64-mingw32-gcc
                 STRIP = x86_64-w64-mingw32-strip
@@ -30,351 +38,327 @@ ifndef OS
                 STRIP = i686-w64-mingw32-strip
                 WINDRES = i686-w64-mingw32-windres
             endif
-        endif
-    else
-        CC = emcc
-        STRIP ?= true
-        WINDRES ?= true
-    endif
-else
-    CC = gcc
-    STRIP = strip
-    WINDRES = windres
-    ifdef MSYS2
-        undefine OS
-    endif
-endif
-
-ifdef WINCROSS
-    OS := Windows_NT
-endif
-
-ifdef M32
-    CC := $(CC) -m32
-endif
-ifndef DEBUG
-    ifndef NOLTO
-        CC := $(CC) -flto=auto
-    endif
-endif
-
-empty :=
-space := ${empty} ${empty}
-${space} := ${space}
-
-SRCDIR ?= src
-ifndef OS
-    ifndef EMSCR
-        ifndef M32
-            PLATFORM := $(subst ${ },_,$(subst /,_,$(shell uname -s)_$(shell uname -m)))
+        else ifeq ($(CROSS),emscr)
+            CC = emcc
+            STRIP ?= true
+            USEGLES = y
         else
-            PLATFORM := $(subst ${ },_,$(subst /,_,$(shell i386 uname -s)_$(shell i386 uname -m)))
+            .PHONY: error
+            error:
+			    @echo Invalid cross-compilation target: $(CROSS)
+			    @exit 1
         endif
+        SHCMD = unix
     else
-        PLATFORM := Emscripten
+        CC = gcc
+        STRIP = strip
+        WINDRES = windres
+        CROSS = win32
+        ifdef MSYS2
+            SHCMD = unix
+        else
+            SHCMD = win32
+        endif
     endif
-else
-    ifndef WINCROSS
+
+    ifdef M32
+        CCFLAGS += -m32
+    endif
+    ifndef DEBUG
+        ifndef NOLTO
+            CCFLAGS += -flto=auto
+        endif
+    endif
+
+    CC += $(CCFLAGS)
+
+    empty :=
+    space := ${empty} ${empty}
+    ${space} := ${space}
+
+    SRCDIR ?= src
+    ifeq ($(CROSS),)
+        ifndef M32
+            PLATFORMDIR := $(subst ${ },_,$(subst /,_,$(shell uname -s)_$(shell uname -m)))
+        else
+            PLATFORMDIR := $(subst ${ },_,$(subst /,_,$(shell i386 uname -s)_$(shell i386 uname -m)))
+        endif
+    else ifeq ($(CROSS),win32)
         ifndef MSYS2
-            ifeq ($(shell echo %PROGRAMFILES(x86)%),)
-                PLATFORM := Windows_x86
+            ifdef OS
+                ifeq ($(shell echo %PROGRAMFILES(x86)%),)
+                    PLATFORMDIR := Windows_x86
+                else
+                    PLATFORMDIR := Windows_x86_64
+                endif
             else
-                PLATFORM := Windows_x86_64
+                ifndef M32
+                    PLATFORMDIR := $(subst ${ },_,Windows_Cross_$(shell uname -m))
+                else
+                    PLATFORMDIR := $(subst ${ },_,Windows_Cross_$(shell i386 uname -m))
+                endif
             endif
         else
             ifndef M32
-                PLATFORM := $(subst ${ },_,$(subst /,_,$(shell uname -s)_$(shell uname -m)))
+                PLATFORMDIR := $(subst ${ },_,$(subst /,_,$(shell uname -s)_$(shell uname -m)))
             else
-                PLATFORM := $(subst ${ },_,$(subst /,_,$(shell i386 uname -s)_x86))
+                PLATFORMDIR := $(subst ${ },_,$(subst /,_,$(shell i386 uname -s)_x86))
             endif
         endif
-    else
-        ifndef M32
-            PLATFORM := $(subst ${ },_,Windows_Cross_$(shell uname -m))
-        else
-            PLATFORM := $(subst ${ },_,Windows_Cross_$(shell i386 uname -m))
-        endif
+    else ifeq ($(CROSS),emscr)
+        PLATFORMDIR := Emscripten
     endif
-endif
-OBJDIR ?= obj/$(PLATFORM)/$(MODULE)
+    OBJDIR ?= obj/$(PLATFORMDIR)/$(MODULE)
 
-SRCDIR := $(patsubst %/,%,$(SRCDIR))
-OBJDIR := $(patsubst %/,%,$(OBJDIR))
-SRCDIR := $(patsubst %\,%,$(SRCDIR))
-OBJDIR := $(patsubst %\,%,$(OBJDIR))
+    SRCDIR := $(patsubst %/,%,$(SRCDIR))
+    OBJDIR := $(patsubst %/,%,$(OBJDIR))
+    SRCDIR := $(patsubst %\,%,$(SRCDIR))
+    OBJDIR := $(patsubst %\,%,$(OBJDIR))
 
-DIRS := $(sort $(dir $(wildcard $(SRCDIR)/*/)))
-ifdef EMSCR
-    DIRS := $(filter-out $(wildcard $(SRCDIR)/zlib/),$(DIRS))
-endif
-DIRS := $(patsubst %/,%,$(DIRS))
-DIRS := $(patsubst %\,%,$(DIRS))
-DIRS := $(patsubst $(SRCDIR),,$(DIRS))
-BASEDIRS := $(notdir $(DIRS))
+    DIRS := $(sort $(dir $(wildcard $(SRCDIR)/*/)))
+    ifeq ($(CROSS),emscr)
+        DIRS := $(filter-out $(wildcard $(SRCDIR)/zlib/),$(DIRS))
+    endif
+    DIRS := $(patsubst %/,%,$(DIRS))
+    DIRS := $(patsubst %\,%,$(DIRS))
+    DIRS := $(patsubst $(SRCDIR),,$(DIRS))
+    BASEDIRS := $(notdir $(DIRS))
 
-ifdef MSYS2
-    OS := Windows_NT
-endif
+    ifeq ($(MODULE),server)
+        BINNAME := ccserver
+    else ifeq ($(MODULE),toolbox)
+        BINNAME := cctoolbx
+    else
+        BINNAME := cavecube
+    endif
 
-ifdef OS
-    BINEXT := .exe
-else
-    ifdef EMSCR
+    ifeq ($(CROSS),win32)
+        BINEXT := .exe
+    else ifeq ($(CROSS),emscr)
         BINEXT := .html
     endif
-endif
 
-ifeq ($(MODULE),server)
-    BINNAME := cctoolbx
-else ifeq ($(MODULE),toolbox)
-    BINNAME := ccserver
-else
-    BINNAME := cavecube
-endif
+    BIN := $(BINNAME)$(BINEXT)
 
-BIN := $(BINNAME)$(BINEXT)
-
-CFLAGS += -Wall -Wextra -D_DEFAULT_SOURCE -D_GNU_SOURCE -pthread -ffast-math
-CFLAGS += -fno-exceptions -fno-stack-clash-protection -fcf-protection=none
-ifdef OS
-    WRFLAGS += $(MODULECFLAGS) -DMODULE=$(MODULE)
-else
-    ifdef EMSCR
-        CFLAGS += -msimd128 -DUSEGLES -s USE_ZLIB=1
-        ifndef EMSCR
-            CFLAGS += -s USE_GLFW=3
-        else
-            CFLAGS += -s USE_SDL=2
-        endif
-    endif
-endif
-ifdef DEBUG
-    CFLAGS += -Og -g -DDEBUG=$(DEBUG)
-    ifdef OS
-        WRFLAGS += -DDEBUG=$(DEBUG)
-    endif
-else
-    CFLAGS += -O2
-endif
-ifdef NATIVE
-    CFLAGS += -march=native -mtune=native
-endif
-ifdef M32
-    CFLAGS += -DM32
-    ifdef OS
-        WRFLAGS += -DM32
-    endif
-endif
-CFLAGS += $(MODULECFLAGS) -DMODULEID=$(MODULEID) -DMODULE=$(MODULE)
-
-BINFLAGS += -lm
-ifndef OS
-    ifdef EMSCR
-        ifdef DEBUG
-            BINFLAGS += -g
-        endif
-        BINFLAGS += -O2 -s WASM=1 -s USE_PTHREADS=1 -s PTHREAD_POOL_SIZE=navigator.hardwareConcurrency -s INITIAL_MEMORY=1024MB -s ASYNCIFY=1
-        BINFLAGS += -s USE_WEBGL2=1 -s USE_ZLIB=1
-        ifndef USESDL2
-            BINFLAGS += -s USE_GLFW=3
-        else
-            BINFLAGS += -s USE_SDL=2
-        endif
-        BINFLAGS += --preload-file resources/ --shell-file extras/emscr_shell.html
-    else
-        BINFLAGS += -pthread -lpthread
-    endif
-else
-    BINFLAGS += -l:libwinpthread.a -lws2_32 -lwinmm
-endif
-ifdef USEGLES
-    CFLAGS += -DUSEGLES
-    ifdef OS
-        WRFLAGS += -DUSEGLES
-    endif
-endif
-ifeq ($(MODULE),game)
-    ifdef USESDL2
-        CFLAGS += -DUSESDL2
-        ifdef OS
-            WRFLAGS += -DUSESDL2
-            BINFLAGS += -l:libSDL2.a -lole32 -loleaut32 -limm32 -lsetupapi -lversion
-        else
-            ifndef EMSCR
-                BINFLAGS += -lSDL2
+    CFLAGS += -Wall -Wextra -D_DEFAULT_SOURCE -D_GNU_SOURCE -pthread -ffast-math
+    ifeq ($(MODULE),game)
+        ifdef USEGLES
+            CFLAGS += -DUSEGLES
+            ifeq ($(CROSS),win32)
+                WRFLAGS += -DUSEGLES
             endif
         endif
-    else
-        ifndef OS
-            BINFLAGS += -lglfw
-        else
-            BINFLAGS += -lglfw3
+        ifdef USESDL2
+            CFLAGS += -DUSESDL2
+            ifeq ($(CROSS),win32)
+                WRFLAGS += -DUSESDL2
+            endif
         endif
     endif
-    ifndef OS
-        BINFLAGS += -lX11
-    else
-        BINFLAGS += -lgdi32
+    ifeq ($(CROSS),win32)
+        WRFLAGS += $(MODULECFLAGS) -DMODULE=$(MODULE)
+    else ifeq ($(CROSS),emscr)
+        CFLAGS += -msimd128 -s USE_ZLIB=1
     endif
-endif
-ifndef OS
-    BINFLAGS += -ldl
+    ifneq ($(CROSS),emscr)
+        CFLAGS += -fno-exceptions -fno-stack-clash-protection -fcf-protection=none
+    endif
+    ifdef DEBUG
+        CFLAGS += -Og -g -DDEBUG=$(DEBUG)
+        ifeq ($(CROSS),win32)
+            WRFLAGS += -DDEBUG=$(DEBUG)
+        endif
+    else
+        CFLAGS += -O2
+    endif
+    ifdef NATIVE
+        CFLAGS += -march=native -mtune=native
+    endif
+    ifdef M32
+        CFLAGS += -DM32
+        ifeq ($(CROSS),win32)
+            WRFLAGS += -DM32
+        endif
+    endif
+    CFLAGS += $(MODULECFLAGS) -DMODULEID=$(MODULEID) -DMODULE=$(MODULE)
+
+    BINFLAGS += -lm
+    ifeq ($(MODULE),game)
+        ifeq ($(CROSS),)
+            ifndef USESDL2
+                BINFLAGS += -lglfw
+            else
+                BINFLAGS += -lSDL2
+            endif
+            BINFLAGS += -lX11
+        else ifeq ($(CROSS),win32)
+            BINFLAGS += -lws2_32 -lwinmm
+            ifndef USESDL2
+                BINFLAGS += -lglfw3
+            else
+                BINFLAGS += -l:libSDL2.a -lole32 -loleaut32 -limm32 -lsetupapi -lversion
+            endif
+            BINFLAGS += -lgdi32
+        else ifeq ($(CROSS),emscr)
+            BINFLAGS += -s USE_WEBGL2=1
+            ifndef USESDL2
+                BINFLAGS += -s USE_GLFW=3
+            else
+                BINFLAGS += -s USE_SDL=2
+            endif
+            BINFLAGS += --preload-file resources/ --shell-file extras/emscr_shell.html
+        endif
+    else ifeq ($(MODULE),server)
+        ifeq ($(CROSS),win32)
+            BINFLAGS += -lwinmm
+        endif
+    endif
+    ifeq ($(CROSS),)
+        BINFLAGS += -pthread -lpthread
+    else ifeq ($(CROSS),win32)
+        BINFLAGS += -pthread -l:libwinpthread.a
+    else ifeq ($(CROSS),emscr)
+        BINFLAGS += -O2 -s WASM=1 -s INITIAL_MEMORY=1024MB -s ASYNCIFY=1
+        BINFLAGS += -s USE_ZLIB=1 -s USE_PTHREADS=1 -s PTHREAD_POOL_SIZE=navigator.hardwareConcurrency
+    endif
+
+    GENSENT = $(OBJDIR)/.mkgen
+
+    UTILMK = util.mk
+
+    export
+
+else
+
+    export UTILMK := ../../$(UTILMK)    
+
 endif
 
-ifdef MSYS2
-    undefine OS
-endif
-ifdef WINCROSS
-    undefine OS
-endif
+# DEFINES
 
-MKENV = NAME="$@" MODULE="$(MODULE)" SRCDIR="$(SRCDIR)" OBJDIR="$(OBJDIR)" UTILMK="util.mk" CC="$(CC)" CFLAGS="$(CFLAGS)" BASEDIRS="$(BASEDIRS)"
-MKENV2 = NAME="$@" CC="$(CC)" CFLAGS="$(CFLAGS) -I../../$(SRCDIR)" SRCDIR="../../$(SRCDIR)" OBJDIR="../../$(OBJDIR)" UTILMK="../../util.mk"
-MKENVSUB = CC="$(CC)" BINFLAGS="$(BINFLAGS)" OBJDIR="$(OBJDIR)"
-ifdef DEBUG
-    MKENVMOD += DEBUG="$(DEBUG)"
-endif
-ifdef USESDL2
-    MKENVMOD += USESDL2=y
-endif
-ifdef WINCROSS
-    MKENVMOD += WINCROSS=y
-endif
-
-GENSENT = $(OBJDIR)/.mkgen
-
-ifdef OS
-    WINCROSS=y
-endif
-
-ifndef OS
+ifeq ($(SHCMD),unix)
 define null
 @echo > /dev/null
 endef
-else
+else ifeq ($(SHCMD),win32)
 define null
 @echo. > NUL
 endef
 endif
 
-ifndef OS
+ifeq ($(SHCMD),unix)
 define mkdir
 @[ ! -d "$@" ] && echo Creating $@... && mkdir -p "$@"; true
 endef
-else
+else ifeq ($(SHCMD),win32)
 define mkdir
 @if not exist "$@" echo Creating $@... & md "$(subst /,\,$@)"
 endef
 endif
 
-build: mkfiles compile $(BIN)
-	$(null)
-
-$(OBJDIR):
-	$(mkdir)
-
-ifdef MKSUB
-cleanmk: $(wildcard $(OBJDIR)/*.mk)
-else
-mkfiles: $(OBJDIR) $(GENSENT)
-	@$(MAKE) --no-print-directory -f $(lastword $(MAKEFILE_LIST)) ${MKENVMOD} MKSUB=y cleanmk
-endif
-
-$(GENSENT): $(wildcard $(SRCDIR)/*/*.c $(SRCDIR)/*/*.h) $(SRCDIR)
-	@echo Writing makefiles...
-ifndef OS
-	@rm -f $(OBJDIR)/.mkgen
-else
-	@if exist "$(OBJDIR)\.mkgen" del /Q "$(OBJDIR)\.mkgen"
-endif
-	@$(MAKE) --no-print-directory -f gen.mk ${MKENV}
-ifndef OS
-	@touch $@
-else
-	@type NUL > $@
-endif
-
-ifdef MKSUB
-ifndef OS
+ifeq ($(SHCMD),unix)
 define MKSRC
 $(subst .mk,,$(subst $(OBJDIR)/,$(SRCDIR)/,$@))
 endef
-else
+else ifeq ($(SHCMD),win32)
 define MKSRC
 $(subst .mk,,$(subst $(OBJDIR)/,$(SRCDIR)\,$@))
 endef
 endif
 
-$(wildcard $(OBJDIR)/*.mk): FORCE
-ifndef OS
-	@[ ! -d $(MKSRC) ] && rm -f $@ || exit 0
-else
-	@if not exist $(MKSRC) del /Q $@
-endif
-endif
+# RULES AND TARGETS
 
 ifndef MKSUB
-$(BASEDIRS): FORCE
-	@$(MAKE) --no-print-directory -C "$(SRCDIR)/$@" -f "../../$(OBJDIR)/$@.mk" ${MKENV2}
 
-compile: FORCE
-	@$(MAKE) --no-print-directory -f $(lastword $(MAKEFILE_LIST)) ${MKENVMOD} $(BASEDIRS)
-endif
-
-bin: $(BIN)
+build: mkfiles compile $(BIN)
 	$(null)
 
-ifndef MKSUB
-.PHONY: $(BIN)
+cleanmk: $(wildcard $(OBJDIR)/*.mk)
+
+$(wildcard $(OBJDIR)/*.mk): .FORCE
+ifeq ($(SHCMD),unix)
+	@[ ! -d $(MKSRC) ] && rm -f $@ || exit 0
+else ifeq ($(SHCMD),win32)
+	@if not exist $(MKSRC) del /Q $@
+endif
+
+mkfiles: $(OBJDIR) cleanmk $(GENSENT)
+
+$(OBJDIR):
+	$(mkdir)
+
+$(GENSENT): $(wildcard $(SRCDIR)/*/*.c $(SRCDIR)/*/*.h) $(SRCDIR)
+	@echo Writing makefiles...
+ifeq ($(SHCMD),unix)
+	@rm -f $(OBJDIR)/.mkgen
+else ifeq ($(SHCMD),win32)
+	@if exist "$(OBJDIR)\.mkgen" del /Q "$(OBJDIR)\.mkgen"
+endif
+	@$(MAKE) --no-print-directory -f gen.mk
+ifeq ($(SHCMD),unix)
+	@touch $@
+else ifeq ($(SHCMD),win32)
+	@type NUL > $@
+endif
+
+compile: .FORCE
+	@$(MAKE) --no-print-directory -f $(lastword $(MAKEFILE_LIST)) MKSUB=y compile
+
 $(BIN):
-	@$(MAKE) --no-print-directory -f $(lastword $(MAKEFILE_LIST)) ${MKENVMOD} ${MKENVSUB} MKSUB=y bin
-else
-$(BIN): $(wildcard $(OBJDIR)/*/*.o)
-	@echo Building $@...
-ifdef WINCROSS
-	@$(WINDRES) $(WRFLAGS) -DORIG_NAME="$(BIN)" -DINT_NAME="$(BINNAME)" $(SRCDIR)/main/version.rc -o $(OBJDIR)/version.o
-endif
-ifndef WINCROSS
-	@$(CC) $^ $(BINFLAGS) -o $@
-else
-	@$(CC) $(OBJDIR)/version.o $^ $(BINFLAGS) -o $@
-endif
-ifndef DEBUG
-	@$(STRIP) --strip-all $@
-endif
-endif
+	@$(MAKE) --no-print-directory -f $(lastword $(MAKEFILE_LIST)) MKSUB=y $(BIN)
 
 run: build
 	@echo Running $(BIN)...
-ifndef OS
+ifeq ($(SHCMD),unix)
 	@./$(BIN)
-else
+else ifeq ($(SHCMD),win32)
 	@.\\$(BIN)
 endif
 
 clean:
 	@echo Removing $(OBJDIR)...
-ifndef OS
+ifeq ($(SHCMD),unix)
 	@rm -rf $(OBJDIR)
-else
+else ifeq ($(SHCMD),win32)
 	@if exist "$(subst /,\,$(OBJDIR))" rmdir /S /Q "$(subst /,\,$(OBJDIR))"
 endif
 	@echo Removing $(BIN)...
-ifndef OS
+ifeq ($(SHCMD),unix)
 	@rm -f $(BIN)
-ifdef EMSCR
+ifeq ($(CROSS),emscr)
 	@rm -f $(BINNAME)*.html
 	@rm -f $(BINNAME)*.js
 	@rm -f $(BINNAME)*.wasm
 	@rm -f $(BINNAME)*.data
 endif
-else
+else ifeq ($(SHCMD),win32)
 	@if exist $(BIN) del /Q $(BIN)
 endif
 
+.PHONY: $(BIN) $(OBJDIR) build mkfiles cleanmk compile run clean
 .NOTPARALLEL:
 
-FORCE:
+else
 
-.PHONY: $(OBJDIR) build mkfiles cleanmk $(BASEDIRS) compile bin run clean
+$(BASEDIRS): .FORCE
+	@$(MAKE) --no-print-directory -C "$(SRCDIR)/$@" -f "../../$(OBJDIR)/$@.mk" NAME="$@" CFLAGS="$(CFLAGS) -I../../$(SRCDIR)" SRCDIR="../../$(SRCDIR)" OBJDIR="../../$(OBJDIR)"
 
+compile: $(BASEDIRS) .FORCE
+
+$(BIN): $(wildcard $(OBJDIR)/*/*.o)
+	@echo Building $@...
+ifeq ($(CROSS),win32)
+	@$(WINDRES) $(WRFLAGS) -DORIG_NAME="$(BIN)" -DINT_NAME="$(BINNAME)" $(SRCDIR)/main/version.rc -o $(OBJDIR)/version.o
+	@$(CC) $(OBJDIR)/version.o $^ $(BINFLAGS) -o $@
+else
+	@$(CC) $^ $(BINFLAGS) -o $@
+endif
+ifndef DEBUG
+	@$(STRIP) --strip-all $@
+endif
+
+.PHONY: $(BASEDIRS)
+
+endif
+
+.FORCE:

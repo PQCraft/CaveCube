@@ -28,7 +28,7 @@
 - Make it so that timers are not pushed again until an acknowledge (prevents overflow)
 - Make server ask for and handle player's positions
 - Clean up cave culling crust in renderer
-- Redo BMD to CCM (delete `src/bmd/` and add `src/ccm/`)
+- Redo BMD to CCM (delete `src/bmd/` and add `src/common/ccm.(c|h)`)
     - Add parts, model types (3D, BLOCK, 2D, etc), and data types (VERT, ANI, AABB, etc)
     - Block models use quads instead of triangles
 - 3D model rendering in `src/renderer/renderer.c`

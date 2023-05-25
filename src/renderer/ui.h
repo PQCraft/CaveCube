@@ -1,9 +1,9 @@
-#if MODULEID == MODULEID_GAME
+#if defined(MODULE_GAME)
 
 #ifndef RENDERER_UI_H
 #define RENDERER_UI_H
 
-#include <input/input.h>
+#include <game/input.h>
 
 #include <inttypes.h>
 #include <stdbool.h>

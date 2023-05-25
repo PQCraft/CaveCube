@@ -1,4 +1,4 @@
-#if MODULEID == MODULEID_GAME
+#if defined(MODULE_GAME)
 
 #include <main/main.h>
 #include "renderer.h"
@@ -11,7 +11,7 @@
 #include <common/common.h>
 #include <common/resource.h>
 #include <common/noise.h>
-#include <input/input.h>
+#include <game/input.h>
 #include <game/game.h>
 #include <game/chunk.h>
 #include <game/blocks.h>

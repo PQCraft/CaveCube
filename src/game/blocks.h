@@ -1,3 +1,5 @@
+#if defined(MODULE_GAME) || defined(MODULE_SERVER)
+
 #ifndef GAME_BLOCKS_H
 #define GAME_BLOCKS_H
 
@@ -33,5 +35,7 @@ int blockSubNoFromID(int, char*);
 
 #define BLOCKNO_NULL (0)
 #define BLOCKNO_BORDER (255)
+
+#endif
 
 #endif

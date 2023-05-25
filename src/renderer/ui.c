@@ -1,9 +1,9 @@
-#if MODULEID == MODULEID_GAME
+#if defined(MODULE_GAME)
 
 #include <main/main.h>
 #include "ui.h"
 #include "renderer.h"
-#include <input/input.h>
+#include <game/input.h>
 
 #include <pthread.h>
 #include <stdlib.h>

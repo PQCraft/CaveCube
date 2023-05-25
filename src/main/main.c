@@ -8,6 +8,9 @@
 
 #include "main.h"
 #include "version.h"
+#if MODULEID == MODULEID_TOOLBOX
+    #include "toolbox.h"
+#endif
 #include <game/game.h>
 #include <game/blocks.h>
 #include <common/common.h>
@@ -34,8 +37,8 @@ char configpath[MAX_PATH] = "";
 CONFIG* config = NULL;
 int quitRequest = 0;
 
-int argc;
-char** argv;
+int g_argc;
+char** g_argv;
 
 char* maindir = NULL;
 char* startdir = NULL;
@@ -55,10 +58,6 @@ static void sigsegvh(int sig) {
 }
 #endif
 
-#ifdef _WIN32
-static bool showcon;
-#endif
-
 static inline bool altchdir(char* path) {
     if (chdir(path) < 0) {fprintf(stderr, "Could not chdir into '%s'\n", path); return false;}
     return true;
@@ -74,7 +73,9 @@ static inline bool altchdir(char* path) {
 }
 
 #if MODULEID == MODULEID_GAME
-int game_main() {
+int game_main(int argc, char** argv) {
+    (void)argc;
+    (void)argv;
     #if defined(_WIN32)
         DWORD procs[2];
         DWORD procct = GetConsoleProcessList((LPDWORD)procs, 2);
@@ -116,12 +117,6 @@ int game_main() {
         printf("Config path: {%s}\n", configpath);
     #endif
     if (!altchdir(maindir)) return 1;
-    signal(SIGINT, sigh);
-    #ifndef _WIN32
-        signal(SIGPIPE, SIG_IGN);
-    #else
-        signal(SIGSEGV, sigsegvh);
-    #endif
     if (!altchdir(startdir)) exit(1);
     if (isFile(configpath) == 1) {
         config = openConfig(configpath);
@@ -132,7 +127,7 @@ int game_main() {
     if (!altchdir(maindir)) exit(1);
     #ifdef _WIN32
         declareConfigKey(config, "Main", "showConsole", "false", false);
-        showcon = getBool(getConfigKey(config, "Main", "showConsole"));
+        bool showcon = getBool(getConfigKey(config, "Main", "showConsole"));
     #endif
     initResource();
     initBlocks();
@@ -152,12 +147,24 @@ int game_main() {
     free(localdir);
     return 0;
 }
+#elif MODULEID == MODULEID_SERVER
+int server_main(int argc, char** argv) {
+    (void)argc;
+    (void)argv;
+    return 0;
+}
 #endif
 
-int main(int _argc, char** _argv) {
-    argc = _argc;
-    argv = _argv;
+int main(int argc, char** argv) {
+    g_argc = argc--;
+    g_argv = argv++;
     int ret = 0;
+    signal(SIGINT, sigh);
+    #ifndef _WIN32
+        signal(SIGPIPE, SIG_IGN);
+    #else
+        signal(SIGSEGV, sigsegvh);
+    #endif
     #if defined(_WIN32) && (MODULEID == MODULEID_GAME || MODULEID == MODULEID_SERVER)
         TIMECAPS tc;
         UINT tmrres = 1;
@@ -171,11 +178,11 @@ int main(int _argc, char** _argv) {
         timeBeginPeriod(tmrres);
     #endif
     #if MODULEID == MODULEID_GAME
-        ret = game_main();
+        ret = game_main(argc, argv);
     #elif MODULEID == MODULEID_SERVER
-        ret = server_main();
+        ret = server_main(argc, argv);
     #elif MODULEID == MODULEID_TOOLBOX
-        ret = toolbox_main();
+        ret = toolbox_main(argc, argv);
     #else
         ret = 1;
     #endif

@@ -1,6 +1,6 @@
 #include <main/main.h>
 #include "common.h"
-#include <compression/zlib.h>
+#include <zlib/zlib.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -153,15 +153,15 @@ char* execpath() {
     #endif
     goto skipscargv;
     scargv:;
-    if (strcmp(argv[0], basefilename(argv[0]))) {
+    if (strcmp(g_argv[0], basefilename(g_argv[0]))) {
         #ifndef _WIN32
-        char* tmp = realpath(argv[0], epbuf);
+        char* tmp = realpath(g_argv[0], epbuf);
         (void)tmp;
         #else
-        _fullpath(epbuf, argv[0], MAX_PATH);
+        _fullpath(epbuf, g_argv[0], MAX_PATH);
         #endif
     } else {
-        strcpy(epbuf, argv[0]);
+        strcpy(epbuf, g_argv[0]);
     }
     skipscargv:;
     return epbuf;

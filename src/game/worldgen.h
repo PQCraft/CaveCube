@@ -1,3 +1,5 @@
+#if defined(MODULE_SERVER)
+
 #ifndef GAME_WORLDGEN_H
 #define GAME_WORLDGEN_H
 
@@ -7,5 +9,7 @@
 
 bool initWorldgen(void);
 void genChunk(int64_t, int64_t, struct blockdata*, int);
+
+#endif
 
 #endif

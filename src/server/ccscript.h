@@ -1,5 +1,7 @@
-#ifndef CCSCRIPT_CCSCRIPT_H
-#define CCSCRIPT_CCSCRIPT_H
+#if defined(MODULE_SERVER)
+
+#ifndef SERVER_CCSCRIPT_H
+#define SERVER_CCSCRIPT_H
 
 #include <inttypes.h>
 
@@ -175,5 +177,7 @@ struct ccs_cmd_vstrcatto {
     struct ccs_var* var2;
     struct ccs_var* out;
 };
+
+#endif
 
 #endif

@@ -1,3 +1,5 @@
+#if defined(MODULE_GAME) || defined(MODULE_SERVER)
+
 #include <main/main.h>
 #include "collision.h"
 
@@ -10,3 +12,5 @@ struct _phys_box {
     float minz;
     float density;
 };
+
+#endif

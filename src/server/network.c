@@ -1,3 +1,5 @@
+#if defined(MODULE_GAME) || defined(MODULE_SERVER)
+
 #include <main/main.h>
 #include "network.h"
 #include <common/endian.h>
@@ -429,3 +431,5 @@ bool initNet() {
     #endif
     return true;
 }
+
+#endif
