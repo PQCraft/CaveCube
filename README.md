@@ -40,12 +40,12 @@ git clone --filter=tree:0 https://github.com/PQCraft/CaveCube.git
 - To build for debugging, add `DEBUG=[level]` after `make` (e.g. `make DEBUG=0 -j run`). This will build the executable with debug symbols, disable symbol stripping, and define the internal `DEBUG` macro with the level specified.<br>
 - To compile with using SDL2 instead of GLFW, add `USESDL2=y` after `make`.<br>
 - To compile using OpenGL ES instead of OpenGL, add `USEGLES=y` after `make`.<br>
-- To change the target to the standalone server, add `MODULE=server` after `make`. This variable will change the object directory.<br>
-- To cross compile to Windows on a non-Windows OS, add `WINCROSS=y` after `make`. This variable will change the object directory and binary name.<br>
+- To change the target, add `MODULE=[target]` after `make`. The valid targets are `game` for the client (default), `server` for the standalone server, and `toolbox` for the toolbox. This variable may change the object directory and binary name.<br>
+- To cross compile to another platform, add `CROSS=[platform]` after `make`. The valid cross-compilation platforms are `win32` for Windows, and `emscr` for Emscripten. This variable may change the object directory and binary name.<br>
 - To compile a 32-bit binary on a 64-bit machine, add `M32=y` after `make`. This variable will change the object directory.<br>
 
 These variables can be combined.<br>
-For example, `make USESDL2=y WINCROSS=y -j run` will build CaveCube for Windows with SDL2 and run when compilation finishes.<br>
+For example, `make USESDL2=y CROSS=win32 -j run` will build CaveCube for Windows with SDL2 and run when compilation finishes.<br>
 <br>
 For any variables that change the object directory or binary name, you must use these flags again when running the `clean` rule in order to remove the correct files.<br>
 <br>
