@@ -1,7 +1,7 @@
 #if defined(MODULE_GAME)
 
-#ifndef RENDERER_UI_H
-#define RENDERER_UI_H
+#ifndef GRAPHICS_UI_H
+#define GRAPHICS_UI_H
 
 #include <game/input.h>
 

@@ -12,12 +12,12 @@
     #include "toolbox.h"
 #endif
 #include <game/game.h>
-#include <game/blocks.h>
+#include <common/blocks.h>
 #include <common/common.h>
 #include <common/resource.h>
 #include <common/config.h>
 #if MODULEID == MODULEID_GAME
-    #include <renderer/renderer.h>
+    #include <graphics/renderer.h>
 #endif
 #include <server/server.h>
 

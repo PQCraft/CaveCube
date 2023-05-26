@@ -5,6 +5,10 @@
     #include <emscripten.h>
 #endif
 
+#ifdef _WIN32
+    #include <winsock2.h>
+#endif
+
 #include <common/config.h>
 
 #ifndef DEBUG

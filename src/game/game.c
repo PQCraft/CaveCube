@@ -2,14 +2,14 @@
 
 #include <main/main.h>
 #include "game.h"
-#include "chunk.h"
-#include "blocks.h"
 #include "input.h"
 #include <main/version.h>
+#include <common/chunk.h>
+#include <common/blocks.h>
 #include <common/common.h>
 #include <common/resource.h>
-#include <renderer/renderer.h>
-#include <renderer/ui.h>
+#include <graphics/renderer.h>
+#include <graphics/ui.h>
 #include <server/server.h>
 
 #include <stdio.h>

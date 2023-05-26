@@ -4,7 +4,7 @@
 #include "chunk.h"
 #include "blocks.h"
 #include <common/common.h>
-#include <renderer/renderer.h>
+#include <graphics/renderer.h>
 #include <server/server.h>
 
 #include <inttypes.h>

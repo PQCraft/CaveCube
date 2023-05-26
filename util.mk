@@ -1,8 +1,8 @@
-ifndef OS
+ifeq ($(SHCMD),unix)
 define null
 @echo > /dev/null
 endef
-else
+else ifeq ($(SHCMD),win32)
 define null
 @echo. > NUL
 endef
@@ -16,11 +16,11 @@ define cdmsg
 @echo Compiled $(NAME)/$<
 endef
 
-ifndef OS
+ifeq ($(SHCMD),unix)
 define mkdir
 @[ ! -d "$@" ] && echo Creating $@... && mkdir -p "$@"; true
 endef
-else
+else ifeq ($(SHCMD),win32)
 define mkdir
 @if not exist "$@" echo Creating $@... & md "$(subst /,\,$@)"
 endef
@@ -33,27 +33,27 @@ OUTDIR := $(OBJDIR)/$(NAME)
 CFILES := $(wildcard $(SRCDIR)/$(NAME)/*.c)
 OFILES := $(addprefix $(OUTDIR)/,$(notdir $(CFILES:.c=.o)))
 
-ifndef OS
+ifeq ($(SHCMD),unix)
 TAB := "	"
-else
+else ifeq ($(SHCMD),win32)
 define TAB
 	
 endef
 endif
 
-ifndef OS
+ifeq ($(SHCMD),unix)
 esc = \$()
-else
+else ifeq ($(SHCMD),win32)
 define esc
 ^
 endef
 endif
 
-ifndef OS
+ifeq ($(SHCMD),unix)
 define echoblank
 echo
 endef
-else
+else ifeq ($(SHCMD),win32)
 define echoblank
 echo.
 endef
@@ -75,17 +75,17 @@ $(OUTDIR):
 
 cleanobjdir: FORCE
 	@echo Removing $(OBJDIR)...
-ifndef OS
+ifeq ($(SHCMD),unix)
 	@rm -rf "$(OBJDIR)"
-else
+else ifeq ($(SHCMD),win32)
 	@if exist "$(subst /,\,$(OBJDIR))" rmdir /S /Q "$(subst /,\,$(OBJDIR))"
 endif
 
 cleanoutdir: FORCE
 	@echo Removing $(OUTDIR)...
-ifndef OS
+ifeq ($(SHCMD),unix)
 	@rm -rf "$(OUTDIR)"
-else
+else ifeq ($(SHCMD),win32)
 	@if exist "$(subst /,\,$(OUTDIR))" rmdir /S /Q "$(subst /,\,$(OUTDIR))"
 endif
 

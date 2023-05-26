@@ -1,7 +1,7 @@
 #ifndef SERVER_SERVER_H
 #define SERVER_SERVER_H
 
-#include <game/chunk.h>
+#include <common/chunk.h>
 
 #include <stdbool.h>
 #include <stdarg.h>

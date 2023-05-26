@@ -4,7 +4,7 @@
 #include "input.h" 
 #include "game.h"
 #include <common/common.h>
-#include <renderer/renderer.h>
+#include <graphics/renderer.h>
 #ifdef __EMSCRIPTEN__
     #include <emscripten/html5.h>
 #endif

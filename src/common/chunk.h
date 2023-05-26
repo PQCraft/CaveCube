@@ -1,7 +1,7 @@
-#ifndef GAME_CHUNK_H
-#define GAME_CHUNK_H
+#ifndef COMMON_CHUNK_H
+#define COMMON_CHUNK_H
 
-#include <renderer/renderer.h>
+#include <graphics/renderer.h>
 
 #include <inttypes.h>
 

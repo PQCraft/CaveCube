@@ -1,7 +1,7 @@
 #if defined(MODULE_GAME)
 
-#ifndef RENDERER_RENDERER_H
-#define RENDERER_RENDERER_H
+#ifndef GRAPHICS_RENDERER_H
+#define GRAPHICS_RENDERER_H
 
 #ifndef __EMSCRIPTEN__
     #include "glad.h"

@@ -1,9 +1,9 @@
 #if defined(MODULE_SERVER)
 
-#ifndef GAME_WORLDGEN_H
-#define GAME_WORLDGEN_H
+#ifndef SERVER_WORLDGEN_H
+#define SERVER_WORLDGEN_H
 
-#include <game/chunk.h>
+#include <common/chunk.h>
 
 #include <stdbool.h>
 

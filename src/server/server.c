@@ -1,12 +1,12 @@
 #include <main/main.h>
-#include "network.h"
 #include "server.h"
+#include "network.h"
+#include "worldgen.h"
 #include <main/version.h>
 #include <common/common.h>
 #include <common/endian.h>
 #include <common/noise.h>
 #include <game/game.h>
-#include <game/worldgen.h>
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -11,10 +11,10 @@
 #include <common/common.h>
 #include <common/resource.h>
 #include <common/noise.h>
+#include <common/chunk.h>
+#include <common/blocks.h>
 #include <game/input.h>
 #include <game/game.h>
-#include <game/chunk.h>
-#include <game/blocks.h>
 
 #include <stdbool.h>
 #include <string.h>

@@ -3,7 +3,7 @@
 #ifndef GAME_GAME_H
 #define GAME_GAME_H
 
-#include <renderer/renderer.h>
+#include <graphics/renderer.h>
 
 #include <stdbool.h>
 

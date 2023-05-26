@@ -1,7 +1,7 @@
 #if defined(MODULE_GAME) || defined(MODULE_SERVER)
 
-#ifndef GAME_BLOCKS_H
-#define GAME_BLOCKS_H
+#ifndef COMMON_BLOCKS_H
+#define COMMON_BLOCKS_H
 
 #include <inttypes.h>
 #include <stdbool.h>

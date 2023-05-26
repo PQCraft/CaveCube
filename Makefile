@@ -230,6 +230,7 @@ ifndef MKSUB
 
 else
 
+    export SHCMD
     export UTILMK := ../../$(UTILMK)    
 
 endif

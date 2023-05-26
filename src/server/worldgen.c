@@ -2,7 +2,7 @@
 
 #include <main/main.h>
 #include "worldgen.h"
-#include "blocks.h"
+#include <common/blocks.h>
 #include <common/noise.h>
 
 #include <math.h>

@@ -3,7 +3,7 @@
 #ifndef SERVER_CHUNKPOOL_H
 #define SERVER_CHUNKPOOL_H
 
-#include <game/chunk.h>
+#include <common/chunk.h>
 
 #include <pthread.h>
 

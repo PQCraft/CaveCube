@@ -29,9 +29,9 @@ $(OBJDIR)/%.mk: $(wildcard $(SRCDIR)/$(NAME)/*.c $(SRCDIR)/$(NAME)/*.h)
 	@echo all: $(addprefix ../../$(OUTDIR)/,$(notdir $(CFILES:.c=.o))) >> $@
 	@$(echoblank) >> $@
 	@$(MAKE) --silent --no-print-directory -C "$(MKSRC)" -f ../../gen.mk NAME="$(subst .mk,,$(subst $(OBJDIR)/,,$@))" ${MKENV} MKRULES=y
-ifndef OS
+ifeq ($(SHCMD),unix)
 	@[ ! -d "$(MKND)" ] && echo Creating $(MKND)... && mkdir -p "$(MKND)"; true
-else
+else ifeq ($(SHCMD),win32)
 	@if not exist "$(MKND)" echo Creating $(MKND)... & md "$(subst /,\,$(MKND))"
 endif
 endif
