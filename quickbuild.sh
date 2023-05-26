@@ -15,7 +15,7 @@ build() {
     buildrel "${1}" "Windows using GLFW" ${@:2} CROSS=win32
     buildrel "${1}" "Windows using SDL2" ${@:2} CROSS=win32 USESDL2=y
 }
-#buildmod "game"
+buildmod "game"
 
 build() {
     buildrel "${1}" "" ${@:2}
