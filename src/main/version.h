@@ -26,5 +26,5 @@
     #define GFX_API "OpenGL"
 #endif
 #define BUILD_STR "Built with " IO_ABST " for " GFX_API "."
-    
+
 #endif

@@ -3,4 +3,6 @@
 #include <main/main.h>
 #include "ccscript.h"
 
+#include <common/glue.h>
+
 #endif

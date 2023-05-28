@@ -3,9 +3,6 @@
 #include <main/main.h>
 #include "renderer.h"
 #include "ui.h"
-#ifndef __EMSCRIPTEN__
-    #include "glad.h"
-#endif
 #include "cglm/cglm.h"
 #include <main/version.h>
 #include <common/common.h>
@@ -20,22 +17,6 @@
 #include <string.h>
 #include <pthread.h>
 #include <limits.h>
-
-#if defined(USESDL2)
-    #ifndef __EMSCRIPTEN__
-        #include <SDL2/SDL.h>
-    #else
-        #include <SDL.h>
-    #endif
-#else
-    #include <GLFW/glfw3.h>
-#endif
-#ifdef __EMSCRIPTEN__
-    #include <GLES3/gl3.h>
-    //#include <emscripten/html5.h>
-    #define glFramebufferTexture(a, b, c, d) glFramebufferTexture2D((a), (b), GL_TEXTURE_2D, (c), (d));
-    #define glPolygonMode(a, b)
-#endif
 
 #include <common/glue.h>
 
@@ -1851,7 +1832,7 @@ static void errorcb(int e, const char* m) {
 }
 #endif
 
-#ifndef __EMSCRIPTEN__
+#ifndef USEGLES
 #if defined(_WIN32) && !defined(_WIN64)
 __attribute__((stdcall))
 #endif
@@ -1894,7 +1875,11 @@ bool initRenderer() {
     declareConfigKey(config, "Renderer", "resolution", "1024x768", false);
     declareConfigKey(config, "Renderer", "fullScreenRes", "", false);
     declareConfigKey(config, "Renderer", "vSync", "true", false);
-    declareConfigKey(config, "Renderer", "fullScreen", "false", false);
+    #ifndef __ANDROID__
+        declareConfigKey(config, "Renderer", "fullScreen", "false", false);
+    #else
+        declareConfigKey(config, "Renderer", "fullScreen", "true", false);
+    #endif
     declareConfigKey(config, "Renderer", "FOV", "85", false);
     declareConfigKey(config, "Renderer", "mipmaps", "true", false);
     declareConfigKey(config, "Renderer", "clientLighting", "false", false);
@@ -1914,6 +1899,7 @@ bool initRenderer() {
 
     #if defined(USESDL2)
     SDL_SetHint(SDL_HINT_NO_SIGNAL_HANDLERS, "1");
+    SDL_SetHint(SDL_HINT_ORIENTATIONS, "LandscapeLeft LandscapeRight");
     if (SDL_Init(SDL_INIT_VIDEO)) {
         sdlerror("initRenderer: Failed to init video");
         return false;
@@ -2342,8 +2328,10 @@ bool reloadRenderer() {
     {
         glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
         glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+        #ifndef USEGLES
         float bcolor[] = {0.0, 0.0, 0.0, 0.0};
         glTexParameterfv(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_BORDER_COLOR, bcolor);
+        #endif
     }
     freeResource(charset);
 
@@ -2377,7 +2365,7 @@ bool startRenderer() {
     glfwMakeContextCurrent(rendinf.window);
     #endif
 
-    #ifndef __EMSCRIPTEN__
+    #if !defined(__EMSCRIPTEN__) && !defined(__ANDROID__)
     GLADloadproc glproc;
     #if defined(USESDL2)
     glproc = (GLADloadproc)SDL_GL_GetProcAddress;
@@ -2397,7 +2385,7 @@ bool startRenderer() {
     printf("Vendor string: %s\n", glvend);
     glrend = glGetString(GL_RENDERER);
     printf("Renderer string: %s\n", glrend);
-    #ifndef __EMSCRIPTEN__
+    #ifndef USEGLES
     if (GL_KHR_debug) {
         puts("KHR_debug supported");
         glDebugMessageCallback(oglCallback, NULL);
@@ -2408,7 +2396,7 @@ bool startRenderer() {
     GLint range[2];
     glGetIntegerv(GL_ALIASED_LINE_WIDTH_RANGE, range);
     printf("GL_ALIASED_LINE_WIDTH_RANGE: [%d, %d]\n", range[0], range[1]);
-    #ifndef __EMSCRIPTEN__
+    #ifndef USEGLES
     glGetIntegerv(GL_SMOOTH_LINE_WIDTH_RANGE, range);
     printf("GL_SMOOTH_LINE_WIDTH_RANGE: [%d, %d]\n", range[0], range[1]);
     #endif

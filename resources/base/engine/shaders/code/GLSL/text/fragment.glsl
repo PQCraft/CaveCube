@@ -11,7 +11,20 @@ out vec4 fragColor;
 
 void main() {
     fragColor = texture(texData, texCoord);
-    vec4 bFragColor = texture(texData, vec3(texCoord.x + 1.0 / texsize.x, texCoord.yz));
+    float bx = texCoord.x + 1.0 / texsize.x;
+    vec4 bFragColor = texture(texData, vec3(bx, texCoord.yz));
+    #ifdef USEGLES
+    if (texCoord.x > 1.0 || texCoord.x < 0.0) {
+        fragColor = vec4(0.0);
+    }
+    if (texCoord.y > 1.0 || texCoord.y < 0.0) {
+        fragColor = vec4(0.0);
+        bFragColor = vec4(0.0);
+    }
+    if (bx > 1.0 || bx < 0.0) {
+        bFragColor = vec4(0.0);
+    }
+    #endif
     if (bool(b)) {
         fragColor = max(fragColor, bFragColor);
     }

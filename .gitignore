@@ -5,6 +5,8 @@
 !resources/**
 !src/
 !src/**
+src/glfm/
+src/SDL/
 !.github/
 !*.sh
 !CONTRIBUTING.md

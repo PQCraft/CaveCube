@@ -4,6 +4,7 @@ ifndef MKSUB
 
     MODULE ?= game
     CROSS ?= 
+    OUTDIR ?= .
 
     MODULECFLAGS := -DMODULEID_GAME=0 -DMODULEID_SERVER=1 -DMODULEID_TOOLBOX=2
     ifeq ($(MODULE),game)
@@ -41,6 +42,10 @@ ifndef MKSUB
         else ifeq ($(CROSS),emscr)
             CC = emcc
             STRIP ?= true
+            USEGLES = y
+        else ifeq ($(CROSS),android)
+            STRIP ?= true
+            USESDL2 = y
             USEGLES = y
         else
             .PHONY: error
@@ -107,6 +112,12 @@ ifndef MKSUB
         endif
     else ifeq ($(CROSS),emscr)
         PLATFORMDIR := Emscripten
+    else ifeq ($(CROSS),android)
+        ifdef CMAKE_ARCH
+            PLATFORMDIR := Android_$(CMAKE_ARCH)
+        else
+            PLATFORMDIR := Android
+        endif
     endif
     OBJDIR ?= obj/$(PLATFORMDIR)/$(MODULE)
 
@@ -136,9 +147,17 @@ ifndef MKSUB
         BINEXT := .exe
     else ifeq ($(CROSS),emscr)
         BINEXT := .html
+    else ifeq ($(CROSS),android)
+        BINNAME := lib$(BINNAME)
+        BINEXT := .so
     endif
 
     BIN := $(BINNAME)$(BINEXT)
+    ifeq ($(SHCMD),unix)
+    BIN := $(OUTDIR)/$(BIN)
+    else ifeq ($(SHCMD),win32)
+    BIN := $(OUTDIR)\\$(BIN)
+    endif
 
     CFLAGS += -Wall -Wextra -D_DEFAULT_SOURCE -D_GNU_SOURCE -pthread -ffast-math
     ifeq ($(MODULE),game)
@@ -159,9 +178,14 @@ ifndef MKSUB
         WRFLAGS += $(MODULECFLAGS) -DMODULE=$(MODULE)
     else ifeq ($(CROSS),emscr)
         CFLAGS += -msimd128 -s USE_ZLIB=1
+    else ifeq ($(CROSS),android)
+        CFLAGS += -fPIC
     endif
     ifneq ($(CROSS),emscr)
-        CFLAGS += -fno-exceptions -fno-stack-clash-protection -fcf-protection=none
+        CFLAGS += -fno-exceptions 
+        ifneq ($(CROSS),android)
+            CFLAGS += -fno-stack-clash-protection -fcf-protection=none
+        endif
     endif
     ifdef DEBUG
         CFLAGS += -Og -g -DDEBUG=$(DEBUG)
@@ -185,26 +209,26 @@ ifndef MKSUB
     BINFLAGS += -lm
     ifeq ($(MODULE),game)
         ifeq ($(CROSS),)
-            ifndef USESDL2
-                BINFLAGS += -lglfw
-            else
+            ifdef USESDL2
                 BINFLAGS += -lSDL2
+            else
+                BINFLAGS += -lglfw
             endif
             BINFLAGS += -lX11
         else ifeq ($(CROSS),win32)
             BINFLAGS += -lws2_32 -lwinmm
-            ifndef USESDL2
-                BINFLAGS += -lglfw3
-            else
+            ifdef USESDL2
                 BINFLAGS += -l:libSDL2.a -lole32 -loleaut32 -limm32 -lsetupapi -lversion
+            else
+                BINFLAGS += -lglfw3
             endif
             BINFLAGS += -lgdi32
         else ifeq ($(CROSS),emscr)
             BINFLAGS += -s USE_WEBGL2=1
-            ifndef USESDL2
-                BINFLAGS += -s USE_GLFW=3
-            else
+            ifdef USESDL2
                 BINFLAGS += -s USE_SDL=2
+            else
+                BINFLAGS += -s USE_GLFW=3
             endif
             BINFLAGS += --preload-file resources/ --shell-file extras/emscr_shell.html
         endif
@@ -351,6 +375,8 @@ $(BIN): $(wildcard $(OBJDIR)/*/*.o)
 ifeq ($(CROSS),win32)
 	@$(WINDRES) $(WRFLAGS) -DORIG_NAME="$(BIN)" -DINT_NAME="$(BINNAME)" $(SRCDIR)/main/version.rc -o $(OBJDIR)/version.o
 	@$(CC) $(OBJDIR)/version.o $^ $(BINFLAGS) -o $@
+else ifeq ($(CROSS),android)
+	@$(CC) -shared $^ $(BINFLAGS) -o $@
 else
 	@$(CC) $^ $(BINFLAGS) -o $@
 endif

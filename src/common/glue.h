@@ -39,4 +39,26 @@
     #define PRIXz "IX"
 #endif
 
+#ifdef __ANDROID__
+    #include <stdio.h>
+    #include <android/log.h>
+    #include <main/version.h>
+    #define printf(...) __android_log_print(ANDROID_LOG_INFO, PROG_NAME, __VA_ARGS__)
+    #define fprintf(f, ...) {\
+        if ((f) == stderr) {\
+            __android_log_print(ANDROID_LOG_ERROR, PROG_NAME, __VA_ARGS__);\
+        } else if ((f) == stdout) {\
+            __android_log_print(ANDROID_LOG_INFO, PROG_NAME, __VA_ARGS__);\
+        }\
+    }
+    #define puts(str) __android_log_write(ANDROID_LOG_INFO, PROG_NAME, str)
+    #define fputs(str, f) {\
+        if ((f) == stderr) {\
+            __android_log_write(ANDROID_LOG_ERROR, PROG_NAME, str);\
+        } else if ((f) == stdout) {\
+            __android_log_write(ANDROID_LOG_INFO, PROG_NAME, str);\
+        }\
+    }
+#endif
+    
 #endif

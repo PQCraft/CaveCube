@@ -10,7 +10,11 @@
 #endif
 
 #if defined(USESDL2)
-    #include <SDL2/SDL.h>
+    #if !defined(__EMSCRIPTEN__) && !defined(__ANDROID__)
+        #include <SDL2/SDL.h>
+    #else
+        #include <SDL.h>
+    #endif
 #else
     #include <GLFW/glfw3.h>
 #endif
@@ -19,6 +23,8 @@
 #include <math.h>
 #include <string.h>
 #include <stdio.h>
+
+#include <common/glue.h>
 
 #define KEY(d1, t1, k1, d2, t2, k2) (input_keys){d1, t1, k1, d2, t2, k2}
 
@@ -191,6 +197,7 @@ void setInputMode(int mode) {
         case INPUT_MODE_GAME:;
             #if defined(USESDL2)
             SDL_SetRelativeMouseMode(SDL_TRUE);
+            SDL_CaptureMouse(SDL_TRUE);
             #else
             glfwSetInputMode(rendinf.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
             #endif
@@ -201,6 +208,7 @@ void setInputMode(int mode) {
         default:;
             #if defined(USESDL2)
             SDL_SetRelativeMouseMode(SDL_FALSE);
+            SDL_CaptureMouse(SDL_FALSE);
             #else
             glfwSetInputMode(rendinf.window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
             #endif
@@ -331,19 +339,28 @@ static inline float keyState(input_keys k, bool* r) {
 
 static uint64_t polltime;
 
+#ifndef USESDL2
 static double oldmxpos, oldmypos;
 static double newmxpos, newmypos;
+#else
+static double sdlmxmov, sdlmymov;
+#endif
 
 static void getMouseChange(double* x, double* y) {
     #if defined(USESDL2)
-    sdl2getmouse(&newmxpos, &newmypos);
+    *x = sdlmxmov;
+    *y = sdlmymov;
+    sdlmxmov = 0.0;
+    sdlmymov = 0.0;
     #else
     glfwGetCursorPos(rendinf.window, &newmxpos, &newmypos);
     #endif
+    #ifndef USESDL2
     *x = newmxpos - oldmxpos;
     *y = newmypos - oldmypos;
     oldmxpos = newmxpos;
     oldmypos = newmypos;
+    #endif
 }
 
 void resetInput() {
@@ -352,7 +369,6 @@ void resetInput() {
     if ((SDL_GetWindowFlags(rendinf.window) & SDL_WINDOW_INPUT_FOCUS) != 0) {
         SDL_WarpMouseInWindow(rendinf.window, floor((double)rendinf.width / 2.0), floor((double)rendinf.height / 2.0));
     }
-    sdl2getmouse(&oldmxpos, &oldmypos);
     #else
     glfwPollEvents();
     if (glfwGetWindowAttrib(rendinf.window, GLFW_FOCUSED)) {
@@ -381,8 +397,30 @@ void getInput(struct input_info* _inf) {
     #endif
     int sdl2mscroll = 0;
     while (SDL_PollEvent(&event)) {
-        quitRequest += (event.type == SDL_QUIT);
-        sdl2mscroll += (event.type == SDL_MOUSEWHEEL) ? event.wheel.y : 0;
+        switch (event.type) {
+            case SDL_QUIT:;
+                ++quitRequest;
+                break;
+            #ifdef __ANDROID__ // TODO: Back = Esc
+            case SDL_KEYDOWN:;
+                if (event.key.keysym.sym == SDLK_AC_BACK) {
+                    ++quitRequest;
+                }
+                break;
+            #endif
+            case SDL_MOUSEWHEEL:;
+                sdl2mscroll += event.wheel.y;
+                break;
+            case SDL_MOUSEMOTION:;
+                sdlmxmov += event.motion.xrel;
+                sdlmymov += event.motion.yrel;
+                break;
+            case SDL_WINDOWEVENT:;
+                if (event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
+                    sdlreszevent(event.window.data1, event.window.data2);
+                }
+                break;
+        }
     }
     if (sdl2mscroll >= 0) {
         mscrollup = sdl2mscroll;
@@ -398,7 +436,7 @@ void getInput(struct input_info* _inf) {
     #else
     inf->focus = true;
     #endif
-    quitRequest += (glfwWindowShouldClose(rendinf.window) != 0);
+    if (glfwWindowShouldClose(rendinf.window)) ++quitRequest;
     if (glfwmscroll >= 0) {
         mscrollup = glfwmscroll;
         mscrolldown = 0;
@@ -416,9 +454,6 @@ void getInput(struct input_info* _inf) {
     getMouseChange(&mmovx, &mmovy);
     //printf("Mouse movement: [%lf, %lf] [%lf, %lf]\n", newmxpos, newmypos, mmovx, mmovy);
     if (quitRequest) goto ret;
-    #if defined(USESDL2)
-    if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) sdlreszevent(event.window.data1, event.window.data2);
-    #endif
     /*
     #ifdef __EMSCRIPTEN__
     if (inputMode == INPUT_MODE_GAME) {

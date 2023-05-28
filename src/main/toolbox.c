@@ -1,13 +1,14 @@
-#include <main/main.h>
-
 #if defined(MODULE_TOOLBOX)
 
+#include <main/main.h>
 #include "toolbox.h"
 #include "version.h"
 
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
+
+#include <common/glue.h>
 
 #define GETARG() ({char* a = NULL; if (argc > 0) {--argc; a = *(argv++);} a;})
 

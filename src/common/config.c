@@ -9,6 +9,8 @@
 #include <stdbool.h>
 #include <errno.h>
 
+#include <common/glue.h>
+
 void declareConfigKey(struct config* cfg, char* sect, char* key, char* val, bool overwrite) {
     int secti = -1;
     for (int i = 0; i < cfg->sects; ++i) {

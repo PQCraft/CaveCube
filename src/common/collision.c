@@ -3,6 +3,8 @@
 #include <main/main.h>
 #include "collision.h"
 
+#include <common/glue.h>
+
 struct _phys_box {
     float maxx;
     float maxy;

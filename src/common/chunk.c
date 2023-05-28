@@ -15,6 +15,8 @@
 #include <pthread.h>
 #include <math.h>
 
+#include <common/glue.h>
+
 static force_inline int64_t i64_abs(int64_t v) {return (v < 0) ? -v : v;}
 static force_inline int64_t i64_mod(int64_t v, int64_t m) {return ((v % m) + m) % m;}
 

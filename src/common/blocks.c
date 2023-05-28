@@ -10,6 +10,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <common/glue.h>
+
 struct blockinfo blockinf[256];
 
 void initBlocks() {

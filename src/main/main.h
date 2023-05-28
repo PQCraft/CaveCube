@@ -23,7 +23,7 @@
 
 #define DBGLVL(x) (DEBUG >= (x))
 
-#if DBGLVL(0) && !defined(__EMSCRIPTEN__)
+#if DBGLVL(0) && !(defined(__EMSCRIPTEN__) || defined(__ANDROID__))
     #define NAME_THREADS
 #endif
 

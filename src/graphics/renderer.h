@@ -3,25 +3,25 @@
 #ifndef GRAPHICS_RENDERER_H
 #define GRAPHICS_RENDERER_H
 
-#ifndef __EMSCRIPTEN__
+#if !defined(__EMSCRIPTEN__) && !defined(__ANDROID__)
     #include "glad.h"
 #endif
 #include <common/resource.h>
 
 #if defined(USESDL2)
-    #ifndef __EMSCRIPTEN__
+    #if !defined(__EMSCRIPTEN__) && !defined(__ANDROID__)
         #include <SDL2/SDL.h>
     #else
         #include <SDL.h>
+        #include <GLES3/gl3.h>
     #endif
 #else
     #include <GLFW/glfw3.h>
 #endif
-#ifdef __EMSCRIPTEN__
-    #include <GLES3/gl3.h>
-    //#include <emscripten/html5.h>
+#if defined(USEGLES) && (defined(__EMSCRIPTEN__) || defined(__ANDROID__))
     #define glFramebufferTexture(a, b, c, d) glFramebufferTexture2D((a), (b), GL_TEXTURE_2D, (c), (d));
     #define glPolygonMode(a, b)
+    #define GL_CLAMP_TO_BORDER GL_REPEAT
 #endif
 
 #include <stdbool.h>

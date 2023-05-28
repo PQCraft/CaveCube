@@ -36,6 +36,8 @@
     static bool wsainit = false;
 #endif
 
+#include <common/glue.h>
+
 #ifdef _WIN32
 static inline bool startwsa() {
     if (wsainit) return true;

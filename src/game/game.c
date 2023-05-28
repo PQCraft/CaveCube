@@ -623,7 +623,6 @@ bool doGame() {
 
     fpsupdate = altutime();
 
-    if (!initRenderer()) return false;
     if (!startRenderer()) return false;
     if (!initInput()) return false;
     setInputMode(INPUT_MODE_UI);

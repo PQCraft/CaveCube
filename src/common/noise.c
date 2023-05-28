@@ -7,6 +7,8 @@
 #include <math.h>
 #include <stdlib.h>
 
+#include <common/glue.h>
+
 perm_t perm[NOISE_TABLES][512];
 
 void initNoiseTable(int s) {

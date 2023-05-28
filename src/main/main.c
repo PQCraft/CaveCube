@@ -2,6 +2,10 @@
     #define SDL_MAIN_HANDLED
 #endif
 
+#if !defined(MODULE_GAME) && !defined(MODULE_SERVER) && !defined(MODULE_TOOLBOX)
+    #error No module specified
+#endif
+
 #include <inttypes.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -83,39 +87,51 @@ int game_main(int argc, char** argv) {
         if (owncon) ShowWindow(GetConsoleWindow(), SW_HIDE);
         QueryPerformanceFrequency(&perfctfreq);
     #endif
-    #ifndef __EMSCRIPTEN__
-        maindir = strdup(pathfilename(execpath()));
-    #else
+    #if defined(__EMSCRIPTEN__)
         maindir = strdup("/");
+    #elif defined(__ANDROID__)
+        #ifdef USESDL2
+            maindir = strdup(SDL_AndroidGetExternalStoragePath());
+            MAIN_STRPATH(maindir);
+        #endif
+    #else
+        maindir = strdup(pathfilename(execpath()));
     #endif
     startdir = realpath(".", NULL);
     MAIN_STRPATH(startdir);
     #ifndef __EMSCRIPTEN__
         {
-            #ifndef _WIN32
-                char* tmpdir = getenv("HOME");
+            char* tmpdir;
+            #if defined(_WIN32)
+                tmpdir = getenv("AppData");
+            #elif defined(__ANDROID__)
+                #ifdef USESDL2
+                    tmpdir = SDL_AndroidGetExternalStoragePath();
+                #endif
             #else
-                char* tmpdir = getenv("AppData");
+                tmpdir = getenv("HOME");
             #endif
             char tmpdn[MAX_PATH] = "";
             strcpy(tmpdn, tmpdir);
+            #ifndef __ANDROID__
             strcat(tmpdn, "/.cavecube");
+            #endif
             if (!md(tmpdn)) return 1;
             if (!altchdir(tmpdn)) return 1;
             if (!md("worlds")) return 1;
+            #ifndef __ANDROID__
             if (!md("resources")) return 1;
+            #endif
             localdir = realpath(".", NULL);
             MAIN_STRPATH(localdir);
         }
         strcpy(configpath, localdir);
         strcat(configpath, "config.cfg");
     #endif
-    #if DBGLVL(1)
-        printf("Main directory: {%s}\n", maindir);
-        printf("Start directory: {%s}\n", startdir);
-        printf("Local directory: {%s}\n", localdir);
-        printf("Config path: {%s}\n", configpath);
-    #endif
+    printf("Main directory: {%s}\n", maindir);
+    printf("Start directory: {%s}\n", startdir);
+    printf("Local directory: {%s}\n", localdir);
+    printf("Config path: {%s}\n", configpath);
     if (!altchdir(maindir)) return 1;
     if (!altchdir(startdir)) exit(1);
     if (isFile(configpath) == 1) {
@@ -129,8 +145,23 @@ int game_main(int argc, char** argv) {
         declareConfigKey(config, "Main", "showConsole", "false", false);
         bool showcon = getBool(getConfigKey(config, "Main", "showConsole"));
     #endif
+    if (isFile("resources") != 0) {
+        #ifdef __ANDROID__
+            #ifdef USESDL2
+                char error[4096];
+                snprintf(error, sizeof(error), "Please download cavecube_data.zip and extract it to %s.\n", maindir);
+                SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Resources not found", error, NULL);
+            #endif
+        #endif
+        fputs("Could not find resources directory\n", stderr);
+        return 1;
+    }
     initResource();
     initBlocks();
+    if (!initRenderer()) {
+        fputs("Failed to init renderer\n", stderr);
+        return 1;
+    }
     if (!initServer()) {
         fputs("Failed to init server\n", stderr);
         return 1;
@@ -191,3 +222,12 @@ int main(int argc, char** argv) {
     #endif
     return ret;
 }
+
+#ifdef __ANDROID__
+#ifdef USESDL2
+SDLMAIN_DECLSPEC int SDL_main(int argc, char *argv[]) {
+    exit(main(argc, argv));
+    return 0;
+}
+#endif
+#endif

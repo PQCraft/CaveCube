@@ -3,4 +3,6 @@
 #include <main/main.h>
 #include "chunkpool.h"
 
+#include <common/glue.h>
+
 #endif

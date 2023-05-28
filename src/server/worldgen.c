@@ -11,6 +11,8 @@
 #include <string.h>
 #include <inttypes.h>
 
+#include <common/glue.h>
+
 static uint16_t stone;
 static uint16_t stone_cobble;
 static uint16_t stone_basalt;

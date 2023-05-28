@@ -79,3 +79,5 @@
 - RNG improvements
 - Update stb_image
 - Improve image resource loading
+- Improved mouse input when using SDL2
+- Added Android support

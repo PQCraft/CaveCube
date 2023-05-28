@@ -3,4 +3,6 @@
 #include <main/main.h>
 #include "save.h"
 
+#include <common/glue.h>
+
 #endif

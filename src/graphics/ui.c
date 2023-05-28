@@ -12,6 +12,8 @@
 #include <stdarg.h>
 #include <ctype.h>
 
+#include <common/glue.h>
+
 static inline bool badElem(struct ui_layer* layer, int id) {
     return id < 0 || id >= layer->elems || layer->elemdata[id].type < 0;
 }

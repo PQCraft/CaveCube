@@ -13,6 +13,8 @@
 #include <string.h>
 #include <pthread.h>
 
+#include <common/glue.h>
+
 #if defined(MODULE_GAME) || defined(MODULE_SERVER)
 
 int SERVER_THREADS;
