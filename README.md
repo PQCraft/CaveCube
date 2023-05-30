@@ -1,23 +1,23 @@
-# <img src="https://raw.githubusercontent.com/PQCraft/CaveCube/master/extras/icon/hicolor/512x512/apps/cavecube.png" align="right" height="95"/>CaveCube
+# <img src="https://raw.githubusercontent.com/CaveCube/CaveCube/master/extras/icon/hicolor/512x512/apps/cavecube.png" align="right" height="95"/>CaveCube
 **An in-development Minecraft/Infiniminer clone**<br>
 
 ---
 <div align="center">
-<a HREF="#?"><img src="https://img.shields.io/github/languages/top/PQCraft/CaveCube?color=%232267a6&label=%20&logo=C&logoColor=white" alt="Language"/></a>
-<a HREF="#?"><img src="https://img.shields.io/github/license/PQCraft/CaveCube?color=informational&label=License" alt="License"/></a>
-<a HREF="#?"><img src="https://img.shields.io/badge/dynamic/json?color=informational&label=Version&query=tag_name&url=https%3A%2F%2Fapi.github.com%2Frepos%2FPQCraft%2FCaveCube%2Freleases%2Flatest" alt="Version"/></a>
-<a HREF="#?"><img src="https://img.shields.io/github/downloads/PQCraft/CaveCube/latest/total?color=informational&label=Downloads&logo=github" alt="Downloads"/></a>
-<a HREF="#?"><img src="https://img.shields.io/github/downloads/PQCraft/CaveCube/total?color=informational&label=Total%20downloads&logo=github" alt="Total downloads"/></a>
-<a HREF="#?"><img src="https://img.shields.io/github/issues/PQCraft/CaveCube?label=Issues" alt="Issues"/></a>
-<a HREF="#?"><img src="https://img.shields.io/github/issues-pr/PQCraft/CaveCube?label=Pull%20requests" alt="Pull requests"/></a>
+<a HREF="#?"><img src="https://img.shields.io/github/languages/top/CaveCube/CaveCube?color=%232267a6&label=%20&logo=C&logoColor=white" alt="Language"/></a>
+<a HREF="#?"><img src="https://img.shields.io/github/license/CaveCube/CaveCube?color=informational&label=License" alt="License"/></a>
+<a HREF="#?"><img src="https://img.shields.io/badge/dynamic/json?color=informational&label=Version&query=tag_name&url=https%3A%2F%2Fapi.github.com%2Frepos%2FCaveCube%2FCaveCube%2Freleases%2Flatest" alt="Version"/></a>
+<a HREF="#?"><img src="https://img.shields.io/github/downloads/CaveCube/CaveCube/latest/total?color=informational&label=Downloads&logo=github" alt="Downloads"/></a>
+<a HREF="#?"><img src="https://img.shields.io/github/downloads/CaveCube/CaveCube/total?color=informational&label=Total%20downloads&logo=github" alt="Total downloads"/></a>
+<a HREF="#?"><img src="https://img.shields.io/github/issues/CaveCube/CaveCube?label=Issues" alt="Issues"/></a>
+<a HREF="#?"><img src="https://img.shields.io/github/issues-pr/CaveCube/CaveCube?label=Pull%20requests" alt="Pull requests"/></a>
 </div>
 
 [![](https://raw.githubusercontent.com/PQCraft/PQCraft/master/Screenshot_20221128_010856.png)](#?)
 
 ---
 ### Contributing
-Please read the [contributing guide](https://github.com/PQCraft/CaveCube/blob/master/CONTRIBUTING.md).<br>
-The project status is written down in [TODO.md](https://github.com/PQCraft/CaveCube/blob/master/TODO.md).<br>
+Please read the [contributing guide](https://github.com/CaveCube/CaveCube/blob/master/CONTRIBUTING.md).<br>
+The project status is written down in [TODO.md](https://github.com/CaveCube/CaveCube/blob/master/TODO.md).<br>
 
 ---
 ### Requirements
@@ -33,7 +33,7 @@ OpenGL 3.3 or OpenGLES 3.0 support.
 ### Building
 Command to download source code:<br>
 ```
-git clone --filter=tree:0 https://github.com/PQCraft/CaveCube.git
+git clone --filter=tree:0 https://github.com/CaveCube/CaveCube.git
 ```
 - To build, run `make -j`.<br>
 - To build and run once done compiling, run `make -j run`.<br>

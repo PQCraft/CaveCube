@@ -10,8 +10,8 @@ PRODUCTVERSION VER_MAJOR,VER_MINOR,VER_PATCH,0
             VALUE "ProductVersion", VER_STR
             VALUE "FileVersion", VER_STR
             VALUE "FileDescription", "An in-development Minecraft/Infiniminer clone"
-            VALUE "CompanyName", "PQCraft"
-            VALUE "LegalCopyright", "Copyright (C) PQCraft; Licensed under the Boost Software License 1.0"
+            VALUE "CompanyName", "CaveCube"
+            VALUE "LegalCopyright", "Copyright (C) CaveCube contributors; Licensed under the Boost Software License 1.0"
             VALUE "OriginalFilename", STR(ORIG_NAME)
             VALUE "InternalName", STR(INT_NAME)
             VALUE "Comments", BUILD_STR
