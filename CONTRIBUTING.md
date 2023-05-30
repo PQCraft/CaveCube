@@ -16,17 +16,13 @@
                 printf("argv0: {%s}, out: [%d]\n", argv[0], out);
                 #endif
             }
-            if (cond4) {f1(); f2();}
-            if (cond5) f3();
-            else f4();
-            if (cond6) {f5();}
-            else {f6();}
             // nested 'for'
             for (int i = 0; i < 256; ++i) {
                 for (int j = 0; j < 16; ++j) {
                     func(i, j);
                 }
             }
+            // variations of 'switch' statements
             int val = another_func();
             switch (val) {
                 default:;
@@ -90,11 +86,7 @@
         
         [Code]
         ```
-- Don't contribute mallicious code
-- Try not to pull in more external dependencies unless they can be statically linked
-    - The less the amount of library binaries that need to be included, the better
+- Do not contribute mallicious code
+- Try not to pull in more external dependencies unless they can be statically linked or they are widely available
 - Try not to use/add large or bloated dependencies
-    - Most of the time it's not really needed, and the functionality can probably be implemented locally with a bit of work
-    - It will almost certainly hurt performance
-    - It will increase project download size
 - Do not use any other languages besides C (no C++, no Rust, etc) for anything under `src/*/`

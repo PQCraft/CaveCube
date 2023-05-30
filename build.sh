@@ -29,7 +29,7 @@ build() {
 buildmod "game"
 
 #######################
-##  GAME USING GLFW  ##
+##  GAME USING SDL2  ##
 #######################
 build() {
     pkgrel() { _tar "cavecube_game_sdl2_linux_x86_64.tar.gz" cavecube; }
