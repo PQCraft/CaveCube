@@ -2,40 +2,44 @@
 - Next version: 0.7.0
 
 ### NEED TO DO:
-- Flesh out UI
-    - More UI elements (text boxes, scrollbars, drop-down menus, sliders, toggles, etc)
-    - UI interaction (elem states, tooltips, text input, etc)
+- Figure out how to build the Android APK from the command line when using `make`
+- Make server executable work again
+- Palette compression
+    - Each 16x16x16 section of a chunk has its own palette
+    - `uint32_t` index
+        - Top 20 bits contain lighting info
+        - bottom 12 bits contain the index
+    - Add palette sharing as an option
+        - May not reduce memory usage by a lot and may use a lot of CPU in return
+- CCScript
+- Decrustify server message UUID and pdata validity checks
+- Implement server chunk cache/pool
+- Add back block placement
 - Heavy mesher optimization
     - Don't mesh culled chunks
         - Skip individual sections if possible
 - Worldgen optimization
     - Redo code to build a chunk in stages
+        - Add structures to worldgen (trees, buildings, etc)
+        - Generate values for height, spikes, details, moisture, and structures
     - Cache and interpolate noise to save CPU
     - Generate multiple noise values at once using SIMD
-- Make server executable work again
-- Implement server chunk cache/pool
-- Add back block placement
 - Add physics in `src/physics/`
     - Use [ticks](https://gafferongames.com/post/fix_your_timestep/) and add interpolation
     - Add AABB collision in `collision.(c|h)`
     - Add raycasting in `raycasting.(c|h)`
-- Implement world saves in `src/server/saves.(c|h)`
 - Add some server events
     - Add event for collecting player info
     - Add event for running physics
     - Add event for handling game logic
-- Decrustify server message UUID and pdata validity checks
 - Make it so that timers are not pushed again until an acknowledge (prevents overflow)
+- Clean up some cave culling crust in renderer
+- Implement CCDB in `src/common/ccdb.(c|h)`
+- Implement world saves in `src/server/saves.(c|h)`
 - Make server ask for and handle player's positions
-- Clean up cave culling crust in renderer
-- Redo BMD to CCM (delete `src/bmd/` and add `src/common/ccm.(c|h)`)
-    - Add parts, model types (3D, BLOCK, 2D, etc), and data types (VERT, ANI, AABB, etc)
-    - Block models use quads instead of triangles
+- Implement CCM in `src/common/ccm.(c|h)`
 - 3D model rendering in `src/renderer/renderer.c`
 - Audio (probably miniaudio or SDL Mixer) in `src/audio/`
-- Redo worldgen in `src/game/worldgen.(c|h)`
-    - Add structures to worldgen (trees, buildings, etc)
-    - Generate values for height, spikes, details, moisture, and structures
 - Implement gameplay
     - 40ms tick speed (25 ticks/sec)
 - Add a sky (sun, moon, and stars)
@@ -44,29 +48,13 @@
 
 ### MIGHT DO:
 - Implement bunny hopping after physics redo (resize AABB at bottom instead of top if in-air crouch)
-- Direct3D support
-- Greedy mesher in `src/renderer/renderer.c`
-- Android support (requires that it be buildable from the command-line using `make` so it can be used in `mkrelease.sh`)
+- Make mesher greedy
+- OG Xbox port
 - Make updateChunks() use a message list
-- Implement extensions in `src/main/extmgr.(c|h)` using libdl
-- Palette compression
-    - Each 16x16x16 section of a chunk has its own palette
-    - `uint32_t` index
-        - Top 20 bits contain lighting info
-        - bottom 12 bits contain the index
-    - Add palette sharing as an option
-        - May not reduce memory usage by a lot and may use a lot of CPU in return
-- Heavy optimization and port to OG Xbox
-    - Will probably require the removal of Singleplayer due to RAM limitations
 - Render thread
 
 ### IN-PROGRESS:
-- Redo the way UI works
-    - Redo how the hierarchy works
-    - Use a texture map instead of drawing rectangles
-    - Add a texture map for symbols
-    - Improve UI input
-- CCScript
+- UI rewrite
 
 ### DONE:
 - Made natural light monochrome to save bits
