@@ -293,13 +293,14 @@ static void gameLoop() {
                 if (glfwGetKey(rendinf.window, (debugkey = GLFW_KEY_H)) == GLFW_PRESS) {
                     puts("DEBUG HELP:");
                     puts("Hold the multi.debug key (F4 by default) and press one of the following:");
-                    puts("H - Display the debug help");
-                    puts("W - Toggle wireframe mode");
-                    puts("M - Remesh chunks");
-                    puts("R - Reload chunks");
+                    puts("h - Display the debug help");
+                    puts("w - Toggle wireframe mode");
+                    puts("m - Remesh chunks");
+                    puts("r - Reload chunks");
+                    puts("R - Reload renderer");
                     puts("- - Decrease view distance");
                     puts("= - Increase view distance");
-                    puts("C - Toggle disabling cave culling");
+                    puts("c - Toggle disabling cave culling");
                 } else if (glfwGetKey(rendinf.window, (debugkey = GLFW_KEY_W)) == GLFW_PRESS) {
                     printf("DEBUG: Wireframe: [%d]\n", (debug_wireframe = !debug_wireframe));
                 } else if (glfwGetKey(rendinf.window, (debugkey = GLFW_KEY_M)) == GLFW_PRESS) {
@@ -328,9 +329,14 @@ static void gameLoop() {
                         updateChunk(xo + i, zo + i, CHUNKUPDATE_PRIO_HIGH, 0);
                     }
                 } else if (glfwGetKey(rendinf.window, (debugkey = GLFW_KEY_R)) == GLFW_PRESS) {
-                    printf("DEBUG: Reloading chunks...\n");
-                    resizeChunks(rendinf.chunks, viewdist);
-                    reqChunks(rendinf.chunks);
+                    if (glfwGetKey(rendinf.window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+                        printf("DEBUG: Reloading renderer...\n");
+                        reloadRenderer();
+                    } else {
+                        printf("DEBUG: Reloading chunks...\n");
+                        resizeChunks(rendinf.chunks, viewdist);
+                        reqChunks(rendinf.chunks);
+                    }
                 } else if (glfwGetKey(rendinf.window, (debugkey = GLFW_KEY_MINUS)) == GLFW_PRESS && (viewdist > 1)) {
                     printf("DEBUG: View distance: [%d]\n", (--viewdist));
                     resizeChunks(rendinf.chunks, viewdist);

@@ -86,7 +86,12 @@ void setSkyColor(float r, float g, float b) {
     //setUniform3f(rendinf.shaderprog, "skycolor", (float[]){r, g, b});
 }
 
+static color nat;
+
 void setNatColor(float r, float g, float b) {
+    nat.r = r;
+    nat.g = g;
+    nat.b = b;
     setShaderProg(shader_block);
     setUniform3f(rendinf.shaderprog, "natLight", (float[]){r, g, b});
     //setShaderProg(shader_3d);
@@ -103,7 +108,11 @@ void setScreenMult(float r, float g, float b) {
     //setUniform3f(rendinf.shaderprog, "mcolor", (float[]){r, g, b});
 }
 
+static float fognear, fogfar;
+
 void setVisibility(float nearval, float farval) {
+    fognear = nearval;
+    fogfar = farval;
     setShaderProg(shader_block);
     setUniform1f(rendinf.shaderprog, "fogNear", nearval);
     setUniform1f(rendinf.shaderprog, "fogFar", farval);
@@ -196,6 +205,7 @@ static bool isVisible(struct frustum* frust, float ax, float ay, float az, float
 }
 
 static float sc_camx, sc_camy, sc_camz;
+static bool uc_uproj = false;
 
 void updateCam() {
     static float uc_fov = -1.0, uc_asp = -1.0;
@@ -205,7 +215,6 @@ void updateCam() {
     static amat4 uc_view;
     static avec3 uc_up;
     static avec3 uc_front;
-    static bool uc_uproj = false;
     if (rendinf.aspect != uc_asp) {uc_asp = rendinf.aspect; uc_uproj = true;}
     if (rendinf.camfov != uc_fov) {uc_fov = rendinf.camfov; uc_uproj = true;}
     if (uc_uproj) {
@@ -1636,6 +1645,7 @@ void render() {
             cy = newcy;
             cz = newcz;
 
+            //puts("opaqueUpdate");
             opaqueUpdate = false;
 
             int w = rendinf.chunks->info.dist;
@@ -2037,9 +2047,9 @@ static int atlas_addBox(struct atlas* a, int x, int y, int width, int height) {
     return box;
 }
 
-static void addToAtlas(struct atlas* a, char* path) {
+static int addToAtlas(struct atlas* a, char* path) {
     resdata_image* img = loadResource(RESOURCE_IMAGE, path);
-    if (!img) return;
+    if (!img) return -1;
     int index = -1;
     for (int i = 0; i < a->boxes; ++i) {
         struct atlas_box* b = &a->boxdata[i];
@@ -2070,6 +2080,7 @@ static void addToAtlas(struct atlas* a, char* path) {
     atlas_addBox(a, b->x + b->width, b->y, oldwidth - b->width, b->height);
     b = &a->boxdata[index];
     atlas_addBox(a, b->x, b->y + b->height, oldwidth, oldheight - b->height);
+    return index;
 }
 
 static void atlas_writeTexture(struct atlas* a, int bx, int by, int width, int height, unsigned char* data) {
@@ -2114,6 +2125,10 @@ static void deinitAtlas(struct atlas* a) {
     free(a->boxdata);
 }
 
+static unsigned texarrayh;
+static unsigned crosshairh;
+static unsigned charseth;
+
 bool reloadRenderer() {
     bool sorttransparent = getBool(getConfigKey(config, "Renderer", "sortTransparent"));
     #if defined(USEGLES)
@@ -2133,6 +2148,7 @@ bool reloadRenderer() {
         hdr->data = realloc(hdr->data, hdr->size);
         strcat((char*)hdr->data, line);
     }
+
     if (!makeShader(hdr, "block", NULL, &shader_block)) return false;
     if (!makeShader(hdr, "2D", "2d", &shader_2d)) return false;
     if (!makeShader(hdr, "UI", "ui", &shader_ui)) return false;
@@ -2142,34 +2158,26 @@ bool reloadRenderer() {
 
     int gltex = GL_TEXTURE0;
 
-    #if DBGLVL(1)
     puts("Creating UI framebuffer...");
-    #endif
     glBindRenderbuffer(GL_RENDERBUFFER, UIDBUF);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, rendinf.width, rendinf.height);
     UIFBTEXID = gltex++;
     glActiveTexture(UIFBTEXID);
-    glGenFramebuffers(1, &UIFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, UIFBO);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, UIDBUF);
-    glGenTextures(1, &UIFBTEX);
     glBindTexture(GL_TEXTURE_2D, UIFBTEX);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, rendinf.width, rendinf.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, UIFBTEX, 0);
 
-    #if DBGLVL(1)
     puts("Creating game framebuffer...");
-    #endif
     glBindRenderbuffer(GL_RENDERBUFFER, DBUF);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, rendinf.width, rendinf.height);
     FBTEXID = gltex++;
     glActiveTexture(FBTEXID);
-    glGenFramebuffers(1, &FBO);
     glBindFramebuffer(GL_FRAMEBUFFER, FBO);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, DBUF);
-    glGenTextures(1, &FBTEX);
     glBindTexture(GL_TEXTURE_2D, FBTEX);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, rendinf.width, rendinf.height, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -2195,7 +2203,6 @@ bool reloadRenderer() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
     unsigned char* texarray;
-    unsigned texarrayh;
 
     //puts("creating texture map...");
     int texarraysize = 0;
@@ -2281,7 +2288,6 @@ bool reloadRenderer() {
 
     setShaderProg(shader_block);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), gltex - GL_TEXTURE0);
-    glGenTextures(1, &texarrayh);
     glActiveTexture(gltex++);
     glBindTexture(GL_TEXTURE_2D_ARRAY, texarrayh);
     glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, 16, 16, texarraysize, 0, GL_RGBA, GL_UNSIGNED_BYTE, texarray);
@@ -2296,14 +2302,11 @@ bool reloadRenderer() {
     }
     free(texarray);
 
-    glGenBuffers(1, &VBO2D);
     glBindBuffer(GL_ARRAY_BUFFER, VBO2D);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vert2D), vert2D, GL_STATIC_DRAW);
 
     setShaderProg(shader_2d);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), gltex - GL_TEXTURE0);
-    unsigned crosshairh;
-    glGenTextures(1, &crosshairh);
     glActiveTexture(gltex++);
     resdata_image* crosshair = loadResource(RESOURCE_IMAGE, "game/textures/ui/crosshair.png");
     chwidth = crosshair->width;
@@ -2320,8 +2323,6 @@ bool reloadRenderer() {
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "fontTexData"), gltex - GL_TEXTURE0);
     setUniform1f(rendinf.shaderprog, "xsize", rendinf.width);
     setUniform1f(rendinf.shaderprog, "ysize", rendinf.height);
-    unsigned charseth;
-    glGenTextures(1, &charseth);
     glActiveTexture(gltex++);
     resdata_image* charset = loadResource(RESOURCE_IMAGE, "game/textures/ui/charset.png");
     glBindTexture(GL_TEXTURE_2D_ARRAY, charseth);
@@ -2337,6 +2338,41 @@ bool reloadRenderer() {
         #endif
     }
     freeResource(charset);
+
+    setSkyColor(sky.r, sky.g, sky.b);
+    setNatColor(nat.r, nat.g, nat.b);
+    setScreenMult(screenmult.r, screenmult.g, screenmult.b);
+    setVisibility(fognear, fogfar);
+
+    opaqueUpdate = true;
+    uc_uproj = true;
+    updateCam();
+    setFullscreen(rendinf.fullscr);
+    if (rendinf.chunks) {
+        int64_t xo = rendinf.chunks->xoff;
+        int64_t zo = rendinf.chunks->zoff;
+        updateChunk(xo, zo, CHUNKUPDATE_PRIO_HIGH, 0);
+        for (int i = 1; i <= (int)rendinf.chunks->info.dist; ++i) {
+            updateChunk(xo + i, zo, CHUNKUPDATE_PRIO_HIGH, 0);
+            updateChunk(xo - i, zo, CHUNKUPDATE_PRIO_HIGH, 0);
+            updateChunk(xo, zo + i, CHUNKUPDATE_PRIO_HIGH, 0);
+            updateChunk(xo, zo - i, CHUNKUPDATE_PRIO_HIGH, 0);
+            for (int j = 1; j < i; ++j) {
+                updateChunk(xo - j, zo + i, CHUNKUPDATE_PRIO_HIGH, 0);
+                updateChunk(xo + j, zo + i, CHUNKUPDATE_PRIO_HIGH, 0);
+                updateChunk(xo + j, zo - i, CHUNKUPDATE_PRIO_HIGH, 0);
+                updateChunk(xo - j, zo - i, CHUNKUPDATE_PRIO_HIGH, 0);
+                updateChunk(xo - i, zo - j, CHUNKUPDATE_PRIO_HIGH, 0);
+                updateChunk(xo - i, zo + j, CHUNKUPDATE_PRIO_HIGH, 0);
+                updateChunk(xo + i, zo + j, CHUNKUPDATE_PRIO_HIGH, 0);
+                updateChunk(xo + i, zo - j, CHUNKUPDATE_PRIO_HIGH, 0);
+            }
+            updateChunk(xo - i, zo + i, CHUNKUPDATE_PRIO_HIGH, 0);
+            updateChunk(xo + i, zo - i, CHUNKUPDATE_PRIO_HIGH, 0);
+            updateChunk(xo - i, zo - i, CHUNKUPDATE_PRIO_HIGH, 0);
+            updateChunk(xo + i, zo + i, CHUNKUPDATE_PRIO_HIGH, 0);
+        }
+    }
 
     setShaderProg(shader_block);
 
@@ -2416,8 +2452,19 @@ bool startRenderer() {
     #else
     glfwSetFramebufferSizeCallback(rendinf.window, fbsize);
     #endif
+
+    glGenBuffers(1, &VBO2D);
+
     glGenRenderbuffers(1, &UIDBUF);
     glGenRenderbuffers(1, &DBUF);
+    glGenFramebuffers(1, &UIFBO);
+    glGenFramebuffers(1, &FBO);
+
+    glGenTextures(1, &UIFBTEX);
+    glGenTextures(1, &FBTEX);
+    glGenTextures(1, &texarrayh);
+    glGenTextures(1, &crosshairh);
+    glGenTextures(1, &charseth);
 
     setShaderProg(shader_block);
     glViewport(0, 0, rendinf.width, rendinf.height);
@@ -2428,8 +2475,6 @@ bool startRenderer() {
     glBlendEquation(GL_FUNC_ADD);
     //glEnable(GL_LINE_SMOOTH);
     //glLineWidth(3.0);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     swapBuffers();
 
     glEnable(GL_CULL_FACE);
@@ -2446,12 +2491,10 @@ bool startRenderer() {
     glEnableVertexAttribArray(2);
     glEnableVertexAttribArray(3);
 
-    if (!reloadRenderer()) return false;
-
     glClearColor(0, 0, 0.25, 1);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    updateCam();
-    setFullscreen(rendinf.fullscr);
+
+    if (!reloadRenderer()) return false;
 
     return true;
 }
