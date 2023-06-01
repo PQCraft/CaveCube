@@ -54,8 +54,8 @@
 - Render thread
 
 ### IN-PROGRESS:
-- Decust input
-    - Bind keys to actions instead of actions to keys
+- Improve input
+    - Allow for more than 2 keybinds
 - UI rewrite
 
 ### DONE:
