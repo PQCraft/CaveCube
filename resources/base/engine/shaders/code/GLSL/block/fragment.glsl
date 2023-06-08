@@ -1,5 +1,5 @@
 in vec2 texCoord;
-#ifndef SORTTRANSPARENT
+#ifndef OPT_SORTTRANSPARENT
 flat in uint transparency;
 #endif
 in vec3 fragPos;
@@ -16,7 +16,7 @@ uniform bool mipmap;
 out vec4 fragColor;
 
 void main() {
-    #ifndef SORTTRANSPARENT
+    #ifndef OPT_SORTTRANSPARENT
     vec2 dx, dy;
     if (mipmap && transparency != uint(1)) {
         dx = dFdx(texCoord);
@@ -37,5 +37,7 @@ void main() {
     float fogdmin = (float(dist) * 16.0) * fogNear;
     float fogdmax = (float(dist) * 16.0) * fogFar;
     fragColor.rgb *= light;
-    fragColor = mix(vec4(skycolor, fragColor.a), fragColor, clamp((fogdmax - fogdist) / (fogdmax - fogdmin), 0.0, 1.0));
+    float fogmix = 1.0 - clamp((fogdmax - fogdist) / (fogdmax - fogdmin), 0.0, 1.0);
+    fogmix = (fogmix * fogmix * fogmix - fogmix * fogmix * fogmix * fogmix * fogmix * fogmix * 0.5) * 2.0;
+    fragColor = mix(fragColor, vec4(skycolor, fragColor.a), fogmix);
 }

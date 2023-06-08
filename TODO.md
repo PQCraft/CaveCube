@@ -49,11 +49,14 @@
 ### MIGHT DO:
 - Implement bunny hopping after physics redo (resize AABB at bottom instead of top if in-air crouch)
 - Make mesher greedy
+- Make wiser use of VAOs
 - OG Xbox port
 - Make updateChunks() use a message list
 - Render thread
 
 ### IN-PROGRESS:
+- Renderer memory optimization
+    - Use an EBO
 - Improve input
     - Allow for more than 2 keybinds
 - UI rewrite

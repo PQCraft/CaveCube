@@ -83,7 +83,7 @@ static inline int rsock(sock_t sock, void* buf, int len) {
 }
 
 static inline int wsock(sock_t sock, void* buf, int len) {
-    int ret = send(sock, buf, len, 0);
+    int ret = send(sock, buf, len, MSG_NOSIGNAL);
     if (SOCKERR(ret)) {
         bool cond;
         #ifndef _WIN32

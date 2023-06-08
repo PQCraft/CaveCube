@@ -259,7 +259,7 @@ static void gameLoop() {
     reqChunks(rendinf.chunks);
     printf("Allocated chunks: [%d] [%d] [%d]\n", rendinf.chunks->info.dist, rendinf.chunks->info.width, rendinf.chunks->info.widthsq);
     rendinf.campos.y = 201.5;
-    setVisibility(0.5, 1.0);
+    setVisibility(0.0, 1.0);
     setScreenMult(1.0, 1.0, 1.0);
 
     int ui_hud = newUIElem(game_ui[UILAYER_CLIENT], UI_ELEM_CONTAINER, -1,

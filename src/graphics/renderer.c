@@ -1749,10 +1749,7 @@ void render() {
                         coord[1] = (int)(rendc / rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist;
                         setUniform2f(rendinf.shaderprog, "ccoord", coord);
                         glBindBuffer(GL_ARRAY_BUFFER, rendinf.chunks->renddata[rendc].VBO[0]);
-                        glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(0));
-                        glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(sizeof(uint32_t)));
-                        glVertexAttribIPointer(2, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * 2));
-                        glVertexAttribIPointer(3, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * 3));
+                        glVertexAttribIPointer(0, 4, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(0));
                         for (int y = 31; y >= 0; --y) {
                             if ((!debug_nocavecull && !(rendinf.chunks->renddata[rendc].visible & (1 << y))) || !rendinf.chunks->renddata[rendc].ytcount[y]) continue;
                             if (isVisible(&frust, corner1[0], y * 16.0, corner1[1], corner2[0], (y + 1) * 16.0, corner2[1])) {
@@ -1774,10 +1771,7 @@ void render() {
                     coord[1] = (int)(rendc / rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist;
                     setUniform2f(rendinf.shaderprog, "ccoord", coord);
                     glBindBuffer(GL_ARRAY_BUFFER, rendinf.chunks->renddata[rendc].VBO[1]);
-                    glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(0));
-                    glVertexAttribIPointer(1, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(sizeof(uint32_t)));
-                    glVertexAttribIPointer(2, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * 2));
-                    glVertexAttribIPointer(3, 1, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * 3));
+                    glVertexAttribIPointer(0, 4, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(0));
                     glDrawArrays(GL_TRIANGLES, 0, rendinf.chunks->renddata[rendc].tcount[1]);
                 }
             }
@@ -2142,7 +2136,7 @@ bool reloadRenderer() {
         return false;
     }
     if (sorttransparent) {
-        char* line = "#define SORTTRANSPARENT\n";
+        char* line = "#define OPT_SORTTRANSPARENT\n";
         int len = strlen(line);
         hdr->size += len;
         hdr->data = realloc(hdr->data, hdr->size);
@@ -2439,10 +2433,16 @@ bool startRenderer() {
     glGetIntegerv(GL_SMOOTH_LINE_WIDTH_RANGE, range);
     printf("GL_SMOOTH_LINE_WIDTH_RANGE: [%d, %d]\n", range[0], range[1]);
     #endif
+    #endif
     GLint texunits;
     glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &texunits);
     printf("GL_MAX_TEXTURE_IMAGE_UNITS: [%d]\n", texunits);
-    #endif
+    GLint texsize;
+    glGetIntegerv(GL_MAX_TEXTURE_SIZE, &texsize);
+    printf("GL_MAX_TEXTURE_SIZE: [%d]\n", texsize);
+    GLint64 ubosize;
+    glGetInteger64v(GL_MAX_UNIFORM_BLOCK_SIZE, &ubosize);
+    printf("GL_MAX_UNIFORM_BLOCK_SIZE: [%"PRId64"]\n", ubosize);
 
     printf("Display resolution: [%ux%u@%g]\n", rendinf.disp_width, rendinf.disp_height, rendinf.disphz);
     printf("Windowed resolution: [%ux%u@%g]\n", rendinf.win_width, rendinf.win_height, rendinf.win_fps);

@@ -1,11 +1,11 @@
 layout (location = 0) in uint data1;
-// ui elem: [16 bits: x][16 bits: y]
+// [16 bits: x][16 bits: y]
 layout (location = 1) in float data2;
-// ui elem: [f32: z]
+// [f32: z]
 layout (location = 2) in uint data3;
-// ui elem: [16 bits: texture x][16 bits: texture y]
+// [16 bits: texture x][16 bits: texture y]
 layout (location = 3) in uint data4;
-// ui elem: [8 bits: r][8 bits: g][8 bits: b][8 bits: a]
+// [8 bits: r][8 bits: g][8 bits: b][8 bits: a]
 uniform vec2 fbsize;
 uniform vec2 texsize;
 
