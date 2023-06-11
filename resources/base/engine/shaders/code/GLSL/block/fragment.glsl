@@ -4,7 +4,8 @@ flat in uint transparency;
 #endif
 in vec3 fragPos;
 in float texOffset;
-in vec3 light;
+in vec3 light[4];
+in vec2 corner;
 uniform vec3 skycolor;
 uniform sampler2DArray texData;
 uniform int dist;
@@ -36,8 +37,12 @@ void main() {
     float fogdist = distance(vec3(fragPos.x, abs(cam.y - fragPos.y) * 0.67, fragPos.z), vec3(cam.x, 0, cam.z));
     float fogdmin = (float(dist) * 16.0) * fogNear;
     float fogdmax = (float(dist) * 16.0) * fogFar;
-    fragColor.rgb *= light;
+    fragColor.rgb *= mix(mix(light[0], light[1], corner.x), mix(light[2], light[3], corner.x), corner.y);
     float fogmix = 1.0 - clamp((fogdmax - fogdist) / (fogdmax - fogdmin), 0.0, 1.0);
+    #ifdef OPT_FANCYFOG
     fogmix = (fogmix * fogmix * fogmix - fogmix * fogmix * fogmix * fogmix * fogmix * fogmix * 0.5) * 2.0;
+    #else
+    fogmix *= fogmix;
+    #endif
     fragColor = mix(fragColor, vec4(skycolor, fragColor.a), fogmix);
 }

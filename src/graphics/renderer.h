@@ -96,13 +96,13 @@ struct chunk_renddata {
     unsigned VBO[2];
     uint32_t vcount[2];
     uint32_t* vertices[2];
-    uint32_t tcount[2];
+    uint32_t qcount[2];
     uint32_t* sortvert;
     bool remesh[2];
     uint32_t yvoff[32];
     uint32_t yvcount[32];
-    uint32_t ytoff[32];
-    uint32_t ytcount[32];
+    uint32_t yqoff[32];
+    uint32_t yqcount[32];
     uint8_t vispass[32][6][6];
     uint32_t visible;
     bool visfull:1;

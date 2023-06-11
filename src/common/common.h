@@ -26,6 +26,7 @@ file_data getBinFile(char*);
 file_data getTextFile(char*);
 file_data catFiles(file_data, bool, file_data, bool);
 file_data catTextFiles(file_data, bool, file_data, bool);
+void addTextToFile(file_data*, char*);
 void freeFile(file_data);
 void getInfoVar(char*, char*, char*, long, char*);
 char* getInfoVarAlloc(char*, char*, char*, long);

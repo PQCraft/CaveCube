@@ -330,6 +330,15 @@ file_data catTextFiles(file_data file1, bool freefile1, file_data file2, bool fr
     return file;
 }
 
+// TODO: void addToFile(file_data* file, int count, unsigned char* data);
+
+void addTextToFile(file_data* file, char* str) {
+    int len = strlen(str);
+    file->size += len;
+    file->data = realloc(file->data, file->size);
+    strcat((char*)file->data, str);
+}
+
 void freeFile(file_data file) {
     if (file.data) free(file.data);
 }

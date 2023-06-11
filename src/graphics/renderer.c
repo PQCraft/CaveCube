@@ -37,6 +37,7 @@ static GLuint shader_framebuffer = 0;
 
 static unsigned VAO;
 static unsigned VBO2D;
+static unsigned EBO;
 
 static unsigned FBO;
 static unsigned FBTEX;
@@ -618,38 +619,22 @@ void updateChunk(int64_t x, int64_t z, int p, int updatelvl) {
     addMsg(&chunkmsgs[p], x, z, 0, false, updatelvl);
 }
 
-static uint32_t constBlockVert[4][6][6] = {
+static uint32_t constBlockVert[2][6][7] = {
     {
-        {0x00000F0F, 0x0F000F00, 0x0F000F0F, 0x0F000F00, 0x00000F0F, 0x00000F00}, // U
-        {0x0F000F00, 0x0F00000F, 0x0F000F0F, 0x0F00000F, 0x0F000F00, 0x0F000000}, // R
-        {0x0F000F0F, 0x0000000F, 0x00000F0F, 0x0000000F, 0x0F000F0F, 0x0F00000F}, // F
-        {0x00000000, 0x0F00000F, 0x0F000000, 0x0F00000F, 0x00000000, 0x0000000F}, // D
-        {0x00000F0F, 0x00000000, 0x00000F00, 0x00000000, 0x00000F0F, 0x0000000F}, // L
-        {0x00000F00, 0x0F000000, 0x0F000F00, 0x0F000000, 0x00000F00, 0x00000000}  // B
+        {0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000}, // U
+        {0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000}, // R
+        {0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000}, // F
+        {0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000}, // D
+        {0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000}, // L
+        {0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000}, // B
     },
     {
-        {0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000}, // U
-        {0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000}, // R
-        {0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000}, // F
-        {0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000}, // D
-        {0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000}, // L
-        {0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000}, // B
-    },
-    {
-        {0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000}, // U
-        {0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000}, // R
-        {0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000}, // F
-        {0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000}, // D
-        {0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000}, // L
-        {0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000}, // B
-    },
-    {
-        {0x0000000C, 0x0F0F001B, 0x0F00001E, 0x0F0F001B, 0x0000000C, 0x000F0009}, // U
-        {0x00000018, 0x0F0F0017, 0x0F00001E, 0x0F0F0017, 0x00000018, 0x000F0011}, // R
-        {0x0000001C, 0x0F0F0007, 0x0F00000E, 0x0F0F0007, 0x0000001C, 0x000F0015}, // F
-        {0x00000000, 0x0F0F0017, 0x0F000012, 0x0F0F0017, 0x00000000, 0x000F0005}, // D
-        {0x0000000C, 0x0F0F0003, 0x0F00000A, 0x0F0F0003, 0x0000000C, 0x000F0005}, // L
-        {0x00000008, 0x0F0F0013, 0x0F00001A, 0x0F0F0013, 0x00000008, 0x000F0001}, // B
+        {0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000}, // U
+        {0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000}, // R
+        {0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000}, // F
+        {0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000}, // D
+        {0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000}, // L
+        {0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000}, // B
     }
 };
 
@@ -659,27 +644,15 @@ static int light_n_tweak[6] = {0, 2, 1, 4, 2, 3};
 //static int light_n_tweak[6] = {0, 1, 1, 2, 1, 1};
 //static int light_n_tweak[6] = {0, 1, 1, 1, 1, 1};
 
-#define mtsetvert(_v, s, l, v, bv) {\
-    if (*l >= *s) {\
-        *s *= 2;\
-        *_v = realloc(*_v, *s * sizeof(**_v));\
-        *v = *_v + *l;\
-    }\
-    **v = bv;\
-    ++*v; ++*l;\
-}
-
-struct tricmp {
+struct quadcmp {
     float dist;
-    uint32_t data[12];
+    uint32_t data[11];
 };
-
 static int compare(const void* b, const void* a) {
-    float fa = ((struct tricmp*)a)->dist;
-    float fb = ((struct tricmp*)b)->dist;
+    float fa = ((struct quadcmp*)a)->dist;
+    float fb = ((struct quadcmp*)b)->dist;
     return (fa > fb) - (fa < fb);
 }
-
 static force_inline float dist3d(float x0, float y0, float z0, float x1, float y1, float z1) {
     float dx = x1 - x0;
     dx *= dx;
@@ -689,46 +662,44 @@ static force_inline float dist3d(float x0, float y0, float z0, float x1, float y
     dz *= dz;
     return sqrtf(dx + dy + dz);
 }
-
 //TODO: Optimize
 static force_inline void _sortChunk_inline(int32_t c, int xoff, int zoff, bool update) {
     if (c < 0) c = (xoff + rendinf.chunks->info.dist) + (rendinf.chunks->info.width - (zoff + rendinf.chunks->info.dist) - 1) * rendinf.chunks->info.width;
     if (update) {
-        if (!rendinf.chunks->renddata[c].visfull || !rendinf.chunks->renddata[c].sortvert || !rendinf.chunks->renddata[c].tcount[1]) return;
+        if (!rendinf.chunks->renddata[c].visfull || !rendinf.chunks->renddata[c].sortvert || !rendinf.chunks->renddata[c].qcount[1]) return;
         float camx = sc_camx - xoff * 16.0;
         float camy = sc_camy;
         float camz = sc_camz - zoff * 16.0;
-        int32_t tmpsize = rendinf.chunks->renddata[c].tcount[1] / 3;
-        struct tricmp* data = malloc(tmpsize * sizeof(struct tricmp));
+        int32_t tmpsize = rendinf.chunks->renddata[c].qcount[1];
+        struct quadcmp* data = malloc(tmpsize * sizeof(struct quadcmp));
         uint32_t* dptr = rendinf.chunks->renddata[c].sortvert;
         for (int i = 0; i < tmpsize; ++i) {
             uint32_t sv1;
-            uint32_t sv2;
             float vx, vy, vz;
             float dist = 0.0;
-            for (int j = 0; j < 3; ++j) {
-                data[i].data[j * 4] = sv1 = *dptr++;
-                data[i].data[j * 4 + 1] = *dptr++;
-                data[i].data[j * 4 + 2] = *dptr++;
-                data[i].data[j * 4 + 3] = sv2 = *dptr++;
-                vx = (float)((int)(((sv1 >> 24) & 255) + ((sv2 >> 4) & 1))) / 16.0 - 8.0;
-                vy = (float)((int)(((sv1 >> 8) & 65535) + ((sv2 >> 3) & 1))) / 16.0;
-                vz = (float)((int)((sv1 & 255) + ((sv2 >> 2) & 1))) / 16.0 - 8.0;
+            for (int j = 0; j < 4; ++j) {
+                data[i].data[j] = sv1 = *dptr++;
+                vx = (float)((int)(((sv1 >> 24) & 255) + ((sv1 >> 23) & 1))) / 16.0 - 8.0;
+                vy = (float)((int)(((sv1 >> 8) & 8191) + ((sv1 >> 22) & 1))) / 16.0;
+                vz = (float)((int)((sv1 & 255) + ((sv1 >> 21) & 1))) / 16.0 - 8.0;
                 float tmpdist = dist3d(camx, camy, camz, vx, vy, vz);
                 if (tmpdist > dist) dist = tmpdist;
             }
             data[i].dist = dist;
+            for (int j = 4; j < 11; ++j) {
+                data[i].data[j] = *dptr++;
+            }
         }
-        qsort(data, tmpsize, sizeof(struct tricmp), compare);
+        qsort(data, tmpsize, sizeof(struct quadcmp), compare);
         dptr = rendinf.chunks->renddata[c].sortvert;
         for (int i = 0; i < tmpsize; ++i) {
-            for (int j = 0; j < 12; ++j) {
+            for (int j = 0; j < 11; ++j) {
                 *dptr++ = data[i].data[j];
             }
         }
         free(data);
         glBindBuffer(GL_ARRAY_BUFFER, rendinf.chunks->renddata[c].VBO[1]);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, tmpsize * sizeof(uint32_t) * 4 * 3, rendinf.chunks->renddata[c].sortvert);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, tmpsize * sizeof(uint32_t) * 11, rendinf.chunks->renddata[c].sortvert);
     } else {
         rendinf.chunks->renddata[c].remesh[1] = true;
         rendinf.chunks->renddata[c].ready = true;
@@ -879,6 +850,25 @@ static void calcNLight(int cx, int cz, int maxy) {
     }
 }
 
+// X = 8, Y = 4, XY = C
+// Z = 2, XZ = A, YZ = 6, XYZ = E
+static const uint32_t constVertPos[6][4] = {
+    {0x00600F0F, 0x0FE00F0F, 0x00400F00, 0x0FC00F00}, // U
+    {0x0FC00F00, 0x0FE00F0F, 0x0F800000, 0x0FA0000F}, // R
+    {0x0FE00F0F, 0x00600F0F, 0x0FA0000F, 0x0020000F}, // F
+    {0x00000000, 0x0F800000, 0x0020000F, 0x0FA0000F}, // D
+    {0x00600F0F, 0x00400F00, 0x0020000F, 0x00000000}, // L
+    {0x00400F00, 0x0FC00F00, 0x00000000, 0x0F800000}  // B
+};
+#define maddvert(_v, s, l, v, bv) {\
+    if (*(l) >= *(s)) {\
+        *(s) *= 2;\
+        *(_v) = realloc(*(_v), *(s) * sizeof(**(_v)));\
+        *(v) = *(_v) + *(l);\
+    }\
+    **(v) = (bv);\
+    ++*(v); ++*(l);\
+}
 static void mesh(int64_t x, int64_t z, uint64_t id) {
     struct blockdata bdata;
     struct blockdata bdata2[6];
@@ -920,7 +910,15 @@ static void mesh(int64_t x, int64_t z, uint64_t id) {
     int vplen2 = 0;
     uint32_t* vptr = _vptr;
     uint32_t* vptr2 = _vptr2;
-    uint32_t baseVert[4];
+    struct {
+        uint32_t pos[4];
+        uint32_t texinf;
+        uint16_t texcoord[4];
+        uint32_t extexinf;
+        uint8_t texplus[4];
+        uint8_t light_n[4];
+        uint16_t light_rgb[4];
+    } vertData;
     //secttime[0] = altutime();
     nx = (x - rendinf.chunks->xoff) + rendinf.chunks->info.dist;
     nz = rendinf.chunks->info.width - ((z - rendinf.chunks->zoff) + rendinf.chunks->info.dist) - 1;
@@ -994,40 +992,82 @@ static void mesh(int64_t x, int64_t z, uint64_t id) {
                         }
                         if (bdata2id == BLOCKNO_BORDER) continue;
 
-                        baseVert[0] = ((x << 28) | (y << 12) | (z << 4)) & 0xF0FFF0F0;
+                        vertData.pos[0] = ((x << 28) | (y << 12) | (z << 4)) & 0xF01FF0F0;
+                        vertData.pos[1] = vertData.pos[0] | constVertPos[i][1];
+                        vertData.pos[2] = vertData.pos[0] | constVertPos[i][2];
+                        vertData.pos[3] = vertData.pos[0] | constVertPos[i][3];
+                        vertData.pos[0] |= constVertPos[i][0];
 
-                        int16_t light_n = bdgetlightn(bdata2[i]) - light_n_tweak[i];
+                        vertData.texinf = ((blockinf[bdataid].data[bdatasubid].texoff[i] << 16) & 0xFFFF0000);
+                        vertData.texinf |= ((blockinf[bdataid].data[bdatasubid].anict[i] << 8) & 0xFF00);
+                        vertData.texinf |= (blockinf[bdataid].data[bdatasubid].anidiv & 0xFF);
+
+                        vertData.texcoord[0] = 0x0000;
+                        vertData.texcoord[1] = 0x0F00;
+                        vertData.texcoord[2] = 0x000F;
+                        vertData.texcoord[3] = 0x0F0F;
+
+                        vertData.extexinf = (blockinf[bdataid].data[bdatasubid].transparency << 16);
+
+                        vertData.texplus[0] = 0x0;
+                        vertData.texplus[1] = 0x2;
+                        vertData.texplus[2] = 0x1;
+                        vertData.texplus[3] = 0x3;
+
+                        int8_t light_n = bdgetlightn(bdata2[i]) - light_n_tweak[i];
                         if (light_n < 0) light_n = 0;
-                        baseVert[1] = (bdgetlightr(bdata2[i]) << 24) | (bdgetlightg(bdata2[i]) << 16) | (bdgetlightb(bdata2[i]) << 8) | light_n;
+                        vertData.light_n[0] = light_n;
+                        vertData.light_n[1] = light_n;
+                        vertData.light_n[2] = light_n;
+                        vertData.light_n[3] = light_n;
 
-                        baseVert[2] = ((blockinf[bdataid].data[bdatasubid].texoff[i] << 16) & 0xFFFF0000);
-                        baseVert[2] |= ((blockinf[bdataid].data[bdatasubid].anict[i] << 8) & 0xFF00);
-                        baseVert[2] |= (blockinf[bdataid].data[bdatasubid].anidiv & 0xFF);
+                        int8_t light_r = bdgetlightr(bdata2[i]);
+                        int8_t light_g = bdgetlightg(bdata2[i]);
+                        int8_t light_b = bdgetlightb(bdata2[i]);
+                        vertData.light_rgb[0] = (light_r << 10) | (light_g << 5) | light_b;
+                        vertData.light_rgb[1] = vertData.light_rgb[0];
+                        vertData.light_rgb[2] = vertData.light_rgb[0];
+                        vertData.light_rgb[3] = vertData.light_rgb[0];
 
-                        baseVert[3] = blockinf[bdataid].data[bdatasubid].transparency << 8;
-
+                        #define pushvert(v) maddvert(&_vptr, &vpsize, &vplen, &vptr, (v))
+                        #define pushvert2(v) maddvert(&_vptr2, &vpsize2, &vplen2, &vptr2, (v))
                         if (blockinf[bdataid].data[bdatasubid].transparency >= 2) {
                             if (!bdata2id && blockinf[bdataid].data[bdatasubid].backfaces) {
-                                for (int j = 5; j >= 0; --j) {
-                                    mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert[0] | constBlockVert[0][i][j]);
-                                    mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert[1]/* | constBlockVert[1][i][j]*/);
-                                    mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert[2]/* | constBlockVert[2][i][j]*/);
-                                    mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert[3] | constBlockVert[3][i][j]);
-                                }
+                                pushvert2(vertData.pos[3]);
+                                pushvert2(vertData.pos[1]);
+                                pushvert2(vertData.pos[2]);
+                                pushvert2(vertData.pos[0]);
+                                pushvert2(vertData.texinf);
+                                pushvert2((vertData.texcoord[3] << 16) | vertData.texcoord[1]);
+                                pushvert2((vertData.texcoord[2] << 16) | vertData.texcoord[0]);
+                                pushvert2(vertData.extexinf | (vertData.texplus[3] << 6) | (vertData.texplus[1] << 4) | (vertData.texplus[2] << 2) | vertData.texplus[0]);
+                                pushvert2((vertData.light_n[3] << 24) | (vertData.light_n[1] << 16) | (vertData.light_n[2] << 8) | vertData.light_n[0]);
+                                pushvert2((vertData.light_rgb[3] << 16) | vertData.light_rgb[1]);
+                                pushvert2((vertData.light_rgb[2] << 16) | vertData.light_rgb[0]);
                             }
-                            for (int j = 0; j < 6; ++j) {
-                                mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert[0] | constBlockVert[0][i][j]);
-                                mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert[1]/* | constBlockVert[1][i][j]*/);
-                                mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert[2]/* | constBlockVert[2][i][j]*/);
-                                mtsetvert(&_vptr2, &vpsize2, &vplen2, &vptr2, baseVert[3] | constBlockVert[3][i][j]);
-                            }
+                            pushvert2(vertData.pos[0]);
+                            pushvert2(vertData.pos[1]);
+                            pushvert2(vertData.pos[2]);
+                            pushvert2(vertData.pos[3]);
+                            pushvert2(vertData.texinf);
+                            pushvert2((vertData.texcoord[0] << 16) | vertData.texcoord[1]);
+                            pushvert2((vertData.texcoord[2] << 16) | vertData.texcoord[3]);
+                            pushvert2(vertData.extexinf | (vertData.texplus[0] << 6) | (vertData.texplus[1] << 4) | (vertData.texplus[2] << 2) | vertData.texplus[3]);
+                            pushvert2((vertData.light_n[0] << 24) | (vertData.light_n[1] << 16) | (vertData.light_n[2] << 8) | vertData.light_n[3]);
+                            pushvert2((vertData.light_rgb[0] << 16) | vertData.light_rgb[1]);
+                            pushvert2((vertData.light_rgb[2] << 16) | vertData.light_rgb[3]);
                         } else {
-                            for (int j = 0; j < 6; ++j) {
-                                mtsetvert(&_vptr, &vpsize, &vplen, &vptr, baseVert[0] | constBlockVert[0][i][j]);
-                                mtsetvert(&_vptr, &vpsize, &vplen, &vptr, baseVert[1]/* | constBlockVert[1][i][j]*/);
-                                mtsetvert(&_vptr, &vpsize, &vplen, &vptr, baseVert[2]/* | constBlockVert[2][i][j]*/);
-                                mtsetvert(&_vptr, &vpsize, &vplen, &vptr, baseVert[3] | constBlockVert[3][i][j]);
-                            }
+                            pushvert(vertData.pos[0]);
+                            pushvert(vertData.pos[1]);
+                            pushvert(vertData.pos[2]);
+                            pushvert(vertData.pos[3]);
+                            pushvert(vertData.texinf);
+                            pushvert((vertData.texcoord[0] << 16) | vertData.texcoord[1]);
+                            pushvert((vertData.texcoord[2] << 16) | vertData.texcoord[3]);
+                            pushvert(vertData.extexinf | (vertData.texplus[0] << 6) | (vertData.texplus[1] << 4) | (vertData.texplus[2] << 2) | vertData.texplus[3]);
+                            pushvert((vertData.light_n[0] << 24) | (vertData.light_n[1] << 16) | (vertData.light_n[2] << 8) | vertData.light_n[3]);
+                            pushvert((vertData.light_rgb[0] << 16) | vertData.light_rgb[1]);
+                            pushvert((vertData.light_rgb[2] << 16) | vertData.light_rgb[3]);
                         }
                     }
                 }
@@ -1330,11 +1370,11 @@ void updateChunks() {
         if (rendinf.chunks->renddata[c].remesh[0]) {
             uint32_t tmpsize = rendinf.chunks->renddata[c].vcount[0] * sizeof(uint32_t);
             glBindBuffer(GL_ARRAY_BUFFER, rendinf.chunks->renddata[c].VBO[0]);
-            glBufferData(GL_ARRAY_BUFFER, tmpsize, rendinf.chunks->renddata[c].vertices[0], GL_STATIC_DRAW);
-            rendinf.chunks->renddata[c].tcount[0] = rendinf.chunks->renddata[c].vcount[0] / 4;
+            glBufferData(GL_ARRAY_BUFFER, tmpsize, rendinf.chunks->renddata[c].vertices[0], GL_DYNAMIC_DRAW);
+            rendinf.chunks->renddata[c].qcount[0] = rendinf.chunks->renddata[c].vcount[0] / 11;
             for (int i = 0; i < 32; ++i) {
-                rendinf.chunks->renddata[c].ytoff[i] = rendinf.chunks->renddata[c].yvoff[i] / 4;
-                rendinf.chunks->renddata[c].ytcount[i] = rendinf.chunks->renddata[c].yvcount[i] / 4;
+                rendinf.chunks->renddata[c].yqoff[i] = rendinf.chunks->renddata[c].yvoff[i] / 11;
+                rendinf.chunks->renddata[c].yqcount[i] = rendinf.chunks->renddata[c].yvcount[i] / 11;
             }
             free(rendinf.chunks->renddata[c].vertices[0]);
             rendinf.chunks->renddata[c].vertices[0] = NULL;
@@ -1346,7 +1386,7 @@ void updateChunks() {
             uint32_t tmpsize = rendinf.chunks->renddata[c].vcount[1] * sizeof(uint32_t);
             glBindBuffer(GL_ARRAY_BUFFER, rendinf.chunks->renddata[c].VBO[1]);
             glBufferData(GL_ARRAY_BUFFER, tmpsize, rendinf.chunks->renddata[c].vertices[1], GL_DYNAMIC_DRAW);
-            rendinf.chunks->renddata[c].tcount[1] = rendinf.chunks->renddata[c].vcount[1] / 4;
+            rendinf.chunks->renddata[c].qcount[1] = rendinf.chunks->renddata[c].vcount[1] / 11;
             rendinf.chunks->renddata[c].sortvert = realloc(rendinf.chunks->renddata[c].sortvert, tmpsize);
             memcpy(rendinf.chunks->renddata[c].sortvert, rendinf.chunks->renddata[c].vertices[1], tmpsize);
             rendinf.chunks->renddata[c].remesh[1] = false;
@@ -1611,7 +1651,7 @@ void render() {
         glEnable(GL_BLEND);
         static uint64_t aMStart = 0;
         if (!aMStart) aMStart = altutime();
-        glUniform1ui(glGetUniformLocation(rendinf.shaderprog, "aniMult"), (aMStart - altutime()) / 10000);
+        glUniform1ui(glGetUniformLocation(rendinf.shaderprog, "aniMult"), (uint64_t)(altutime() - aMStart) / 10000);
         glUniform1i(glGetUniformLocation(rendinf.shaderprog, "dist"), rendinf.chunks->info.dist);
         setUniform3f(rendinf.shaderprog, "cam", (float[]){rendinf.campos.x, rendinf.campos.y, -rendinf.campos.z});
 
@@ -1734,6 +1774,10 @@ void render() {
         glEnable(GL_CULL_FACE);
         glDisable(GL_BLEND);
         if (debug_wireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+        glVertexAttribDivisor(0, 1);
+        glVertexAttribDivisor(1, 1);
+        glVertexAttribDivisor(2, 1);
         for (int32_t c = rendinf.chunks->info.widthsq - 1; c >= 0; --c) {
             rendc = rendinf.chunks->rordr[c].c;
             coord[0] = (int)(rendc % rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist;
@@ -1744,17 +1788,20 @@ void render() {
             corner2[1] = coord[1] * 16.0 - 8.0;
             if ((rendinf.chunks->renddata[rendc].visfull = isVisible(&frust, corner1[0], 512.0, corner1[1], corner2[0], 0.0, corner2[1]))) {
                 if (rendinf.chunks->renddata[rendc].buffered) {
-                    if (rendinf.chunks->renddata[rendc].tcount[0]) {
+                    if (rendinf.chunks->renddata[rendc].qcount[0]) {
                         coord[0] = (int)(rendc % rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist;
                         coord[1] = (int)(rendc / rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist;
                         setUniform2f(rendinf.shaderprog, "ccoord", coord);
                         glBindBuffer(GL_ARRAY_BUFFER, rendinf.chunks->renddata[rendc].VBO[0]);
-                        glVertexAttribIPointer(0, 4, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(0));
                         for (int y = 31; y >= 0; --y) {
-                            if ((!debug_nocavecull && !(rendinf.chunks->renddata[rendc].visible & (1 << y))) || !rendinf.chunks->renddata[rendc].ytcount[y]) continue;
+                            if ((!debug_nocavecull && !(rendinf.chunks->renddata[rendc].visible & (1 << y))) || !rendinf.chunks->renddata[rendc].yqcount[y]) continue;
                             if (isVisible(&frust, corner1[0], y * 16.0, corner1[1], corner2[0], (y + 1) * 16.0, corner2[1])) {
                                 //printf("REND OPAQUE: [%d]:[%d]\n", rendc, y);
-                                glDrawArrays(GL_TRIANGLES, rendinf.chunks->renddata[rendc].ytoff[y], rendinf.chunks->renddata[rendc].ytcount[y]);
+                                int off = rendinf.chunks->renddata[rendc].yqoff[y] * 11;
+                                glVertexAttribIPointer(0, 4, GL_UNSIGNED_INT, 11 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * off));
+                                glVertexAttribIPointer(1, 4, GL_UNSIGNED_INT, 11 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * (4 + off)));
+                                glVertexAttribIPointer(2, 3, GL_UNSIGNED_INT, 11 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * (8 + off)));
+                                glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, rendinf.chunks->renddata[rendc].yqcount[y]);
                             }
                         }
                     }
@@ -1766,17 +1813,23 @@ void render() {
         for (int32_t c = 0; c < (int)rendinf.chunks->info.widthsq; ++c) {
             rendc = rendinf.chunks->rordr[c].c;
             if (rendinf.chunks->renddata[rendc].visfull && rendinf.chunks->renddata[rendc].buffered) {
-                if (rendinf.chunks->renddata[rendc].tcount[1]) {
+                if (rendinf.chunks->renddata[rendc].qcount[1]) {
                     coord[0] = (int)(rendc % rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist;
                     coord[1] = (int)(rendc / rendinf.chunks->info.width) - (int)rendinf.chunks->info.dist;
                     setUniform2f(rendinf.shaderprog, "ccoord", coord);
                     glBindBuffer(GL_ARRAY_BUFFER, rendinf.chunks->renddata[rendc].VBO[1]);
-                    glVertexAttribIPointer(0, 4, GL_UNSIGNED_INT, 4 * sizeof(uint32_t), (void*)(0));
-                    glDrawArrays(GL_TRIANGLES, 0, rendinf.chunks->renddata[rendc].tcount[1]);
+                    glVertexAttribIPointer(0, 4, GL_UNSIGNED_INT, 11 * sizeof(uint32_t), (void*)(0));
+                    glVertexAttribIPointer(1, 4, GL_UNSIGNED_INT, 11 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * 4));
+                    glVertexAttribIPointer(2, 3, GL_UNSIGNED_INT, 11 * sizeof(uint32_t), (void*)(sizeof(uint32_t) * 8));
+                    glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, rendinf.chunks->renddata[rendc].qcount[1]);
                 }
             }
         }
         glDepthMask(true);
+        glVertexAttribDivisor(0, 0);
+        glVertexAttribDivisor(1, 0);
+        glVertexAttribDivisor(2, 0);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
         if (debug_wireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
 
@@ -1895,6 +1948,7 @@ bool initRenderer() {
     declareConfigKey(config, "Renderer", "lazyMesher", "false", false);
     declareConfigKey(config, "Renderer", "sortTransparent", "true", false);
     declareConfigKey(config, "Renderer", "caveCullLevel", "1", false);
+    declareConfigKey(config, "Renderer", "fancyFog", "true", false);
     declareConfigKey(config, "Renderer", "mesherThreadsMax", "1", false);
 
     rendinf.campos = GFX_DEFAULT_POS;
@@ -2125,30 +2179,39 @@ static unsigned charseth;
 
 bool reloadRenderer() {
     bool sorttransparent = getBool(getConfigKey(config, "Renderer", "sortTransparent"));
+    bool fancyfog = getBool(getConfigKey(config, "Renderer", "fancyFog"));
     #if defined(USEGLES)
     char* hdrpath = "engine/shaders/headers/OpenGL ES/header.glsl";
     #else
     char* hdrpath = "engine/shaders/headers/OpenGL/header.glsl";
     #endif
-    file_data* hdr = loadResource(RESOURCE_TEXTFILE, hdrpath);
-    if (!hdr) {
+    file_data* _hdr = loadResource(RESOURCE_TEXTFILE, hdrpath);
+    if (!_hdr) {
         fputs("reloadRenderer: Failed to load shader header\n", stderr);
         return false;
     }
+    file_data hdr;
+    hdr.size = _hdr->size;
+    hdr.data = (unsigned char*)strdup((char*)_hdr->data);
+    freeResource(_hdr);
+    #if defined(USEGLES)
+    addTextToFile(&hdr, "#define USEGLES\n");
+    #endif
     if (sorttransparent) {
-        char* line = "#define OPT_SORTTRANSPARENT\n";
-        int len = strlen(line);
-        hdr->size += len;
-        hdr->data = realloc(hdr->data, hdr->size);
-        strcat((char*)hdr->data, line);
+        addTextToFile(&hdr, "#define OPT_SORTTRANSPARENT\n");
     }
+    if (fancyfog) {
+        addTextToFile(&hdr, "#define OPT_FANCYFOG\n");
+    }
+    addTextToFile(&hdr, "#line 1\n");
 
-    if (!makeShader(hdr, "block", NULL, &shader_block)) return false;
-    if (!makeShader(hdr, "2D", "2d", &shader_2d)) return false;
-    if (!makeShader(hdr, "UI", "ui", &shader_ui)) return false;
-    if (!makeShader(hdr, "text", NULL, &shader_text)) return false;
-    if (!makeShader(hdr, "framebuffer", NULL, &shader_framebuffer)) return false;
-    freeResource(hdr);
+    if (!makeShader(&hdr, "block", NULL, &shader_block)) return false;
+    if (!makeShader(&hdr, "2D", "2d", &shader_2d)) return false;
+    if (!makeShader(&hdr, "UI", "ui", &shader_ui)) return false;
+    if (!makeShader(&hdr, "text", NULL, &shader_text)) return false;
+    if (!makeShader(&hdr, "framebuffer", NULL, &shader_framebuffer)) return false;
+
+    free(hdr.data);
 
     int gltex = GL_TEXTURE0;
 
@@ -2295,9 +2358,6 @@ bool reloadRenderer() {
         glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     }
     free(texarray);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO2D);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vert2D), vert2D, GL_STATIC_DRAW);
 
     setShaderProg(shader_2d);
     glUniform1i(glGetUniformLocation(rendinf.shaderprog, "texData"), gltex - GL_TEXTURE0);
@@ -2454,6 +2514,14 @@ bool startRenderer() {
     #endif
 
     glGenBuffers(1, &VBO2D);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO2D);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vert2D), vert2D, GL_STATIC_DRAW);
+
+    glGenBuffers(1, &EBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    uint32_t indices[] = {0, 2, 3, 3, 1, 0};
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
     glGenRenderbuffers(1, &UIDBUF);
     glGenRenderbuffers(1, &DBUF);

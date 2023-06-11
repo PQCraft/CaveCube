@@ -210,8 +210,8 @@ static inline void nullattrib(struct chunkdata* chunks, int c) {
     if (chunks->renddata[c].generated) {
         chunks->renddata[c].vcount[0] = 0;
         chunks->renddata[c].vcount[1] = 0;
-        chunks->renddata[c].tcount[0] = 0;
-        chunks->renddata[c].tcount[1] = 0;
+        chunks->renddata[c].qcount[0] = 0;
+        chunks->renddata[c].qcount[1] = 0;
         chunks->renddata[c].buffered = false;
         chunks->renddata[c].generated = false;
     }

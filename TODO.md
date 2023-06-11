@@ -2,6 +2,7 @@
 - Next version: 0.7.0
 
 ### NEED TO DO:
+- Decrustify file_data, `common.c`, and `resource.c`
 - Figure out how to build the Android APK from the command line when using `make`
 - Make server executable work again
 - Palette compression
@@ -55,8 +56,6 @@
 - Render thread
 
 ### IN-PROGRESS:
-- Renderer memory optimization
-    - Use an EBO
 - Improve input
     - Allow for more than 2 keybinds
 - UI rewrite
@@ -74,3 +73,4 @@
 - Improve image resource loading
 - Improved mouse input when using SDL2
 - Added Android support
+- Use instancing in order to save VRAM
