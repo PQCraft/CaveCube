@@ -5,22 +5,22 @@
                 <Player data>
             ...
     client/
-        world.cdb
-            info/
-                name
+        world.cdb 
+            info
+                .name
                     <char[]: World name (Not null-terminated)>
-                version
+                .version
                     <uint16_t: Major><uint16_t: Minor><uint16_t: Patch>
-                seed
+                .seed
                     <uint64_t: Seed>
-                dates
+                .dates
                     <uint64_t: Creation date in Unix seconds><uint64_t: Modification date in Unix seconds>
-                playtime
+                .playtime
                     <uint64_t: Playtime in seconds>
-            chunks/
-                [Dimension text ID]/
-                    <"%016"PRIX64: Chunk X><"%016"PRIX64: Chunk Z>/
-                        data
+            chunks
+                .[Dimension text ID]
+                    .<"%016"PRIX64: Chunk X><"%016"PRIX64: Chunk Z>
+                        .data
                             <uint32_t: Size of compressed chunk data>
                             <uint8_t[]: Compressed chunk data>
                                 <uint8_t: Max palette (0 - 15)>
@@ -31,7 +31,7 @@
                                 <uint32_t[131072]: Palette indices and light>
                                     <20 bits: 0>
                                     <12 bits: index> (i = 0 is air, i = 1... is pallete[i - 1])
-                        vars/
+                        .vars
                             <"%03X": Block Y>
                                 <uint32_t: Size of compressed var data>
                                 <uint8_t[]: Compressed var data>
@@ -39,15 +39,15 @@
                                         <uint8_t: # of vars>
                                         [<char[...0]: Var name><char[...0]: Var data>]...
                 ...
-            entities/
-                ["%016"PRIX64: Entity ID]/
-                    basedata (Data that is the same for all entities)
+            entities
+                .["%016"PRIX64: Entity ID]
+                    .basedata (Data that is the same for all entities)
                         <Data>
-                    data (Data specific to that entity)
+                    .data (Data specific to that entity)
                         <Data>
                 ...
-            gamevars/
-                [Var name]
+            gamevars
+                .[Var name]
                     <Var data>
                 ...
         info.inf

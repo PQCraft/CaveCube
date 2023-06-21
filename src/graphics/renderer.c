@@ -2053,9 +2053,9 @@ bool makeShader(file_data* hdr, char* name, char* dirname, GLuint* shader) {
     if (*shader) glDeleteProgram(*shader);
     printf("Compiling %s shader...\n", name);
     static char tmpbuf[MAX_PATH];
-    snprintf(tmpbuf, MAX_PATH, "engine/shaders/code/GLSL/%s/vertex.glsl", dirname);
+    snprintf(tmpbuf, MAX_PATH, "engine/shaders/GLSL/vertex/%s.glsl", dirname);
     file_data* vs = loadResource(RESOURCE_TEXTFILE, tmpbuf);
-    snprintf(tmpbuf, MAX_PATH, "engine/shaders/code/GLSL/%s/fragment.glsl", dirname);
+    snprintf(tmpbuf, MAX_PATH, "engine/shaders/GLSL/fragment/%s.glsl", dirname);
     file_data* fs = loadResource(RESOURCE_TEXTFILE, tmpbuf);
     if (!vs || !fs || !makeShaderProg((char*)hdr->data, (char*)vs->data, (char*)fs->data, shader)) {
         putchar('\n');
@@ -2181,9 +2181,9 @@ bool reloadRenderer() {
     bool sorttransparent = getBool(getConfigKey(config, "Renderer", "sortTransparent"));
     bool fancyfog = getBool(getConfigKey(config, "Renderer", "fancyFog"));
     #if defined(USEGLES)
-    char* hdrpath = "engine/shaders/headers/OpenGL ES/header.glsl";
+    char* hdrpath = "engine/shaders/headers/OpenGL ES.glsl";
     #else
-    char* hdrpath = "engine/shaders/headers/OpenGL/header.glsl";
+    char* hdrpath = "engine/shaders/headers/OpenGL.glsl";
     #endif
     file_data* _hdr = loadResource(RESOURCE_TEXTFILE, hdrpath);
     if (!_hdr) {

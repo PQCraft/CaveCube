@@ -68,13 +68,5 @@ void main() {
     light[2] += getLight(2, 26, 21, 16);
     light[3] += getLight(2, 10, 5, 0);
     fragPos += vec3(ccoord.x, 0.0, ccoord.y) * 16.0;
-    /*
-    if (fragPos.x == 0.0 || fragPos.z == 0.0) {
-        light[0] = vec3(0.0);
-        light[1] = vec3(0.0);
-        light[2] = vec3(0.0);
-        light[3] = vec3(0.0);
-    }
-    */
     gl_Position = projection * view * vec4(fragPos, 1.0);
 }

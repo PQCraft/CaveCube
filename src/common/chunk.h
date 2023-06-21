@@ -6,12 +6,11 @@
 #include <inttypes.h>
 
 struct __attribute__((packed)) blockdata {
-    uint8_t data[6];
+    uint8_t data[5];
 };
 // <8 bits: id>
-// <2 bits: 0><6 bits: subid>
-// <2 bits: 0><2 bits: X rotation><2 bits: Y rotation><2 bits: Z rotation>
-// <4 bits: 0><1 bit: nat light top bit><1 bit: light r top bit><1 bit: light g top bit><1 bit: light b top bit>
+// <2 bits: X rotation><6 bits: subid>
+// <2 bits: Y rotation><2 bits: Z rotation><1 bit: nat light top bit><1 bit: light r top bit><1 bit: light g top bit><1 bit: light b top bit>
 // <4 bits: nat light bottom bits><4 bits: light r bottom bits>
 // <4 bits: light g bottom bits><4 bits: light b bottom bits>
 
@@ -19,76 +18,72 @@ static force_inline uint8_t bdgetid(struct blockdata b) {
     return b.data[0];
 }
 static force_inline uint8_t bdgetsubid(struct blockdata b) {
-    //return d->data[1] & 0b00111111;
-    return b.data[1];
+    return b.data[1] & 0x3F;
 }
 static force_inline uint8_t bdgetrotx(struct blockdata b) {
-    return (b.data[2] & 0b00110000) >> 4;
+    return (b.data[1] >> 6) & 0x03;
 }
 static force_inline uint8_t bdgetroty(struct blockdata b) {
-    return (b.data[2] & 0b00001100) >> 2;
+    return (b.data[2] >> 6) & 0x03;
 }
 static force_inline uint8_t bdgetrotz(struct blockdata b) {
-    return b.data[2] & 0b00000011;
+    return (b.data[2] >> 4) & 0x03;
 }
 static force_inline uint8_t bdgetlightn(struct blockdata b) {
-    return ((b.data[3] & 0b00001000) << 1) | ((b.data[4] >> 4) & 0b00001111);
+    return ((b.data[2] & 0x08) << 1) | ((b.data[3] >> 4) & 0x0F);
 }
 static force_inline uint8_t bdgetlightr(struct blockdata b) {
-    return ((b.data[3] & 0b00000100) << 2) | (b.data[4] & 0b00001111);
+    return ((b.data[2] & 0x04) << 2) | (b.data[3] & 0x0F);
 }
 static force_inline uint8_t bdgetlightg(struct blockdata b) {
-    return ((b.data[3] & 0b00000010) << 1) | ((b.data[5] >> 4) & 0b00001111);
+    return ((b.data[2] & 0x02) << 3) | ((b.data[4] >> 4) & 0x0F);
 }
 static force_inline uint8_t bdgetlightb(struct blockdata b) {
-    return ((b.data[3] & 0b00000001) << 2) | (b.data[5] & 0b00001111);
+    return ((b.data[2] & 0x01) << 4) | (b.data[4] & 0x0F);
 }
 
 static force_inline void bdsetid(struct blockdata* b, uint8_t d) {
     b->data[0] = d;
 }
 static force_inline void bdsetsubid(struct blockdata* b, uint8_t d) {
-    //b->data[1] = d & 0b00111111;
-    b->data[1] = d;
+    b->data[1] &= 0xC0;
+    b->data[1] |= d /*& 0x3F*/;
 }
 static force_inline void bdsetrotx(struct blockdata* b, uint8_t d) {
-    b->data[2] &= 0b11001111;
-    //b->data[2] |= (d & 0b00000011) << 4;
-    b->data[2] |= d << 4;
+    b->data[1] &= 0x3F;
+    b->data[1] |= (d << 6) /*& 0xC0*/;
 }
 static force_inline void bdsetroty(struct blockdata* b, uint8_t d) {
-    b->data[2] &= 0b11110011;
-    //b->data[2] |= (d & 0b00000011) << 2;
-    b->data[2] |= d << 2;
+    b->data[2] &= 0x3F;
+    b->data[2] |= (d << 6) /*& 0xC0*/;
 }
 static force_inline void bdsetrotz(struct blockdata* b, uint8_t d) {
-    b->data[2] &= 0b11111100;
-    //b->data[2] |= d & 0b00000011;
-    b->data[2] |= d;
+    b->data[2] &= 0xCF;
+    b->data[2] |= (d << 4) /*& 0x30*/;
 }
 static force_inline void bdsetlightn(struct blockdata* b, uint8_t d) {
-    b->data[3] &= 0b11110111;
-    b->data[3] |= (d & 0b00010000) >> 1;
-    b->data[4] &= 0b00001111;
-    b->data[4] |= (d & 0b00001111) << 4;
+    b->data[2] &= 0xF7;
+    b->data[2] |= (d & 0x10) >> 1;
+    b->data[3] &= 0x0F;
+    b->data[3] |= (d & 0x0F) << 4;
 }
 static force_inline void bdsetlightr(struct blockdata* b, uint8_t d) {
-    b->data[3] &= 0b11111011;
-    b->data[3] |= (d & 0b00010000) >> 2;
-    b->data[4] &= 0b11110000;
-    b->data[4] |= d & 0b00001111;
+    b->data[2] &= 0xFB;
+    b->data[2] |= (d & 0x10) >> 2;
+    b->data[3] &= 0xF0;
+    b->data[3] |= d & 0x0F;
 }
 static force_inline void bdsetlightg(struct blockdata* b, uint8_t d) {
-    b->data[3] &= 0b11111101;
-    b->data[3] |= (d & 0b00010000) >> 3;
-    b->data[5] &= 0b00001111;
-    b->data[5] |= (d & 0b00001111) << 4;
+    b->data[2] &= 0xFD;
+    b->data[2] |= (d & 0x10) >> 3;
+    b->data[4] &= 0x0F;
+    b->data[4] |= (d & 0x0F) << 4;
 }
 static force_inline void bdsetlightb(struct blockdata* b, uint8_t d) {
-    b->data[3] &= 0b11111110;
-    b->data[3] |= (d & 0b00010000) >> 4;
-    b->data[5] &= 0b11110000;
-    b->data[5] |= d & 0b00001111;
+    b->data[2] &= 0xFE;
+    b->data[2] |= (d & 0x10) >> 4;
+    b->data[4] &= 0xF0;
+    b->data[4] |= d & 0x0F;
 }
 static force_inline void bdsetlightrgb(struct blockdata* b, uint8_t dr, uint8_t dg, uint8_t db) {
     bdsetlightr(b, dr);

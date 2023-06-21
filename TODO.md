@@ -2,16 +2,11 @@
 - Next version: 0.7.0
 
 ### NEED TO DO:
+- Improve input
+    - Allow for more than 2 keybinds
 - Decrustify file_data, `common.c`, and `resource.c`
 - Figure out how to build the Android APK from the command line when using `make`
 - Make server executable work again
-- Palette compression
-    - Each 16x16x16 section of a chunk has its own palette
-    - `uint32_t` index
-        - Top 20 bits contain lighting info
-        - bottom 12 bits contain the index
-    - Add palette sharing as an option
-        - May not reduce memory usage by a lot and may use a lot of CPU in return
 - CCScript
 - Decrustify server message UUID and pdata validity checks
 - Implement server chunk cache/pool
@@ -49,6 +44,7 @@
 
 ### MIGHT DO:
 - Implement bunny hopping after physics redo (resize AABB at bottom instead of top if in-air crouch)
+- Palette compression
 - Make mesher greedy
 - Make wiser use of VAOs
 - OG Xbox port
@@ -56,9 +52,7 @@
 - Render thread
 
 ### IN-PROGRESS:
-- Improve input
-    - Allow for more than 2 keybinds
-- UI rewrite
+- Implement rest of UI
 
 ### DONE:
 - Made natural light monochrome to save bits
