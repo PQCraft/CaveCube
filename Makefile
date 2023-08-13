@@ -238,7 +238,7 @@ ifndef MKSUB
         endif
     endif
     ifeq ($(CROSS),)
-        BINFLAGS += -pthread -lpthread
+        BINFLAGS += -pthread -lpthread -ldl
     else ifeq ($(CROSS),win32)
         BINFLAGS += -pthread -l:libwinpthread.a
     else ifeq ($(CROSS),emscr)

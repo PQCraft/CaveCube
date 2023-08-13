@@ -1977,9 +1977,11 @@ bool initRenderer() {
     #if defined(USEGLES)
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
     #else
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
     #endif
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
@@ -2226,7 +2228,7 @@ bool reloadRenderer() {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, rendinf.width, rendinf.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, UIFBTEX, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, UIFBTEX, 0);
 
     puts("Creating game framebuffer...");
     glBindRenderbuffer(GL_RENDERBUFFER, DBUF);
@@ -2239,7 +2241,7 @@ bool reloadRenderer() {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, rendinf.width, rendinf.height, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, FBTEX, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, FBTEX, 0);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -2501,8 +2503,10 @@ bool startRenderer() {
     glGetIntegerv(GL_MAX_TEXTURE_SIZE, &texsize);
     printf("GL_MAX_TEXTURE_SIZE: [%d]\n", texsize);
     GLint64 ubosize;
+    #ifndef USEGLES
     glGetInteger64v(GL_MAX_UNIFORM_BLOCK_SIZE, &ubosize);
     printf("GL_MAX_UNIFORM_BLOCK_SIZE: [%"PRId64"]\n", ubosize);
+    #endif
 
     printf("Display resolution: [%ux%u@%g]\n", rendinf.disp_width, rendinf.disp_height, rendinf.disphz);
     printf("Windowed resolution: [%ux%u@%g]\n", rendinf.win_width, rendinf.win_height, rendinf.win_fps);
