@@ -9,6 +9,10 @@
 #ifndef _WIN32
     #include <sys/fcntl.h>
     #include <arpa/inet.h>
+    #ifdef __FreeBSD__
+        #include <sys/socket.h>
+        #include <netinet/in.h>
+    #endif
     #define PRIsock "d"
 #else
     #include <winsock2.h>

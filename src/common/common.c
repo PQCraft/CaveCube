@@ -18,6 +18,10 @@
 #ifdef _WIN32
     #include <windows.h>
 #endif
+#ifdef __FreeBSD__
+    #include <sys/types.h>
+    #include <sys/sysctl.h>
+#endif
 
 #include <common/glue.h>
 
@@ -134,7 +138,7 @@ char* execpath() {
                 sysctl(mib, 4, epbuf, &cb, NULL, 0);
                 char* tmpstartcmd = realpath(epbuf, NULL);
                 strcpy(epbuf, tmpstartcmd);
-                nfree(tmpstartcmd);
+                free(tmpstartcmd);
             #endif
         #else
             uint32_t tmpsize = MAX_PATH;
@@ -144,7 +148,7 @@ char* execpath() {
             
             char* tmpstartcmd = realpath(epbuf, NULL);
             strcpy(epbuf, tmpstartcmd);
-            nfree(tmpstartcmd);
+            free(tmpstartcmd);
         #endif
     #else
         if (!GetModuleFileName(NULL, epbuf, MAX_PATH)) {
